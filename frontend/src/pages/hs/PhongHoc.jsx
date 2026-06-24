@@ -80,6 +80,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
     thoi_gian_giay: null,
     buoc_mo_ta: null,
     tong_buoc: null,
+    cho_chon_dap_an: null,
   })
   const [dangGui, setDangGui] = useState(false)
   const chatRef = useRef(null)
@@ -107,6 +108,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             thoi_gian_giay: ct.thoi_gian_giay,
             buoc_mo_ta: ct.buoc_mo_ta ?? null,
             tong_buoc: ct.tong_buoc ?? null,
+            cho_chon_dap_an: ct.cho_chon_dap_an ?? null,
           })
         } else {
           const p = await api.getProblem(problemId)
@@ -125,6 +127,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             thoi_gian_giay: null,
             buoc_mo_ta: phien.buoc_mo_ta ?? null,
             tong_buoc: phien.tong_buoc ?? null,
+            cho_chon_dap_an: phien.cho_chon_dap_an ?? null,
           })
         }
       } catch (e) {
@@ -172,6 +175,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
           thoi_gian_giay: res.thoi_gian_giay,
           buoc_mo_ta: res.buoc_mo_ta ?? tt.buoc_mo_ta,
           tong_buoc: res.tong_buoc ?? tt.tong_buoc,
+          cho_chon_dap_an: res.cho_chon_dap_an ?? tt.cho_chon_dap_an,
         }
       })
     } catch (e) {
@@ -206,12 +210,21 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             {problem.chuyen_de}
             {problem.dang_ten && <span className="text-ink"> › {problem.dang_ten}</span>}
           </p>
+          <span className="inline-block text-xs font-bold tracking-wide text-primary bg-surface rounded px-2 py-0.5 mb-1.5">
+            [{NHAN_LOAI_CAU[problem.loai_cau] || problem.loai_cau}]
+          </span>
           <p className="text-base text-ink leading-relaxed">
-            <span className="text-xs font-bold tracking-wide text-primary bg-surface rounded px-2 py-0.5 mr-2 align-middle">
-              [{NHAN_LOAI_CAU[problem.loai_cau] || problem.loai_cau}]
-            </span>
             {renderDeBai(problem.de_bai)}
           </p>
+          {problem.loai_cau === 'TN4PA' && problem.meta?.phuong_an && (
+            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
+              {Object.entries(problem.meta.phuong_an).map(([k, v]) => (
+                <span key={k} className="text-sm text-ink leading-relaxed whitespace-nowrap">
+                  <span className="font-semibold text-primary">{k}.</span> {renderDeBai(v)}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -255,10 +268,24 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             ) : (
               <>
                 {problem.loai_cau === 'TN4PA' && (
-                  <>
-                    <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
-                    <AnswerInputTN4PA phuong_an={problem.meta?.phuong_an} onGui={gui} dang_gui={dangGui} />
-                  </>
+                  trangThai.cho_chon_dap_an === false ? (
+                    // Pha suy luận: HS nhập biểu thức kết quả của bước (CAS chấm)
+                    <>
+                      <CardBuoc
+                        buoc_hien_tai={trangThai.buoc_hien_tai}
+                        tong_buoc={trangThai.tong_buoc}
+                        buoc_mo_ta={trangThai.buoc_mo_ta}
+                      />
+                      <p className="text-sm font-medium text-ink mb-3">Tính kết quả của bước này</p>
+                      <AnswerInputTLN onGui={gui} dang_gui={dangGui} />
+                    </>
+                  ) : (
+                    // Pha chọn đáp án: A/B/C/D đã mở khóa
+                    <>
+                      <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+                      <AnswerInputTN4PA phuong_an={problem.meta?.phuong_an} onGui={gui} dang_gui={dangGui} />
+                    </>
+                  )
                 )}
                 {problem.loai_cau === 'TNDS' && (
                   <>

@@ -124,6 +124,7 @@ class StubLLMClient(LLMClient):
                         "phuong_an": {"A": "$(-1;1)$", "B": "$(1;+\\infty)$",
                                       "C": "$(-\\infty;0)$", "D": "$(0;2)$"},
                         "dap_an_dung": "B",
+                        "bat_buoc_suy_luan": do_kho != "de",
                     },
                     "solution_steps": [
                         {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tính y' và xét dấu",

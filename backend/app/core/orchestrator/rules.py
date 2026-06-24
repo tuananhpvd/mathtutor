@@ -98,30 +98,68 @@ def xu_ly_tn4pa(
     ket_qua_so_khop: KetQuaSoKhop | None,
     ngu_canh_hs: str = "",
     yeu_cau_goi_y: bool = False,
-    chon_bua: bool = False,  # HS chọn mà không giải thích
+    bat_buoc_suy_luan: bool = False,  # phải làm đúng >=1 bước trước khi được chọn đáp án
+    la_chon_dap_an: bool = False,     # lượt này HS gửi 1 chữ cái A/B/C/D (không phải biểu thức)
 ) -> tuple[ChiThi, TrangThaiPhien]:
+    """TN4PA 2 pha:
+
+    - Pha suy luận (chỉ khi bat_buoc_suy_luan): HS nhập biểu thức kết quả của bước,
+      CAS chấm; đúng thì mở khóa cho chọn đáp án.
+    - Pha chọn đáp án: HS gửi chữ cái A/B/C/D, so khớp với đáp án đúng.
+
+    Mốc mở khóa: không bắt buộc suy luận, HOẶC đã làm đúng tối thiểu 1 bước
+    (buoc_hien_tai > 1).
+    """
     st = trang_thai
 
+    def _da_mo_dap_an() -> bool:
+        return (not bat_buoc_suy_luan) or st.buoc_hien_tai > 1
+
+    # Lượt mở đầu / chưa nhập gì
     if ket_qua_so_khop is None and not yeu_cau_goi_y:
         return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs), st
 
+    # Xin gợi ý
     if yeu_cau_goi_y:
         so_max = st.so_goi_y_buoc()
         st.cap_goi_y_hien_tai = min(st.cap_goi_y_hien_tai + 1, so_max - 1)
         st.so_lan_khong_hieu += 1
         return _chi_thi(st, "goi_y", _lay_goi_y(st), ngu_canh_hs), st
 
-    if chon_bua:
+    # Nhập không hợp lệ (biểu thức bước không parse được)
+    if ket_qua_so_khop == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC:
         return _chi_thi(st, "goi_y",
-                        "em thử phân tích từng phương án bằng cách loại trừ xem sao, đừng chọn vội nhé",
+                        "em hãy nhập lại bằng một biểu thức toán hợp lệ nhé",
                         ngu_canh_hs), st
 
+    # --- HS chọn đáp án (chữ cái) ---
+    if la_chon_dap_an:
+        if not _da_mo_dap_an():
+            return _chi_thi(st, "goi_y",
+                            "em hãy hoàn thành bước suy luận trước khi chọn đáp án nhé",
+                            ngu_canh_hs), st
+        if ket_qua_so_khop == KetQuaSoKhop.DUNG:
+            st.da_xong = True
+            return _chi_thi(st, "ket_thuc",
+                            "khen HS chọn đúng, nhắc mạch suy nghĩ (không nhắc lại đáp án)",
+                            ngu_canh_hs), st
+        st.so_lan_sai_lien_tiep += 1
+        return _chi_thi(st, "hoi_nguoc",
+                        "em đã tính ra kết quả rồi, thử đối chiếu lại với từng phương án xem nhé",
+                        ngu_canh_hs), st
+
+    # --- HS nhập biểu thức cho bước suy luận ---
     if ket_qua_so_khop == KetQuaSoKhop.DUNG:
-        st.da_xong = True
-        return _chi_thi(st, "ket_thuc",
-                        "khen HS chọn đúng, nhắc mạch suy nghĩ loại trừ (không nhắc lại đáp án)",
+        st.cap_goi_y_hien_tai = 0
+        st.so_lan_sai_lien_tiep = 0
+        buoc_tiep = _tim_buoc_tiep(st)
+        # Mở khóa đáp án sau khi làm đúng tối thiểu 1 bước (đẩy buoc_hien_tai > 1).
+        st.buoc_hien_tai = buoc_tiep if buoc_tiep is not None else st.buoc_hien_tai + 1
+        return _chi_thi(st, "xac_nhan_dung",
+                        "khen HS tính đúng bước này, mời em chọn phương án phù hợp",
                         ngu_canh_hs), st
 
+    # Sai biểu thức bước
     st.so_lan_sai_lien_tiep += 1
     return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs), st
 

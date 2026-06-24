@@ -36,26 +36,55 @@ def test_tn4pa_lan_dau():
     assert "loại trừ A trước" in ct.y_goi_y
 
 
-def test_tn4pa_dung():
+def test_tn4pa_chon_ngay_dung():
+    # Không bắt buộc suy luận → chọn đáp án luôn, đúng → kết thúc
     st = make_tn4pa()
-    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.DUNG, "em chọn B vì...")
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.DUNG, "em chọn B",
+                          bat_buoc_suy_luan=False, la_chon_dap_an=True)
     assert ct.y_dinh == "ket_thuc"
     assert st2.da_xong is True
 
 
-def test_tn4pa_sai_co_ly_giai():
+def test_tn4pa_chon_ngay_sai():
     st = make_tn4pa()
-    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.SAI, "em thấy A đúng vì...")
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.SAI, "em chọn A",
+                          bat_buoc_suy_luan=False, la_chon_dap_an=True)
     assert ct.y_dinh == "hoi_nguoc"
     assert st2.so_lan_sai_lien_tiep == 1
+    assert st2.da_xong is False
 
 
-def test_tn4pa_chon_bua_kich_hoat():
+def test_tn4pa_bat_buoc_chua_lam_buoc_thi_chan_chon():
+    # Bắt buộc suy luận nhưng HS bấm chọn đáp án ngay → bị chặn, nhắc làm bước trước
     st = make_tn4pa()
-    # Sai + không có nội dung → phát hiện chọn bừa trong service, ở đây test trực tiếp
-    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.SAI, "", chon_bua=True)
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.DUNG, "em chọn B",
+                          bat_buoc_suy_luan=True, la_chon_dap_an=True)
     assert ct.y_dinh == "goi_y"
-    assert "loại trừ" in ct.y_goi_y.lower() or "phân tích" in ct.y_goi_y.lower()
+    assert st2.da_xong is False
+    assert st2.buoc_hien_tai == 1  # chưa mở khóa
+
+
+def test_tn4pa_bat_buoc_lam_dung_buoc_mo_khoa_roi_chon():
+    st = make_tn4pa()
+    # Pha 1: nhập biểu thức bước đúng → mở khóa
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.DUNG, "y' = ...",
+                          bat_buoc_suy_luan=True, la_chon_dap_an=False)
+    assert ct.y_dinh == "xac_nhan_dung"
+    assert st2.buoc_hien_tai > 1
+    # Pha 2: chọn đáp án đúng → kết thúc
+    ct2, st3 = xu_ly_tn4pa(st2, KetQuaSoKhop.DUNG, "em chọn B",
+                           bat_buoc_suy_luan=True, la_chon_dap_an=True)
+    assert ct2.y_dinh == "ket_thuc"
+    assert st3.da_xong is True
+
+
+def test_tn4pa_bat_buoc_lam_sai_buoc():
+    st = make_tn4pa()
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.SAI, "y' = sai",
+                          bat_buoc_suy_luan=True, la_chon_dap_an=False)
+    assert ct.y_dinh == "hoi_nguoc"
+    assert st2.so_lan_sai_lien_tiep == 1
+    assert st2.buoc_hien_tai == 1  # chưa mở khóa
 
 
 def test_tn4pa_yeu_cau_goi_y():

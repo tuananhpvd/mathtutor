@@ -11,8 +11,9 @@ class TaoPhienResponse(BaseModel):
     buoc_hien_tai: int
     loai_cau: str
     y_hien_tai: str | None = None
-    buoc_mo_ta: str | None = None   # mô tả bước hiện tại (TLN)
+    buoc_mo_ta: str | None = None   # mô tả bước hiện tại (TLN/TN4PA)
     tong_buoc: int | None = None    # tổng số bước
+    cho_chon_dap_an: bool | None = None  # TN4PA: đã mở khóa cho chọn A/B/C/D chưa
 
 
 class GửiTinRequest(BaseModel):
@@ -33,6 +34,7 @@ class PhanHoiResponse(BaseModel):
     thoi_gian_giay: int | None = None
     buoc_mo_ta: str | None = None   # mô tả bước mới (sau khi bước chuyển)
     tong_buoc: int | None = None
+    cho_chon_dap_an: bool | None = None  # TN4PA: đã mở khóa cho chọn A/B/C/D chưa
 
 
 class TurnResponse(BaseModel):
@@ -57,6 +59,9 @@ class ChiTietPhienResponse(BaseModel):
     cap_goi_y_hien_tai: int
     diem: float | None
     thoi_gian_giay: int | None = None
+    buoc_mo_ta: str | None = None
+    tong_buoc: int | None = None
+    cho_chon_dap_an: bool | None = None
     turns: list[TurnResponse]
 
 

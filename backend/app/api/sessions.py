@@ -33,6 +33,19 @@ def _buoc_info(problem, buoc_so: int) -> tuple[str | None, int | None]:
     return mo_ta, tong
 
 
+def _cho_chon_dap_an(problem, buoc_hien_tai: int) -> bool | None:
+    """TN4PA: đã mở khóa cho HS chọn A/B/C/D chưa.
+
+    - Không bắt buộc suy luận → mở ngay.
+    - Bắt buộc suy luận → mở sau khi làm đúng tối thiểu 1 bước (buoc_hien_tai > 1).
+    Các loại câu khác trả None (không áp dụng).
+    """
+    if problem is None or problem.loai_cau.value != "TN4PA":
+        return None
+    bat_buoc = bool((problem.meta or {}).get("bat_buoc_suy_luan", False))
+    return (not bat_buoc) or buoc_hien_tai > 1
+
+
 @router.post("", response_model=TaoPhienResponse, dependencies=[require_role(VaiTro.hs)])
 def tao_phien_moi(
     body: TaoPhienRequest,
@@ -54,6 +67,7 @@ def tao_phien_moi(
         y_hien_tai=session.y_hien_tai,
         buoc_mo_ta=mo_ta,
         tong_buoc=tong,
+        cho_chon_dap_an=_cho_chon_dap_an(problem, session.buoc_hien_tai),
     )
 
 
@@ -115,6 +129,9 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
         cap_goi_y_hien_tai=session.cap_goi_y_hien_tai,
         diem=session.diem,
         thoi_gian_giay=session.thoi_gian_giay,
+        buoc_mo_ta=_buoc_info(problem, session.buoc_hien_tai)[0],
+        tong_buoc=_buoc_info(problem, session.buoc_hien_tai)[1],
+        cho_chon_dap_an=_cho_chon_dap_an(problem, session.buoc_hien_tai),
         turns=[
             TurnResponse(
                 vai_tro=t.vai_tro.value,
@@ -157,4 +174,5 @@ def gui_tin(
     mo_ta, tong = _buoc_info(problem, result["buoc_hien_tai"])
     result["buoc_mo_ta"] = mo_ta
     result["tong_buoc"] = tong
+    result["cho_chon_dap_an"] = _cho_chon_dap_an(problem, result["buoc_hien_tai"])
     return PhanHoiResponse(**result)

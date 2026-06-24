@@ -48,15 +48,24 @@ def _restore_state(session: SessionModel, problem: Problem) -> TrangThaiPhien:
     )
 
 
-def _dispatch(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y, dap_an_nhap, loai_cau):
+def _la_chon_dap_an(dap_an_nhap) -> bool:
+    """TN4PA: True nếu HS gửi một chữ cái A/B/C/D (chọn đáp án), False nếu là biểu thức."""
+    if dap_an_nhap is None:
+        return False
+    return str(dap_an_nhap).strip().upper() in ("A", "B", "C", "D")
+
+
+def _dispatch(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y, dap_an_nhap, loai_cau, meta=None):
     """Gọi đúng hàm orchestrator theo loại câu."""
     if loai_cau == "TLN":
         return xu_ly_tln(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y)
     if loai_cau == "TN4PA":
-        # Phát hiện chọn bừa: HS gửi đáp án mà không có nội dung giải thích
-        chon_bua = (dap_an_nhap is not None and not ngu_canh_hs.strip()
-                    and ket_qua == KetQuaSoKhop.SAI)
-        return xu_ly_tn4pa(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y, chon_bua)
+        bat_buoc = bool((meta or {}).get("bat_buoc_suy_luan", False))
+        return xu_ly_tn4pa(
+            trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y,
+            bat_buoc_suy_luan=bat_buoc,
+            la_chon_dap_an=_la_chon_dap_an(dap_an_nhap),
+        )
     if loai_cau == "TNDS":
         return xu_ly_tnds(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y)
     raise ValueError(f"Loại câu không hỗ trợ: {loai_cau}")
@@ -85,7 +94,9 @@ def tao_phien(
         loai_cau=problem.loai_cau.value,
         steps=_steps_to_list(problem),
     )
-    chi_thi, trang_thai_moi = _dispatch(trang_thai, None, "", False, None, problem.loai_cau.value)
+    chi_thi, trang_thai_moi = _dispatch(
+        trang_thai, None, "", False, None, problem.loai_cau.value, problem.meta
+    )
 
     # Đồng bộ y_hien_tai cho TNDS
     session.y_hien_tai = trang_thai_moi.y_hien_tai
@@ -141,13 +152,26 @@ def xu_ly_luot(
             km = so_khop(loai_cau, dap_an_nhap, chuan_dict, che_do)
             ket_qua = km.ket_qua
             ket_qua_dict = {"ket_qua": ket_qua.value}
+        elif loai_cau == "TN4PA":
+            if _la_chon_dap_an(dap_an_nhap):
+                # Pha chọn đáp án: so chữ cái với dap_an_dung
+                km = so_khop(loai_cau, dap_an_nhap, problem.meta, che_do)
+                ket_qua = km.ket_qua
+                ket_qua_dict = {"ket_qua": ket_qua.value, "la_chon_dap_an": True}
+            else:
+                # Pha suy luận: so biểu thức HS nhập với bieu_thuc_ket_qua của bước hiện tại
+                buoc = trang_thai.buoc_data()
+                bieu_thuc_chuan = (buoc or {}).get("bieu_thuc_ket_qua", "")
+                km = so_khop("TLN", dap_an_nhap, {"dap_an_cuoi": bieu_thuc_chuan}, che_do)
+                ket_qua = km.ket_qua
+                ket_qua_dict = {"ket_qua": ket_qua.value, "la_chon_dap_an": False}
         else:
             km = so_khop(loai_cau, dap_an_nhap, problem.meta, che_do)
             ket_qua = km.ket_qua
             ket_qua_dict = {"ket_qua": ket_qua.value, "diem": km.diem}
 
     chi_thi, trang_thai_moi = _dispatch(
-        trang_thai, ket_qua, noi_dung, yeu_cau_goi_y, dap_an_nhap, loai_cau
+        trang_thai, ket_qua, noi_dung, yeu_cau_goi_y, dap_an_nhap, loai_cau, problem.meta
     )
 
     # Ghi lại trạng thái

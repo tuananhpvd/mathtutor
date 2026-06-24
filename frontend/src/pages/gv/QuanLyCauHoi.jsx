@@ -302,6 +302,24 @@ function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
                 </div>
               )}
 
+              {bai.loai_cau === 'TN4PA' && (
+                <div className="rounded-md border border-border bg-surface-2 px-3 py-2.5">
+                  <Select
+                    label="Trước khi chọn đáp án, học sinh:"
+                    value={bai.meta?.bat_buoc_suy_luan ? 'co' : 'khong'}
+                    onChange={(e) => setMeta({ bat_buoc_suy_luan: e.target.value === 'co' })}
+                    options={[
+                      { value: 'khong', label: 'Được chọn đáp án ngay' },
+                      { value: 'co', label: 'Phải làm đúng tối thiểu 1 bước suy luận' },
+                    ]}
+                  />
+                  <p className="text-[11px] text-muted mt-1">
+                    Nếu bắt buộc suy luận: học sinh phải nhập đúng kết quả của bước (máy chấm bằng
+                    CAS) thì nút A/B/C/D mới mở. Cần điền "Biểu thức kết quả" ở bước bên dưới.
+                  </p>
+                </div>
+              )}
+
               {bai.loai_cau === 'TNDS' && bai.meta?.y && (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-muted">4 mệnh đề (chọn Đúng/Sai)</p>

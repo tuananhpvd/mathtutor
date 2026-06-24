@@ -57,6 +57,11 @@ gồm "de_bai", các phương án A–D, nội dung từng ý TNDS, và các câ
 PHẢI đặt trong cặp dấu $...$ và viết bằng LaTeX (ví dụ: $y' = 3x^2 - 6x$, $\\int x^n\\,dx$,
 $\\dfrac{1}{2}$, $\\sqrt{2}$). Phần chữ thường để ngoài $...$. (Riêng "bieu_thuc_ket_qua" vẫn
 dùng cú pháp SymPy, KHÔNG bọc $...$, vì để máy đối chiếu.)
+
+RIÊNG TN4PA: thêm khóa "bat_buoc_suy_luan" (bool) vào "meta". Nếu true, học sinh phải nhập đúng
+kết quả của bước suy luận (máy chấm bằng CAS) trước khi được chọn A/B/C/D; nếu false thì được
+chọn đáp án ngay. Đặt theo độ khó: de→false, tb→true, kho→true. Khi true, bước đầu tiên trong
+"solution_steps" PHẢI có "bieu_thuc_ket_qua" hợp lệ (cú pháp SymPy) để máy đối chiếu.
 KHÔNG trả gì ngoài JSON.
 """.strip()
 
