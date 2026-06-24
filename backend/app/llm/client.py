@@ -138,6 +138,7 @@ class StubLLMClient(LLMClient):
                     "loai_dap_an_nhap": "dung_sai_4y", "che_do_so_khop": "tuong_duong",
                     "meta": {"y": [
                         {"ky_hieu": "a", "noi_dung_y": "$f(0)=2$", "dap_an": "Dung",
+                         "bat_buoc_suy_luan": do_kho != "de",
                          "loi_giai_y": "f(0)=2cos0+0=2"},
                         {"ky_hieu": "b", "noi_dung_y": "$f'(x)=-2\\sin x+1$", "dap_an": "Dung",
                          "loi_giai_y": "đạo hàm từng hạng tử"},

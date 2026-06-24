@@ -46,6 +46,33 @@ def _cho_chon_dap_an(problem, buoc_hien_tai: int) -> bool | None:
     return (not bat_buoc) or buoc_hien_tai > 1
 
 
+def _cho_chon_dung_sai(problem, session) -> bool | None:
+    """TNDS: đã mở khóa cho HS chốt Đúng/Sai ý hiện tại chưa.
+
+    - Ý hiện tại không bắt buộc suy luận → mở ngay.
+    - Bắt buộc suy luận → mở sau khi đã suy luận đúng (session.da_suy_luan).
+    """
+    if problem is None or problem.loai_cau.value != "TNDS":
+        return None
+    ky = session.y_hien_tai
+    bat_buoc = False
+    for y in (problem.meta or {}).get("y", []):
+        if y.get("ky_hieu") == ky:
+            bat_buoc = bool(y.get("bat_buoc_suy_luan", False))
+            break
+    return (not bat_buoc) or bool(session.da_suy_luan)
+
+
+def _dap_an_y_neu_xong(problem, da_xong: bool) -> dict | None:
+    """TNDS: đáp án đúng từng ý {a: 'Dung', ...} — CHỈ trả khi phiên đã hoàn thành.
+
+    Giữ nguyên tắc không lộ đáp án lúc HS đang làm; sau khi xong mới dùng để ôn tập.
+    """
+    if not da_xong or problem is None or problem.loai_cau.value != "TNDS":
+        return None
+    return {y["ky_hieu"]: y["dap_an"] for y in (problem.meta or {}).get("y", [])}
+
+
 @router.post("", response_model=TaoPhienResponse, dependencies=[require_role(VaiTro.hs)])
 def tao_phien_moi(
     body: TaoPhienRequest,
@@ -68,6 +95,7 @@ def tao_phien_moi(
         buoc_mo_ta=mo_ta,
         tong_buoc=tong,
         cho_chon_dap_an=_cho_chon_dap_an(problem, session.buoc_hien_tai),
+        cho_chon_dung_sai=_cho_chon_dung_sai(problem, session),
     )
 
 
@@ -132,6 +160,9 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
         buoc_mo_ta=_buoc_info(problem, session.buoc_hien_tai)[0],
         tong_buoc=_buoc_info(problem, session.buoc_hien_tai)[1],
         cho_chon_dap_an=_cho_chon_dap_an(problem, session.buoc_hien_tai),
+        cho_chon_dung_sai=_cho_chon_dung_sai(problem, session),
+        thoi_gian_y=session.thoi_gian_y,
+        dap_an_y=_dap_an_y_neu_xong(problem, session.trang_thai.value == "hoan_thanh"),
         turns=[
             TurnResponse(
                 vai_tro=t.vai_tro.value,
@@ -175,4 +206,7 @@ def gui_tin(
     result["buoc_mo_ta"] = mo_ta
     result["tong_buoc"] = tong
     result["cho_chon_dap_an"] = _cho_chon_dap_an(problem, result["buoc_hien_tai"])
+    result["cho_chon_dung_sai"] = _cho_chon_dung_sai(problem, session)
+    result["thoi_gian_y"] = session.thoi_gian_y
+    result["dap_an_y"] = _dap_an_y_neu_xong(problem, result.get("da_xong", False))
     return PhanHoiResponse(**result)

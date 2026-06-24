@@ -29,6 +29,10 @@ class Session(Base):
     so_lan_sai_lien_tiep: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     so_lan_khong_hieu: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     so_y_dung: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # TN4PA/TNDS: đã suy luận đúng cho ý/bước hiện tại chưa (mở khóa chọn đáp án/Đúng-Sai)
+    da_suy_luan: Mapped[bool] = mapped_column(default=False, nullable=False)
+    # TNDS: thời gian (giây) làm từng ý {a: 12, b: 30, ...}
+    thoi_gian_y: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     diem: Mapped[float | None] = mapped_column(Float, nullable=True)
     bat_dau_luc: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False

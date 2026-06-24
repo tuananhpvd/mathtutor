@@ -1,5 +1,6 @@
 import { Button } from '../ui'
 import Formula from '../Formula'
+import AnswerInputTLN from './AnswerInputTLN'
 
 function renderY(text) {
   return String(text)
@@ -9,11 +10,12 @@ function renderY(text) {
     )
 }
 
-// TNDS xét từng ý: hiển thị ý đang xét + tiến trình a→d. onGui gửi "Dung"/"Sai" cho ý hiện tại.
+// TNDS xét từng ý a→d. Mỗi ý có thể bắt buộc suy luận (nhập biểu thức) trước khi chốt Đúng/Sai.
 export default function AnswerInputTNDS({
   y = [],
   y_hien_tai,
   trang_thai_y = {},
+  cho_chon = true,
   onGui,
   dang_gui,
 }) {
@@ -48,22 +50,32 @@ export default function AnswerInputTNDS({
             <p className="text-xs text-muted mb-1">Mệnh đề {yDangXet.ky_hieu})</p>
             <p className="text-sm text-ink">{renderY(yDangXet.noi_dung_y)}</p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="success"
-              disabled={dang_gui}
-              onClick={() => onGui({ dap_an_nhap: 'Dung' })}
-            >
-              Đúng
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={dang_gui}
-              onClick={() => onGui({ dap_an_nhap: 'Sai' })}
-            >
-              Sai
-            </Button>
-          </div>
+
+          {cho_chon === false ? (
+            // Pha suy luận: nhập biểu thức để máy chấm trước khi được chốt Đúng/Sai
+            <>
+              <p className="text-sm font-medium text-ink">Trả lời câu hỏi gợi ý bên ô chat vào đây</p>
+              <AnswerInputTLN onGui={onGui} dang_gui={dang_gui} />
+            </>
+          ) : (
+            // Pha chốt
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="success"
+                disabled={dang_gui}
+                onClick={() => onGui({ dap_an_nhap: 'Dung', noi_dung: 'Em chọn: Đúng' })}
+              >
+                Đúng
+              </Button>
+              <Button
+                variant="danger"
+                disabled={dang_gui}
+                onClick={() => onGui({ dap_an_nhap: 'Sai', noi_dung: 'Em chọn: Sai' })}
+              >
+                Sai
+              </Button>
+            </div>
+          )}
         </>
       ) : (
         <p className="text-sm text-muted">Đã xét xong các mệnh đề.</p>

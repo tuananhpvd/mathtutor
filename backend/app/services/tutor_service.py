@@ -44,6 +44,7 @@ def _restore_state(session: SessionModel, problem: Problem) -> TrangThaiPhien:
         so_lan_sai_lien_tiep=session.so_lan_sai_lien_tiep,
         so_lan_khong_hieu=session.so_lan_khong_hieu,
         so_y_dung=session.so_y_dung,
+        da_suy_luan=session.da_suy_luan,
         steps=_steps_to_list(problem),
     )
 
@@ -53,6 +54,21 @@ def _la_chon_dap_an(dap_an_nhap) -> bool:
     if dap_an_nhap is None:
         return False
     return str(dap_an_nhap).strip().upper() in ("A", "B", "C", "D")
+
+
+def _la_chon_dung_sai(dap_an_nhap) -> bool:
+    """TNDS: True nếu HS gửi 'Dung'/'Sai' (chốt ý), False nếu là biểu thức suy luận."""
+    if dap_an_nhap is None:
+        return False
+    return str(dap_an_nhap).strip().lower() in ("dung", "sai")
+
+
+def _y_bat_buoc_suy_luan(meta, ky_hieu) -> bool:
+    """TNDS: ý `ky_hieu` có bắt buộc suy luận trước khi chốt Đúng/Sai không."""
+    for y in (meta or {}).get("y", []):
+        if y.get("ky_hieu") == ky_hieu:
+            return bool(y.get("bat_buoc_suy_luan", False))
+    return False
 
 
 def _dispatch(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y, dap_an_nhap, loai_cau, meta=None):
@@ -67,7 +83,12 @@ def _dispatch(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y, dap_an_nhap, loai
             la_chon_dap_an=_la_chon_dap_an(dap_an_nhap),
         )
     if loai_cau == "TNDS":
-        return xu_ly_tnds(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y)
+        bat_buoc = _y_bat_buoc_suy_luan(meta, trang_thai.y_hien_tai)
+        return xu_ly_tnds(
+            trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y,
+            bat_buoc_suy_luan_y=bat_buoc,
+            la_chon_dung_sai=_la_chon_dung_sai(dap_an_nhap),
+        )
     raise ValueError(f"Loại câu không hỗ trợ: {loai_cau}")
 
 
@@ -135,13 +156,23 @@ def xu_ly_luot(
     if dap_an_nhap is not None:
         che_do = problem.che_do_so_khop.value
         if loai_cau == "TNDS" and session.y_hien_tai:
-            # So khớp từng ý một
-            try:
-                km = so_khop_tnds_mot_y(str(dap_an_nhap), problem.meta, session.y_hien_tai)
+            if _la_chon_dung_sai(dap_an_nhap):
+                # Pha chốt: so 'Dung'/'Sai' với đáp án chuẩn của ý
+                try:
+                    km = so_khop_tnds_mot_y(str(dap_an_nhap), problem.meta, session.y_hien_tai)
+                    ket_qua = km.ket_qua
+                    ket_qua_dict = {"ket_qua": ket_qua.value, "y": session.y_hien_tai,
+                                    "la_chon": True}
+                except ValueError:
+                    ket_qua = KetQuaSoKhop.KHONG_PHAN_TICH_DUOC
+            else:
+                # Pha suy luận: CAS so biểu thức HS nhập với bieu_thuc_ket_qua của ý hiện tại
+                buoc = trang_thai.buoc_data()
+                bieu_thuc_chuan = (buoc or {}).get("bieu_thuc_ket_qua", "")
+                km = so_khop("TLN", dap_an_nhap, {"dap_an_cuoi": bieu_thuc_chuan}, che_do)
                 ket_qua = km.ket_qua
-                ket_qua_dict = {"ket_qua": ket_qua.value, "y": session.y_hien_tai}
-            except ValueError:
-                ket_qua = KetQuaSoKhop.KHONG_PHAN_TICH_DUOC
+                ket_qua_dict = {"ket_qua": ket_qua.value, "y": session.y_hien_tai,
+                                "la_chon": False}
         elif loai_cau == "TLN":
             # TLN nhiều bước: so với bieu_thuc_ket_qua của BƯỚC hiện tại (không phải dap_an_cuoi)
             buoc = trang_thai.buoc_data()
@@ -174,6 +205,10 @@ def xu_ly_luot(
         trang_thai, ket_qua, noi_dung, yeu_cau_goi_y, dap_an_nhap, loai_cau, problem.meta
     )
 
+    # Mốc trước khi ghi đè (để phát hiện ý vừa hoàn thành — TNDS)
+    y_truoc = session.y_hien_tai
+    y_truoc_da_xong = (session.trang_thai_y or {}).get(y_truoc) == "xong"
+
     # Ghi lại trạng thái
     session.buoc_hien_tai = trang_thai_moi.buoc_hien_tai
     session.y_hien_tai = trang_thai_moi.y_hien_tai
@@ -182,8 +217,20 @@ def xu_ly_luot(
     session.so_lan_sai_lien_tiep = trang_thai_moi.so_lan_sai_lien_tiep
     session.so_lan_khong_hieu = trang_thai_moi.so_lan_khong_hieu
     session.so_y_dung = trang_thai_moi.so_y_dung
+    session.da_suy_luan = trang_thai_moi.da_suy_luan
     now = datetime.now(timezone.utc)
     session.cap_nhat_luc = now
+
+    # TNDS: ghi thời gian hoàn thành của ý vừa được chốt đúng (giây dành cho ý đó)
+    if (loai_cau == "TNDS" and y_truoc and not y_truoc_da_xong
+            and (trang_thai_moi.trang_thai_y or {}).get(y_truoc) == "xong"):
+        bd_y = session.bat_dau_luc
+        if bd_y is not None and bd_y.tzinfo is None:
+            bd_y = bd_y.replace(tzinfo=timezone.utc)
+        tong_da_qua = (now - bd_y).total_seconds() if bd_y else 0
+        tg = dict(session.thoi_gian_y or {})
+        tg[y_truoc] = max(0, int(tong_da_qua - sum(tg.values())))
+        session.thoi_gian_y = tg
     if trang_thai_moi.da_xong:
         session.trang_thai = TrangThaiSession.hoan_thanh
         # Điểm cuối: TNDS theo bậc thang số ý đúng; TLN/TN4PA hoàn thành = 1.0

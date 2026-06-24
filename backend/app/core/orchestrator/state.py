@@ -13,6 +13,7 @@ class TrangThaiPhien:
     so_lan_sai_lien_tiep: int = 0
     so_lan_khong_hieu: int = 0
     so_y_dung: int = 0       # TNDS: số ý trả lời đúng (để tính điểm bậc thang)
+    da_suy_luan: bool = False  # TN4PA/TNDS: đã suy luận đúng cho ý/bước hiện tại chưa
     da_xong: bool = False
 
     # danh sách bước (list[SolutionStep-like dict])

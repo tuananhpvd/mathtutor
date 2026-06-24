@@ -23,7 +23,7 @@ function trangThaiYBanDau(meta) {
   return tt
 }
 
-function BangHoanThanh({ loai, diem, so_y_dung, thoi_gian, onChonBai, onTrangChu }) {
+function BangHoanThanh({ loai, thoi_gian, thoi_gian_y, dap_an_y, onChonBai, onTrangChu }) {
   return (
     <div className="rounded-lg border-2 border-success bg-success-soft p-4 text-center flex flex-col items-center gap-2">
       <div className="h-12 w-12 rounded-full bg-success text-white grid place-items-center text-2xl">
@@ -31,13 +31,40 @@ function BangHoanThanh({ loai, diem, so_y_dung, thoi_gian, onChonBai, onTrangChu
       </div>
       <p className="text-lg font-semibold text-success">Trả lời đúng — Hoàn thành bài!</p>
       <p className="text-sm text-ink">
-        Thời gian làm bài: <b>{dinhDangThoiGian(thoi_gian)}</b>
+        Tổng thời gian làm bài: <b>{dinhDangThoiGian(thoi_gian)}</b>
       </p>
-      {loai === 'TNDS' && diem != null && (
-        <p className="text-sm text-ink">
-          Điểm: <b className="text-primary">{diem}</b>
-          {so_y_dung != null && <span className="text-muted"> ({so_y_dung}/4 ý đúng)</span>}
-        </p>
+      {loai === 'TNDS' && thoi_gian_y && Object.keys(thoi_gian_y).length > 0 && (
+        <table className="text-sm w-full max-w-sm border-collapse bg-surface rounded-md overflow-hidden">
+          <thead>
+            <tr className="bg-surface-2 text-muted text-xs">
+              <th className="px-3 py-1.5 text-left font-medium border border-border">Ý</th>
+              <th className="px-3 py-1.5 text-center font-medium border border-border">Đáp án đúng</th>
+              <th className="px-3 py-1.5 text-right font-medium border border-border">Thời gian hoàn thành</th>
+            </tr>
+          </thead>
+          <tbody>
+            {['a', 'b', 'c', 'd'].map((k) => {
+              const da = dap_an_y?.[k]
+              return (
+                <tr key={k}>
+                  <td className="px-3 py-1.5 text-left border border-border">{k})</td>
+                  <td className="px-3 py-1.5 text-center border border-border">
+                    {da === 'Dung' ? (
+                      <b className="text-success">Đ</b>
+                    ) : da === 'Sai' ? (
+                      <b className="text-danger">S</b>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td className="px-3 py-1.5 text-right border border-border">
+                    {thoi_gian_y[k] != null ? dinhDangThoiGian(thoi_gian_y[k]) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       )}
       <div className="flex gap-2 mt-2">
         <Button onClick={onChonBai}>Chọn bài khác</Button>
@@ -81,6 +108,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
     buoc_mo_ta: null,
     tong_buoc: null,
     cho_chon_dap_an: null,
+    cho_chon_dung_sai: null,
+    thoi_gian_y: null,
+    dap_an_y: null,
   })
   const [dangGui, setDangGui] = useState(false)
   const chatRef = useRef(null)
@@ -109,6 +139,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             buoc_mo_ta: ct.buoc_mo_ta ?? null,
             tong_buoc: ct.tong_buoc ?? null,
             cho_chon_dap_an: ct.cho_chon_dap_an ?? null,
+            cho_chon_dung_sai: ct.cho_chon_dung_sai ?? null,
+            thoi_gian_y: ct.thoi_gian_y ?? null,
+            dap_an_y: ct.dap_an_y ?? null,
           })
         } else {
           const p = await api.getProblem(problemId)
@@ -128,6 +161,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             buoc_mo_ta: phien.buoc_mo_ta ?? null,
             tong_buoc: phien.tong_buoc ?? null,
             cho_chon_dap_an: phien.cho_chon_dap_an ?? null,
+            cho_chon_dung_sai: phien.cho_chon_dung_sai ?? null,
+            thoi_gian_y: null,
+            dap_an_y: null,
           })
         }
       } catch (e) {
@@ -176,6 +212,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
           buoc_mo_ta: res.buoc_mo_ta ?? tt.buoc_mo_ta,
           tong_buoc: res.tong_buoc ?? tt.tong_buoc,
           cho_chon_dap_an: res.cho_chon_dap_an ?? tt.cho_chon_dap_an,
+          cho_chon_dung_sai: res.cho_chon_dung_sai ?? tt.cho_chon_dung_sai,
+          thoi_gian_y: res.thoi_gian_y ?? tt.thoi_gian_y,
+          dap_an_y: res.dap_an_y ?? tt.dap_an_y,
         }
       })
     } catch (e) {
@@ -225,6 +264,16 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
               ))}
             </div>
           )}
+          {problem.loai_cau === 'TNDS' && problem.meta?.y && (
+            <div className="mt-2 flex flex-col gap-1">
+              {problem.meta.y.map((item) => (
+                <p key={item.ky_hieu} className="text-sm text-ink leading-relaxed">
+                  <span className="font-semibold text-primary">{item.ky_hieu})</span>{' '}
+                  {renderDeBai(item.noi_dung_y)}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -259,9 +308,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             {daXong ? (
               <BangHoanThanh
                 loai={problem.loai_cau}
-                diem={trangThai.diem}
-                so_y_dung={trangThai.so_y_dung}
                 thoi_gian={trangThai.thoi_gian_giay}
+                thoi_gian_y={trangThai.thoi_gian_y}
+                dap_an_y={trangThai.dap_an_y}
                 onChonBai={onChonBai}
                 onTrangChu={onTrangChu}
               />
@@ -294,6 +343,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
                       y={problem.meta?.y}
                       y_hien_tai={trangThai.y_hien_tai}
                       trang_thai_y={trangThai.trang_thai_y}
+                      cho_chon={trangThai.cho_chon_dung_sai}
                       onGui={gui}
                       dang_gui={dangGui}
                     />

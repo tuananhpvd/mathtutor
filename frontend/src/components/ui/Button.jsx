@@ -5,6 +5,7 @@ const VARIANTS = {
   ghost: 'bg-transparent text-primary hover:bg-primary-soft disabled:opacity-50',
   success: 'bg-success text-white hover:opacity-90 disabled:opacity-50',
   warning: 'bg-warning text-white hover:opacity-90 disabled:opacity-50',
+  danger: 'bg-danger text-white hover:opacity-90 disabled:opacity-50',
 }
 
 const SIZES = {

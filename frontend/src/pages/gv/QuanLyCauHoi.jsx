@@ -322,26 +322,37 @@ function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
 
               {bai.loai_cau === 'TNDS' && bai.meta?.y && (
                 <div className="flex flex-col gap-2">
-                  <p className="text-xs text-muted">4 mệnh đề (chọn Đúng/Sai)</p>
+                  <p className="text-xs text-muted">4 mệnh đề (chọn Đúng/Sai + cấu hình suy luận từng ý)</p>
                   {bai.meta.y.map((item, idx) => (
-                    <div key={item.ky_hieu} className="flex items-start gap-2">
-                      <span className="text-sm font-bold w-5 pt-2">{item.ky_hieu})</span>
-                      <div className="flex-1">
-                        <TexField
-                          value={item.noi_dung_y}
-                          onChange={(v) => setY(idx, { noi_dung_y: v })}
-                          registerActive={register}
+                    <div key={item.ky_hieu} className="rounded-md border border-border p-2.5 flex flex-col gap-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-sm font-bold w-5 pt-2">{item.ky_hieu})</span>
+                        <div className="flex-1">
+                          <TexField
+                            value={item.noi_dung_y}
+                            onChange={(v) => setY(idx, { noi_dung_y: v })}
+                            registerActive={register}
+                          />
+                        </div>
+                        <Select
+                          className="w-24"
+                          value={item.dap_an}
+                          onChange={(e) => setY(idx, { dap_an: e.target.value })}
+                          options={[
+                            { value: 'Dung', label: 'Đúng' },
+                            { value: 'Sai', label: 'Sai' },
+                          ]}
                         />
                       </div>
-                      <Select
-                        className="w-24"
-                        value={item.dap_an}
-                        onChange={(e) => setY(idx, { dap_an: e.target.value })}
-                        options={[
-                          { value: 'Dung', label: 'Đúng' },
-                          { value: 'Sai', label: 'Sai' },
-                        ]}
-                      />
+                      <label className="flex items-center gap-2 text-xs text-ink pl-5">
+                        <input
+                          type="checkbox"
+                          checked={!!item.bat_buoc_suy_luan}
+                          onChange={(e) => setY(idx, { bat_buoc_suy_luan: e.target.checked })}
+                        />
+                        Bắt buộc suy luận (nhập biểu thức, CAS chấm) trước khi chốt Đúng/Sai —
+                        cần điền "Biểu thức kết quả" ở bước ý {item.ky_hieu} bên dưới.
+                      </label>
                     </div>
                   ))}
                 </div>

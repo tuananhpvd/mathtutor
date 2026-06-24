@@ -125,28 +125,54 @@ def test_tnds_khoi_dong_y_a():
     assert "gợi ý a1" in ct.y_goi_y
 
 
-def test_tnds_dung_y_a_sang_b():
+def test_tnds_chot_dung_y_a_sang_b():
     st = make_tnds(y_hien_tai="a",
                    trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
-    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "em chọn Đúng")
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "em chọn Đúng", la_chon_dung_sai=True)
     assert st2.trang_thai_y["a"] == "xong"
     assert st2.y_hien_tai == "b"
+    assert st2.so_y_dung == 1
     assert ct.y_dinh == "xac_nhan_dung"
 
 
-def test_tnds_sai_y_a_van_sang_b():
+def test_tnds_chot_sai_y_a_o_lai():
+    # Mới: chốt sai thì PHẢI làm lại ý a, không chuyển sang b
     st = make_tnds(y_hien_tai="a",
                    trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
-    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.SAI, "em chọn Sai")
-    assert st2.trang_thai_y["a"] == "xong"
-    assert st2.y_hien_tai == "b"
-    assert ct.y_dinh == "chuyen_y"
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.SAI, "em chọn Sai", la_chon_dung_sai=True)
+    assert st2.trang_thai_y["a"] == "dang_lam"
+    assert st2.y_hien_tai == "a"
+    assert ct.y_dinh == "hoi_nguoc"
+
+
+def test_tnds_bat_buoc_suy_luan_chan_chot_truoc_khi_suy_luan():
+    st = make_tnds(y_hien_tai="a",
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "Đúng",
+                         bat_buoc_suy_luan_y=True, la_chon_dung_sai=True)
+    assert ct.y_dinh == "goi_y"  # chưa suy luận → chặn
+    assert st2.trang_thai_y["a"] == "dang_lam"
+
+
+def test_tnds_bat_buoc_suy_luan_dung_roi_chot():
+    st = make_tnds(y_hien_tai="a",
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    # Pha suy luận đúng → mở khóa
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "y'=...",
+                         bat_buoc_suy_luan_y=True, la_chon_dung_sai=False)
+    assert ct.y_dinh == "xac_nhan_dung"
+    assert st2.da_suy_luan is True
+    # Chốt Đúng → sang ý b
+    ct2, st3 = xu_ly_tnds(st2, KetQuaSoKhop.DUNG, "Đúng",
+                          bat_buoc_suy_luan_y=True, la_chon_dung_sai=True)
+    assert st3.y_hien_tai == "b"
+    assert st3.da_suy_luan is False  # reset cho ý mới
 
 
 def test_tnds_hoan_thanh_sau_4_y():
     st = make_tnds(y_hien_tai="d",
                    trang_thai_y={"a": "xong", "b": "xong", "c": "xong", "d": "dang_lam"})
-    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "Sai")
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "Sai", la_chon_dung_sai=True)
     assert st2.da_xong is True
     assert ct.y_dinh == "tom_tat"
 
@@ -178,7 +204,7 @@ def test_tnds_so_khop_toan_bo_diem_bac_thang():
 def test_tnds_khong_phan_tich():
     st = make_tnds(y_hien_tai="a",
                    trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
-    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.KHONG_PHAN_TICH_DUOC, "xyz")
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.KHONG_PHAN_TICH_DUOC, "xyz", la_chon_dung_sai=True)
     assert ct.y_dinh == "goi_y"
     assert "Đúng hoặc Sai" in ct.y_goi_y or "chọn" in ct.y_goi_y
 

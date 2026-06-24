@@ -33,6 +33,7 @@
     "meta": {
       "y": [
         {"ky_hieu": "a", "noi_dung_y": "$y' = 3x^2 - 6x$", "dap_an": "Dung",
+         "bat_buoc_suy_luan": true,
          "loi_giai_y": "Đạo hàm từng hạng tử: (x³)'=3x², (-3x²)'=-6x, (1)'=0"},
         {"ky_hieu": "b", "noi_dung_y": "Hàm số nghịch biến trên $(0; 2)$", "dap_an": "Dung",
          "loi_giai_y": "y'=3x(x-2)<0 với 0<x<2"},
@@ -93,6 +94,7 @@
     "meta": {
       "y": [
         {"ky_hieu": "a", "noi_dung_y": "$y' = -3x^2 + 3$", "dap_an": "Dung",
+         "bat_buoc_suy_luan": true,
          "loi_giai_y": "(-x³)'=-3x², (3x)'=3"},
         {"ky_hieu": "b", "noi_dung_y": "Hàm số có cực đại tại $x = 1$", "dap_an": "Dung",
          "loi_giai_y": "y'=0 tại x=±1; y''=-6x → y''(1)=-6<0 → cực đại"},
@@ -155,6 +157,7 @@
     "meta": {
       "y": [
         {"ky_hieu": "a", "noi_dung_y": "Một nguyên hàm của $f(x)$ là $F(x) = x^3 + x^2$", "dap_an": "Dung",
+         "bat_buoc_suy_luan": true,
          "loi_giai_y": "F'(x)=3x²+2x=f(x) ✓"},
         {"ky_hieu": "b", "noi_dung_y": "$\\int f(x)\\,dx = x^3 + x^2 + C$", "dap_an": "Dung",
          "loi_giai_y": "Họ nguyên hàm gồm tất cả các hàm x³+x²+C"},
@@ -217,6 +220,7 @@
     "meta": {
       "y": [
         {"ky_hieu": "a", "noi_dung_y": "Một nguyên hàm của $3x^2+2x$ là $F(x) = x^3 + x^2$", "dap_an": "Dung",
+         "bat_buoc_suy_luan": true,
          "loi_giai_y": "F'=3x²+2x ✓"},
         {"ky_hieu": "b", "noi_dung_y": "$F(1) = 2$", "dap_an": "Dung",
          "loi_giai_y": "F(1)=1+1=2"},

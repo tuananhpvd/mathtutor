@@ -169,10 +169,17 @@ def xu_ly_tn4pa(
 
 def xu_ly_tnds(
     trang_thai: TrangThaiPhien,
-    ket_qua_y: KetQuaSoKhop | None,  # kết quả cho ý đang xét
+    ket_qua_y: KetQuaSoKhop | None,  # kết quả cho ý đang xét (suy luận hoặc Đúng/Sai)
     ngu_canh_hs: str = "",
     yeu_cau_goi_y: bool = False,
+    bat_buoc_suy_luan_y: bool = False,  # ý hiện tại có bắt buộc suy luận trước khi chốt Đúng/Sai
+    la_chon_dung_sai: bool = False,     # lượt này HS gửi 'Dung'/'Sai' (không phải biểu thức)
 ) -> tuple[ChiThi, TrangThaiPhien]:
+    """TNDS xét lần lượt a→b→c→d, mỗi ý 2 pha:
+
+    - Pha suy luận (chỉ khi ý bắt buộc): HS nhập biểu thức, CAS chấm; đúng thì mở chốt Đúng/Sai.
+    - Pha chốt: HS chọn Đúng/Sai; PHẢI đúng mới chuyển sang ý kế tiếp (sai thì ở lại làm lại).
+    """
     st = trang_thai
 
     # Khởi tạo ý đầu tiên nếu chưa có
@@ -180,31 +187,54 @@ def xu_ly_tnds(
         st.y_hien_tai = "a"
         if not st.trang_thai_y:
             st.trang_thai_y = {"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"}
-        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs), st
+        st.da_suy_luan = False
+        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs, y_dang_xet="a"), st
 
     if yeu_cau_goi_y:
         so_max = st.so_goi_y_buoc()
         st.cap_goi_y_hien_tai = min(st.cap_goi_y_hien_tai + 1, so_max - 1)
         st.so_lan_khong_hieu += 1
-        return _chi_thi(st, "goi_y", _lay_goi_y(st), ngu_canh_hs), st
+        return _chi_thi(st, "goi_y", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     if ket_qua_y is None:
-        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs), st
+        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     if ket_qua_y == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC:
-        return _chi_thi(st, "goi_y",
-                        "em hãy chọn Đúng hoặc Sai cho ý này nhé",
-                        ngu_canh_hs), st
+        msg = ("em hãy chọn Đúng hoặc Sai cho ý này nhé" if la_chon_dung_sai
+               else "em hãy nhập lại bằng một biểu thức toán hợp lệ nhé")
+        return _chi_thi(st, "goi_y", msg, ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
-    # HS trả lời ý hiện tại (đúng hoặc sai đều ghi nhận và chuyển ý)
-    # (với TNDS, không phạt sai — chỉ ghi nhận để tính điểm cuối)
+    da_mo = (not bat_buoc_suy_luan_y) or st.da_suy_luan
+
+    # --- Pha suy luận: HS nhập biểu thức cho ý ---
+    if not la_chon_dung_sai:
+        if ket_qua_y == KetQuaSoKhop.DUNG:
+            st.da_suy_luan = True
+            st.cap_goi_y_hien_tai = 0
+            st.so_lan_sai_lien_tiep = 0
+            return _chi_thi(st, "xac_nhan_dung",
+                            "khen HS suy luận đúng, mời em kết luận Đúng/Sai cho ý này",
+                            ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
+        st.so_lan_sai_lien_tiep += 1
+        return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
+
+    # --- Pha chốt Đúng/Sai ---
+    if not da_mo:
+        return _chi_thi(st, "goi_y",
+                        "em hãy suy luận (nhập biểu thức) trước khi kết luận Đúng/Sai nhé",
+                        ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
+
+    if ket_qua_y != KetQuaSoKhop.DUNG:
+        # Chốt sai → ở lại ý này, phải làm đúng mới qua
+        st.so_lan_sai_lien_tiep += 1
+        return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
+
+    # Chốt đúng → đánh dấu ý xong, sang ý kế tiếp (hoặc kết thúc)
     st.trang_thai_y[st.y_hien_tai] = "xong"
-    if ket_qua_y == KetQuaSoKhop.DUNG:
-        st.so_y_dung += 1
+    st.so_y_dung += 1
     y_tiep = _tim_y_tiep(st)
 
     if y_tiep is None:
-        # Xong cả 4 ý
         st.da_xong = True
         return _chi_thi(st, "tom_tat",
                         "tóm tắt mạch suy nghĩ 4 ý, không nêu đáp án từng ý",
@@ -213,6 +243,6 @@ def xu_ly_tnds(
     st.y_hien_tai = y_tiep
     st.trang_thai_y[y_tiep] = "dang_lam"
     st.cap_goi_y_hien_tai = 0
-
-    y_dinh = "xac_nhan_dung" if ket_qua_y == KetQuaSoKhop.DUNG else "chuyen_y"
-    return _chi_thi(st, y_dinh, _lay_goi_y(st), ngu_canh_hs, y_dang_xet=y_tiep), st
+    st.da_suy_luan = False
+    st.so_lan_sai_lien_tiep = 0
+    return _chi_thi(st, "xac_nhan_dung", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=y_tiep), st
