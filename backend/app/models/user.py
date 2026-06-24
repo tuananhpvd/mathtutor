@@ -1,0 +1,33 @@
+import enum
+
+from sqlalchemy import Enum, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
+
+
+class VaiTro(str, enum.Enum):
+    admin = "admin"
+    gv = "gv"
+    hs = "hs"
+
+
+class TrangThaiUser(str, enum.Enum):
+    hoat_dong = "hoat_dong"
+    khoa = "khoa"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    vai_tro: Mapped[VaiTro] = mapped_column(Enum(VaiTro), nullable=False)
+    ho_ten: Mapped[str] = mapped_column(String(200), nullable=False)
+    dang_nhap: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    mat_khau_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    trang_thai: Mapped[TrangThaiUser] = mapped_column(
+        Enum(TrangThaiUser), default=TrangThaiUser.hoat_dong, nullable=False
+    )
+    lop_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("lop.id"), nullable=True)
+
+    lop: Mapped["Lop | None"] = relationship("Lop", back_populates="hoc_sinhs", foreign_keys=[lop_id])  # noqa: F821

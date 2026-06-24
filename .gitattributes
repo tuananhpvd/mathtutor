@@ -1,0 +1,9 @@
+# Chuẩn hóa line-ending: trong repo luôn là LF (chạy tốt trên Linux/Claude Code web),
+# tự đổi sang CRLF khi checkout trên Windows nếu cần.
+* text=auto eol=lf
+
+# File nhị phân: không đụng vào
+*.png binary
+*.jpg binary
+*.svg text
+*.ico binary

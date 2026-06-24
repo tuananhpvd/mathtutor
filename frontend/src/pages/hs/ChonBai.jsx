@@ -1,0 +1,158 @@
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../../api'
+import { Badge, Button, Card, CardBody, Select } from '../../components/ui'
+import Formula from '../../components/Formula'
+
+const NHAN_LOAI = { TN4PA: 'Trắc nghiệm A–D', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
+const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
+const TONE_KHO = { de: 'success', tb: 'warning', kho: 'danger' }
+
+function renderDe(text) {
+  return String(text)
+    .split(/(\$[^$]+\$)/g)
+    .map((p, i) =>
+      p.startsWith('$') ? <Formula key={i} latex={p.slice(1, -1)} /> : <span key={i}>{p}</span>
+    )
+}
+
+export default function ChonBai({ onChon }) {
+  const [danhMuc, setDanhMuc] = useState([]) // [{id, ten, dang_list:[...]}]
+  const [bai, setBai] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  // Bộ lọc
+  const [fChuyenDeId, setFChuyenDeId] = useState('')
+  const [fDangId, setFDangId] = useState('')
+  const [fLoai, setFLoai] = useState('')
+  const [fKho, setFKho] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      try {
+        // Hai call độc lập: lỗi getDanhMuc không chặn danh sách bài
+        const [dmResult, baiResult] = await Promise.allSettled([
+          api.getDanhMuc(),
+          api.listProblems(),
+        ])
+        if (dmResult.status === 'fulfilled') setDanhMuc(dmResult.value)
+        if (baiResult.status === 'fulfilled') setBai(baiResult.value)
+        else setError(baiResult.reason?.message || 'Lỗi tải danh sách bài')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  // Dạng của chuyên đề đang chọn
+  const dangList = useMemo(() => {
+    if (!fChuyenDeId) return []
+    const cd = danhMuc.find((c) => String(c.id) === fChuyenDeId)
+    return cd ? cd.dang_list : []
+  }, [danhMuc, fChuyenDeId])
+
+  // Reset dạng khi đổi chuyên đề
+  function chonChuyenDe(val) {
+    setFChuyenDeId(val)
+    setFDangId('')
+  }
+
+  // Tên chuyên đề đang chọn (để lọc theo tên nếu bài không có dang_id)
+  const cdTen = useMemo(() => {
+    if (!fChuyenDeId) return ''
+    const cd = danhMuc.find((c) => String(c.id) === fChuyenDeId)
+    return cd ? cd.ten : ''
+  }, [danhMuc, fChuyenDeId])
+
+  const loc = bai.filter((b) => {
+    if (fChuyenDeId && b.chuyen_de !== cdTen) return false
+    if (fDangId && String(b.dang_id) !== fDangId) return false
+    if (fLoai && b.loai_cau !== fLoai) return false
+    if (fKho && b.do_kho !== fKho) return false
+    return true
+  })
+
+  return (
+    <div className="flex flex-col gap-5">
+      <h2 className="text-xl font-semibold text-ink">Chọn bài luyện</h2>
+
+      {/* Bộ lọc theo cây danh mục */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Select
+          label="Chuyên đề"
+          value={fChuyenDeId}
+          onChange={(e) => chonChuyenDe(e.target.value)}
+          options={[
+            { value: '', label: 'Tất cả chuyên đề' },
+            ...danhMuc.map((c) => ({ value: String(c.id), label: c.ten })),
+          ]}
+        />
+        <Select
+          label="Dạng"
+          value={fDangId}
+          onChange={(e) => setFDangId(e.target.value)}
+          disabled={!fChuyenDeId || dangList.length === 0}
+          options={[
+            { value: '', label: fChuyenDeId ? 'Tất cả dạng' : '— chọn chuyên đề trước —' },
+            ...dangList.map((d) => ({ value: String(d.id), label: d.ten })),
+          ]}
+        />
+        <Select
+          label="Loại câu"
+          value={fLoai}
+          onChange={(e) => setFLoai(e.target.value)}
+          options={[
+            { value: '', label: 'Tất cả loại' },
+            { value: 'TN4PA', label: NHAN_LOAI.TN4PA },
+            { value: 'TNDS', label: NHAN_LOAI.TNDS },
+            { value: 'TLN', label: NHAN_LOAI.TLN },
+          ]}
+        />
+        <Select
+          label="Mức độ"
+          value={fKho}
+          onChange={(e) => setFKho(e.target.value)}
+          options={[
+            { value: '', label: 'Tất cả mức' },
+            { value: 'de', label: 'Dễ' },
+            { value: 'tb', label: 'Trung bình' },
+            { value: 'kho', label: 'Khó' },
+          ]}
+        />
+      </div>
+
+      {loading && <p className="text-muted text-sm">Đang tải danh sách bài...</p>}
+      {error && <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">{error}</p>}
+
+      {!loading && loc.length === 0 && (
+        <Card>
+          <CardBody className="py-10 text-center text-muted">
+            Chưa có bài phù hợp bộ lọc.
+          </CardBody>
+        </Card>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-3">
+        {loc.map((b) => (
+          <Card key={b.id}>
+            <CardBody className="pt-4 flex flex-col gap-2">
+              {/* Chuyên đề → Dạng breadcrumb */}
+              <p className="text-xs text-muted">
+                {b.chuyen_de}{b.dang_ten ? <> › <span className="text-ink">{b.dang_ten}</span></> : null}
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
+                <Badge tone={TONE_KHO[b.do_kho] || 'neutral'}>{NHAN_KHO[b.do_kho] || b.do_kho}</Badge>
+              </div>
+              <p className="text-sm text-ink line-clamp-3">{renderDe(b.de_bai)}</p>
+              <Button className="w-full mt-1" onClick={() => onChon(b.id)}>
+                Bắt đầu
+              </Button>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}

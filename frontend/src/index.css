@@ -1,0 +1,32 @@
+@import "tailwindcss";
+@import "./styles/theme.css";
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Vùng công thức dài: cho cuộn ngang riêng, không vỡ layout (UIUX mục 6) */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+/* Ẩn nút toggle bàn phím ảo và nút menu của MathLive */
+math-field::part(virtual-keyboard-toggle),
+math-field::part(menu-toggle) {
+  display: none !important;
+}
+
+/* Thu nhỏ bàn phím ảo MathLive (overlay khi bấm toggle trong editor) */
+math-virtual-keyboard {
+  --keycap-height: 36px;
+  --keycap-font-size: 13px;
+  --keycap-small-font-size: 11px;
+  --keycap-extra-small-font-size: 9px;
+  --keycap-gap: 2px;
+}
