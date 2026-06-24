@@ -11,6 +11,8 @@ class TaoPhienResponse(BaseModel):
     buoc_hien_tai: int
     loai_cau: str
     y_hien_tai: str | None = None
+    buoc_mo_ta: str | None = None   # mô tả bước hiện tại (TLN)
+    tong_buoc: int | None = None    # tổng số bước
 
 
 class GửiTinRequest(BaseModel):
@@ -29,6 +31,8 @@ class PhanHoiResponse(BaseModel):
     y_hien_tai: str | None = None
     so_y_dung: int | None = None
     thoi_gian_giay: int | None = None
+    buoc_mo_ta: str | None = None   # mô tả bước mới (sau khi bước chuyển)
+    tong_buoc: int | None = None
 
 
 class TurnResponse(BaseModel):

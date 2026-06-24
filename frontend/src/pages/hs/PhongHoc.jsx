@@ -49,10 +49,25 @@ function BangHoanThanh({ loai, diem, so_y_dung, thoi_gian, onChonBai, onTrangChu
   )
 }
 
+// Card hiện thị bước hiện tại + mô tả (chỉ dùng cho TLN)
+function CardBuoc({ buoc_hien_tai, tong_buoc, buoc_mo_ta }) {
+  if (!buoc_mo_ta) return null
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary-soft px-4 py-3 mb-3">
+      <p className="text-xs font-bold tracking-wide text-primary uppercase mb-1">
+        Bước {buoc_hien_tai}{tong_buoc ? `/${tong_buoc}` : ''}
+      </p>
+      <p className="text-sm font-semibold text-ink leading-relaxed">
+        {renderDeBai(buoc_mo_ta)}
+      </p>
+    </div>
+  )
+}
+
 export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [problem, setProblem] = useState(null) // {loai_cau, de_bai, meta, chuyen_de}
+  const [problem, setProblem] = useState(null)
   const [sid, setSid] = useState(sessionId || null)
   const [turns, setTurns] = useState([])
   const [trangThai, setTrangThai] = useState({
@@ -63,6 +78,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
     diem: null,
     so_y_dung: null,
     thoi_gian_giay: null,
+    buoc_mo_ta: null,
+    tong_buoc: null,
   })
   const [dangGui, setDangGui] = useState(false)
   const chatRef = useRef(null)
@@ -88,6 +105,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             diem: ct.diem,
             so_y_dung: null,
             thoi_gian_giay: ct.thoi_gian_giay,
+            buoc_mo_ta: ct.buoc_mo_ta ?? null,
+            tong_buoc: ct.tong_buoc ?? null,
           })
         } else {
           const p = await api.getProblem(problemId)
@@ -104,6 +123,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             diem: null,
             so_y_dung: null,
             thoi_gian_giay: null,
+            buoc_mo_ta: phien.buoc_mo_ta ?? null,
+            tong_buoc: phien.tong_buoc ?? null,
           })
         }
       } catch (e) {
@@ -149,6 +170,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
           diem: res.diem,
           so_y_dung: res.so_y_dung,
           thoi_gian_giay: res.thoi_gian_giay,
+          buoc_mo_ta: res.buoc_mo_ta ?? tt.buoc_mo_ta,
+          tong_buoc: res.tong_buoc ?? tt.tong_buoc,
         }
       })
     } catch (e) {
@@ -202,13 +225,16 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
               ))}
               {dangGui && <TypingBubble />}
             </div>
-            <div className="border-t border-border pt-2 flex justify-center">
+            <div className="border-t border-border pt-2 flex justify-center gap-2">
               <Button
                 variant="warning"
                 disabled={dangGui || daXong}
                 onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
               >
                 💡 GỢI Ý CHO EM
+              </Button>
+              <Button variant="primary" onClick={onChonBai}>
+                ↩ QUAY LẠI LÀM SAU
               </Button>
             </div>
           </CardBody>
@@ -217,8 +243,6 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
         {/* Vùng trả lời / banner hoàn thành */}
         <Card className="lg:col-span-2">
           <CardBody className="pt-5">
-            <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
-
             {daXong ? (
               <BangHoanThanh
                 loai={problem.loai_cau}
@@ -231,18 +255,34 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             ) : (
               <>
                 {problem.loai_cau === 'TN4PA' && (
-                  <AnswerInputTN4PA phuong_an={problem.meta?.phuong_an} onGui={gui} dang_gui={dangGui} />
+                  <>
+                    <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+                    <AnswerInputTN4PA phuong_an={problem.meta?.phuong_an} onGui={gui} dang_gui={dangGui} />
+                  </>
                 )}
                 {problem.loai_cau === 'TNDS' && (
-                  <AnswerInputTNDS
-                    y={problem.meta?.y}
-                    y_hien_tai={trangThai.y_hien_tai}
-                    trang_thai_y={trangThai.trang_thai_y}
-                    onGui={gui}
-                    dang_gui={dangGui}
-                  />
+                  <>
+                    <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+                    <AnswerInputTNDS
+                      y={problem.meta?.y}
+                      y_hien_tai={trangThai.y_hien_tai}
+                      trang_thai_y={trangThai.trang_thai_y}
+                      onGui={gui}
+                      dang_gui={dangGui}
+                    />
+                  </>
                 )}
-                {problem.loai_cau === 'TLN' && <AnswerInputTLN onGui={gui} dang_gui={dangGui} />}
+                {problem.loai_cau === 'TLN' && (
+                  <>
+                    <CardBuoc
+                      buoc_hien_tai={trangThai.buoc_hien_tai}
+                      tong_buoc={trangThai.tong_buoc}
+                      buoc_mo_ta={trangThai.buoc_mo_ta}
+                    />
+                    <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+                    <AnswerInputTLN onGui={gui} dang_gui={dangGui} />
+                  </>
+                )}
 
                 {error && (
                   <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2 mt-3">{error}</p>

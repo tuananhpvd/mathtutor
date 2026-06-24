@@ -25,6 +25,14 @@ from app.services.tutor_service import tao_phien, xu_ly_luot
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
 
+def _buoc_info(problem, buoc_so: int) -> tuple[str | None, int | None]:
+    """Trả (mo_ta bước hiện tại, tổng số bước) từ solution_steps."""
+    steps = problem.solution_steps if problem else []
+    tong = len(steps) if steps else None
+    mo_ta = next((s.mo_ta for s in steps if s.thu_tu == buoc_so), None)
+    return mo_ta, tong
+
+
 @router.post("", response_model=TaoPhienResponse, dependencies=[require_role(VaiTro.hs)])
 def tao_phien_moi(
     body: TaoPhienRequest,
@@ -37,12 +45,15 @@ def tao_phien_moi(
 
     llm = get_llm_client()
     session, van_ban = tao_phien(db, current_user.id, body.problem_id, llm)
+    mo_ta, tong = _buoc_info(problem, session.buoc_hien_tai)
     return TaoPhienResponse(
         session_id=session.id,
         van_ban=van_ban,
         buoc_hien_tai=session.buoc_hien_tai,
         loai_cau=problem.loai_cau.value,
         y_hien_tai=session.y_hien_tai,
+        buoc_mo_ta=mo_ta,
+        tong_buoc=tong,
     )
 
 
@@ -143,4 +154,7 @@ def gui_tin(
         yeu_cau_goi_y=body.yeu_cau_goi_y,
         llm=llm,
     )
+    mo_ta, tong = _buoc_info(problem, result["buoc_hien_tai"])
+    result["buoc_mo_ta"] = mo_ta
+    result["tong_buoc"] = tong
     return PhanHoiResponse(**result)
