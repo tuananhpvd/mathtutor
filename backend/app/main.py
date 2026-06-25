@@ -7,6 +7,8 @@ from app.api.admin import router as admin_api_router
 from app.api.auth import admin_router, gv_router, hs_router
 from app.api.auth import router as auth_router
 from app.api.danh_muc import router as danh_muc_router
+from app.api.gv import router as gv_api_router
+from app.api.hs import router as hs_api_router
 from app.api.monitor import router as monitor_router
 from app.api.problems import router as problems_router
 from app.api.progress import router as progress_router
@@ -43,6 +45,8 @@ app.include_router(questions_ai_router)
 app.include_router(progress_router)
 app.include_router(admin_api_router)
 app.include_router(danh_muc_router)
+app.include_router(gv_api_router)
+app.include_router(hs_api_router)
 
 
 @app.get("/api/health")

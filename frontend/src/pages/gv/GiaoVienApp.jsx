@@ -7,6 +7,9 @@ import QuanLyDanhMuc from './QuanLyDanhMuc'
 import AISinhCauHoi from './AISinhCauHoi'
 import QuanLyCo from './QuanLyCo'
 import TheoDoiTienBo from './TheoDoiTienBo'
+import TaiKhoanCaNhan from './TaiKhoanCaNhan'
+import QuanLyLopGV from './QuanLyLopGV'
+import QuanLyHocSinhGV from './QuanLyHocSinhGV'
 
 const NAV = [
   { key: 'tong_quan', label: 'Tổng quan' },
@@ -15,6 +18,9 @@ const NAV = [
   { key: 'ai_sinh', label: 'AI sinh câu hỏi' },
   { key: 'co', label: 'Cờ theo dõi' },
   { key: 'tien_bo', label: 'Tiến bộ học sinh' },
+  { key: 'lop', label: 'Quản lý lớp' },
+  { key: 'hoc_sinh', label: 'Quản lý học sinh' },
+  { key: 'tai_khoan', label: 'Tài khoản cá nhân' },
 ]
 
 const TIEU_DE = {
@@ -24,6 +30,9 @@ const TIEU_DE = {
   ai_sinh: 'AI sinh câu hỏi',
   co: 'Cờ theo dõi',
   tien_bo: 'Theo dõi tiến bộ học sinh',
+  lop: 'Quản lý lớp',
+  hoc_sinh: 'Quản lý học sinh',
+  tai_khoan: 'Tài khoản cá nhân',
 }
 
 export default function GiaoVienApp({ onLogout }) {
@@ -49,6 +58,9 @@ export default function GiaoVienApp({ onLogout }) {
       {page === 'ai_sinh' && <AISinhCauHoi />}
       {page === 'co' && <QuanLyCo />}
       {page === 'tien_bo' && <TheoDoiTienBo />}
+      {page === 'lop' && <QuanLyLopGV />}
+      {page === 'hoc_sinh' && <QuanLyHocSinhGV />}
+      {page === 'tai_khoan' && <TaiKhoanCaNhan />}
     </RoleLayout>
   )
 }

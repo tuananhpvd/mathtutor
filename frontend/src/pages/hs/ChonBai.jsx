@@ -3,7 +3,7 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
 
-const NHAN_LOAI = { TN4PA: 'Trắc nghiệm A–D', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
+const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
 const TONE_KHO = { de: 'success', tb: 'warning', kho: 'danger' }
 
@@ -15,9 +15,10 @@ function renderDe(text) {
     )
 }
 
-export default function ChonBai({ onChon }) {
+export default function ChonBai({ onChon, onLamTiep }) {
   const [danhMuc, setDanhMuc] = useState([]) // [{id, ten, dang_list:[...]}]
   const [bai, setBai] = useState([])
+  const [trangThaiBai, setTrangThaiBai] = useState({}) // {problem_id: {session_id, trang_thai}}
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -30,14 +31,20 @@ export default function ChonBai({ onChon }) {
   useEffect(() => {
     async function load() {
       try {
-        // Hai call độc lập: lỗi getDanhMuc không chặn danh sách bài
-        const [dmResult, baiResult] = await Promise.allSettled([
+        // Các call độc lập: lỗi phụ không chặn danh sách bài
+        const [dmResult, baiResult, ttResult] = await Promise.allSettled([
           api.getDanhMuc(),
           api.listProblems(),
+          api.getPhienCuaToi(),
         ])
         if (dmResult.status === 'fulfilled') setDanhMuc(dmResult.value)
         if (baiResult.status === 'fulfilled') setBai(baiResult.value)
         else setError(baiResult.reason?.message || 'Lỗi tải danh sách bài')
+        if (ttResult.status === 'fulfilled') {
+          const map = {}
+          ttResult.value.forEach((s) => { map[s.problem_id] = s })
+          setTrangThaiBai(map)
+        }
       } finally {
         setLoading(false)
       }
@@ -134,24 +141,41 @@ export default function ChonBai({ onChon }) {
       )}
 
       <div className="grid md:grid-cols-2 gap-3">
-        {loc.map((b) => (
-          <Card key={b.id}>
-            <CardBody className="pt-4 flex flex-col gap-2">
-              {/* Chuyên đề → Dạng breadcrumb */}
-              <p className="text-xs text-muted">
-                {b.chuyen_de}{b.dang_ten ? <> › <span className="text-ink">{b.dang_ten}</span></> : null}
-              </p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
-                <Badge tone={TONE_KHO[b.do_kho] || 'neutral'}>{NHAN_KHO[b.do_kho] || b.do_kho}</Badge>
-              </div>
-              <p className="text-sm text-ink line-clamp-3">{renderDe(b.de_bai)}</p>
-              <Button className="w-full mt-1" onClick={() => onChon(b.id)}>
-                Bắt đầu
-              </Button>
-            </CardBody>
-          </Card>
-        ))}
+        {loc.map((b) => {
+          const tt = trangThaiBai[b.id]
+          const daXong = tt?.trang_thai === 'hoan_thanh'
+          const dangDo = tt?.trang_thai === 'dang_lam'
+          return (
+            <Card key={b.id}>
+              <CardBody className="pt-4 flex flex-col gap-2">
+                {/* Chuyên đề → Dạng breadcrumb */}
+                <p className="text-sm sm:text-base font-bold text-primary">
+                  {b.chuyen_de}{b.dang_ten ? <> › <span className="text-ink">{b.dang_ten}</span></> : null}
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
+                  <Badge tone={TONE_KHO[b.do_kho] || 'neutral'}>{NHAN_KHO[b.do_kho] || b.do_kho}</Badge>
+                  {daXong && <Badge tone="success">ĐÃ LÀM XONG</Badge>}
+                  {dangDo && <Badge tone="warning">ĐANG LÀM DỞ</Badge>}
+                </div>
+                <p className="text-sm text-ink line-clamp-3">{renderDe(b.de_bai)}</p>
+                {dangDo ? (
+                  <Button className="w-full mt-1" onClick={() => onLamTiep(tt.session_id)}>
+                    Làm tiếp
+                  </Button>
+                ) : daXong ? (
+                  <Button className="w-full mt-1" onClick={() => onChon(b.id)}>
+                    Làm lại
+                  </Button>
+                ) : (
+                  <Button className="w-full mt-1" onClick={() => onChon(b.id)}>
+                    Bắt đầu
+                  </Button>
+                )}
+              </CardBody>
+            </Card>
+          )
+        })}
       </div>
     </div>
   )

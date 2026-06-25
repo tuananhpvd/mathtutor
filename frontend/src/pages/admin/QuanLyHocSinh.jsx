@@ -1,0 +1,124 @@
+import { useEffect, useMemo, useState } from 'react'
+import { api } from '../../api'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
+import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
+
+export default function QuanLyHocSinh() {
+  const [rows, setRows] = useState([])
+  const [allLop, setAllLop] = useState([])
+  const [error, setError] = useState('')
+  const [q, setQ] = useState('')
+  const [fLop, setFLop] = useState('')
+  const [fTrangThai, setFTrangThai] = useState('')
+  const [sua, setSua] = useState(null)
+
+  function tai() {
+    api.adminHocSinh().then(setRows).catch((e) => setError(e.message))
+    api.adminLop().then(setAllLop).catch(() => {})
+  }
+  useEffect(tai, [])
+
+  const lopOptions = [
+    { value: '', label: '— Không gán lớp —' },
+    ...allLop.map((l) => ({ value: String(l.id), label: l.ten })),
+  ]
+
+  async function ganLop(h, lopId) {
+    try { await api.adminSetUserLop(h.id, lopId ? Number(lopId) : null); tai() }
+    catch (e) { setError(e.message) }
+  }
+  async function doiTrangThai(h) {
+    await api.adminSetUserStatus(h.id, h.trang_thai === 'hoat_dong' ? 'khoa' : 'hoat_dong')
+    tai()
+  }
+  async function xoa(h) {
+    if (!window.confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
+    try { await api.adminDeleteUser(h.id); tai() }
+    catch (e) { setError(e.message) }
+  }
+
+  const loc = useMemo(() => {
+    const kw = q.trim().toLowerCase()
+    return rows.filter((r) => {
+      if (fLop && String(r.lop_id || '') !== fLop) return false
+      if (fTrangThai && r.trang_thai !== fTrangThai) return false
+      if (kw && !(`${r.ho_ten} ${r.dang_nhap}`.toLowerCase().includes(kw))) return false
+      return true
+    })
+  }, [rows, q, fLop, fTrangThai])
+
+  return (
+    <div className="flex flex-col gap-5">
+      {error && (
+        <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
+          {error} <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+        </p>
+      )}
+
+      <Card>
+        <CardHeader title="Học sinh" subtitle={`${loc.length}/${rows.length} học sinh`} />
+        <CardBody className="flex flex-col gap-3">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <Input label="Tìm kiếm" placeholder="Tên hoặc đăng nhập..."
+              value={q} onChange={(e) => setQ(e.target.value)} />
+            <Select label="Lớp" value={fLop} onChange={(e) => setFLop(e.target.value)}
+              options={[{ value: '', label: 'Tất cả lớp' },
+                ...allLop.map((l) => ({ value: String(l.id), label: l.ten }))]} />
+            <Select label="Trạng thái" value={fTrangThai} onChange={(e) => setFTrangThai(e.target.value)}
+              options={[{ value: '', label: 'Tất cả' }, { value: 'hoat_dong', label: 'Hoạt động' },
+                { value: 'khoa', label: 'Đã khóa' }]} />
+          </div>
+          <Table
+            columns={[
+              { key: 'ho_ten', header: 'Họ tên' },
+              { key: 'dang_nhap', header: 'Đăng nhập' },
+              {
+                key: 'lop', header: 'Lớp',
+                render: (r) => (
+                  <Select className="w-32" value={r.lop_id ? String(r.lop_id) : ''}
+                    onChange={(e) => ganLop(r, e.target.value)} options={lopOptions} />
+                ),
+              },
+              { key: 'gv_ten', header: 'GV phụ trách', render: (r) => r.gv_ten || '—' },
+              {
+                key: 'trang_thai', header: 'Trạng thái',
+                render: (r) => (
+                  <Badge tone={r.trang_thai === 'hoat_dong' ? 'success' : 'danger'}>
+                    {r.trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Đã khóa'}
+                  </Badge>
+                ),
+              },
+              {
+                key: 'act', header: '',
+                render: (r) => (
+                  <div className="flex justify-end gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => setSua(r)}>Sửa</Button>
+                    <Button size="sm" variant="ghost" onClick={() => doiTrangThai(r)}>
+                      {r.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
+                      <span className="text-danger">Xóa</span>
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            rows={loc}
+            rowKey={(r) => r.id}
+            empty="Không có học sinh phù hợp."
+          />
+        </CardBody>
+      </Card>
+
+      {sua && (
+        <SuaTaiKhoanModal
+          user={sua}
+          showLop
+          lopOptions={lopOptions}
+          onClose={() => setSua(null)}
+          onSaved={() => { setSua(null); tai() }}
+        />
+      )}
+    </div>
+  )
+}

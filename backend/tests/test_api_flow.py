@@ -224,6 +224,23 @@ def test_tnds_hoan_thanh_co_dap_an_y_va_thoi_gian(client, db):
     assert set((r["thoi_gian_y"] or {}).keys()) == {"a", "b", "c", "d"}
 
 
+def test_phien_cua_toi_trang_thai(client, db):
+    hs, gv, admin, p = seed_all(db)
+    tok = _token(client, "hs_test")
+    # Chưa làm → không có trong danh sách
+    assert client.get("/api/sessions/cua-toi", headers=_h(tok)).json() == []
+    # Tạo phiên → đang làm
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok)).json()["session_id"]
+    r = client.get("/api/sessions/cua-toi", headers=_h(tok)).json()
+    assert len(r) == 1 and r[0]["problem_id"] == p.id
+    assert r[0]["trang_thai"] == "dang_lam" and r[0]["session_id"] == sid
+    # Hoàn thành (TLN đáp án 5) → hoan_thanh
+    client.post(f"/api/sessions/{sid}/message",
+                json={"noi_dung": "x=5", "dap_an_nhap": "5"}, headers=_h(tok))
+    r = client.get("/api/sessions/cua-toi", headers=_h(tok)).json()
+    assert r[0]["trang_thai"] == "hoan_thanh"
+
+
 def test_get_problems_hs_khong_co_dap_an(client, db):
     hs, gv, admin, p = seed_all(db)
     tok = _token(client, "hs_test")

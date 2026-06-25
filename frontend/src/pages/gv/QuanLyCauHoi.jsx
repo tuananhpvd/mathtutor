@@ -3,7 +3,7 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Input, Select, Table } from '../../components/ui'
 import Formula from '../../components/Formula'
 
-const NHAN_LOAI = { TN4PA: 'Trắc nghiệm A–D', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
+const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 
 function renderTex(text) {
   return String(text || '')

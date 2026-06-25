@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, ProgressChart, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Table } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
+import ThongKeTienDo from '../../components/ThongKeTienDo'
 
 export default function TheoDoiTienBo() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [chon, setChon] = useState(null)
+  const [tkChon, setTkChon] = useState(null)
+  const [dangTaiTk, setDangTaiTk] = useState(false)
   const [nhatKy, setNhatKy] = useState([])
 
   useEffect(() => {
@@ -14,12 +17,23 @@ export default function TheoDoiTienBo() {
       .getProgressStudents()
       .then((s) => {
         setStudents(s)
-        if (s.length) setChon(s[0].hoc_sinh_id)
+        if (s.length) xemHs(s[0].hoc_sinh_id)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
     api.listSessionsHoanThanh().then(setNhatKy).catch(() => {})
   }, [])
+
+  function xemHs(id) {
+    setChon(id)
+    setTkChon(null)
+    setDangTaiTk(true)
+    api
+      .getThongKeHocSinh(id)
+      .then(setTkChon)
+      .catch(() => {})
+      .finally(() => setDangTaiTk(false))
+  }
 
   function tongHopHs(hs) {
     const td = hs.tien_do || []
@@ -60,7 +74,7 @@ export default function TheoDoiTienBo() {
                   key: 'xem',
                   header: '',
                   render: (r) => (
-                    <Button size="sm" variant="ghost" onClick={() => setChon(r.hoc_sinh_id)}>
+                    <Button size="sm" variant="ghost" onClick={() => xemHs(r.hoc_sinh_id)}>
                       Xem biểu đồ
                     </Button>
                   ),
@@ -75,18 +89,14 @@ export default function TheoDoiTienBo() {
       </Card>
 
       {hsChon && (
-        <Card>
-          <CardHeader title={`Chi tiết: ${hsChon.ho_ten}`} subtitle="Tỉ lệ đúng theo chuyên đề" />
-          <CardBody>
-            <ProgressChart
-              data={(hsChon.tien_do || []).map((t) => ({
-                nhan: t.chuyen_de,
-                gia_tri: t.ty_le_dung_trung_binh,
-                phu: `${t.so_bai_hoan_thanh}/${t.so_bai_lam} bài`,
-              }))}
-            />
-          </CardBody>
-        </Card>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-bold text-ink">Tiến độ chi tiết: {hsChon.ho_ten}</h3>
+          {dangTaiTk ? (
+            <p className="text-sm text-muted">Đang tải thống kê...</p>
+          ) : (
+            <ThongKeTienDo tk={tkChon} />
+          )}
+        </div>
       )}
 
       <Card>

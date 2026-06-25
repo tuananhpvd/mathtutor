@@ -1,0 +1,120 @@
+"""API cho giáo viên: hồ sơ cá nhân, quản lý lớp & học sinh thuộc phạm vi của mình."""
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.auth.deps import CurrentUser, require_role
+from app.db.session import get_db
+from app.models.user import VaiTro
+from app.schemas.gv import (
+    DoiTrangThaiRequest,
+    GanLopRequest,
+    HoSoUpdate,
+    SuaHocSinhRequest,
+    SuaLopGVRequest,
+    TaoHocSinhRequest,
+    TaoLopGVRequest,
+)
+from app.services import gv_service
+
+router = APIRouter(prefix="/api/gv", tags=["gv"])
+_GV = [require_role(VaiTro.gv)]
+
+
+@router.get("/ho-so", dependencies=_GV)
+def ho_so(current_user: CurrentUser):
+    return gv_service.ho_so(current_user)
+
+
+@router.patch("/ho-so", dependencies=_GV)
+def cap_nhat_ho_so(body: HoSoUpdate, current_user: CurrentUser, db: Session = Depends(get_db)):
+    gv = gv_service.cap_nhat_ho_so(db, current_user, body.ho_ten, body.mat_khau)
+    return gv_service.ho_so(gv)
+
+
+@router.get("/lop", dependencies=_GV)
+def lop(current_user: CurrentUser, db: Session = Depends(get_db)):
+    return gv_service.lop_cua_gv(db, current_user.id)
+
+
+@router.post("/lop", dependencies=_GV)
+def them_lop(body: TaoLopGVRequest, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        lop_ = gv_service.tao_lop_gv(db, current_user.id, body.ten)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": lop_.id, "ten": lop_.ten}
+
+
+@router.patch("/lop/{lop_id}", dependencies=_GV)
+def sua_lop(lop_id: int, body: SuaLopGVRequest, current_user: CurrentUser,
+            db: Session = Depends(get_db)):
+    try:
+        lop_ = gv_service.sua_lop_gv(db, current_user.id, lop_id, body.ten)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": lop_.id, "ten": lop_.ten}
+
+
+@router.delete("/lop/{lop_id}", dependencies=_GV)
+def xoa_lop(lop_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        gv_service.xoa_lop_gv(db, current_user.id, lop_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
+
+
+@router.get("/hoc-sinh", dependencies=_GV)
+def hoc_sinh(current_user: CurrentUser, db: Session = Depends(get_db)):
+    return gv_service.danh_sach_hs_gv(db, current_user.id)
+
+
+@router.post("/hoc-sinh", dependencies=_GV)
+def tao_hoc_sinh(body: TaoHocSinhRequest, current_user: CurrentUser,
+                 db: Session = Depends(get_db)):
+    try:
+        hs = gv_service.tao_hs_gv(db, current_user.id, body.ho_ten, body.dang_nhap,
+                                  body.mat_khau, body.lop_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": hs.id, "dang_nhap": hs.dang_nhap}
+
+
+@router.patch("/hoc-sinh/{hs_id}", dependencies=_GV)
+def sua_hoc_sinh(hs_id: int, body: SuaHocSinhRequest, current_user: CurrentUser,
+                 db: Session = Depends(get_db)):
+    try:
+        hs = gv_service.sua_hs_gv(db, current_user.id, hs_id, body.model_dump(exclude_unset=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": hs.id, "ho_ten": hs.ho_ten, "dang_nhap": hs.dang_nhap}
+
+
+@router.patch("/hoc-sinh/{hs_id}/lop", dependencies=_GV)
+def gan_lop(hs_id: int, body: GanLopRequest, current_user: CurrentUser,
+            db: Session = Depends(get_db)):
+    try:
+        hs = gv_service.gan_lop_hs_gv(db, current_user.id, hs_id, body.lop_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": hs.id, "lop_id": hs.lop_id}
+
+
+@router.patch("/hoc-sinh/{hs_id}/trang-thai", dependencies=_GV)
+def doi_trang_thai(hs_id: int, body: DoiTrangThaiRequest, current_user: CurrentUser,
+                   db: Session = Depends(get_db)):
+    try:
+        hs = gv_service.khoa_hs_gv(db, current_user.id, hs_id, body.trang_thai)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": hs.id, "trang_thai": hs.trang_thai.value}
+
+
+@router.delete("/hoc-sinh/{hs_id}", dependencies=_GV)
+def xoa_hoc_sinh(hs_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        gv_service.xoa_hs_gv(db, current_user.id, hs_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}

@@ -1,3 +1,43 @@
 Code xong, chạy ổn → nói "đưa lên github" → tôi sẽ commit + push + đánh tag v2, v3… (bạn có thể kèm tên mô tả cho dễ nhớ).
 Muốn quay lại bản cũ → nói "quay lại bản v1" (hay mô tả thời điểm) → tôi khôi phục an toàn.
 
+
+Trong trang tiến độ: Bỏ hết các thống kê hiện tại. Cải tiến trang tiến độ, hiện các thông kê như sau:
+1) Tổng quan: Tổng số bài, Số bài hoàn thành (có tỉ lệ %), Số bài đang làm dở (có tỉ lệ %), Số bài chưa làm (có tỉ lệ %)
+2) Theo thời gian: Tổng thời gian làm bài, Thời gian bài làm nhanh nhất (Chia theo 3 mức độ Dễ, Trung bình, Khó: có thời gian hoàn thành nhỏ nhất), Thời gian bài làm chậm nhất (Chia theo 3 mức độ Dễ, Trung bình, Khó: có thời gian hoàn thành lớn nhất)
+3) Theo mức độ: Mỗi mức độ hiện: Tổng số bài, Số bài hoàn thành (có tỉ lệ %), Số bài đang làm dở (có tỉ lệ %), Số bài chưa làm (có tỉ lệ %) 
+4) Theo dạng bài: Liệt kê lần lượt tất cả các chuyên đề đang có, trong mỗi chuyên đề lần lượt liệt kê từng dạng bài trong chuyên đề, ở mỗi dạng bài hiện: Tổng số bài, Số bài hoàn thành (có tỉ lệ %), Số bài đang làm dở (có tỉ lệ %), Số bài chưa làm (có tỉ lệ %)
+
+1) Với tài khoản admin:
+a) Quản lý tài khoản:
+- Có chức năng thêm tài khoản, gồm các thông tin: Họ và tên, Tên đăng nhập, Mật khẩu, Vai trò
+- Với mỗi tài khoản được tạo có hiện trạng thái (Hoạt động/Đã khóa), có chức năng: Sửa/Khóa/Xóa
+- Cho phép lọc, tìm kiếm nhanh tài khoản
+b) Quản lý theo lớp:
+- Lấy cả thông tin lớp do giáo viên tạo
+- Có chức năng quản lý tên Lớp: Thêm/Sửa/Xóa
+- Có chức năng quản lý thông tin từng lớp, Gồm các thông tin: Tên lớp, Tên giáo viên phụ trách, Danh sách học sinh. Cho phép đổi giáo viên phụ trách lớp, cho phép xem danh sách học sinh của lớp. Khi xem danh sách học sinh, ứng với mỗi học sinh có thể Sửa/Khóa/Xóa các thông tin liên quan của học sinh đó.
+- Cho phép lọc, tìm kiếm nhanh tên lớp
+c) Quản lý theo giáo viên:
+- Có chức năng phân công lớp phụ trách
+- Có chức năng quản lý thông tin từng giáo viên, gồm các thông tin: Tên lớp phụ trách, Trạng thái (Hoạt động/Đã khóa),  Danh sách học sinh lớp tương ứng. 
+- Cho phép lọc, tìm kiếm nhanh tài khoản giáo viên
+d) Quản lý theo học sinh:
+- Lấy cả thông tin học sinh do giáo viên tạo
+- Có chức năng phân công học sinh vào lớp, phân công giáo viên phụ trách
+- Có chức năng quản lý thông tin từng học sinh, gồm các thông tin: Tên lớp, Tên giáo viên phụ trách, Trạng thái (Hoạt động/Đã khóa).
+- Cho phép lọc, tìm kiếm nhanh tài khoản học sinh
+2) Với tài khoản giáo viên:
+a) Quản lý tài khoản cá nhân:
+Có chức năng Xem/Sửa thông tin Họ và tên, Mật khẩu, Trạng thái (không được sửa)
+b) Quản lý theo lớp:
+- Có chức năng quản lý tên Lớp: Thêm/Sửa/Xóa
+- Có chức năng quản lý thông tin từng lớp mình phụ trách, Gồm các thông tin: Tên lớp, Danh sách học sinh. Cho phép xem danh sách học sinh của lớp. Khi xem danh sách học sinh, ứng với mỗi học sinh có thể Sửa/Khóa/Xóa các thông tin liên quan của học sinh đó.
+- Cho phép lọc, tìm kiếm nhanh tên lớp
+c) Quản lý theo học sinh:
+- Có chức năng quản lý tài khoản học sinh, gồm các thông tin: Họ và tên, Tên đăng nhập, Mật khẩu (Thêm/Sửa/Xóa)
+- Với mỗi tài khoản được tạo có hiện trạng thái (Hoạt động/Đã khóa), có chức năng: Sửa/Khóa/Xóa
+- Có chức năng phân công học sinh vào lớp
+- Cho phép lọc, tìm kiếm nhanh tài khoản học sinh
+3) Với tài khoản học sinh:
+Có chức năng quản lý tài khoản học sinh, gồm các thông tin: Họ và tên, Mật khẩu (Xem/Sửa), Lớp, Trạng thái (không được sửa)

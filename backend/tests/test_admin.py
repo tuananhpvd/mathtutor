@@ -31,6 +31,102 @@ def test_stats_admin(db, client):
     assert data["so_hoc_sinh"] == 1
 
 
+def test_gan_lop_cho_tai_khoan(db, client):
+    _seed(db)
+    from app.models.lop import Lop
+    lop = Lop(ten="12A1")
+    db.add(lop)
+    db.commit()
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+
+    lops = client.get("/api/admin/lop", headers=h).json()
+    assert any(item["ten"] == "12A1" for item in lops)
+
+    hs = db.query(User).filter_by(dang_nhap="hs1").first()
+    r = client.patch(f"/api/admin/users/{hs.id}/lop", headers=h, json={"lop_id": lop.id})
+    assert r.status_code == 200 and r.json()["lop_id"] == lop.id
+
+    users = client.get("/api/admin/users", headers=h).json()
+    u = next(x for x in users if x["dang_nhap"] == "hs1")
+    assert u["lop_ten"] == "12A1"
+
+
+def test_crud_lop_va_quan_ly(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    gv = db.query(User).filter_by(dang_nhap="gv1").first()
+
+    # Tạo lớp gán GV
+    r = client.post("/api/admin/lop", headers=h, json={"ten": "12A2", "gv_id": gv.id})
+    assert r.status_code == 200, r.text
+    lop_id = r.json()["id"]
+
+    # Danh sách lớp chi tiết có GV
+    lct = client.get("/api/admin/lop-chi-tiet", headers=h).json()
+    lop = next(x for x in lct if x["id"] == lop_id)
+    assert lop["gv_ten"] == "Cô Lan" and lop["so_hoc_sinh"] == 0
+
+    # Gán học sinh vào lớp
+    hs = db.query(User).filter_by(dang_nhap="hs1").first()
+    client.patch(f"/api/admin/users/{hs.id}/lop", headers=h, json={"lop_id": lop_id})
+
+    # Quản lý theo giáo viên: GV có lớp + học sinh
+    gvs = client.get("/api/admin/giao-vien", headers=h).json()
+    g = next(x for x in gvs if x["id"] == gv.id)
+    assert any(lp["id"] == lop_id and len(lp["hoc_sinhs"]) == 1 for lp in g["lops"])
+
+    # Quản lý theo học sinh: có lop_ten + gv_ten
+    hss = client.get("/api/admin/hoc-sinh", headers=h).json()
+    hrow = next(x for x in hss if x["id"] == hs.id)
+    assert hrow["lop_ten"] == "12A2" and hrow["gv_ten"] == "Cô Lan"
+
+    # Sửa lớp: đổi tên + gỡ GV
+    client.patch(f"/api/admin/lop/{lop_id}", headers=h, json={"ten": "12A3", "gv_id": None})
+    lct = client.get("/api/admin/lop-chi-tiet", headers=h).json()
+    lop = next(x for x in lct if x["id"] == lop_id)
+    assert lop["ten"] == "12A3" and lop["gv_id"] is None
+
+    # Xóa lớp → học sinh bị gỡ khỏi lớp
+    client.delete(f"/api/admin/lop/{lop_id}", headers=h)
+    hss = client.get("/api/admin/hoc-sinh", headers=h).json()
+    assert next(x for x in hss if x["id"] == hs.id)["lop_id"] is None
+
+
+def test_sua_va_xoa_tai_khoan(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    hs = db.query(User).filter_by(dang_nhap="hs1").first()
+
+    # Sửa họ tên + đổi mật khẩu
+    r = client.patch(f"/api/admin/users/{hs.id}", headers=h,
+                     json={"ho_ten": "HS Mới", "mat_khau": "moi123"})
+    assert r.status_code == 200 and r.json()["ho_ten"] == "HS Mới"
+    # Đăng nhập bằng mật khẩu mới
+    assert client.post("/api/auth/login",
+                       json={"dang_nhap": "hs1", "mat_khau": "moi123"}).status_code == 200
+
+    # Xóa HS chưa có phiên → OK
+    assert client.delete(f"/api/admin/users/{hs.id}", headers=h).status_code == 200
+    assert not db.query(User).filter_by(dang_nhap="hs1").first()
+
+
+def test_xoa_hs_co_phien_bi_chan(db, client):
+    _seed(db)
+    from app.models.problem import Problem, TrangThaiDuyet
+    from app.models.session import Session as S
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    hs = db.query(User).filter_by(dang_nhap="hs1").first()
+    p = Problem(chuyen_de="X", loai_cau="TLN", do_kho="tb", de_bai="?",
+                loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                meta={"dap_an_cuoi": "1"})
+    db.add(p)
+    db.flush()
+    db.add(S(hoc_sinh_id=hs.id, problem_id=p.id))
+    db.commit()
+    r = client.delete(f"/api/admin/users/{hs.id}", headers=h)
+    assert r.status_code == 400 and "Khóa" in r.json()["detail"]
+
+
 def test_stats_phan_quyen_chan_gv_hs(db, client):
     _seed(db)
     for dn in ["gv1", "hs1"]:

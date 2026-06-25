@@ -60,6 +60,117 @@ def tien_do_cua_hs(db: Session, hoc_sinh_id: int) -> list[dict]:
     ]
 
 
+_NHAN_KHO = {"de": "Dễ", "tb": "Trung bình", "kho": "Khó"}
+
+
+def _khoi() -> dict:
+    return {"tong": 0, "hoan_thanh": 0, "dang_lam": 0, "chua_lam": 0}
+
+
+def hoc_sinh_thuoc_gv(db: Session, gv_id: int, hoc_sinh_id: int) -> bool:
+    """True nếu học sinh thuộc một lớp do GV này phụ trách."""
+    from app.models.lop import Lop
+
+    hs = db.get(User, hoc_sinh_id)
+    if hs is None or hs.lop_id is None:
+        return False
+    lop_ids = {lop.id for lop in db.query(Lop).filter(Lop.gv_id == gv_id).all()}
+    return hs.lop_id in lop_ids
+
+
+def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
+    """Thống kê tiến độ chi tiết của HS trên toàn bộ bài đã duyệt.
+
+    Trạng thái mỗi bài: hoan_thanh (có ≥1 phiên hoàn thành) > dang_lam (có phiên dở) > chua_lam.
+    Gồm: tổng quan, theo thời gian (nhanh/chậm nhất mỗi mức độ), theo mức độ, theo chuyên đề→dạng.
+    """
+    from app.models.problem import TrangThaiDuyet
+
+    problems = (
+        db.query(Problem).filter(Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet).all()
+    )
+    sessions = (
+        db.query(SessionModel).filter(SessionModel.hoc_sinh_id == hoc_sinh_id).all()
+    )
+
+    sess_by_pid: dict[int, list] = {}
+    for s in sessions:
+        sess_by_pid.setdefault(s.problem_id, []).append(s)
+
+    tong_thoi_gian = sum(
+        s.thoi_gian_giay or 0 for s in sessions
+        if s.trang_thai == TrangThaiSession.hoan_thanh
+    )
+
+    def trang_thai_bai(pid: int) -> str:
+        # Theo phiên MỚI NHẤT (khớp logic trang chọn bài), tránh lệch số liệu.
+        ss = sess_by_pid.get(pid, [])
+        if not ss:
+            return "chua_lam"
+        moi_nhat = max(ss, key=lambda s: s.cap_nhat_luc)
+        if moi_nhat.trang_thai == TrangThaiSession.hoan_thanh:
+            return "hoan_thanh"
+        if moi_nhat.trang_thai == TrangThaiSession.dang_lam:
+            return "dang_lam"
+        return "chua_lam"
+
+    def best_time(pid: int):
+        ts = [s.thoi_gian_giay for s in sess_by_pid.get(pid, [])
+              if s.trang_thai == TrangThaiSession.hoan_thanh and s.thoi_gian_giay is not None]
+        return min(ts) if ts else None
+
+    tong_quan = _khoi()
+    theo_kho = {k: {"do_kho": k, "ten": _NHAN_KHO[k], **_khoi()} for k in ("de", "tb", "kho")}
+    nhanh = {"de": None, "tb": None, "kho": None}
+    cham = {"de": None, "tb": None, "kho": None}
+    theo_dang_map: dict[str, dict] = {}
+    cd_order: list[str] = []
+
+    for p in problems:
+        st = trang_thai_bai(p.id)
+        dk = p.do_kho.value if hasattr(p.do_kho, "value") else p.do_kho
+
+        tong_quan["tong"] += 1
+        tong_quan[st] += 1
+        if dk in theo_kho:
+            theo_kho[dk]["tong"] += 1
+            theo_kho[dk][st] += 1
+
+        if st == "hoan_thanh" and dk in nhanh:
+            bt = best_time(p.id)
+            if bt is not None:
+                nhanh[dk] = bt if nhanh[dk] is None else min(nhanh[dk], bt)
+                cham[dk] = bt if cham[dk] is None else max(cham[dk], bt)
+
+        cd = p.chuyen_de or "(Chưa phân loại)"
+        dang_ten = p.dang.ten if p.dang else "(Chưa phân dạng)"
+        if cd not in theo_dang_map:
+            theo_dang_map[cd] = {}
+            cd_order.append(cd)
+        dmap = theo_dang_map[cd]
+        if dang_ten not in dmap:
+            dmap[dang_ten] = {"ten": dang_ten, **_khoi()}
+        dmap[dang_ten]["tong"] += 1
+        dmap[dang_ten][st] += 1
+
+    theo_dang = [
+        {"chuyen_de": cd, "dang": [dmap[d] for d in sorted(theo_dang_map[cd].keys())]}
+        for cd in sorted(cd_order)
+        for dmap in [theo_dang_map[cd]]
+    ]
+
+    return {
+        "tong_quan": tong_quan,
+        "thoi_gian": {
+            "tong_thoi_gian_giay": tong_thoi_gian,
+            "nhanh_nhat": nhanh,
+            "cham_nhat": cham,
+        },
+        "theo_do_kho": [theo_kho["de"], theo_kho["tb"], theo_kho["kho"]],
+        "theo_dang": theo_dang,
+    }
+
+
 def tien_do_lop(db: Session, gv_id: int) -> list[dict]:
     """Tiến độ HS thuộc lớp do GV này phụ trách."""
     from app.models.lop import Lop

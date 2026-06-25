@@ -43,6 +43,47 @@ def _seed(db):
     return p.id
 
 
+def test_thong_ke_chi_tiet(db, client):
+    pid = _seed(db)  # TLN, chuyên đề "Khảo sát hàm số", mức tb, không gán dạng
+    token = _login(client, "hs1")
+    h = {"Authorization": f"Bearer {token}"}
+
+    # Chưa làm → 1 bài chưa làm
+    r = client.get("/api/progress/me/thong-ke", headers=h).json()
+    assert r["tong_quan"] == {"tong": 1, "hoan_thanh": 0, "dang_lam": 0, "chua_lam": 1}
+
+    # Tạo phiên → đang làm dở
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    r = client.get("/api/progress/me/thong-ke", headers=h).json()
+    assert r["tong_quan"]["dang_lam"] == 1 and r["tong_quan"]["chua_lam"] == 0
+
+    # Hoàn thành (b1=2, b2=5)
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    r = client.get("/api/progress/me/thong-ke", headers=h).json()
+    assert r["tong_quan"]["hoan_thanh"] == 1 and r["tong_quan"]["chua_lam"] == 0
+    tb = next(x for x in r["theo_do_kho"] if x["do_kho"] == "tb")
+    assert tb["tong"] == 1 and tb["hoan_thanh"] == 1
+    assert r["thoi_gian"]["nhanh_nhat"]["tb"] is not None
+    assert r["theo_dang"][0]["chuyen_de"] == "Khảo sát hàm số"
+    assert r["theo_dang"][0]["dang"][0]["hoan_thanh"] == 1
+
+
+def test_gv_xem_thong_ke_hoc_sinh(db, client):
+    _seed(db)
+    gh = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    students = client.get("/api/progress/students", headers=gh).json()
+    hid = students[0]["hoc_sinh_id"]
+    # GV xem được HS lớp mình
+    r = client.get(f"/api/progress/students/{hid}/thong-ke", headers=gh)
+    assert r.status_code == 200
+    assert "tong_quan" in r.json() and "theo_dang" in r.json()
+    # HS không có quyền gọi endpoint của GV
+    hh = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    assert client.get(f"/api/progress/students/{hid}/thong-ke", headers=hh).status_code == 403
+
+
 def test_lam_do_roi_vao_lai_tiep_dung_cho(db, client):
     pid = _seed(db)
     token = _login(client, "hs1")

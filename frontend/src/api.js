@@ -33,13 +33,20 @@ export const api = {
   createSession: (problem_id) => post('/sessions', { problem_id }),
   getSession: (id) => request(`/sessions/${id}`),
   getDangDo: () => request('/sessions/dang-do'),
+  getPhienCuaToi: () => request('/sessions/cua-toi'),
   sendMessage: (sessionId, body) => post(`/sessions/${sessionId}/message`, body),
 
   // Học sinh — tiến độ
   getProgressMe: () => request('/progress/me'),
+  getThongKeMe: () => request('/progress/me/thong-ke'),
+
+  // Học sinh — hồ sơ cá nhân
+  hsHoSo: () => request('/hs/ho-so'),
+  hsCapNhatHoSo: (body) => request('/hs/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
 
   // Giáo viên / Admin (Phase 9–10)
   getProgressStudents: () => request('/progress/students'),
+  getThongKeHocSinh: (id) => request(`/progress/students/${id}/thong-ke`),
   genQuestions: (body) => post('/questions-ai/generate', body),
   listChoDuyet: () => request('/questions-ai/cho-duyet'),
   duyetCau: (id, hanh_dong) => post(`/questions-ai/${id}/duyet`, { hanh_dong }),
@@ -51,6 +58,23 @@ export const api = {
   updateFlag: (id, trang_thai) =>
     request(`/monitor/flags/${id}?trang_thai=${trang_thai}`, { method: 'PATCH' }),
   listSessionsHoanThanh: () => request('/monitor/sessions-hoan-thanh'),
+
+  // Giáo viên — hồ sơ + quản lý lớp & học sinh của mình
+  gvHoSo: () => request('/gv/ho-so'),
+  gvCapNhatHoSo: (body) => request('/gv/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
+  gvLop: () => request('/gv/lop'),
+  gvTaoLop: (body) => post('/gv/lop', body),
+  gvSuaLop: (id, body) => request(`/gv/lop/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  gvXoaLop: (id) => request(`/gv/lop/${id}`, { method: 'DELETE' }),
+  gvHocSinh: () => request('/gv/hoc-sinh'),
+  gvTaoHocSinh: (body) => post('/gv/hoc-sinh', body),
+  gvSuaHocSinh: (id, body) =>
+    request(`/gv/hoc-sinh/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  gvXoaHocSinh: (id) => request(`/gv/hoc-sinh/${id}`, { method: 'DELETE' }),
+  gvGanLopHocSinh: (id, lop_id) =>
+    request(`/gv/hoc-sinh/${id}/lop`, { method: 'PATCH', body: JSON.stringify({ lop_id }) }),
+  gvDoiTrangThaiHocSinh: (id, trang_thai) =>
+    request(`/gv/hoc-sinh/${id}/trang-thai`, { method: 'PATCH', body: JSON.stringify({ trang_thai }) }),
 
   // Danh mục chuyên đề / dạng (GV + Admin)
   getDanhMuc: () => request('/danh-muc'),
@@ -66,12 +90,25 @@ export const api = {
   // Admin (Phase 10)
   adminStats: () => request('/admin/stats'),
   adminUsers: () => request('/admin/users'),
+  adminLop: () => request('/admin/lop'),
+  adminLopChiTiet: () => request('/admin/lop-chi-tiet'),
+  adminGiaoVien: () => request('/admin/giao-vien'),
+  adminHocSinh: () => request('/admin/hoc-sinh'),
   adminCreateUser: (body) => post('/admin/users', body),
+  adminUpdateUser: (id, body) =>
+    request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  adminDeleteUser: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
+  adminSetUserLop: (id, lop_id) =>
+    request(`/admin/users/${id}/lop`, { method: 'PATCH', body: JSON.stringify({ lop_id }) }),
   adminSetUserStatus: (id, trang_thai) =>
     request(`/admin/users/${id}/trang-thai`, {
       method: 'PATCH',
       body: JSON.stringify({ trang_thai }),
     }),
+  adminCreateLop: (body) => post('/admin/lop', body),
+  adminUpdateLop: (id, body) =>
+    request(`/admin/lop/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  adminDeleteLop: (id) => request(`/admin/lop/${id}`, { method: 'DELETE' }),
   adminGetConfig: () => request('/admin/config'),
   adminSetConfig: (khoa, gia_tri) =>
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),

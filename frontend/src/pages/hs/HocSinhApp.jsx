@@ -5,11 +5,13 @@ import TrangChu from './TrangChu'
 import ChonBai from './ChonBai'
 import PhongHoc from './PhongHoc'
 import TienDo from './TienDo'
+import TaiKhoanCaNhan from './TaiKhoanCaNhan'
 
 const NAV = [
   { key: 'trang_chu', label: 'Trang chủ' },
   { key: 'chon_bai', label: 'Chọn bài' },
   { key: 'tien_do', label: 'Tiến độ' },
+  { key: 'tai_khoan', label: 'Tài khoản' },
 ]
 
 export default function HocSinhApp({ onLogout }) {
@@ -41,7 +43,7 @@ export default function HocSinhApp({ onLogout }) {
       {page === 'trang_chu' && (
         <TrangChu onChonBai={() => setPage('chon_bai')} onLamTiep={lamTiep} />
       )}
-      {page === 'chon_bai' && <ChonBai onChon={moBaiMoi} />}
+      {page === 'chon_bai' && <ChonBai onChon={moBaiMoi} onLamTiep={lamTiep} />}
       {page === 'phong_hoc' && phongHoc && (
         <PhongHoc
           problemId={phongHoc.problemId}
@@ -51,6 +53,7 @@ export default function HocSinhApp({ onLogout }) {
         />
       )}
       {page === 'tien_do' && <TienDo />}
+      {page === 'tai_khoan' && <TaiKhoanCaNhan />}
     </RoleLayout>
   )
 }

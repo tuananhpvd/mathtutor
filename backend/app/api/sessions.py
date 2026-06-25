@@ -132,6 +132,29 @@ def phien_dang_do(current_user: CurrentUser, db: Session = Depends(get_db)):
     return ket_qua
 
 
+@router.get("/cua-toi", dependencies=[require_role(VaiTro.hs)])
+def phien_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Trạng thái phiên gần nhất của HS theo từng bài (để trang chọn bài hiển thị nút).
+
+    Trả [{problem_id, session_id, trang_thai}] — mỗi bài lấy phiên cập nhật gần nhất.
+    """
+    rows = (
+        db.query(SessionModel)
+        .filter(SessionModel.hoc_sinh_id == current_user.id)
+        .order_by(SessionModel.cap_nhat_luc.desc())
+        .all()
+    )
+    theo_bai: dict[int, dict] = {}
+    for s in rows:
+        if s.problem_id not in theo_bai:  # phần tử đầu = mới nhất (do sắp xếp desc)
+            theo_bai[s.problem_id] = {
+                "problem_id": s.problem_id,
+                "session_id": s.id,
+                "trang_thai": s.trang_thai.value,
+            }
+    return list(theo_bai.values())
+
+
 @router.get("/{session_id}", response_model=ChiTietPhienResponse,
             dependencies=[require_role(VaiTro.hs)])
 def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
