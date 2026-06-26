@@ -77,6 +77,7 @@ class PhienDangDoResponse(BaseModel):
     problem_id: int
     loai_cau: str
     chuyen_de: str
+    dang_ten: str | None = None
     de_bai: str
     buoc_hien_tai: int
     y_hien_tai: str | None

@@ -27,6 +27,7 @@ export default function ChonBai({ onChon, onLamTiep }) {
   const [fDangId, setFDangId] = useState('')
   const [fLoai, setFLoai] = useState('')
   const [fKho, setFKho] = useState('')
+  const [fTrangThai, setFTrangThai] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -77,6 +78,12 @@ export default function ChonBai({ onChon, onLamTiep }) {
     if (fDangId && String(b.dang_id) !== fDangId) return false
     if (fLoai && b.loai_cau !== fLoai) return false
     if (fKho && b.do_kho !== fKho) return false
+    if (fTrangThai) {
+      const tt = trangThaiBai[b.id]?.trang_thai
+      if (fTrangThai === 'hoan_thanh' && tt !== 'hoan_thanh') return false
+      if (fTrangThai === 'dang_lam' && tt !== 'dang_lam') return false
+      if (fTrangThai === 'chua_lam' && (tt === 'hoan_thanh' || tt === 'dang_lam')) return false
+    }
     return true
   })
 
@@ -85,7 +92,7 @@ export default function ChonBai({ onChon, onLamTiep }) {
       <h2 className="text-xl font-semibold text-ink">Chọn bài luyện</h2>
 
       {/* Bộ lọc theo cây danh mục */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Select
           label="Chuyên đề"
           value={fChuyenDeId}
@@ -125,6 +132,17 @@ export default function ChonBai({ onChon, onLamTiep }) {
             { value: 'de', label: 'Dễ' },
             { value: 'tb', label: 'Trung bình' },
             { value: 'kho', label: 'Khó' },
+          ]}
+        />
+        <Select
+          label="Trạng thái"
+          value={fTrangThai}
+          onChange={(e) => setFTrangThai(e.target.value)}
+          options={[
+            { value: '', label: 'Tất cả trạng thái' },
+            { value: 'hoan_thanh', label: 'Hoàn thành' },
+            { value: 'dang_lam', label: 'Đang làm dở' },
+            { value: 'chua_lam', label: 'Chưa làm' },
           ]}
         />
       </div>

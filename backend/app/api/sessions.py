@@ -122,6 +122,7 @@ def phien_dang_do(current_user: CurrentUser, db: Session = Depends(get_db)):
             problem_id=s.problem_id,
             loai_cau=p.loai_cau.value,
             chuyen_de=p.chuyen_de,
+            dang_ten=(p.dang.ten if p.dang else None),
             de_bai=p.de_bai,
             buoc_hien_tai=s.buoc_hien_tai,
             y_hien_tai=s.y_hien_tai,
