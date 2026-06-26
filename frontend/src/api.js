@@ -50,6 +50,7 @@ export const api = {
   genQuestions: (body) => post('/questions-ai/generate', body),
   listChoDuyet: () => request('/questions-ai/cho-duyet'),
   duyetCau: (id, hanh_dong) => post(`/questions-ai/${id}/duyet`, { hanh_dong }),
+  createProblem: (body) => post('/problems', body),
   updateProblem: (id, body) =>
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProblem: (id) => request(`/problems/${id}`, { method: 'DELETE' }),

@@ -231,24 +231,47 @@ function TexField({ value, onChange, label, multiline, registerActive, placehold
   )
 }
 
-function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
-  const [bai, setBai] = useState(null)
-  const [error, setError] = useState('')
-  const [dangLuu, setDangLuu] = useState(false)
+// Cấu trúc mặc định cho từng loại câu khi tạo mới.
+function templateTheoLoai(loai) {
+  if (loai === 'TN4PA') {
+    return {
+      meta: { phuong_an: { A: '', B: '', C: '', D: '' }, dap_an_dung: 'A', bat_buoc_suy_luan: false },
+      solution_steps: [
+        { thu_tu: 1, pham_vi: 'ca_bai', mo_ta: '', bieu_thuc_ket_qua: '', danh_sach_goi_y: [''] },
+      ],
+    }
+  }
+  if (loai === 'TNDS') {
+    return {
+      meta: {
+        y: ['a', 'b', 'c', 'd'].map((k) => ({
+          ky_hieu: k, noi_dung_y: '', dap_an: 'Dung', bat_buoc_suy_luan: false,
+        })),
+      },
+      solution_steps: ['a', 'b', 'c', 'd'].map((k) => ({
+        thu_tu: 1, pham_vi: k, mo_ta: '', bieu_thuc_ket_qua: '', danh_sach_goi_y: [''],
+      })),
+    }
+  }
+  // TLN
+  return {
+    meta: { dap_an_cuoi: '', quy_tac_lam_tron: null, don_vi: null },
+    solution_steps: [
+      { thu_tu: 1, pham_vi: 'ca_bai', mo_ta: '', bieu_thuc_ket_qua: '', danh_sach_goi_y: [''] },
+    ],
+  }
+}
+
+// Thân form chung cho cả Sửa và Tạo câu hỏi.
+function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, dangLuu, nutLuuText }) {
   const activeInsert = useRef(null)
   const register = (fn) => { activeInsert.current = fn }
   const chen = (s, b) => activeInsert.current?.(s, b)
 
-  useEffect(() => {
-    api.getProblem(id).then(setBai).catch((e) => setError(e.message))
-  }, [id])
-
-  const dangOptions = [
-    { value: '', label: '— Chưa gán dạng —' },
-    ...danhMuc.flatMap((cd) =>
-      cd.dang_list.map((d) => ({ value: String(d.id), label: `${cd.ten} › ${d.ten}`, cd: cd.ten }))
-    ),
-  ]
+  function doiLoai(loai) {
+    const t = templateTheoLoai(loai)
+    setBai((b) => ({ ...b, loai_cau: loai, meta: t.meta, solution_steps: t.solution_steps }))
+  }
 
   function setMeta(patch) {
     setBai((b) => ({ ...b, meta: { ...b.meta, ...patch } }))
@@ -306,52 +329,23 @@ function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
     setBai((b) => ({ ...b, solution_steps: b.solution_steps.filter((_, i) => i !== si) }))
   }
 
-  async function luu() {
-    setDangLuu(true)
-    setError('')
-    try {
-      const opt = dangOptions.find((o) => o.value === String(bai.dang_id || ''))
-      const payload = {
-        de_bai: bai.de_bai,
-        do_kho: bai.do_kho,
-        dang_id: bai.dang_id ? Number(bai.dang_id) : null,
-        chuyen_de: opt?.cd || bai.chuyen_de,
-        meta: bai.meta,
-        solution_steps: bai.solution_steps.map((s) => ({
-          thu_tu: s.thu_tu,
-          pham_vi: s.pham_vi || 'ca_bai',
-          mo_ta: s.mo_ta || '',
-          bieu_thuc_ket_qua: s.bieu_thuc_ket_qua || '',
-          danh_sach_goi_y: (s.danh_sach_goi_y || []).filter((g) => g.trim()),
-        })),
-      }
-      await api.updateProblem(id, payload)
-      onLuuXong()
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setDangLuu(false)
-    }
-  }
-
   return (
-    <div className="fixed inset-0 z-20 bg-black/30 flex justify-end" onClick={onDong}>
-      <div
-        className="w-2/3 min-w-[620px] bg-surface h-full overflow-y-auto p-6 shadow-[var(--shadow-pop)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-ink">Sửa câu hỏi #{id}</h3>
-          <button onClick={onDong} className="text-muted hover:text-ink text-lg">✕</button>
-        </div>
-        {error && <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2 mb-3">{error}</p>}
-        {!bai ? (
-          <p className="text-muted text-sm">Đang tải...</p>
-        ) : (
-          <div className="grid grid-cols-[1fr_18rem] gap-5">
-            {/* Cột trái: form */}
+    <div className="grid grid-cols-[1fr_18rem] gap-5">
+      {/* Cột trái: form */}
             <div className="flex flex-col gap-4">
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-3 gap-3">
+                {choChonLoai && (
+                  <Select
+                    label="Loại câu hỏi"
+                    value={bai.loai_cau}
+                    onChange={(e) => doiLoai(e.target.value)}
+                    options={[
+                      { value: 'TN4PA', label: NHAN_LOAI.TN4PA },
+                      { value: 'TNDS', label: NHAN_LOAI.TNDS },
+                      { value: 'TLN', label: NHAN_LOAI.TLN },
+                    ]}
+                  />
+                )}
                 <Select
                   label="Chuyên đề › Dạng"
                   value={String(bai.dang_id || '')}
@@ -532,7 +526,9 @@ function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <Button onClick={luu} disabled={dangLuu}>{dangLuu ? 'Đang lưu...' : 'Lưu thay đổi'}</Button>
+                <Button onClick={onLuu} disabled={dangLuu}>
+                  {dangLuu ? 'Đang lưu...' : (nutLuuText || 'Lưu thay đổi')}
+                </Button>
                 <Button variant="secondary" onClick={onDong}>Hủy</Button>
               </div>
             </div>
@@ -542,10 +538,141 @@ function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
               <BangCongThuc onChen={chen} />
               <BangCuPhapSymPy />
             </div>
-          </div>
-        )}
+    </div>
+  )
+}
+
+// Vỏ modal chung (overlay phải) cho Sửa / Tạo.
+function KhungModal({ tieu_de, error, children, onDong }) {
+  return (
+    <div className="fixed inset-0 z-20 bg-black/30 flex justify-end" onClick={onDong}>
+      <div
+        className="w-2/3 min-w-[620px] bg-surface h-full overflow-y-auto p-6 shadow-[var(--shadow-pop)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-ink">{tieu_de}</h3>
+          <button onClick={onDong} className="text-muted hover:text-ink text-lg">✕</button>
+        </div>
+        {error && <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2 mb-3">{error}</p>}
+        {children}
       </div>
     </div>
+  )
+}
+
+// Tập hợp danh sách dạng → options (dùng chung).
+function dungDangOptions(danhMuc) {
+  return [
+    { value: '', label: '— Chưa gán dạng —' },
+    ...danhMuc.flatMap((cd) =>
+      cd.dang_list.map((d) => ({ value: String(d.id), label: `${cd.ten} › ${d.ten}`, cd: cd.ten }))
+    ),
+  ]
+}
+
+// Chuẩn hóa payload các bước.
+function chuanHoaSteps(steps) {
+  return steps.map((s) => ({
+    thu_tu: s.thu_tu,
+    pham_vi: s.pham_vi || 'ca_bai',
+    mo_ta: s.mo_ta || '',
+    bieu_thuc_ket_qua: s.bieu_thuc_ket_qua || '',
+    danh_sach_goi_y: (s.danh_sach_goi_y || []).filter((g) => g.trim()),
+  }))
+}
+
+function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
+  const [bai, setBai] = useState(null)
+  const [error, setError] = useState('')
+  const [dangLuu, setDangLuu] = useState(false)
+
+  useEffect(() => {
+    api.getProblem(id).then(setBai).catch((e) => setError(e.message))
+  }, [id])
+
+  const dangOptions = dungDangOptions(danhMuc)
+
+  async function luu() {
+    setDangLuu(true)
+    setError('')
+    try {
+      const opt = dangOptions.find((o) => o.value === String(bai.dang_id || ''))
+      await api.updateProblem(id, {
+        de_bai: bai.de_bai,
+        do_kho: bai.do_kho,
+        dang_id: bai.dang_id ? Number(bai.dang_id) : null,
+        chuyen_de: opt?.cd || bai.chuyen_de,
+        meta: bai.meta,
+        solution_steps: chuanHoaSteps(bai.solution_steps),
+      })
+      onLuuXong()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDangLuu(false)
+    }
+  }
+
+  return (
+    <KhungModal tieu_de={`Sửa câu hỏi #${id}`} error={error} onDong={onDong}>
+      {!bai ? (
+        <p className="text-muted text-sm">Đang tải...</p>
+      ) : (
+        <ThanCauHoiForm
+          bai={bai} setBai={setBai} dangOptions={dangOptions}
+          onLuu={luu} onDong={onDong} dangLuu={dangLuu} nutLuuText="Lưu thay đổi"
+        />
+      )}
+    </KhungModal>
+  )
+}
+
+function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
+  const [bai, setBai] = useState(() => ({
+    loai_cau: 'TN4PA', do_kho: 'tb', dang_id: null, de_bai: '',
+    ...templateTheoLoai('TN4PA'),
+  }))
+  const [error, setError] = useState('')
+  const [dangLuu, setDangLuu] = useState(false)
+
+  const dangOptions = dungDangOptions(danhMuc)
+
+  async function tao() {
+    setError('')
+    if (!bai.de_bai.trim()) { setError('Vui lòng nhập đề bài.'); return }
+    if (!bai.dang_id) { setError('Vui lòng chọn Chuyên đề › Dạng.'); return }
+    setDangLuu(true)
+    try {
+      const opt = dangOptions.find((o) => o.value === String(bai.dang_id || ''))
+      await api.createProblem({
+        loai_cau: bai.loai_cau,
+        do_kho: bai.do_kho,
+        dang_id: Number(bai.dang_id),
+        chuyen_de: opt?.cd || '',
+        de_bai: bai.de_bai,
+        meta: bai.meta,
+        solution_steps: chuanHoaSteps(bai.solution_steps),
+      })
+      onLuuXong()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDangLuu(false)
+    }
+  }
+
+  return (
+    <KhungModal tieu_de="Tạo câu hỏi mới" error={error} onDong={onDong}>
+      <p className="text-[12px] text-muted bg-surface-2 rounded-md px-3 py-2 mb-3">
+        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu ở trạng thái
+        <b> Chờ duyệt</b> — bấm "Duyệt" ở danh sách để mở cho học sinh.
+      </p>
+      <ThanCauHoiForm
+        bai={bai} setBai={setBai} dangOptions={dangOptions} choChonLoai
+        onLuu={tao} onDong={onDong} dangLuu={dangLuu} nutLuuText="Tạo câu hỏi"
+      />
+    </KhungModal>
   )
 }
 
@@ -556,6 +683,7 @@ export default function QuanLyCauHoi() {
   const [error, setError] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
   const [sua, setSua] = useState(null)
+  const [taoMoi, setTaoMoi] = useState(false)
 
   async function tai() {
     const [rs, dm] = await Promise.allSettled([api.listProblems(), api.getDanhMuc()])
@@ -600,6 +728,7 @@ export default function QuanLyCauHoi() {
             { value: 'loai', label: 'Đã loại' },
           ]}
         />
+        <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
       </div>
 
       <Card>
@@ -657,6 +786,14 @@ export default function QuanLyCauHoi() {
           danhMuc={danhMuc}
           onDong={() => setSua(null)}
           onLuuXong={() => { setSua(null); tai() }}
+        />
+      )}
+
+      {taoMoi && (
+        <TaoCauHoi
+          danhMuc={danhMuc}
+          onDong={() => setTaoMoi(false)}
+          onLuuXong={() => { setTaoMoi(false); tai() }}
         />
       )}
     </div>

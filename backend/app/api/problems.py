@@ -6,8 +6,8 @@ from app.auth.deps import CurrentUser, require_role
 from app.db.session import get_db
 from app.models.problem import Problem, TrangThaiDuyet
 from app.models.user import VaiTro
-from app.schemas.problem import ProblemUpdate
-from app.services.problem_service import sua_problem, xoa_problem
+from app.schemas.problem import ProblemCreate, ProblemUpdate
+from app.services.problem_service import sua_problem, tao_problem, xoa_problem
 
 router = APIRouter(prefix="/api/problems", tags=["problems"])
 
@@ -94,6 +94,16 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
         if p.trang_thai_duyet != TrangThaiDuyet.da_duyet:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài")
         return _strip_answers(p)
+    return _problem_full(p)
+
+
+@router.post("", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def tao_bai(body: ProblemCreate, current_user: CurrentUser, db: Session = Depends(get_db)):
+    du_lieu = body.model_dump()
+    try:
+        p = tao_problem(db, du_lieu, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return _problem_full(p)
 
 

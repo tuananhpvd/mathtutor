@@ -3,9 +3,82 @@
 from sqlalchemy.orm import Session
 
 from app.models.danh_muc import Dang
-from app.models.problem import DoKho, Problem, TrangThaiDuyet
+from app.models.problem import (
+    CheDoSoKhopEnum,
+    DoKho,
+    LoaiCau,
+    Nguon,
+    Problem,
+    TrangThaiDuyet,
+)
 from app.models.session import Session as SessionModel
 from app.models.solution_step import SolutionStep
+
+LOAI_DAP_AN_THEO_LOAI = {
+    "TN4PA": "chon_phuong_an",
+    "TNDS": "dung_sai_4y",
+    "TLN": "gia_tri",
+}
+
+
+def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem:
+    """Tạo câu hỏi mới (GV/Admin nhập). Trạng thái khởi tạo: cho_duyet."""
+    try:
+        loai = LoaiCau(du_lieu.get("loai_cau"))
+    except ValueError:
+        raise ValueError("loai_cau phải là TN4PA | TNDS | TLN")
+    try:
+        do_kho = DoKho(du_lieu.get("do_kho", "tb"))
+    except ValueError:
+        raise ValueError("do_kho phải là de | tb | kho")
+
+    de_bai = (du_lieu.get("de_bai") or "").strip()
+    if not de_bai:
+        raise ValueError("Đề bài không được rỗng")
+
+    chuyen_de = du_lieu.get("chuyen_de")
+    dang_id = du_lieu.get("dang_id")
+    if dang_id is not None:
+        dang = db.get(Dang, dang_id)
+        if dang is None:
+            raise ValueError("Không tìm thấy dạng")
+        if dang.chuyen_de is not None:
+            chuyen_de = dang.chuyen_de.ten
+    if not chuyen_de:
+        raise ValueError("Phải chọn dạng (chuyên đề)")
+
+    try:
+        che_do = CheDoSoKhopEnum(du_lieu.get("che_do_so_khop", "tuong_duong"))
+    except ValueError:
+        raise ValueError("che_do_so_khop không hợp lệ")
+
+    p = Problem(
+        chuyen_de=chuyen_de,
+        dang_id=dang_id,
+        loai_cau=loai,
+        do_kho=do_kho,
+        de_bai=de_bai,
+        loai_dap_an_nhap=LOAI_DAP_AN_THEO_LOAI[loai.value],
+        che_do_so_khop=che_do,
+        trang_thai_duyet=TrangThaiDuyet.cho_duyet,
+        nguon=Nguon.gv_nhap,
+        nguoi_tao_id=nguoi_tao_id,
+        meta=du_lieu.get("meta") or {},
+    )
+    db.add(p)
+    db.flush()
+    for s in du_lieu.get("solution_steps") or []:
+        db.add(SolutionStep(
+            problem_id=p.id,
+            thu_tu=s.get("thu_tu", 1),
+            pham_vi=s.get("pham_vi", "ca_bai"),
+            mo_ta=s.get("mo_ta", ""),
+            bieu_thuc_ket_qua=s.get("bieu_thuc_ket_qua", ""),
+            danh_sach_goi_y=s.get("danh_sach_goi_y", []),
+        ))
+    db.commit()
+    db.refresh(p)
+    return p
 
 
 def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
