@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Button, Card, CardBody, CardHeader, Input } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
+
+const NHA_CUNG_CAP = [
+  { value: 'gemini', label: 'Google Gemini (khuyến nghị)', model: 'gemini-2.5-flash' },
+  { value: 'anthropic', label: 'Anthropic Claude', model: 'claude-opus-4-8' },
+  { value: 'openai', label: 'OpenAI', model: 'gpt-4o-mini' },
+  { value: 'stub', label: 'Tắt (mẫu cố định, demo)', model: '—' },
+]
 
 export default function CauHinh() {
   const [cfg, setCfg] = useState(null)
@@ -9,11 +16,21 @@ export default function CauHinh() {
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
+  // Cấu hình AI
+  const [provider, setProvider] = useState('gemini')
+  const [model, setModel] = useState('')
+  const [keyGemini, setKeyGemini] = useState('')
+  const [keyAnthropic, setKeyAnthropic] = useState('')
+  const [keyOpenai, setKeyOpenai] = useState('')
+  const [msgAI, setMsgAI] = useState('')
+
   function nap() {
     api.adminGetConfig().then((c) => {
       setCfg(c)
       setNguong(c.nguong_co_khong_hieu)
       setTemp(c.llm_temperature)
+      setProvider(c.llm_provider || 'gemini')
+      setModel(c.llm_model || '')
     })
   }
   useEffect(nap, [])
@@ -30,7 +47,43 @@ export default function CauHinh() {
     }
   }
 
+  async function luuAI() {
+    setMsgAI(''); setError('')
+    try {
+      await api.adminSetConfig('llm_provider', provider)
+      await api.adminSetConfig('llm_model', model)
+      // Khóa API chỉ gửi khi có nhập (để trống = giữ nguyên).
+      if (keyGemini.trim()) await api.adminSetConfig('llm_api_key_gemini', keyGemini.trim())
+      if (keyAnthropic.trim()) await api.adminSetConfig('llm_api_key_anthropic', keyAnthropic.trim())
+      if (keyOpenai.trim()) await api.adminSetConfig('llm_api_key_openai', keyOpenai.trim())
+      setKeyGemini(''); setKeyAnthropic(''); setKeyOpenai('')
+      nap()
+      setMsgAI('Đã lưu cấu hình AI.')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   if (!cfg) return <p className="text-muted text-sm">Đang tải cấu hình...</p>
+
+  const modelMacDinh = NHA_CUNG_CAP.find((n) => n.value === provider)?.model || ''
+  const KhoaApi = ({ label, p, value, onChange, daDat }) => (
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xs text-muted">{label}</span>
+        {daDat
+          ? <Badge tone="success">Đã lưu khóa</Badge>
+          : <Badge tone="warning">Chưa có khóa</Badge>}
+        {provider === p && <Badge tone="primary">Đang dùng</Badge>}
+      </div>
+      <Input
+        type="password"
+        placeholder={daDat ? '•••••••• (để trống nếu giữ nguyên)' : 'Dán khóa API vào đây'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  )
 
   return (
     <div className="flex flex-col gap-5">
@@ -58,6 +111,49 @@ export default function CauHinh() {
           </div>
           {msg && <p className="text-sm text-success sm:col-span-2">{msg}</p>}
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="AI sinh câu hỏi"
+          subtitle="Chọn nhà cung cấp & nhập khóa API. Khóa được lưu phía máy chủ, không hiển thị lại." />
+        <CardBody className="flex flex-col gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Select
+              label="Nhà cung cấp"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              options={NHA_CUNG_CAP.map((n) => ({ value: n.value, label: n.label }))}
+            />
+            <Input
+              label={`Model (để trống = mặc định: ${modelMacDinh})`}
+              placeholder={modelMacDinh}
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={provider === 'stub'}
+            />
+          </div>
+
+          {provider !== 'stub' && (
+            <div className="grid sm:grid-cols-1 gap-3">
+              <KhoaApi label="Khóa API Google Gemini" p="gemini"
+                value={keyGemini} onChange={setKeyGemini} daDat={cfg.llm_api_key_gemini_da_dat} />
+              <KhoaApi label="Khóa API Anthropic Claude" p="anthropic"
+                value={keyAnthropic} onChange={setKeyAnthropic} daDat={cfg.llm_api_key_anthropic_da_dat} />
+              <KhoaApi label="Khóa API OpenAI" p="openai"
+                value={keyOpenai} onChange={setKeyOpenai} daDat={cfg.llm_api_key_openai_da_dat} />
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button onClick={luuAI}>Lưu cấu hình AI</Button>
+            {msgAI && <span className="text-sm text-success">{msgAI}</span>}
+          </div>
+          <p className="text-[12px] text-muted">
+            Nếu nhà cung cấp đang chọn chưa có khóa, hệ thống tạm dùng mẫu cố định (không sinh theo
+            yêu cầu). Lấy khóa: Gemini tại Google AI Studio, Claude tại console.anthropic.com,
+            OpenAI tại platform.openai.com.
+          </p>
         </CardBody>
       </Card>
 

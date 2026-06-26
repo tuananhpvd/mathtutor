@@ -5,7 +5,8 @@ Service: sinh câu hỏi AI → lưu DB ở trạng thái cho_duyet; GV duyệt/
 from sqlalchemy.orm import Session
 
 from app.llm.client import LLMClient
-from app.llm.question_gen import sinh_nhap
+from app.llm.question_gen import sinh_nhap, validate_cau_hoi
+from app.models.danh_muc import Dang
 from app.models.problem import (
     CheDoSoKhopEnum,
     DoKho,
@@ -52,18 +53,38 @@ def sinh_va_luu(
     nguoi_tao_id: int | None,
     llm: LLMClient,
 ) -> list[dict]:
-    """Sinh nháp, lưu mỗi câu (kèm cảnh báo) ở cho_duyet. Trả list mô tả."""
+    """Sinh nháp, lưu mỗi câu (kèm cảnh báo) ở cho_duyet. Trả list mô tả.
+
+    Gắn câu sinh ra vào dạng được chọn (dang_id) và đồng bộ tên chuyên đề theo dạng;
+    đồng thời truyền tên dạng cho LLM để sinh đúng dạng bài.
+    """
+    dang_id = yeu_cau.get("dang_id")
+    dang = db.get(Dang, dang_id) if dang_id else None
+    if dang is not None:
+        yeu_cau = {**yeu_cau, "dang": dang.ten}
+        if dang.chuyen_de is not None:
+            yeu_cau["chuyen_de"] = dang.chuyen_de.ten
+
     nhap = sinh_nhap(llm, yeu_cau)
     ket_qua = []
     for item in nhap:
-        problem = _luu_mot_cau(db, dict(item["cau"]), nguoi_tao_id)
+        cau = dict(item["cau"])
+        # Ép các trường ĐÃ BIẾT từ yêu cầu GV (tránh phụ thuộc LLM trả đúng tên khóa).
+        cau["loai_cau"] = yeu_cau.get("loai_cau", cau.get("loai_cau"))
+        cau["do_kho"] = yeu_cau.get("do_kho", cau.get("do_kho", "tb"))
+        if dang is not None:
+            cau["dang_id"] = dang.id
+            cau["chuyen_de"] = yeu_cau.get("chuyen_de", cau.get("chuyen_de", ""))
+        # Tính lại cảnh báo SAU khi đã ép trường (phản ánh đúng câu sẽ lưu).
+        canh_bao = validate_cau_hoi(cau)
+        problem = _luu_mot_cau(db, cau, nguoi_tao_id)
         ket_qua.append({
             "id": problem.id,
             "loai_cau": problem.loai_cau.value,
             "do_kho": problem.do_kho.value,
             "de_bai": problem.de_bai,
             "trang_thai_duyet": problem.trang_thai_duyet.value,
-            "canh_bao": item["canh_bao"],
+            "canh_bao": canh_bao,
         })
     db.commit()
     return ket_qua

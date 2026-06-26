@@ -20,7 +20,16 @@ CAU_HINH_MAC_DINH: dict = {
     "llm_temperature": settings.llm_temperature,
     "so_goi_y_mac_dinh": SO_GOI_Y_MAC_DINH,
     "bang_bac_thang": {str(k): v for k, v in BANG_BAC_THANG.items()},
+    # LLM cho "AI sinh câu hỏi" — admin chọn nhà cung cấp & nhập khóa API.
+    "llm_provider": "gemini",   # gemini | anthropic | openai | stub
+    "llm_model": "",            # để trống = dùng model mặc định của nhà cung cấp
+    "llm_api_key_gemini": "",
+    "llm_api_key_anthropic": "",
+    "llm_api_key_openai": "",
 }
+
+# Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).
+CAU_HINH_BI_MAT = {"llm_api_key_gemini", "llm_api_key_anthropic", "llm_api_key_openai"}
 
 
 def thong_ke(db: Session) -> dict:
@@ -283,15 +292,31 @@ def doi_trang_thai_tai_khoan(db: Session, user_id: int, trang_thai: str) -> User
 
 
 def lay_cau_hinh(db: Session) -> dict:
+    """Cấu hình ĐẦY ĐỦ (gồm khóa API nguyên văn) — chỉ dùng nội bộ phía server."""
     ket_qua = dict(CAU_HINH_MAC_DINH)
     for row in db.query(CauHinh).all():
         ket_qua[row.khoa] = row.gia_tri.get("v", row.gia_tri)
     return ket_qua
 
 
+def lay_cau_hinh_an_toan(db: Session) -> dict:
+    """Cấu hình cho giao diện admin: thay khóa API bằng cờ '<khoa>_da_dat' (bool)."""
+    cau_hinh = lay_cau_hinh(db)
+    ket_qua = {}
+    for k, v in cau_hinh.items():
+        if k in CAU_HINH_BI_MAT:
+            ket_qua[f"{k}_da_dat"] = bool(str(v).strip())
+        else:
+            ket_qua[k] = v
+    return ket_qua
+
+
 def dat_cau_hinh(db: Session, khoa: str, gia_tri) -> dict:
     if khoa not in CAU_HINH_MAC_DINH:
         raise ValueError(f"Khóa cấu hình không hợp lệ: {khoa}")
+    # Khóa API rỗng = giữ nguyên giá trị cũ (tránh xóa nhầm khi lưu form).
+    if khoa in CAU_HINH_BI_MAT and not str(gia_tri or "").strip():
+        return lay_cau_hinh_an_toan(db)
     row = db.get(CauHinh, khoa)
     if row is None:
         row = CauHinh(khoa=khoa, gia_tri={"v": gia_tri})

@@ -193,6 +193,34 @@ def test_cau_hinh_get_va_set(db, client):
     assert client.get("/api/admin/config", headers=h).json()["nguong_co_khong_hieu"] == 5
 
 
+def test_cau_hinh_llm_provider_va_khoa_an(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+
+    # Mặc định provider gemini; khóa chưa đặt
+    r = client.get("/api/admin/config", headers=h).json()
+    assert r["llm_provider"] == "gemini"
+    assert r["llm_api_key_gemini_da_dat"] is False
+    assert "llm_api_key_gemini" not in r  # KHÔNG lộ khóa nguyên văn
+
+    # Đặt khóa Gemini → cờ da_dat = True, vẫn không lộ khóa
+    client.patch("/api/admin/config", headers=h,
+                 json={"khoa": "llm_api_key_gemini", "gia_tri": "AIza-secret-123"})
+    r2 = client.get("/api/admin/config", headers=h).json()
+    assert r2["llm_api_key_gemini_da_dat"] is True
+    assert "AIza-secret-123" not in str(r2)
+
+    # Gửi khóa rỗng KHÔNG xóa khóa cũ
+    client.patch("/api/admin/config", headers=h,
+                 json={"khoa": "llm_api_key_gemini", "gia_tri": ""})
+    assert client.get("/api/admin/config", headers=h).json()["llm_api_key_gemini_da_dat"] is True
+
+    # Đổi provider sang anthropic
+    client.patch("/api/admin/config", headers=h,
+                 json={"khoa": "llm_provider", "gia_tri": "anthropic"})
+    assert client.get("/api/admin/config", headers=h).json()["llm_provider"] == "anthropic"
+
+
 def test_cau_hinh_khoa_khong_hop_le(db, client):
     _seed(db)
     h = {"Authorization": f"Bearer {_login(client, 'admin')}"}

@@ -20,6 +20,7 @@ from app.schemas.session import (
     TaoPhienResponse,
     TurnResponse,
 )
+from app.services.admin_service import lay_cau_hinh
 from app.services.tutor_service import tao_phien, xu_ly_luot
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -83,7 +84,7 @@ def tao_phien_moi(
     if problem is None or problem.trang_thai_duyet != TrangThaiDuyet.da_duyet:
         raise HTTPException(status_code=404, detail="Bài không tồn tại hoặc chưa được duyệt")
 
-    llm = get_llm_client()
+    llm = get_llm_client(lay_cau_hinh(db))
     session, van_ban = tao_phien(db, current_user.id, body.problem_id, llm)
     mo_ta, tong = _buoc_info(problem, session.buoc_hien_tai)
     return TaoPhienResponse(
@@ -218,7 +219,7 @@ def gui_tin(
         raise HTTPException(status_code=400, detail=f"Nội dung không hợp lệ: {ks.ly_do}")
 
     problem = db.get(Problem, session.problem_id)
-    llm = get_llm_client()
+    llm = get_llm_client(lay_cau_hinh(db))
     result = xu_ly_luot(
         db, session, problem,
         noi_dung=body.noi_dung,

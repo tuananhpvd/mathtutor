@@ -9,6 +9,7 @@ from app.llm.client import get_llm_client
 from app.models.problem import Nguon, Problem, TrangThaiDuyet
 from app.models.user import VaiTro
 from app.schemas.question_gen import CauHoiNhapResponse, DuyetRequest, SinhCauHoiRequest
+from app.services.admin_service import lay_cau_hinh
 from app.services.question_gen_service import duyet_cau, sinh_va_luu
 
 router = APIRouter(prefix="/api/questions-ai", tags=["questions-ai"])
@@ -23,7 +24,7 @@ def sinh_cau_hoi(
 ):
     if body.loai_cau not in {"TN4PA", "TNDS", "TLN"}:
         raise HTTPException(status_code=400, detail="loai_cau không hợp lệ")
-    llm = get_llm_client()
+    llm = get_llm_client(lay_cau_hinh(db))
     ket_qua = sinh_va_luu(db, body.model_dump(), current_user.id, llm)
     return ket_qua
 

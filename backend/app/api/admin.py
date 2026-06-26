@@ -24,7 +24,7 @@ from app.services.admin_service import (
     dat_cau_hinh,
     doi_trang_thai_tai_khoan,
     gan_lop_tai_khoan,
-    lay_cau_hinh,
+    lay_cau_hinh_an_toan,
     sua_lop,
     sua_tai_khoan,
     tao_lop,
@@ -150,7 +150,7 @@ def doi_trang_thai(
 
 @router.get("/config", dependencies=_ADMIN)
 def get_config(current_user: CurrentUser, db: Session = Depends(get_db)):
-    return lay_cau_hinh(db)
+    return lay_cau_hinh_an_toan(db)
 
 
 @router.patch("/config", dependencies=_ADMIN)

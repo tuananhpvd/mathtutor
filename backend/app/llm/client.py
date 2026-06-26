@@ -1,4 +1,5 @@
 import json
+import re
 from abc import ABC, abstractmethod
 
 
@@ -222,20 +223,195 @@ class OpenAILLMClient(LLMClient):
             chuyen_de=yeu_cau.get("chuyen_de", ""),
             do_kho=yeu_cau.get("do_kho", "tb"),
             tai_lieu=yeu_cau.get("tai_lieu"),
+            dang=yeu_cau.get("dang"),
         )
         raw = self._call(SYSTEM_SINH_CAU_HOI, user)
+        return _parse_json_cau_hoi(raw)
+
+
+def _va_escape_json(text: str) -> str:
+    r"""Vá backslash đơn không hợp lệ trong JSON do LLM trả LaTeX (\dfrac, \sqrt...).
+
+    JSON chỉ cho \" \\ \/ \b \f \n \r \t \uXXXX. Mọi '\' khác (vd "\d", "\s",
+    "\underline") đều khiến json.loads lỗi. Nhân đôi chúng thành '\\' để hợp lệ
+    mà vẫn giữ nguyên các escape đã đúng.
+    """
+    return re.sub(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', text)
+
+
+def _parse_json_cau_hoi(raw: str) -> dict:
+    """Tách & parse JSON {"cau_hoi": [...]} từ phản hồi LLM (chịu được rào ``` + LaTeX)."""
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        # bỏ rào ```json ... ```
+        text = text.split("```", 2)[1] if text.count("```") >= 2 else text
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip().rstrip("`").strip()
+    # Lấy đoạn từ "{" đầu đến "}" cuối cho chắc.
+    if "{" in text and "}" in text:
+        text = text[text.index("{"): text.rindex("}") + 1]
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        # Thường do LaTeX có '\' đơn — vá rồi thử lại.
         try:
-            data = json.loads(raw)
+            data = json.loads(_va_escape_json(text))
         except json.JSONDecodeError as e:
             raise ValueError(f"LLM trả JSON không hợp lệ: {e}") from e
-        if "cau_hoi" not in data:
-            raise ValueError("LLM trả thiếu khóa 'cau_hoi'")
-        return data
+    if "cau_hoi" not in data:
+        raise ValueError("LLM trả thiếu khóa 'cau_hoi'")
+    return data
 
 
-def get_llm_client() -> LLMClient:
+class AnthropicLLMClient(LLMClient):
+    """Gọi Claude (Anthropic) để sinh câu hỏi & diễn đạt gợi ý."""
+
+    def __init__(self, api_key: str, model: str, temperature: float):
+        try:
+            from anthropic import Anthropic  # type: ignore
+        except ImportError:
+            raise ImportError("pip install anthropic để dùng provider anthropic")
+        self._client = Anthropic(api_key=api_key)
+        self._model = model or "claude-opus-4-8"
+        self._temperature = temperature
+
+    def _call(self, system: str, user: str, max_tokens: int = 4096) -> str:
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=max_tokens,
+            temperature=self._temperature,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return "".join(
+            block.text for block in resp.content if getattr(block, "type", None) == "text"
+        ).strip()
+
+    def dien_dat(self, chi_thi: dict) -> str:
+        from app.llm.prompts import SYSTEM_DIEN_DAT, user_prompt_dien_dat
+
+        try:
+            return self._call(
+                SYSTEM_DIEN_DAT,
+                user_prompt_dien_dat(
+                    json.dumps(chi_thi, ensure_ascii=False),
+                    chi_thi.get("ngu_canh_hs", ""),
+                    chi_thi.get("ngu_canh_hs", ""),
+                ),
+                max_tokens=512,
+            )
+        except Exception:
+            return f"Gợi ý: {chi_thi.get('y_goi_y', '')}"
+
+    def sinh_cau_hoi(self, yeu_cau: dict) -> dict:
+        from app.llm.prompts import SYSTEM_SINH_CAU_HOI, user_prompt_sinh_cau_hoi
+
+        user = user_prompt_sinh_cau_hoi(
+            so_luong=int(yeu_cau.get("so_luong", 1)),
+            loai_cau=yeu_cau.get("loai_cau", "TLN"),
+            chuyen_de=yeu_cau.get("chuyen_de", ""),
+            do_kho=yeu_cau.get("do_kho", "tb"),
+            tai_lieu=yeu_cau.get("tai_lieu"),
+            dang=yeu_cau.get("dang"),
+        )
+        raw = self._call(SYSTEM_SINH_CAU_HOI, user, max_tokens=8192)
+        return _parse_json_cau_hoi(raw)
+
+
+class GeminiLLMClient(LLMClient):
+    """Gọi Google Gemini để sinh câu hỏi & diễn đạt gợi ý."""
+
+    def __init__(self, api_key: str, model: str, temperature: float):
+        try:
+            from google import genai  # type: ignore
+        except ImportError:
+            raise ImportError("pip install google-genai để dùng provider gemini")
+        self._genai = genai
+        self._client = genai.Client(api_key=api_key)
+        self._model = model or "gemini-2.5-flash"
+        self._temperature = temperature
+
+    def _call(self, system: str, user: str, max_tokens: int = 4096) -> str:
+        from google.genai import types  # type: ignore
+
+        resp = self._client.models.generate_content(
+            model=self._model,
+            contents=user,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=self._temperature,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        return (resp.text or "").strip()
+
+    def dien_dat(self, chi_thi: dict) -> str:
+        from app.llm.prompts import SYSTEM_DIEN_DAT, user_prompt_dien_dat
+
+        try:
+            return self._call(
+                SYSTEM_DIEN_DAT,
+                user_prompt_dien_dat(
+                    json.dumps(chi_thi, ensure_ascii=False),
+                    chi_thi.get("ngu_canh_hs", ""),
+                    chi_thi.get("ngu_canh_hs", ""),
+                ),
+                max_tokens=512,
+            )
+        except Exception:
+            return f"Gợi ý: {chi_thi.get('y_goi_y', '')}"
+
+    def sinh_cau_hoi(self, yeu_cau: dict) -> dict:
+        from app.llm.prompts import SYSTEM_SINH_CAU_HOI, user_prompt_sinh_cau_hoi
+
+        user = user_prompt_sinh_cau_hoi(
+            so_luong=int(yeu_cau.get("so_luong", 1)),
+            loai_cau=yeu_cau.get("loai_cau", "TLN"),
+            chuyen_de=yeu_cau.get("chuyen_de", ""),
+            do_kho=yeu_cau.get("do_kho", "tb"),
+            tai_lieu=yeu_cau.get("tai_lieu"),
+            dang=yeu_cau.get("dang"),
+        )
+        raw = self._call(SYSTEM_SINH_CAU_HOI, user, max_tokens=8192)
+        return _parse_json_cau_hoi(raw)
+
+
+# Model mặc định mỗi nhà cung cấp (khi admin để trống ô model).
+MODEL_MAC_DINH = {
+    "gemini": "gemini-2.5-flash",
+    "anthropic": "claude-opus-4-8",
+    "openai": "gpt-4o-mini",
+}
+
+
+def get_llm_client(cau_hinh: dict | None = None) -> LLMClient:
+    """Tạo LLM client theo cấu hình admin (DB). Thiếu khóa → quay về stub an toàn.
+
+    cau_hinh: dict từ admin_service.lay_cau_hinh(db). None → đọc từ env settings.
+    """
     from app.config import settings
 
-    if settings.llm_provider == "openai" and settings.llm_api_key:
-        return OpenAILLMClient(settings.llm_api_key, settings.llm_model, settings.llm_temperature)
+    if cau_hinh is None:
+        provider = (settings.llm_provider or "stub").lower()
+        khoa = settings.llm_api_key
+        model = settings.llm_model
+        temperature = settings.llm_temperature
+    else:
+        provider = str(cau_hinh.get("llm_provider") or "stub").lower()
+        khoa = cau_hinh.get(f"llm_api_key_{provider}", "") or ""
+        model = cau_hinh.get("llm_model") or ""
+        temperature = float(cau_hinh.get("llm_temperature", settings.llm_temperature))
+
+    model = model or MODEL_MAC_DINH.get(provider, "")
+
+    try:
+        if provider == "gemini" and khoa:
+            return GeminiLLMClient(khoa, model, temperature)
+        if provider == "anthropic" and khoa:
+            return AnthropicLLMClient(khoa, model, temperature)
+        if provider == "openai" and khoa:
+            return OpenAILLMClient(khoa, model, temperature)
+    except ImportError:
+        return StubLLMClient()
     return StubLLMClient()

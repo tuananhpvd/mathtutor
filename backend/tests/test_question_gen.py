@@ -4,8 +4,11 @@ from app.auth.security import hash_password
 from app.core.matching.cas import kiem_tra_bieu_thuc
 from app.llm.client import StubLLMClient
 from app.llm.question_gen import sinh_nhap, validate_cau_hoi
+from app.models.danh_muc import ChuyenDe, Dang
 from app.models.lop import Lop
+from app.models.problem import Problem
 from app.models.user import User, VaiTro
+from app.services.question_gen_service import sinh_va_luu
 
 
 def _login(client, dang_nhap):
@@ -97,6 +100,49 @@ def test_validate_tn4pa_thieu_dap_an():
     cb = validate_cau_hoi(cau)
     assert any("phương án" in c for c in cb)
     assert any("dap_an_dung" in c for c in cb)
+
+
+# ----- Gắn dạng cho câu sinh ra + truyền tên dạng cho LLM -----
+
+class _FakeLLM(StubLLMClient):
+    """Ghi lại yeu_cau để kiểm tra tên dạng được truyền vào prompt."""
+
+    def __init__(self):
+        self.yeu_cau_da_nhan = None
+
+    def sinh_cau_hoi(self, yeu_cau):
+        self.yeu_cau_da_nhan = yeu_cau
+        return super().sinh_cau_hoi(yeu_cau)
+
+
+def _seed_danh_muc(db):
+    cd = ChuyenDe(ten="Khảo sát hàm số")
+    db.add(cd)
+    db.flush()
+    dang = Dang(chuyen_de_id=cd.id, ten="Tìm cực trị")
+    db.add(dang)
+    db.commit()
+    return dang
+
+
+def test_sinh_gan_dang_va_dong_bo_chuyen_de(db):
+    dang = _seed_danh_muc(db)
+    llm = _FakeLLM()
+    ket_qua = sinh_va_luu(
+        db,
+        {"chuyen_de": "(sai - sẽ bị ghi đè)", "dang_id": dang.id,
+         "loai_cau": "TLN", "do_kho": "tb", "so_luong": 2},
+        nguoi_tao_id=None,
+        llm=llm,
+    )
+    # LLM nhận đúng tên dạng + chuyên đề chuẩn
+    assert llm.yeu_cau_da_nhan["dang"] == "Tìm cực trị"
+    assert llm.yeu_cau_da_nhan["chuyen_de"] == "Khảo sát hàm số"
+    # Mọi câu lưu ra đều gắn dang_id và chuyên đề đúng
+    for d in ket_qua:
+        p = db.get(Problem, d["id"])
+        assert p.dang_id == dang.id
+        assert p.chuyen_de == "Khảo sát hàm số"
 
 
 # ----- API -----

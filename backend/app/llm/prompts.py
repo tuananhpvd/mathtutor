@@ -71,16 +71,79 @@ KHÔNG trả gì ngoài JSON.
 """.strip()
 
 
+# Schema JSON CHÍNH XÁC cho từng loại câu (đưa nguyên vào prompt để LLM không tự đổi tên khóa).
+_MAU_TN4PA = """{
+  "loai_cau": "TN4PA",
+  "de_bai": "<đề, công thức trong $...$>",
+  "meta": {
+    "phuong_an": {"A": "$...$", "B": "$...$", "C": "$...$", "D": "$...$"},
+    "dap_an_dung": "A",
+    "bat_buoc_suy_luan": true
+  },
+  "solution_steps": [
+    {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "<mô tả bước>",
+     "bieu_thuc_ket_qua": "3*x**2-3", "danh_sach_goi_y": ["<gợi ý 1>", "<gợi ý 2>"]}
+  ]
+}"""
+
+_MAU_TNDS = """{
+  "loai_cau": "TNDS",
+  "de_bai": "<đề chung>",
+  "meta": {"y": [
+    {"ky_hieu": "a", "noi_dung_y": "$...$", "dap_an": "Dung", "bat_buoc_suy_luan": true},
+    {"ky_hieu": "b", "noi_dung_y": "$...$", "dap_an": "Sai"},
+    {"ky_hieu": "c", "noi_dung_y": "$...$", "dap_an": "Dung"},
+    {"ky_hieu": "d", "noi_dung_y": "$...$", "dap_an": "Sai"}
+  ]},
+  "solution_steps": [
+    {"thu_tu": 1, "pham_vi": "a", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "<SymPy>",
+     "danh_sach_goi_y": ["<gợi ý>"]},
+    {"thu_tu": 1, "pham_vi": "b", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "",
+     "danh_sach_goi_y": ["<gợi ý>"]},
+    {"thu_tu": 1, "pham_vi": "c", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "",
+     "danh_sach_goi_y": ["<gợi ý>"]},
+    {"thu_tu": 1, "pham_vi": "d", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "",
+     "danh_sach_goi_y": ["<gợi ý>"]}
+  ]
+}"""
+
+_MAU_TLN = """{
+  "loai_cau": "TLN",
+  "de_bai": "<đề>",
+  "meta": {"dap_an_cuoi": "5", "quy_tac_lam_tron": null, "don_vi": null},
+  "solution_steps": [
+    {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "<SymPy>",
+     "danh_sach_goi_y": ["<gợi ý 1>", "<gợi ý 2>"]}
+  ]
+}"""
+
+_MAU_THEO_LOAI = {"TN4PA": _MAU_TN4PA, "TNDS": _MAU_TNDS, "TLN": _MAU_TLN}
+
+
 def user_prompt_sinh_cau_hoi(
     so_luong: int,
     loai_cau: str,
     chuyen_de: str,
     do_kho: str,
     tai_lieu: str | None = None,
+    dang: str | None = None,
 ) -> str:
     dong_tai_lieu = (
         f"Chỉ dựa trên nội dung tài liệu sau: {tai_lieu}\n" if tai_lieu else ""
     )
+    dong_dang = (
+        f'Mỗi câu PHẢI đúng dạng bài "{dang}" (bám sát dạng này, không lệch sang dạng khác).\n'
+        if dang else ""
+    )
+    mau = _MAU_THEO_LOAI.get(loai_cau, _MAU_TLN)
     return f"""Sinh {so_luong} câu loại {loai_cau}, chuyên đề "{chuyen_de}", độ khó {do_kho}.
-{dong_tai_lieu}Trả về JSON đúng mẫu {loai_cau} đã quy định, không kèm chữ nào khác.
-Mẫu trả về: {{"cau_hoi": [ <mỗi câu một object đúng schema> ]}}"""
+{dong_dang}{dong_tai_lieu}Mỗi câu phải KHÁC NHAU về số liệu/hàm số, không lặp lại đề mẫu.
+
+Mỗi câu là một object JSON theo ĐÚNG schema sau (GIỮ NGUYÊN tên khóa, KHÔNG đổi/thêm/bớt khóa,
+KHÔNG dùng tên khác như "loai_cau_hoi"):
+{mau}
+
+Bắt buộc: có đủ "solution_steps" (mỗi bước có "danh_sach_goi_y" không rỗng), "bieu_thuc_ket_qua"
+viết cú pháp SymPy KHÔNG bọc $. Trong chuỗi JSON, dấu gạch chéo ngược của LaTeX phải viết kép
+(ví dụ "$\\\\dfrac{{1}}{{2}}$"). CHỈ trả JSON, không kèm chữ nào khác.
+Trả về: {{"cau_hoi": [ <mỗi câu một object đúng schema trên> ]}}"""
