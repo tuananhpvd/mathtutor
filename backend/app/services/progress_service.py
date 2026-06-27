@@ -175,7 +175,9 @@ def tien_do_lop(db: Session, gv_id: int) -> list[dict]:
     """Tiến độ HS thuộc lớp do GV này phụ trách."""
     from app.models.lop import Lop
 
-    lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == gv_id).all()]
+    lops = db.query(Lop).filter(Lop.gv_id == gv_id).all()
+    lop_ten = {lop.id: lop.ten for lop in lops}
+    lop_ids = list(lop_ten.keys())
     if not lop_ids:
         return []
     hoc_sinhs = db.query(User).filter(User.lop_id.in_(lop_ids)).all()
@@ -185,6 +187,8 @@ def tien_do_lop(db: Session, gv_id: int) -> list[dict]:
         ket_qua.append({
             "hoc_sinh_id": hs.id,
             "ho_ten": hs.ho_ten,
+            "lop_id": hs.lop_id,
+            "lop_ten": lop_ten.get(hs.lop_id),
             "tien_do": tien_do_cua_hs(db, hs.id),
         })
     return ket_qua

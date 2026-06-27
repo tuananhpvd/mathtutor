@@ -61,6 +61,7 @@ export const api = {
   listSessionsHoanThanh: () => request('/monitor/sessions-hoan-thanh'),
 
   // Giáo viên — hồ sơ + quản lý lớp & học sinh của mình
+  gvTongQuan: () => request('/gv/tong-quan'),
   gvHoSo: () => request('/gv/ho-so'),
   gvCapNhatHoSo: (body) => request('/gv/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
   gvLop: () => request('/gv/lop'),

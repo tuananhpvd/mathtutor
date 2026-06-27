@@ -33,6 +33,31 @@ def test_gv_ho_so_xem_va_sua(db, client):
                        json={"dang_nhap": "gv1", "mat_khau": "moi123"}).status_code == 200
 
 
+def test_gv_tong_quan(db, client):
+    _seed(db)
+    h = _h(client, "gv1")
+    lop_id = client.post("/api/gv/lop", headers=h, json={"ten": "12A1"}).json()["id"]
+    client.post("/api/gv/hoc-sinh", headers=h,
+                json={"ho_ten": "HS A", "dang_nhap": "hsa", "mat_khau": "pass123", "lop_id": lop_id})
+    hs2 = client.post("/api/gv/hoc-sinh", headers=h,
+                      json={"ho_ten": "HS B", "dang_nhap": "hsb", "mat_khau": "pass123",
+                            "lop_id": lop_id}).json()["id"]
+    client.patch(f"/api/gv/hoc-sinh/{hs2}/trang-thai", headers=h, json={"trang_thai": "khoa"})
+
+    r = client.get("/api/gv/tong-quan", headers=h)
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["so_lop"] == 1
+    assert d["tong_hoc_sinh"] == 2
+    assert d["hoc_sinh_khoa"] == 1
+    # các khóa thống kê tồn tại
+    for k in ("tong_cau_hoi", "cau_hoi_da_duyet", "cau_hoi_cho_duyet",
+              "tong_co", "co_da_xu_ly", "co_chua_xu_ly",
+              "dang_mat_thoi_gian", "loai_mat_thoi_gian"):
+        assert k in d
+    assert isinstance(d["dang_mat_thoi_gian"], list)
+
+
 def test_gv_quan_ly_lop_va_hoc_sinh(db, client):
     _seed(db)
     h = _h(client, "gv1")

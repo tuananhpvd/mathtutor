@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Select, Table } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 
@@ -11,6 +11,7 @@ export default function TheoDoiTienBo() {
   const [tkChon, setTkChon] = useState(null)
   const [dangTaiTk, setDangTaiTk] = useState(false)
   const [nhatKy, setNhatKy] = useState([])
+  const [fLop, setFLop] = useState('')
 
   useEffect(() => {
     api
@@ -48,17 +49,37 @@ export default function TheoDoiTienBo() {
 
   const hsChon = students.find((h) => h.hoc_sinh_id === chon)
 
+  // Danh sách lớp (để lọc) + danh sách HS đã lọc
+  const lopOptions = useMemo(() => {
+    const ten = [...new Set(students.map((s) => s.lop_ten).filter(Boolean))].sort()
+    return ten.map((t) => ({ value: t, label: t }))
+  }, [students])
+  const dsLoc = useMemo(
+    () => (fLop ? students.filter((s) => s.lop_ten === fLop) : students),
+    [students, fLop]
+  )
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardHeader title="Học sinh lớp của tôi" subtitle={`${students.length} học sinh`} />
-        <CardBody className="pt-0">
+        <CardHeader title="Học sinh lớp của tôi"
+          subtitle={`${dsLoc.length}/${students.length} học sinh`} />
+        <CardBody className="pt-0 flex flex-col gap-3">
+          <div className="max-w-xs">
+            <Select
+              label="Lọc theo lớp"
+              value={fLop}
+              onChange={(e) => setFLop(e.target.value)}
+              options={[{ value: '', label: 'Tất cả lớp' }, ...lopOptions]}
+            />
+          </div>
           {loading ? (
             <p className="text-muted text-sm">Đang tải...</p>
           ) : (
             <Table
               columns={[
                 { key: 'ho_ten', header: 'Học sinh' },
+                { key: 'lop_ten', header: 'Lớp', render: (r) => r.lop_ten || '—' },
                 { key: 'lam', header: 'Đã làm', render: (r) => tongHopHs(r).lam },
                 { key: 'xong', header: 'Hoàn thành', render: (r) => tongHopHs(r).xong },
                 { key: 'tb', header: 'Tỉ lệ đúng TB', render: (r) => `${tongHopHs(r).tb}%` },
@@ -80,9 +101,9 @@ export default function TheoDoiTienBo() {
                   ),
                 },
               ]}
-              rows={students}
+              rows={dsLoc}
               rowKey={(r) => r.hoc_sinh_id}
-              empty="Lớp chưa có học sinh."
+              empty="Không có học sinh phù hợp."
             />
           )}
         </CardBody>

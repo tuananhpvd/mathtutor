@@ -24,7 +24,7 @@ const NAV = [
 ]
 
 const TIEU_DE = {
-  tong_quan: 'Tổng quan lớp học',
+  tong_quan: 'Tổng quan',
   danh_muc: 'Quản lý danh mục chuyên đề / dạng',
   cau_hoi: 'Quản lý câu hỏi',
   ai_sinh: 'AI sinh câu hỏi',

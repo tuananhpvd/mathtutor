@@ -3,9 +3,12 @@
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
+from app.models.flag import Flag, TrangThaiCo
 from app.models.lop import Lop
+from app.models.problem import Problem, TrangThaiDuyet
 from app.models.progress import Progress
 from app.models.session import Session as SessionModel
+from app.models.session import TrangThaiSession
 from app.models.user import TrangThaiUser, User, VaiTro
 
 
@@ -26,6 +29,72 @@ def _so_huu_hs(db: Session, gv_id: int, hs_id: int) -> bool:
     if hs is None or hs.vai_tro != VaiTro.hs or hs.lop_id is None:
         return False
     return _so_huu_lop(db, gv_id, hs.lop_id)
+
+
+# ---------- Tổng quan ----------
+
+def tong_quan_gv(db: Session, gv_id: int) -> dict:
+    """Thống kê tổng quan cho GV (lớp/HS/câu hỏi/cờ + dạng & loại tốn nhiều thời gian)."""
+    lops = db.query(Lop).filter(Lop.gv_id == gv_id).all()
+    lop_ids = [lop.id for lop in lops]
+    hs = (
+        db.query(User).filter(User.vai_tro == VaiTro.hs, User.lop_id.in_(lop_ids)).all()
+        if lop_ids else []
+    )
+    hs_ids = [h.id for h in hs]
+    hs_khoa = sum(1 for h in hs if h.trang_thai == TrangThaiUser.khoa)
+
+    # Câu hỏi (ngân hàng dùng chung)
+    problems = db.query(Problem).all()
+    tong_ch = len(problems)
+    ch_duyet = sum(1 for p in problems if p.trang_thai_duyet == TrangThaiDuyet.da_duyet)
+    ch_cho = sum(1 for p in problems if p.trang_thai_duyet == TrangThaiDuyet.cho_duyet)
+
+    # Cờ theo dõi — theo phiên của HS thuộc lớp GV
+    co = (
+        db.query(Flag).join(SessionModel, Flag.session_id == SessionModel.id)
+        .filter(SessionModel.hoc_sinh_id.in_(hs_ids)).all()
+        if hs_ids else []
+    )
+    tong_co = len(co)
+    co_chua = sum(1 for f in co if f.trang_thai == TrangThaiCo.cho_xu_ly)
+
+    # Thời gian theo dạng & loại — phiên ĐÃ HOÀN THÀNH của HS
+    sess = (
+        db.query(SessionModel).filter(
+            SessionModel.hoc_sinh_id.in_(hs_ids),
+            SessionModel.trang_thai == TrangThaiSession.hoan_thanh,
+        ).all()
+        if hs_ids else []
+    )
+    p_cache = {p.id: p for p in problems}
+    tg_dang: dict[str, int] = {}
+    tg_loai: dict[str, int] = {}
+    for s in sess:
+        p = p_cache.get(s.problem_id)
+        if p is None:
+            continue
+        t = s.thoi_gian_giay or 0
+        ten_dang = f"{p.chuyen_de} › {p.dang.ten}" if p.dang else p.chuyen_de
+        tg_dang[ten_dang] = tg_dang.get(ten_dang, 0) + t
+        tg_loai[p.loai_cau.value] = tg_loai.get(p.loai_cau.value, 0) + t
+
+    dang_top = sorted(tg_dang.items(), key=lambda x: x[1], reverse=True)[:3]
+    loai_top = sorted(tg_loai.items(), key=lambda x: x[1], reverse=True)[:3]
+
+    return {
+        "so_lop": len(lops),
+        "tong_hoc_sinh": len(hs),
+        "hoc_sinh_khoa": hs_khoa,
+        "tong_cau_hoi": tong_ch,
+        "cau_hoi_da_duyet": ch_duyet,
+        "cau_hoi_cho_duyet": ch_cho,
+        "tong_co": tong_co,
+        "co_da_xu_ly": tong_co - co_chua,
+        "co_chua_xu_ly": co_chua,
+        "dang_mat_thoi_gian": [{"ten": k, "thoi_gian_giay": v} for k, v in dang_top],
+        "loai_mat_thoi_gian": [{"loai": k, "thoi_gian_giay": v} for k, v in loai_top],
+    }
 
 
 # ---------- Hồ sơ cá nhân ----------

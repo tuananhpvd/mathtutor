@@ -21,6 +21,11 @@ router = APIRouter(prefix="/api/gv", tags=["gv"])
 _GV = [require_role(VaiTro.gv)]
 
 
+@router.get("/tong-quan", dependencies=_GV)
+def tong_quan(current_user: CurrentUser, db: Session = Depends(get_db)):
+    return gv_service.tong_quan_gv(db, current_user.id)
+
+
 @router.get("/ho-so", dependencies=_GV)
 def ho_so(current_user: CurrentUser):
     return gv_service.ho_so(current_user)

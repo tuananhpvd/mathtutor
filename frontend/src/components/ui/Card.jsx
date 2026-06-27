@@ -31,6 +31,7 @@ export function StatCard({ label, value, hint, accent = 'primary' }) {
     primary: 'text-primary',
     success: 'text-success',
     warning: 'text-warning',
+    danger: 'text-danger',
   }[accent]
   return (
     <Card className="px-5 py-4">
