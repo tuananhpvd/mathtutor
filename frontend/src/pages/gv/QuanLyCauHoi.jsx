@@ -4,6 +4,18 @@ import { Badge, Button, Card, CardBody, Input, Select, Table } from '../../compo
 import Formula from '../../components/Formula'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
+const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
+const NHAN_NGUON = { gv_nhap: 'GV', ai_sinh: 'AI' }
+
+function dinhDangNgay(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d)) return '—'
+  return d.toLocaleString('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
 
 function renderTex(text) {
   return String(text || '')
@@ -582,7 +594,7 @@ function chuanHoaSteps(steps) {
   }))
 }
 
-function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
+export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
   const [bai, setBai] = useState(null)
   const [error, setError] = useState('')
   const [dangLuu, setDangLuu] = useState(false)
@@ -750,7 +762,21 @@ export default function QuanLyCauHoi() {
                   ),
                 },
                 { key: 'loai_cau', header: 'Loại', render: (r) => NHAN_LOAI[r.loai_cau] || r.loai_cau },
-                { key: 'do_kho', header: 'Mức độ' },
+                { key: 'do_kho', header: 'Mức độ', render: (r) => NHAN_KHO[r.do_kho] || r.do_kho },
+                {
+                  key: 'nguon',
+                  header: 'Người tạo',
+                  render: (r) => (
+                    <Badge tone={r.nguon === 'ai_sinh' ? 'warning' : 'primary'}>
+                      {NHAN_NGUON[r.nguon] || 'GV'}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: 'tao_luc',
+                  header: 'Ngày giờ tạo',
+                  render: (r) => <span className="text-muted text-sm">{dinhDangNgay(r.tao_luc)}</span>,
+                },
                 {
                   key: 'trang_thai_duyet',
                   header: 'Trạng thái',

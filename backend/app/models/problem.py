@@ -1,9 +1,14 @@
 import enum
+from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class LoaiCau(str, enum.Enum):
@@ -56,6 +61,7 @@ class Problem(Base):
     )
     nguon: Mapped[Nguon] = mapped_column(Enum(Nguon), default=Nguon.gv_nhap, nullable=False)
     nguoi_tao_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    tao_luc: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=True)
     meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     solution_steps: Mapped[list["SolutionStep"]] = relationship(  # noqa: F821

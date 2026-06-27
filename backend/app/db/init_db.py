@@ -100,8 +100,22 @@ def _seed_danh_muc(db) -> None:
             _DANG_MAP[(cd_data["ten"], d_data["ten"])] = dang.id
 
 
+def _migrate_them_cot(engine) -> None:
+    """Bổ sung cột mới cho DB cũ mà không mất dữ liệu (SQLite ADD COLUMN)."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "problems" not in insp.get_table_names():
+        return
+    cot = {c["name"] for c in insp.get_columns("problems")}
+    if "tao_luc" not in cot:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc DATETIME"))
+
+
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    _migrate_them_cot(engine)
     db = SessionLocal()
     try:
         if db.query(User).count() > 0:

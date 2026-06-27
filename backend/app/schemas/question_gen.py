@@ -14,7 +14,9 @@ class CauHoiNhapResponse(BaseModel):
     id: int
     loai_cau: str
     do_kho: str
+    chuyen_de: str = ""
     de_bai: str
+    meta: dict = {}
     trang_thai_duyet: str
     canh_bao: list[str]
 

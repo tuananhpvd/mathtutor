@@ -1,6 +1,10 @@
 import json
 import re
+import time
 from abc import ABC, abstractmethod
+
+# Số lần thử lại khi LLM lỗi tạm thời (503/429/timeout) hoặc trả JSON hỏng.
+SO_LAN_THU = 3
 
 
 class LLMClient(ABC):
@@ -225,8 +229,7 @@ class OpenAILLMClient(LLMClient):
             tai_lieu=yeu_cau.get("tai_lieu"),
             dang=yeu_cau.get("dang"),
         )
-        raw = self._call(SYSTEM_SINH_CAU_HOI, user)
-        return _parse_json_cau_hoi(raw)
+        return _goi_va_parse(lambda s, u: self._call(s, u), SYSTEM_SINH_CAU_HOI, user)
 
 
 def _va_escape_json(text: str) -> str:
@@ -239,29 +242,74 @@ def _va_escape_json(text: str) -> str:
     return re.sub(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', text)
 
 
+def _bo_dau_phay_thua(text: str) -> str:
+    """Bỏ dấu phẩy thừa trước ] hoặc } (lỗi JSON hay gặp ở LLM)."""
+    return re.sub(r",(\s*[}\]])", r"\1", text)
+
+
+def _trich_json(text: str) -> str:
+    """Lấy đoạn JSON: ưu tiên object {...}, nếu không có thì mảng [...]."""
+    t = text.strip()
+    if t.startswith("```"):
+        t = t.split("```", 2)[1] if t.count("```") >= 2 else t
+        if t[:4].lower() == "json":
+            t = t[4:]
+        t = t.strip().strip("`").strip()
+    if "{" in t and "}" in t:
+        return t[t.index("{"): t.rindex("}") + 1]
+    if "[" in t and "]" in t:
+        return t[t.index("["): t.rindex("]") + 1]
+    return t
+
+
 def _parse_json_cau_hoi(raw: str) -> dict:
-    """Tách & parse JSON {"cau_hoi": [...]} từ phản hồi LLM (chịu được rào ``` + LaTeX)."""
-    text = (raw or "").strip()
-    if text.startswith("```"):
-        # bỏ rào ```json ... ```
-        text = text.split("```", 2)[1] if text.count("```") >= 2 else text
-        if text.startswith("json"):
-            text = text[4:]
-        text = text.strip().rstrip("`").strip()
-    # Lấy đoạn từ "{" đầu đến "}" cuối cho chắc.
-    if "{" in text and "}" in text:
-        text = text[text.index("{"): text.rindex("}") + 1]
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        # Thường do LaTeX có '\' đơn — vá rồi thử lại.
+    """Tách & parse JSON câu hỏi từ phản hồi LLM — chịu được rào ```, LaTeX, phẩy thừa,
+    và trường hợp trả thẳng mảng [...] thay vì {"cau_hoi": [...]}.
+    """
+    text = _trich_json(raw or "")
+    data = None
+    last_err = None
+    # Thử lần lượt: nguyên bản → vá escape → bỏ phẩy thừa → cả hai.
+    for bien_the in (text, _va_escape_json(text), _bo_dau_phay_thua(text),
+                     _bo_dau_phay_thua(_va_escape_json(text))):
         try:
-            data = json.loads(_va_escape_json(text))
+            data = json.loads(bien_the)
+            break
         except json.JSONDecodeError as e:
-            raise ValueError(f"LLM trả JSON không hợp lệ: {e}") from e
-    if "cau_hoi" not in data:
-        raise ValueError("LLM trả thiếu khóa 'cau_hoi'")
-    return data
+            last_err = e
+    if data is None:
+        raise ValueError(f"LLM trả JSON không hợp lệ: {last_err}")
+
+    # Chấp nhận cả mảng trần lẫn object bọc.
+    if isinstance(data, list):
+        return {"cau_hoi": data}
+    if isinstance(data, dict):
+        if "cau_hoi" in data and isinstance(data["cau_hoi"], list):
+            return data
+        # Một số model trả thẳng 1 object câu hỏi.
+        if "de_bai" in data or "loai_cau" in data or "meta" in data:
+            return {"cau_hoi": [data]}
+    raise ValueError("LLM trả thiếu khóa 'cau_hoi'")
+
+
+def _goi_va_parse(call_fn, system: str, user: str) -> dict:
+    """Gọi LLM rồi parse JSON, tự thử lại khi lỗi tạm thời hoặc JSON hỏng.
+
+    call_fn(system, user) -> str. Ném RuntimeError nếu hết số lần thử vẫn lỗi.
+    """
+    loi = None
+    for lan in range(SO_LAN_THU):
+        try:
+            raw = call_fn(system, user)
+            data = _parse_json_cau_hoi(raw)
+            if not data.get("cau_hoi"):
+                raise ValueError("LLM trả danh sách câu hỏi rỗng")
+            return data
+        except Exception as e:  # lỗi mạng/API hoặc JSON → thử lại
+            loi = e
+            if lan < SO_LAN_THU - 1:
+                time.sleep(1.5 * (lan + 1))  # chờ tăng dần trước khi thử lại
+    raise RuntimeError(f"Sinh câu hỏi thất bại sau {SO_LAN_THU} lần: {loi}")
 
 
 class AnthropicLLMClient(LLMClient):
@@ -315,12 +363,16 @@ class AnthropicLLMClient(LLMClient):
             tai_lieu=yeu_cau.get("tai_lieu"),
             dang=yeu_cau.get("dang"),
         )
-        raw = self._call(SYSTEM_SINH_CAU_HOI, user, max_tokens=8192)
-        return _parse_json_cau_hoi(raw)
+        return _goi_va_parse(
+            lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
+        )
 
 
 class GeminiLLMClient(LLMClient):
     """Gọi Google Gemini để sinh câu hỏi & diễn đạt gợi ý."""
+
+    # Model dự phòng khi model chính bị 503 (quá tải) — thử lần lượt.
+    _DU_PHONG = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
 
     def __init__(self, api_key: str, model: str, temperature: float):
         try:
@@ -331,20 +383,28 @@ class GeminiLLMClient(LLMClient):
         self._client = genai.Client(api_key=api_key)
         self._model = model or "gemini-2.5-flash"
         self._temperature = temperature
+        # Danh sách model thử: model cấu hình trước, rồi các model dự phòng (khử trùng lặp).
+        self._models = [self._model] + [m for m in self._DU_PHONG if m != self._model]
 
     def _call(self, system: str, user: str, max_tokens: int = 4096) -> str:
+        from google.genai import errors as genai_errors  # type: ignore
         from google.genai import types  # type: ignore
 
-        resp = self._client.models.generate_content(
-            model=self._model,
-            contents=user,
-            config=types.GenerateContentConfig(
-                system_instruction=system,
-                temperature=self._temperature,
-                max_output_tokens=max_tokens,
-            ),
+        cfg = types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=self._temperature,
+            max_output_tokens=max_tokens,
         )
-        return (resp.text or "").strip()
+        loi = None
+        for m in self._models:
+            try:
+                resp = self._client.models.generate_content(model=m, contents=user, config=cfg)
+                return (resp.text or "").strip()
+            except genai_errors.ServerError as e:  # 5xx/quá tải → thử model kế
+                loi = e
+                continue
+        # Hết model dự phòng vẫn lỗi máy chủ → ném để lớp trên thử lại/đổi sang 502.
+        raise loi if loi else RuntimeError("Gemini không phản hồi")
 
     def dien_dat(self, chi_thi: dict) -> str:
         from app.llm.prompts import SYSTEM_DIEN_DAT, user_prompt_dien_dat
@@ -373,8 +433,9 @@ class GeminiLLMClient(LLMClient):
             tai_lieu=yeu_cau.get("tai_lieu"),
             dang=yeu_cau.get("dang"),
         )
-        raw = self._call(SYSTEM_SINH_CAU_HOI, user, max_tokens=8192)
-        return _parse_json_cau_hoi(raw)
+        return _goi_va_parse(
+            lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
+        )
 
 
 # Model mặc định mỗi nhà cung cấp (khi admin để trống ô model).

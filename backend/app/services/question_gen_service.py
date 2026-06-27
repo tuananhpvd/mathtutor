@@ -17,32 +17,54 @@ from app.models.problem import (
 )
 from app.models.solution_step import SolutionStep
 
+_LOAI_DAP_AN = {"TN4PA": "chon_phuong_an", "TNDS": "dung_sai_4y", "TLN": "gia_tri"}
+
+
+def _enum_an_toan(enum_cls, gia_tri, mac_dinh):
+    try:
+        return enum_cls(gia_tri)
+    except (ValueError, KeyError):
+        return mac_dinh
+
 
 def _luu_mot_cau(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
-    steps = cau.pop("solution_steps", [])
+    # Phòng thủ kiểu dữ liệu để KHÔNG bao giờ sập khi LLM trả bất thường.
+    steps = cau.get("solution_steps")
+    steps = steps if isinstance(steps, list) else []
+    meta = cau.get("meta")
+    meta = meta if isinstance(meta, dict) else {}
+    loai = _enum_an_toan(LoaiCau, cau.get("loai_cau"), LoaiCau.TLN)
+    loai_dap_an = cau.get("loai_dap_an_nhap") or _LOAI_DAP_AN.get(loai.value, "")
+
     problem = Problem(
-        chuyen_de=cau.get("chuyen_de", ""),
+        chuyen_de=str(cau.get("chuyen_de") or ""),
         dang_id=cau.get("dang_id"),
-        loai_cau=LoaiCau(cau["loai_cau"]),
-        do_kho=DoKho(cau.get("do_kho", "tb")),
-        de_bai=cau.get("de_bai", ""),
-        loai_dap_an_nhap=cau.get("loai_dap_an_nhap", ""),
-        che_do_so_khop=CheDoSoKhopEnum(cau.get("che_do_so_khop", "tuong_duong")),
+        loai_cau=loai,
+        do_kho=_enum_an_toan(DoKho, cau.get("do_kho", "tb"), DoKho.tb),
+        de_bai=str(cau.get("de_bai") or ""),
+        loai_dap_an_nhap=loai_dap_an,
+        che_do_so_khop=_enum_an_toan(
+            CheDoSoKhopEnum, cau.get("che_do_so_khop", "tuong_duong"),
+            CheDoSoKhopEnum.tuong_duong,
+        ),
         trang_thai_duyet=TrangThaiDuyet.cho_duyet,
         nguon=Nguon.ai_sinh,
         nguoi_tao_id=nguoi_tao_id,
-        meta=cau.get("meta", {}),
+        meta=meta,
     )
     db.add(problem)
     db.flush()
     for s in steps:
+        if not isinstance(s, dict):
+            continue
+        gy = s.get("danh_sach_goi_y")
         db.add(SolutionStep(
             problem_id=problem.id,
-            thu_tu=s.get("thu_tu", 1),
-            pham_vi=s.get("pham_vi", "ca_bai"),
-            mo_ta=s.get("mo_ta", ""),
-            bieu_thuc_ket_qua=s.get("bieu_thuc_ket_qua", ""),
-            danh_sach_goi_y=s.get("danh_sach_goi_y", []),
+            thu_tu=int(s.get("thu_tu", 1) or 1),
+            pham_vi=str(s.get("pham_vi") or "ca_bai"),
+            mo_ta=str(s.get("mo_ta") or ""),
+            bieu_thuc_ket_qua=str(s.get("bieu_thuc_ket_qua") or ""),
+            danh_sach_goi_y=gy if isinstance(gy, list) else [],
         ))
     return problem
 
@@ -68,6 +90,8 @@ def sinh_va_luu(
     nhap = sinh_nhap(llm, yeu_cau)
     ket_qua = []
     for item in nhap:
+        if not isinstance(item.get("cau"), dict):
+            continue
         cau = dict(item["cau"])
         # Ép các trường ĐÃ BIẾT từ yêu cầu GV (tránh phụ thuộc LLM trả đúng tên khóa).
         cau["loai_cau"] = yeu_cau.get("loai_cau", cau.get("loai_cau"))
@@ -75,14 +99,26 @@ def sinh_va_luu(
         if dang is not None:
             cau["dang_id"] = dang.id
             cau["chuyen_de"] = yeu_cau.get("chuyen_de", cau.get("chuyen_de", ""))
-        # Tính lại cảnh báo SAU khi đã ép trường (phản ánh đúng câu sẽ lưu).
-        canh_bao = validate_cau_hoi(cau)
-        problem = _luu_mot_cau(db, cau, nguoi_tao_id)
+        # Bỏ qua câu rỗng/không có đề (không lưu rác).
+        if not str(cau.get("de_bai") or "").strip():
+            continue
+        # Savepoint cho từng câu: một câu hỏng chỉ hủy chính nó, không sập cả mẻ.
+        sp = db.begin_nested()
+        try:
+            canh_bao = validate_cau_hoi(cau)
+            problem = _luu_mot_cau(db, cau, nguoi_tao_id)
+            db.flush()
+            sp.commit()
+        except Exception:
+            sp.rollback()
+            continue
         ket_qua.append({
             "id": problem.id,
             "loai_cau": problem.loai_cau.value,
             "do_kho": problem.do_kho.value,
+            "chuyen_de": problem.chuyen_de,
             "de_bai": problem.de_bai,
+            "meta": problem.meta or {},
             "trang_thai_duyet": problem.trang_thai_duyet.value,
             "canh_bao": canh_bao,
         })

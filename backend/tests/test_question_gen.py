@@ -145,6 +145,83 @@ def test_sinh_gan_dang_va_dong_bo_chuyen_de(db):
         assert p.chuyen_de == "Khảo sát hàm số"
 
 
+# ----- Parse JSON bền + retry (chống lỗi 500) -----
+
+def test_parse_json_latex_va_phay_thua():
+    from app.llm.client import _parse_json_cau_hoi
+    # backslash đơn của LaTeX + dấu phẩy thừa trước ]
+    raw = '{"cau_hoi": [{"loai_cau": "TLN", "de_bai": "$\\dfrac{1}{2}$",}]}'
+    d = _parse_json_cau_hoi(raw)
+    assert d["cau_hoi"][0]["de_bai"] == "$\\dfrac{1}{2}$"
+
+
+def test_parse_json_mang_tran_va_rao_code():
+    from app.llm.client import _parse_json_cau_hoi
+    d = _parse_json_cau_hoi('```json\n[{"loai_cau":"TLN","de_bai":"x"}]\n```')
+    assert len(d["cau_hoi"]) == 1
+
+
+def test_goi_va_parse_thu_lai_roi_thanh_cong(monkeypatch):
+    from app.llm import client as cl
+    monkeypatch.setattr(cl.time, "sleep", lambda *a, **k: None)  # khỏi chờ
+    dem = {"n": 0}
+
+    def call_fn(system, user):
+        dem["n"] += 1
+        if dem["n"] < 2:
+            raise RuntimeError("503 quá tải")
+        return '{"cau_hoi": [{"loai_cau": "TLN", "de_bai": "x"}]}'
+
+    d = cl._goi_va_parse(call_fn, "sys", "usr")
+    assert dem["n"] == 2 and len(d["cau_hoi"]) == 1
+
+
+def test_goi_va_parse_het_luot_nem_loi(monkeypatch):
+    from app.llm import client as cl
+    monkeypatch.setattr(cl.time, "sleep", lambda *a, **k: None)
+    import pytest
+    with pytest.raises(RuntimeError):
+        cl._goi_va_parse(lambda s, u: "không phải json", "sys", "usr")
+
+
+# ----- Endpoint KHÔNG bao giờ trả 500 -----
+
+class _LLMLoi(StubLLMClient):
+    def sinh_cau_hoi(self, yeu_cau):
+        raise RuntimeError("Mô phỏng API lỗi")
+
+
+class _LLMCauRong(StubLLMClient):
+    def sinh_cau_hoi(self, yeu_cau):
+        return {"cau_hoi": [
+            {"loai_cau": "TLN", "de_bai": "Câu tốt $x$", "meta": {"dap_an_cuoi": "1"},
+             "solution_steps": [{"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "a",
+                                 "bieu_thuc_ket_qua": "1", "danh_sach_goi_y": ["g"]}]},
+            {"loai_cau": "TLN", "de_bai": "   "},  # rỗng → phải bị bỏ qua
+        ]}
+
+
+def test_generate_loi_llm_tra_502_khong_500(db, client, monkeypatch):
+    _seed(db)
+    import app.api.questions_ai as qa
+    monkeypatch.setattr(qa, "get_llm_client", lambda cfg=None: _LLMLoi())
+    h = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    r = client.post("/api/questions-ai/generate", headers=h,
+                    json={"chuyen_de": "X", "loai_cau": "TLN", "do_kho": "tb", "so_luong": 1})
+    assert r.status_code == 502  # KHÔNG phải 500
+
+
+def test_generate_bo_qua_cau_rong(db, client, monkeypatch):
+    _seed(db)
+    import app.api.questions_ai as qa
+    monkeypatch.setattr(qa, "get_llm_client", lambda cfg=None: _LLMCauRong())
+    h = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    r = client.post("/api/questions-ai/generate", headers=h,
+                    json={"chuyen_de": "X", "loai_cau": "TLN", "do_kho": "tb", "so_luong": 2})
+    assert r.status_code == 200
+    assert len(r.json()) == 1  # chỉ giữ câu hợp lệ
+
+
 # ----- API -----
 
 def test_api_generate_va_duyet(db, client):
@@ -165,6 +242,18 @@ def test_api_generate_va_duyet(db, client):
     r2 = client.post(f"/api/questions-ai/{pid}/duyet", headers=h, json={"hanh_dong": "duyet"})
     assert r2.status_code == 200
     assert r2.json()["trang_thai_duyet"] == "da_duyet"
+
+
+def test_api_generate_tra_meta_day_du(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    r = client.post("/api/questions-ai/generate", headers=h,
+                    json={"chuyen_de": "X", "loai_cau": "TN4PA", "do_kho": "tb", "so_luong": 1})
+    assert r.status_code == 200
+    cau = r.json()[0]
+    # Bản nháp phải kèm meta đầy đủ để giao diện hiện ABCD
+    assert set(cau["meta"]["phuong_an"].keys()) == {"A", "B", "C", "D"}
+    assert cau["meta"]["dap_an_dung"] in {"A", "B", "C", "D"}
 
 
 def test_api_generate_phan_quyen_hs_bi_chan(db, client):

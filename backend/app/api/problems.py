@@ -72,15 +72,21 @@ def danh_sach_bai(current_user: CurrentUser, db: Session = Depends(get_db)):
     q = db.query(Problem)
     if current_user.vai_tro == VaiTro.hs:
         q = q.filter(Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet)
-    problems = q.all()
+        return [_strip_answers(p) for p in q.all()]
 
-    if current_user.vai_tro == VaiTro.hs:
-        return [_strip_answers(p) for p in problems]
+    # GV/Admin: mới tạo lên trước (theo tao_luc, fallback id cho bản ghi cũ chưa có tao_luc).
+    problems = sorted(
+        q.all(),
+        key=lambda p: (p.tao_luc.isoformat() if p.tao_luc else "", p.id),
+        reverse=True,
+    )
     return [
         {"id": p.id, "chuyen_de": p.chuyen_de, "dang_id": p.dang_id,
          "dang_ten": p.dang.ten if p.dang else None,
          "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
-         "trang_thai_duyet": p.trang_thai_duyet.value}
+         "trang_thai_duyet": p.trang_thai_duyet.value,
+         "nguon": p.nguon.value,
+         "tao_luc": p.tao_luc.isoformat() if p.tao_luc else None}
         for p in problems
     ]
 

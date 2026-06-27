@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
+import { SuaCauHoi } from './QuanLyCauHoi'
 
 function renderTex(text) {
   return String(text)
@@ -9,6 +10,51 @@ function renderTex(text) {
     .map((p, i) =>
       p.startsWith('$') ? <Formula key={i} latex={p.slice(1, -1)} /> : <span key={i}>{p}</span>
     )
+}
+
+// Hiện đầy đủ nội dung câu hỏi nháp: đề + phương án ABCD (TN4PA) / 4 ý a–d (TNDS) / đáp án (TLN).
+function NoiDungCauHoi({ c }) {
+  const meta = c.meta || {}
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm text-ink font-medium">{renderTex(c.de_bai)}</p>
+
+      {c.loai_cau === 'TN4PA' && meta.phuong_an && (
+        <div className="flex flex-col gap-1 pl-1">
+          {['A', 'B', 'C', 'D'].map((k) => (
+            <div key={k} className="flex items-start gap-2 text-sm">
+              <span className={`font-bold ${meta.dap_an_dung === k ? 'text-success' : 'text-ink'}`}>
+                {k}.
+              </span>
+              <span className="text-ink">{renderTex(meta.phuong_an[k] || '')}</span>
+              {meta.dap_an_dung === k && <Badge tone="success">Đáp án đúng</Badge>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {c.loai_cau === 'TNDS' && Array.isArray(meta.y) && (
+        <div className="flex flex-col gap-1 pl-1">
+          {meta.y.map((y) => (
+            <div key={y.ky_hieu} className="flex items-start gap-2 text-sm">
+              <span className="font-bold text-ink">{y.ky_hieu})</span>
+              <span className="text-ink">{renderTex(y.noi_dung_y || '')}</span>
+              <Badge tone={y.dap_an === 'Dung' ? 'success' : 'danger'}>
+                {y.dap_an === 'Dung' ? 'Đúng' : 'Sai'}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {c.loai_cau === 'TLN' && meta.dap_an_cuoi != null && (
+        <p className="text-sm pl-1">
+          <span className="text-muted">Đáp án: </span>
+          <b className="text-success">{renderTex(String(meta.dap_an_cuoi))}</b>
+        </p>
+      )}
+    </div>
+  )
 }
 
 export default function AISinhCauHoi() {
@@ -24,6 +70,7 @@ export default function AISinhCauHoi() {
   const [error, setError] = useState('')
   const [nhap, setNhap] = useState([])
   const [choDuyet, setChoDuyet] = useState([])
+  const [sua, setSua] = useState(null)
 
   const dangList = useMemo(() => {
     const cd = danhMuc.find((c) => c.ten === form.chuyen_de)
@@ -58,6 +105,15 @@ export default function AISinhCauHoi() {
   async function duyet(id, hanh_dong) {
     await api.duyetCau(id, hanh_dong)
     setNhap((ns) => ns.filter((n) => n.id !== id))
+    taiChoDuyet()
+  }
+
+  async function suaXong(id) {
+    setSua(null)
+    try {
+      const moi = await api.getProblem(id) // có meta + de_bai + loai_cau đã cập nhật
+      setNhap((ns) => ns.map((n) => (n.id === id ? { ...n, ...moi } : n)))
+    } catch { /* giữ nguyên nếu lỗi tải lại */ }
     taiChoDuyet()
   }
 
@@ -137,8 +193,8 @@ export default function AISinhCauHoi() {
                     <Badge tone="warning">{c.canh_bao.length} cảnh báo</Badge>
                   )}
                 </div>
-                <p className="text-sm text-ink">{renderTex(c.de_bai)}</p>
-                {c.canh_bao.length > 0 && (
+                <NoiDungCauHoi c={c} />
+                {c.canh_bao?.length > 0 && (
                   <ul className="text-xs text-warning list-disc pl-5">
                     {c.canh_bao.map((w, i) => (
                       <li key={i}>{w}</li>
@@ -148,6 +204,9 @@ export default function AISinhCauHoi() {
                 <div className="flex gap-2">
                   <Button size="sm" variant="success" onClick={() => duyet(c.id, 'duyet')}>
                     Duyệt
+                  </Button>
+                  <Button size="sm" onClick={() => setSua(c.id)}>
+                    Sửa
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => duyet(c.id, 'loai')}>
                     Loại
@@ -168,11 +227,16 @@ export default function AISinhCauHoi() {
             choDuyet.map((c) => (
               <div key={c.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                 <span className="text-sm text-ink truncate mr-2">
-                  <Badge tone="primary">{c.loai_cau}</Badge> {c.chuyen_de}
+                  <Badge tone="primary">{c.loai_cau}</Badge>{' '}
+                  <b className="text-primary">{c.chuyen_de}</b>
+                  {c.dang_ten ? <span className="text-muted"> › {c.dang_ten}</span> : null}
                 </span>
                 <div className="flex gap-2 shrink-0">
                   <Button size="sm" variant="success" onClick={() => duyet(c.id, 'duyet')}>
                     Duyệt
+                  </Button>
+                  <Button size="sm" onClick={() => setSua(c.id)}>
+                    Sửa
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => duyet(c.id, 'loai')}>
                     Loại
@@ -183,6 +247,15 @@ export default function AISinhCauHoi() {
           )}
         </CardBody>
       </Card>
+
+      {sua && (
+        <SuaCauHoi
+          id={sua}
+          danhMuc={danhMuc}
+          onDong={() => setSua(null)}
+          onLuuXong={() => suaXong(sua)}
+        />
+      )}
     </div>
   )
 }
