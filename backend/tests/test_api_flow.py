@@ -78,6 +78,71 @@ def test_luong_tln(client, db):
     assert r.json()["y_dinh"] == "ket_thuc"
 
 
+def test_tu_dong_gan_co_khong_hieu(client, db):
+    """HS xin gợi ý vượt ngưỡng → tự gắn cờ 'không hiểu nhiều' cho GV (1 lần/phiên)."""
+    from app.models.flag import Flag, LoaiCo
+
+    hs, gv, admin, p = seed_all(db)
+    tok = _token(client, "hs_test")
+    sid = client.post("/api/sessions", json={"problem_id": p.id},
+                      headers=_h(tok)).json()["session_id"]
+
+    # Xin gợi ý đủ ngưỡng (mặc định 3) → tạo đúng 1 cờ
+    for _ in range(3):
+        r = client.post(f"/api/sessions/{sid}/message",
+                        json={"yeu_cau_goi_y": True}, headers=_h(tok))
+        assert r.status_code == 200
+
+    co = db.query(Flag).filter(Flag.session_id == sid,
+                               Flag.loai_co == LoaiCo.khong_hieu_nhieu).all()
+    assert len(co) == 1
+    assert co[0].trang_thai.value == "cho_xu_ly"
+
+    # Xin thêm gợi ý → KHÔNG tạo cờ trùng
+    client.post(f"/api/sessions/{sid}/message",
+                json={"yeu_cau_goi_y": True}, headers=_h(tok))
+    co2 = db.query(Flag).filter(Flag.session_id == sid,
+                                Flag.loai_co == LoaiCo.khong_hieu_nhieu).all()
+    assert len(co2) == 1
+
+
+def test_tu_dong_gan_co_chot_chan(client, db):
+    """Phản hồi bị lớp chốt chặn rò rỉ vượt ngưỡng → tự gắn cờ 'chốt chặn nhiều'."""
+    from app.models.flag import Flag, LoaiCo
+
+    lop = Lop(ten="12B")
+    db.add(lop)
+    db.flush()
+    hs = User(vai_tro=VaiTro.hs, ho_ten="HS Chot", dang_nhap="hs_chot",
+              mat_khau_hash=hash_password("pass"), lop_id=lop.id)
+    db.add(hs)
+    # Bài có gợi ý CỐ Ý lộ đáp án để lớp chốt chặn kích hoạt mỗi lượt.
+    p = Problem(
+        chuyen_de="Test", loai_cau="TLN", do_kho="tb",
+        de_bai="Tìm x.", loai_dap_an_nhap="gia_tri",
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, meta={"dap_an_cuoi": "5"},
+    )
+    db.add(p)
+    db.flush()
+    db.add(SolutionStep(
+        problem_id=p.id, thu_tu=1, pham_vi="ca_bai", mo_ta="t",
+        bieu_thuc_ket_qua="5", danh_sach_goi_y=["đáp án là 5", "kết quả là 5"],
+    ))
+    db.commit()
+
+    tok = _token(client, "hs_chot")
+    sid = client.post("/api/sessions", json={"problem_id": p.id},
+                      headers=_h(tok)).json()["session_id"]
+    for _ in range(3):
+        r = client.post(f"/api/sessions/{sid}/message",
+                        json={"yeu_cau_goi_y": True}, headers=_h(tok))
+        assert r.status_code == 200
+
+    co = db.query(Flag).filter(Flag.session_id == sid,
+                               Flag.loai_co == LoaiCo.chot_chan_nhieu).all()
+    assert len(co) == 1, "phải tự gắn đúng 1 cờ chốt chặn nhiều"
+
+
 def test_thoi_gian_chan_nghi_khi_quay_lai_lam_sau(client, db):
     """Rời đi lâu (gap lớn) chỉ tính tối đa = ngưỡng nghỉ, không phồng thời gian."""
     from datetime import datetime, timedelta, timezone

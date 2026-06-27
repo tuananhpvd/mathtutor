@@ -12,6 +12,7 @@ const NHA_CUNG_CAP = [
 export default function CauHinh() {
   const [cfg, setCfg] = useState(null)
   const [nguong, setNguong] = useState('')
+  const [chotChan, setChotChan] = useState('')
   const [temp, setTemp] = useState('')
   const [nghi, setNghi] = useState('')
   const [msg, setMsg] = useState('')
@@ -38,6 +39,7 @@ export default function CauHinh() {
     api.adminGetConfig().then((c) => {
       setCfg(c)
       setNguong(c.nguong_co_khong_hieu)
+      setChotChan(c.nguong_co_chot_chan)
       setTemp(c.llm_temperature)
       setNghi(c.nguong_nghi_giay)
       setProvider(c.llm_provider || 'gemini')
@@ -141,6 +143,15 @@ export default function CauHinh() {
               onChange={(e) => setNguong(e.target.value)}
             />
             <Button onClick={() => luu('nguong_co_khong_hieu', Number(nguong))}>Lưu</Button>
+          </div>
+          <div className="flex items-end gap-2">
+            <Input
+              label="Ngưỡng cờ 'chốt chặn nhiều'"
+              type="number"
+              value={chotChan}
+              onChange={(e) => setChotChan(e.target.value)}
+            />
+            <Button onClick={() => luu('nguong_co_chot_chan', Number(chotChan))}>Lưu</Button>
           </div>
           <div className="flex items-end gap-2">
             <Input

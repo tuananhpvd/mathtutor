@@ -7,6 +7,8 @@ const NHAN_CO = {
   ro_ri_dap_an: 'Rò rỉ đáp án',
   noi_dung_khong_phu_hop: 'Nội dung không phù hợp',
   ngoai_pham_vi: 'Ngoài phạm vi',
+  khong_hieu_nhieu: 'Không hiểu nhiều',
+  chot_chan_nhieu: 'Chốt chặn nhiều',
   thu_cong: 'Gắn thủ công',
 }
 const TONE = { cho_xu_ly: 'warning', da_xu_ly: 'success', bo_qua: 'neutral' }

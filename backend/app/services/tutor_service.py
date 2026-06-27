@@ -30,6 +30,82 @@ def _nguong_nghi_giay(db: Session) -> int:
         return 180
 
 
+def _nguong_co_khong_hieu(db: Session) -> int:
+    """Số lần 'không hiểu' trong 1 phiên để tự gắn cờ cho GV; lỗi → mặc định 3."""
+    try:
+        from app.services.admin_service import lay_cau_hinh
+        return int(lay_cau_hinh(db).get("nguong_co_khong_hieu", 3))
+    except Exception:
+        return 3
+
+
+def _tu_dong_gan_co_khong_hieu(db: Session, session: SessionModel) -> None:
+    """Tự gắn cờ 'không hiểu nhiều' khi HS xin gợi ý/bí vượt ngưỡng. Chỉ gắn MỘT lần
+    cho mỗi phiên (idempotent) để GV không bị spam cờ ở các lượt sau."""
+    from app.models.flag import Flag, LoaiCo, TrangThaiCo
+
+    nguong = _nguong_co_khong_hieu(db)
+    if nguong <= 0 or (session.so_lan_khong_hieu or 0) < nguong:
+        return
+    da_co = (
+        db.query(Flag)
+        .filter(Flag.session_id == session.id, Flag.loai_co == LoaiCo.khong_hieu_nhieu)
+        .first()
+    )
+    if da_co is not None:
+        return
+    db.add(Flag(
+        session_id=session.id,
+        loai_co=LoaiCo.khong_hieu_nhieu,
+        trang_thai=TrangThaiCo.cho_xu_ly,
+        ghi_chu=f"Học sinh đã 'không hiểu'/xin gợi ý {session.so_lan_khong_hieu} lần "
+                f"(ngưỡng {nguong}) — nên hỗ trợ thêm.",
+    ))
+
+
+def _nguong_co_chot_chan(db: Session) -> int:
+    """Số lần phản hồi bị chốt chặn rò rỉ trong 1 phiên để gắn cờ; lỗi → mặc định 3."""
+    try:
+        from app.services.admin_service import lay_cau_hinh
+        return int(lay_cau_hinh(db).get("nguong_co_chot_chan", 3))
+    except Exception:
+        return 3
+
+
+def _tu_dong_gan_co_chot_chan(db: Session, session: SessionModel, bi_chot_lan_nay: bool) -> None:
+    """Tự gắn cờ 'chốt chặn nhiều' khi số lượt phản hồi bị chốt chặn (rò rỉ đáp án) trong
+    phiên vượt ngưỡng — dấu hiệu nội dung/câu hỏi có vấn đề. Chỉ gắn MỘT lần/phiên."""
+    if not bi_chot_lan_nay:
+        return
+    from app.models.flag import Flag, LoaiCo, TrangThaiCo
+
+    nguong = _nguong_co_chot_chan(db)
+    if nguong <= 0:
+        return
+    db.flush()  # để lượt vừa thêm được tính vào số đếm
+    so_chot = (
+        db.query(Turn)
+        .filter(Turn.session_id == session.id, Turn.co_bi_chot_chan.is_(True))
+        .count()
+    )
+    if so_chot < nguong:
+        return
+    da_co = (
+        db.query(Flag)
+        .filter(Flag.session_id == session.id, Flag.loai_co == LoaiCo.chot_chan_nhieu)
+        .first()
+    )
+    if da_co is not None:
+        return
+    db.add(Flag(
+        session_id=session.id,
+        loai_co=LoaiCo.chot_chan_nhieu,
+        trang_thai=TrangThaiCo.cho_xu_ly,
+        ghi_chu=f"Phản hồi bị chốt chặn rò rỉ đáp án {so_chot} lần (ngưỡng {nguong}) "
+                f"— nên kiểm tra lại nội dung câu hỏi / gợi ý.",
+    ))
+
+
 def _steps_to_list(problem: Problem) -> list[dict]:
     return [
         {
@@ -243,6 +319,9 @@ def xu_ly_luot(
     session.da_suy_luan = trang_thai_moi.da_suy_luan
     session.cap_nhat_luc = now
 
+    # Tự gắn cờ cho GV khi HS "không hiểu" vượt ngưỡng (gắn 1 lần/phiên).
+    _tu_dong_gan_co_khong_hieu(db, session)
+
     if trang_thai_moi.da_xong:
         session.trang_thai = TrangThaiSession.hoan_thanh
         # Điểm cuối: TNDS theo bậc thang số ý đúng; TLN/TN4PA hoàn thành = 1.0
@@ -269,6 +348,9 @@ def xu_ly_luot(
         cap_goi_y=trang_thai_moi.cap_goi_y_hien_tai,
         co_bi_chot_chan=bi_chot,
     ))
+
+    # Tự gắn cờ cho GV khi phản hồi bị chốt chặn rò rỉ vượt ngưỡng (gắn 1 lần/phiên).
+    _tu_dong_gan_co_chot_chan(db, session, bi_chot)
 
     if trang_thai_moi.da_xong:
         cap_nhat_tien_do(db, session.hoc_sinh_id, problem.chuyen_de)

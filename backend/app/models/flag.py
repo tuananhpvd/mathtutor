@@ -11,6 +11,8 @@ class LoaiCo(str, enum.Enum):
     ro_ri_dap_an = "ro_ri_dap_an"
     noi_dung_khong_phu_hop = "noi_dung_khong_phu_hop"
     ngoai_pham_vi = "ngoai_pham_vi"
+    khong_hieu_nhieu = "khong_hieu_nhieu"  # tự gắn khi HS xin gợi ý/bí quá nhiều lần
+    chot_chan_nhieu = "chot_chan_nhieu"  # tự gắn khi phản hồi bị chốt chặn rò rỉ nhiều lần
     thu_cong = "thu_cong"
 
 

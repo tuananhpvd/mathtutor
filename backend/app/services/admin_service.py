@@ -17,6 +17,8 @@ from app.models.user import TrangThaiUser, User, VaiTro
 # Cấu hình mặc định (dùng khi DB chưa có bản ghi).
 CAU_HINH_MAC_DINH: dict = {
     "nguong_co_khong_hieu": 3,
+    # Số lần phản hồi bị lớp chốt chặn (rò rỉ đáp án) trong 1 phiên → tự gắn cờ cho GV.
+    "nguong_co_chot_chan": 3,
     # Ngưỡng nghỉ (giây): khoảng cách giữa 2 lần tương tác vượt mức này coi là "rời đi",
     # chỉ tính tối đa bằng ngưỡng vào thời gian làm bài (chống phồng khi quay lại làm sau).
     "nguong_nghi_giay": 180,
