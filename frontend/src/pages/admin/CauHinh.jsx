@@ -24,6 +24,15 @@ export default function CauHinh() {
   const [keyAnthropic, setKeyAnthropic] = useState('')
   const [keyOpenai, setKeyOpenai] = useState('')
   const [msgAI, setMsgAI] = useState('')
+  const [thinkGemini, setThinkGemini] = useState(false)
+  const [thinkAnthropic, setThinkAnthropic] = useState(false)
+  const [thinkOpenai, setThinkOpenai] = useState(false)
+
+  // Tự động phân tích năng lực
+  const [tuDong, setTuDong] = useState(true)
+  const [chuKy, setChuKy] = useState('')
+  const [msgPt, setMsgPt] = useState('')
+  const [dangQuet, setDangQuet] = useState(false)
 
   function nap() {
     api.adminGetConfig().then((c) => {
@@ -33,9 +42,38 @@ export default function CauHinh() {
       setNghi(c.nguong_nghi_giay)
       setProvider(c.llm_provider || 'gemini')
       setModel(c.llm_model || '')
+      setThinkGemini(c.llm_thinking_gemini === true)
+      setThinkAnthropic(c.llm_thinking_anthropic === true)
+      setThinkOpenai(c.llm_thinking_openai === true)
+      setTuDong(c.tu_dong_phan_tich !== false)
+      setChuKy(c.chu_ky_phut_phan_tich ?? 360)
     })
   }
   useEffect(nap, [])
+
+  async function luuTuDong() {
+    setMsgPt(''); setError('')
+    try {
+      await api.adminSetConfig('tu_dong_phan_tich', tuDong)
+      await api.adminSetConfig('chu_ky_phut_phan_tich', Math.max(5, Number(chuKy) || 360))
+      nap()
+      setMsgPt('Đã lưu cấu hình tự động phân tích.')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  async function quetNgay() {
+    setMsgPt(''); setError(''); setDangQuet(true)
+    try {
+      const r = await api.adminQuetPhanTich()
+      setMsgPt(`Đã quét ${r.da_quet} học sinh — cập nhật ${r.da_cap_nhat}, lỗi ${r.loi}.`)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDangQuet(false)
+    }
+  }
 
   async function luu(khoa, gia_tri) {
     setMsg('')
@@ -54,6 +92,9 @@ export default function CauHinh() {
     try {
       await api.adminSetConfig('llm_provider', provider)
       await api.adminSetConfig('llm_model', model)
+      await api.adminSetConfig('llm_thinking_gemini', thinkGemini)
+      await api.adminSetConfig('llm_thinking_anthropic', thinkAnthropic)
+      await api.adminSetConfig('llm_thinking_openai', thinkOpenai)
       // Khóa API chỉ gửi khi có nhập (để trống = giữ nguyên).
       if (keyGemini.trim()) await api.adminSetConfig('llm_api_key_gemini', keyGemini.trim())
       if (keyAnthropic.trim()) await api.adminSetConfig('llm_api_key_anthropic', keyAnthropic.trim())
@@ -162,6 +203,29 @@ export default function CauHinh() {
             </div>
           )}
 
+          <div className="rounded-lg bg-surface-2 px-4 py-3 flex flex-col gap-2">
+            <p className="text-sm font-semibold text-ink">Chế độ suy luận (thinking)</p>
+            <p className="text-[12px] text-muted">
+              Bật giúp câu trả lời sâu hơn nhưng chậm & tốn token hơn. Mặc định TẮT cho nhanh,
+              ổn định (tránh suy luận ăn token gây lỗi cắt cụt). Áp dụng khi nhà cung cấp hỗ trợ.
+            </p>
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-ink">
+              <input type="checkbox" className="h-4 w-4 accent-primary"
+                checked={thinkGemini} onChange={(e) => setThinkGemini(e.target.checked)} />
+              Google Gemini
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-ink">
+              <input type="checkbox" className="h-4 w-4 accent-primary"
+                checked={thinkAnthropic} onChange={(e) => setThinkAnthropic(e.target.checked)} />
+              Anthropic Claude
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-ink">
+              <input type="checkbox" className="h-4 w-4 accent-primary"
+                checked={thinkOpenai} onChange={(e) => setThinkOpenai(e.target.checked)} />
+              OpenAI <span className="text-[11px] text-muted">(chỉ tác dụng với model dòng reasoning)</span>
+            </label>
+          </div>
+
           <div className="flex items-center gap-3">
             <Button onClick={luuAI}>Lưu cấu hình AI</Button>
             {msgAI && <span className="text-sm text-success">{msgAI}</span>}
@@ -170,6 +234,42 @@ export default function CauHinh() {
             Nếu nhà cung cấp đang chọn chưa có khóa, hệ thống tạm dùng mẫu cố định (không sinh theo
             yêu cầu). Lấy khóa: Gemini tại Google AI Studio, Claude tại console.anthropic.com,
             OpenAI tại platform.openai.com.
+          </p>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Tự động phân tích năng lực (AI)"
+          subtitle="Hệ thống tự tái sinh nhận định AI cho học sinh đến hạn — GV/HS không cần bấm tay." />
+        <CardBody className="flex flex-col gap-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" className="h-4 w-4 accent-primary"
+              checked={tuDong} onChange={(e) => setTuDong(e.target.checked)} />
+            <span className="text-sm text-ink">Bật tự động phân tích theo lịch nền</span>
+            {cfg.tu_dong_phan_tich !== false
+              ? <Badge tone="success">Đang bật</Badge>
+              : <Badge tone="warning">Đang tắt</Badge>}
+          </label>
+          <div className="flex items-end gap-2 max-w-xs">
+            <Input
+              label="Chu kỳ quét (phút, tối thiểu 5)"
+              type="number"
+              min={5}
+              value={chuKy}
+              onChange={(e) => setChuKy(e.target.value)}
+              disabled={!tuDong}
+            />
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button onClick={luuTuDong}>Lưu</Button>
+            <Button variant="ghost" onClick={quetNgay} disabled={dangQuet}>
+              {dangQuet ? 'Đang quét...' : 'Quét ngay'}
+            </Button>
+            {msgPt && <span className="text-sm text-success">{msgPt}</span>}
+          </div>
+          <p className="text-[12px] text-muted">
+            Phân tích chỉ tái sinh khi học sinh có thêm bài (≥5) hoặc bản cũ quá 7 ngày, nên không
+            tốn lời gọi AI thừa. Cần nhà cung cấp AI đã có khóa ở trên thì nhận định mới được tạo.
           </p>
         </CardBody>
       </Card>

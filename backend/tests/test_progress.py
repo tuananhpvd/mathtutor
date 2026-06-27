@@ -70,6 +70,149 @@ def test_thong_ke_chi_tiet(db, client):
     assert r["theo_dang"][0]["dang"][0]["hoan_thanh"] == 1
 
 
+def test_phan_tich_nang_luc_hs_va_gv(db, client):
+    pid = _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+
+    # Chưa có dữ liệu → đề xuất bắt đầu luyện
+    r = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert r["tong_hoan_thanh"] == 0
+    assert r["du_lieu_du"] is False
+    assert len(r["de_xuat_hs"]) >= 1
+
+    # Hoàn thành 1 bài → có dữ liệu nhóm
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    r = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert r["tong_hoan_thanh"] == 1
+    assert any(g["so_hoan_thanh"] == 1 for g in r["theo_chuyen_de"])
+    assert any(g.get("loai") == "TLN" for g in r["theo_loai_cau"])
+
+    # GV xem phân tích HS lớp mình
+    gh = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    hid = client.get("/api/progress/students", headers=gh).json()[0]["hoc_sinh_id"]
+    rg = client.get(f"/api/progress/students/{hid}/phan-tich", headers=gh)
+    assert rg.status_code == 200
+    assert "de_xuat_gv" in rg.json()
+
+
+class _LLMPhanTich:
+    """LLM giả: luôn trả bản phân tích AI."""
+    def phan_tich(self, ho_so):
+        return {"cho_hoc_sinh": "Em tiến bộ tốt.", "cho_giao_vien": "HS ổn, theo dõi tiếp."}
+
+
+def test_phan_tich_ai_cache_va_cap_nhat(db, client, monkeypatch):
+    pid = _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    # Hoàn thành 1 bài để có dữ liệu
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    # Chưa cập nhật → chưa có bản AI, nhưng nên cập nhật (có dữ liệu)
+    r = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert r["ai"] is None and r["nen_cap_nhat"] is True
+
+    # Cập nhật với LLM giả → có bản AI lưu cache
+    import app.api.progress as prog
+    monkeypatch.setattr(prog, "get_llm_client", lambda cfg=None: _LLMPhanTich())
+    r2 = client.post("/api/progress/me/phan-tich/cap-nhat", headers=h).json()
+    assert r2["ai"]["cho_hoc_sinh"] == "Em tiến bộ tốt."
+
+    # GET lại (không cần LLM) vẫn còn bản cache
+    r3 = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert r3["ai"]["cho_giao_vien"] == "HS ổn, theo dõi tiếp."
+    assert r3["nen_cap_nhat"] is False
+
+
+class _LLMTrong:
+    """LLM giả không khả dụng (vd hết quota) → phan_tich luôn trả None."""
+    def phan_tich(self, ho_so):
+        return None
+
+
+def test_phan_tich_du_phong_theo_luat(db, client):
+    """LLM không khả dụng → vẫn ghi bản dự phòng theo luật, đánh dấu nguồn 'luat'
+    và tiếp tục nên cập nhật (để lần sau nâng cấp lên AI)."""
+    from app.services.phan_tich_service import cap_nhat_phan_tich, lay_phan_tich
+    pid = _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    hid = client.get("/api/progress/students",
+                     headers={"Authorization": f"Bearer {_login(client, 'gv1')}"}).json()[0][
+        "hoc_sinh_id"]
+
+    r = cap_nhat_phan_tich(db, hid, _LLMTrong())
+    assert r["ai_kha_dung"] is False
+    assert r["ai"] is not None and r["ai"]["nguon"] == "luat"
+    assert r["ai"]["cho_hoc_sinh"]  # có nội dung theo luật
+    # Bản theo luật luôn nên nâng cấp lên AI
+    assert lay_phan_tich(db, hid)["nen_cap_nhat"] is True
+
+    # Khi AI khả dụng → ghi đè bản 'ai'
+    r2 = cap_nhat_phan_tich(db, hid, _LLMPhanTich())
+    assert r2["ai"]["nguon"] == "ai"
+    assert lay_phan_tich(db, hid)["nen_cap_nhat"] is False
+
+
+def test_tong_hop_lop_gv(db, client):
+    _seed(db)
+    gh = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    r = client.get("/api/progress/lop/tong-hop", headers=gh)
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["so_hoc_sinh"] >= 1
+    for k in ("dang_yeu_chung", "hoc_sinh_can_chu_y", "so_hoc_sinh_co_du_lieu"):
+        assert k in d
+
+
+def test_phan_tich_co_xu_huong_va_dang_id(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    r = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert "xu_huong" in r
+    # mỗi nhóm dạng có khóa dang_id (có thể None nếu bài chưa gán dạng)
+    assert all("dang_id" in g for g in r["theo_dang"])
+
+
+def test_quet_tai_sinh_va_endpoint_admin(db, client):
+    """Quét nền tái sinh phân tích AI cho HS đến hạn (admin gọi quét ngay)."""
+    pid = _seed(db)
+    # Tạo tài khoản admin
+    db.add(User(vai_tro=VaiTro.admin, ho_ten="Admin", dang_nhap="admin1",
+                mat_khau_hash=hash_password("password")))
+    db.commit()
+
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    # Hàm quét trực tiếp với LLM giả → cập nhật được 1 HS
+    from app.services.phan_tich_service import quet_tai_sinh
+    ket = quet_tai_sinh(db, _LLMPhanTich())
+    assert ket["da_quet"] >= 1 and ket["da_cap_nhat"] == 1 and ket["loi"] == 0
+
+    # Đã có bản cache → GET không cần LLM vẫn thấy nhận định
+    r = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert r["ai"] is not None and r["nen_cap_nhat"] is False
+
+    # Endpoint admin "quét ngay" — không có HS nào đến hạn nữa (vừa cập nhật)
+    ah = {"Authorization": f"Bearer {_login(client, 'admin1')}"}
+    ra = client.post("/api/admin/phan-tich/quet", headers=ah)
+    assert ra.status_code == 200, ra.text
+    assert ra.json()["da_cap_nhat"] == 0
+
+    # HS thường không gọi được endpoint admin
+    assert client.post("/api/admin/phan-tich/quet", headers=h).status_code == 403
+
+
 def test_gv_xem_thong_ke_hoc_sinh(db, client):
     _seed(db)
     gh = {"Authorization": f"Bearer {_login(client, 'gv1')}"}

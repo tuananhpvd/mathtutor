@@ -16,6 +16,11 @@ class LLMClient(ABC):
     def sinh_cau_hoi(self, yeu_cau: dict) -> dict:
         """Sinh câu hỏi theo mẫu, trả JSON."""
 
+    def phan_tich(self, ho_so: dict) -> dict | None:
+        """Diễn giải hồ sơ năng lực → {cho_hoc_sinh, cho_giao_vien}. None = không khả dụng
+        (vd StubLLMClient) → caller dùng đề xuất theo luật."""
+        return None
+
 
 class StubLLMClient(LLMClient):
     """Client tất định cho test/demo — không cần mạng."""
@@ -180,11 +185,23 @@ class StubLLMClient(LLMClient):
                 })
         return {"cau_hoi": cau_hoi}
 
+    def phan_tich(self, ho_so: dict) -> dict | None:
+        """Bản phân tích tất định (không cần mạng): ghép các đề xuất theo luật thành
+        đoạn văn cho HS / GV. Đảm bảo nút 'Tạo phân tích' luôn có kết quả khi chưa
+        cấu hình nhà cung cấp AI."""
+        if ho_so.get("tong_hoan_thanh", 0) <= 0:
+            return None
+        hs = " ".join(ho_so.get("de_xuat_hs") or []).strip()
+        gv = " ".join(ho_so.get("de_xuat_gv") or []).strip()
+        if not hs and not gv:
+            return None
+        return {"cho_hoc_sinh": hs, "cho_giao_vien": gv}
+
 
 class OpenAILLMClient(LLMClient):
     """Gọi OpenAI API."""
 
-    def __init__(self, api_key: str, model: str, temperature: float):
+    def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
             from openai import OpenAI  # type: ignore
         except ImportError:
@@ -192,15 +209,19 @@ class OpenAILLMClient(LLMClient):
         self._client = OpenAI(api_key=api_key)
         self._model = model or "gpt-4o-mini"
         self._temperature = temperature
+        self._suy_nghi = suy_nghi  # bật/tắt suy luận (chỉ tác dụng với model reasoning)
 
     def _call(self, system: str, user: str) -> str:
-        from app.llm.prompts import SYSTEM_DIEN_DAT  # noqa: F401
-
-        resp = self._client.chat.completions.create(
+        kwargs = dict(
             model=self._model,
             temperature=self._temperature,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         )
+        # Model dòng reasoning (o*, gpt-5*) nhận reasoning_effort; model chat thường bỏ qua.
+        if self._model.startswith(("o", "gpt-5")):
+            kwargs.pop("temperature", None)
+            kwargs["reasoning_effort"] = "low" if self._suy_nghi else "minimal"
+        resp = self._client.chat.completions.create(**kwargs)
         return resp.choices[0].message.content.strip()
 
     def dien_dat(self, chi_thi: dict) -> str:
@@ -230,6 +251,9 @@ class OpenAILLMClient(LLMClient):
             dang=yeu_cau.get("dang"),
         )
         return _goi_va_parse(lambda s, u: self._call(s, u), SYSTEM_SINH_CAU_HOI, user)
+
+    def phan_tich(self, ho_so: dict) -> dict | None:
+        return _phan_tich_qua_call(lambda s, u: self._call(s, u), ho_so)
 
 
 def _va_escape_json(text: str) -> str:
@@ -292,6 +316,39 @@ def _parse_json_cau_hoi(raw: str) -> dict:
     raise ValueError("LLM trả thiếu khóa 'cau_hoi'")
 
 
+def _parse_phan_tich(raw: str) -> dict | None:
+    """Parse JSON {cho_hoc_sinh, cho_giao_vien} từ phản hồi LLM (chịu rào ``` + escape)."""
+    text = _trich_json(raw or "")
+    for bien_the in (text, _va_escape_json(text), _bo_dau_phay_thua(text)):
+        try:
+            data = json.loads(bien_the)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict) and (data.get("cho_hoc_sinh") or data.get("cho_giao_vien")):
+            return {
+                "cho_hoc_sinh": str(data.get("cho_hoc_sinh") or "").strip(),
+                "cho_giao_vien": str(data.get("cho_giao_vien") or "").strip(),
+            }
+    return None
+
+
+def _phan_tich_qua_call(call_fn, ho_so: dict) -> dict | None:
+    """Gọi LLM diễn giải hồ sơ, tự thử lại; lỗi → None để caller dùng bản theo luật."""
+    from app.llm.prompts import SYSTEM_PHAN_TICH, user_prompt_phan_tich
+
+    user = user_prompt_phan_tich(json.dumps(ho_so, ensure_ascii=False))
+    for lan in range(SO_LAN_THU):
+        try:
+            kq = _parse_phan_tich(call_fn(SYSTEM_PHAN_TICH, user))
+            if kq:
+                return kq
+        except Exception:
+            pass
+        if lan < SO_LAN_THU - 1:
+            time.sleep(1.0 * (lan + 1))
+    return None
+
+
 def _goi_va_parse(call_fn, system: str, user: str) -> dict:
     """Gọi LLM rồi parse JSON, tự thử lại khi lỗi tạm thời hoặc JSON hỏng.
 
@@ -315,7 +372,7 @@ def _goi_va_parse(call_fn, system: str, user: str) -> dict:
 class AnthropicLLMClient(LLMClient):
     """Gọi Claude (Anthropic) để sinh câu hỏi & diễn đạt gợi ý."""
 
-    def __init__(self, api_key: str, model: str, temperature: float):
+    def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
             from anthropic import Anthropic  # type: ignore
         except ImportError:
@@ -323,15 +380,23 @@ class AnthropicLLMClient(LLMClient):
         self._client = Anthropic(api_key=api_key)
         self._model = model or "claude-opus-4-8"
         self._temperature = temperature
+        self._suy_nghi = suy_nghi  # bật/tắt thinking (admin cấu hình)
 
-    def _call(self, system: str, user: str, max_tokens: int = 4096) -> str:
-        resp = self._client.messages.create(
+    def _call(self, system: str, user: str, max_tokens: int = 4096,
+              suy_nghi: bool | None = None) -> str:
+        dung_suy_nghi = self._suy_nghi if suy_nghi is None else suy_nghi
+        kwargs = dict(
             model=self._model,
             max_tokens=max_tokens,
-            temperature=self._temperature,
             system=system,
             messages=[{"role": "user", "content": user}],
         )
+        if dung_suy_nghi:
+            # Thinking thích nghi (Claude 4.6+); khi bật, không đặt temperature tùy biến.
+            kwargs["thinking"] = {"type": "adaptive"}
+        else:
+            kwargs["temperature"] = self._temperature
+        resp = self._client.messages.create(**kwargs)
         return "".join(
             block.text for block in resp.content if getattr(block, "type", None) == "text"
         ).strip()
@@ -367,6 +432,9 @@ class AnthropicLLMClient(LLMClient):
             lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
         )
 
+    def phan_tich(self, ho_so: dict) -> dict | None:
+        return _phan_tich_qua_call(lambda s, u: self._call(s, u, max_tokens=4096), ho_so)
+
 
 class GeminiLLMClient(LLMClient):
     """Gọi Google Gemini để sinh câu hỏi & diễn đạt gợi ý."""
@@ -374,7 +442,7 @@ class GeminiLLMClient(LLMClient):
     # Model dự phòng khi model chính bị 503 (quá tải) — thử lần lượt.
     _DU_PHONG = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
 
-    def __init__(self, api_key: str, model: str, temperature: float):
+    def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
             from google import genai  # type: ignore
         except ImportError:
@@ -383,18 +451,32 @@ class GeminiLLMClient(LLMClient):
         self._client = genai.Client(api_key=api_key)
         self._model = model or "gemini-2.5-flash"
         self._temperature = temperature
+        self._suy_nghi = suy_nghi  # bật/tắt thinking (admin cấu hình)
         # Danh sách model thử: model cấu hình trước, rồi các model dự phòng (khử trùng lặp).
         self._models = [self._model] + [m for m in self._DU_PHONG if m != self._model]
 
-    def _call(self, system: str, user: str, max_tokens: int = 4096) -> str:
+    def _call(self, system: str, user: str, max_tokens: int = 4096,
+              suy_nghi: bool | None = None) -> str:
         from google.genai import errors as genai_errors  # type: ignore
         from google.genai import types  # type: ignore
 
-        cfg = types.GenerateContentConfig(
+        # None = theo cấu hình admin; tác vụ riêng có thể ép (vd phân tích luôn tắt).
+        dung_suy_nghi = self._suy_nghi if suy_nghi is None else suy_nghi
+
+        cfg_kwargs = dict(
             system_instruction=system,
             temperature=self._temperature,
             max_output_tokens=max_tokens,
         )
+        # Tắt "thinking" cho tác vụ không cần suy luận sâu (vd phân tích) để token
+        # đầu ra không bị thinking ăn hết gây cắt cụt JSON. Bọc try vì bản genai cũ
+        # có thể chưa có ThinkingConfig.
+        if not dung_suy_nghi:
+            try:
+                cfg_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+            except Exception:  # noqa: BLE001
+                pass
+        cfg = types.GenerateContentConfig(**cfg_kwargs)
         loi = None
         for m in self._models:
             try:
@@ -403,7 +485,12 @@ class GeminiLLMClient(LLMClient):
             except genai_errors.ServerError as e:  # 5xx/quá tải → thử model kế
                 loi = e
                 continue
-        # Hết model dự phòng vẫn lỗi máy chủ → ném để lớp trên thử lại/đổi sang 502.
+            except genai_errors.ClientError as e:  # 429 hết quota → thử model khác (quota riêng)
+                loi = e
+                if getattr(e, "code", None) == 429:
+                    continue
+                raise
+        # Hết model dự phòng vẫn lỗi → ném để lớp trên thử lại/đổi sang 502.
         raise loi if loi else RuntimeError("Gemini không phản hồi")
 
     def dien_dat(self, chi_thi: dict) -> str:
@@ -437,6 +524,11 @@ class GeminiLLMClient(LLMClient):
             lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
         )
 
+    def phan_tich(self, ho_so: dict) -> dict | None:
+        return _phan_tich_qua_call(
+            lambda s, u: self._call(s, u, max_tokens=4096, suy_nghi=False), ho_so
+        )
+
 
 # Model mặc định mỗi nhà cung cấp (khi admin để trống ô model).
 MODEL_MAC_DINH = {
@@ -458,21 +550,23 @@ def get_llm_client(cau_hinh: dict | None = None) -> LLMClient:
         khoa = settings.llm_api_key
         model = settings.llm_model
         temperature = settings.llm_temperature
+        suy_nghi = False
     else:
         provider = str(cau_hinh.get("llm_provider") or "stub").lower()
         khoa = cau_hinh.get(f"llm_api_key_{provider}", "") or ""
         model = cau_hinh.get("llm_model") or ""
         temperature = float(cau_hinh.get("llm_temperature", settings.llm_temperature))
+        suy_nghi = bool(cau_hinh.get(f"llm_thinking_{provider}", False))
 
     model = model or MODEL_MAC_DINH.get(provider, "")
 
     try:
         if provider == "gemini" and khoa:
-            return GeminiLLMClient(khoa, model, temperature)
+            return GeminiLLMClient(khoa, model, temperature, suy_nghi)
         if provider == "anthropic" and khoa:
-            return AnthropicLLMClient(khoa, model, temperature)
+            return AnthropicLLMClient(khoa, model, temperature, suy_nghi)
         if provider == "openai" and khoa:
-            return OpenAILLMClient(khoa, model, temperature)
+            return OpenAILLMClient(khoa, model, temperature, suy_nghi)
     except ImportError:
         return StubLLMClient()
     return StubLLMClient()

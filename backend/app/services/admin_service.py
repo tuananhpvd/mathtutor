@@ -29,6 +29,14 @@ CAU_HINH_MAC_DINH: dict = {
     "llm_api_key_gemini": "",
     "llm_api_key_anthropic": "",
     "llm_api_key_openai": "",
+    # Bật/tắt chế độ suy luận (thinking) theo từng nhà cung cấp — mặc định TẮT cho
+    # nhanh & đỡ tốn token (tránh thinking ăn token gây cắt cụt JSON).
+    "llm_thinking_gemini": False,
+    "llm_thinking_anthropic": False,
+    "llm_thinking_openai": False,
+    # Tự động (tái) sinh phân tích năng lực AI theo lịch nền (không cần bấm tay).
+    "tu_dong_phan_tich": True,
+    "chu_ky_phut_phan_tich": 360,  # quét mỗi N phút (tối thiểu 5)
 }
 
 # Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).

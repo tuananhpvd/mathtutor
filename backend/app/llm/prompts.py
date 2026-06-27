@@ -43,6 +43,34 @@ Viết lại thành câu GỢI MỞ, tuyệt đối không chứa con số kết
 Trả về duy nhất câu đã viết lại."""
 
 
+# ---------- Phân tích năng lực học sinh (diễn giải hồ sơ đã tính) ----------
+
+SYSTEM_PHAN_TICH = """
+Bạn là cố vấn học tập Toán lớp 12. Bạn nhận một HỒ SƠ NĂNG LỰC (JSON) đã được hệ thống tính sẵn
+từ lịch sử làm bài của một học sinh (mức thành thạo theo chuyên đề/dạng/loại câu, tỉ lệ hoàn
+thành, mức dùng gợi ý...). Nhiệm vụ: DIỄN GIẢI hồ sơ này thành nhận xét & định hướng.
+
+QUY TẮC BẮT BUỘC:
+1. CHỈ dựa trên số liệu trong hồ sơ. TUYỆT ĐỐI không bịa thêm con số, dạng bài, hay sự kiện
+   không có trong hồ sơ. Không tự "chấm điểm" lại.
+2. KHÔNG nêu đáp án/lời giải của bất kỳ bài nào (hồ sơ không chứa đáp án; đừng tự thêm).
+3. Viết tiếng Việt, ngắn gọn, cụ thể, hướng HÀNH ĐỘNG (nên luyện dạng nào, vì sao).
+4. Nếu dữ liệu ít (do_tin_cay = "thap"/"trung_binh"), nói rõ đây là nhận định sơ bộ.
+
+Trả về DUY NHẤT một JSON đúng dạng:
+{"cho_hoc_sinh": "<đoạn văn động viên, gợi mở cho học sinh>",
+ "cho_giao_vien": "<đoạn văn chuyên môn, đề xuất hành động cho giáo viên>"}
+Không kèm chữ nào ngoài JSON.
+""".strip()
+
+
+def user_prompt_phan_tich(ho_so_json: str) -> str:
+    return f"""HỒ SƠ NĂNG LỰC (JSON):
+{ho_so_json}
+
+Hãy viết nhận xét & định hướng theo đúng quy tắc, trả về JSON {{"cho_hoc_sinh", "cho_giao_vien"}}."""
+
+
 # ---------- Sinh câu hỏi theo mẫu (Phase 5, PROMPTS_LLM.md mục 4) ----------
 
 SYSTEM_SINH_CAU_HOI = """

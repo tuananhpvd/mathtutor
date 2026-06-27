@@ -159,3 +159,13 @@ def set_config(body: DatCauHinhRequest, current_user: CurrentUser, db: Session =
         return dat_cau_hinh(db, body.khoa, body.gia_tri)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/phan-tich/quet", dependencies=_ADMIN)
+def quet_phan_tich_ngay(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Chạy quét tái sinh phân tích AI ngay (không chờ lịch nền)."""
+    from app.llm.client import get_llm_client
+    from app.services.admin_service import lay_cau_hinh
+    from app.services.phan_tich_service import quet_tai_sinh
+
+    return quet_tai_sinh(db, get_llm_client(lay_cau_hinh(db)))

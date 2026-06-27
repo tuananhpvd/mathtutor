@@ -39,6 +39,8 @@ export const api = {
   // Học sinh — tiến độ
   getProgressMe: () => request('/progress/me'),
   getThongKeMe: () => request('/progress/me/thong-ke'),
+  getPhanTichMe: () => request('/progress/me/phan-tich'),
+  capNhatPhanTichMe: () => post('/progress/me/phan-tich/cap-nhat'),
 
   // Học sinh — hồ sơ cá nhân
   hsHoSo: () => request('/hs/ho-so'),
@@ -46,7 +48,10 @@ export const api = {
 
   // Giáo viên / Admin (Phase 9–10)
   getProgressStudents: () => request('/progress/students'),
+  getTongHopLop: () => request('/progress/lop/tong-hop'),
   getThongKeHocSinh: (id) => request(`/progress/students/${id}/thong-ke`),
+  getPhanTichHocSinh: (id) => request(`/progress/students/${id}/phan-tich`),
+  capNhatPhanTichHocSinh: (id) => post(`/progress/students/${id}/phan-tich/cap-nhat`),
   genQuestions: (body) => post('/questions-ai/generate', body),
   listChoDuyet: () => request('/questions-ai/cho-duyet'),
   duyetCau: (id, hanh_dong) => post(`/questions-ai/${id}/duyet`, { hanh_dong }),
@@ -114,4 +119,5 @@ export const api = {
   adminGetConfig: () => request('/admin/config'),
   adminSetConfig: (khoa, gia_tri) =>
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
+  adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
 }

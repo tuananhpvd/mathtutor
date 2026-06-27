@@ -15,7 +15,7 @@ function renderDe(text) {
     )
 }
 
-export default function ChonBai({ onChon, onLamTiep }) {
+export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   const [danhMuc, setDanhMuc] = useState([]) // [{id, ten, dang_list:[...]}]
   const [bai, setBai] = useState([])
   const [trangThaiBai, setTrangThaiBai] = useState({}) // {problem_id: {session_id, trang_thai}}
@@ -52,6 +52,14 @@ export default function ChonBai({ onChon, onLamTiep }) {
     }
     load()
   }, [])
+
+  // Áp bộ lọc ban đầu (vd từ "Luyện ngay" của trang Tiến độ): chọn sẵn chuyên đề + dạng.
+  useEffect(() => {
+    if (!locBanDau || danhMuc.length === 0) return
+    const cd = danhMuc.find((c) => c.ten === locBanDau.chuyen_de)
+    if (cd) setFChuyenDeId(String(cd.id))
+    if (locBanDau.dang_id) setFDangId(String(locBanDau.dang_id))
+  }, [danhMuc, locBanDau])
 
   // Dạng của chuyên đề đang chọn
   const dangList = useMemo(() => {

@@ -19,9 +19,14 @@ from app.api.sessions import router as sessions_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.db.init_db import init_db
+    from app.services import lich_phan_tich
 
     init_db()
-    yield
+    lich_phan_tich.khoi_dong()
+    try:
+        yield
+    finally:
+        await lich_phan_tich.dung()
 
 
 app = FastAPI(title="MathTutor API", version="0.1.0", lifespan=lifespan)

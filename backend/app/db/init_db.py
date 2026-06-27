@@ -6,6 +6,7 @@ import app.models.cauhinh  # noqa: F401
 import app.models.danh_muc  # noqa: F401
 import app.models.flag  # noqa: F401
 import app.models.lop  # noqa: F401
+import app.models.phan_tich  # noqa: F401
 import app.models.problem  # noqa: F401
 import app.models.progress  # noqa: F401
 import app.models.session  # noqa: F401
@@ -117,6 +118,13 @@ def _migrate_them_cot(engine) -> None:
             with engine.begin() as conn:
                 conn.execute(text(
                     "ALTER TABLE sessions ADD COLUMN thoi_gian_hoat_dong_giay INTEGER DEFAULT 0"
+                ))
+    if "phan_tich_hs" in ten_bang:
+        cot_pt = {c["name"] for c in insp.get_columns("phan_tich_hs")}
+        if "nguon" not in cot_pt:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE phan_tich_hs ADD COLUMN nguon VARCHAR(16) DEFAULT 'ai'"
                 ))
 
 
