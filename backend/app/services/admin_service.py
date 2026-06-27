@@ -17,6 +17,9 @@ from app.models.user import TrangThaiUser, User, VaiTro
 # Cấu hình mặc định (dùng khi DB chưa có bản ghi).
 CAU_HINH_MAC_DINH: dict = {
     "nguong_co_khong_hieu": 3,
+    # Ngưỡng nghỉ (giây): khoảng cách giữa 2 lần tương tác vượt mức này coi là "rời đi",
+    # chỉ tính tối đa bằng ngưỡng vào thời gian làm bài (chống phồng khi quay lại làm sau).
+    "nguong_nghi_giay": 180,
     "llm_temperature": settings.llm_temperature,
     "so_goi_y_mac_dinh": SO_GOI_Y_MAC_DINH,
     "bang_bac_thang": {str(k): v for k, v in BANG_BAC_THANG.items()},

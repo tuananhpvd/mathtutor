@@ -78,6 +78,35 @@ def test_luong_tln(client, db):
     assert r.json()["y_dinh"] == "ket_thuc"
 
 
+def test_thoi_gian_chan_nghi_khi_quay_lai_lam_sau(client, db):
+    """Rời đi lâu (gap lớn) chỉ tính tối đa = ngưỡng nghỉ, không phồng thời gian."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.session import Session as SessionModel
+
+    hs, gv, admin, p = seed_all(db)
+    # Đặt ngưỡng nghỉ = 60s cho dễ kiểm tra
+    atok = _token(client, "admin_test")
+    client.patch("/api/admin/config", headers=_h(atok),
+                 json={"khoa": "nguong_nghi_giay", "gia_tri": 60})
+
+    tok = _token(client, "hs_test")
+    sid = client.post("/api/sessions", json={"problem_id": p.id},
+                      headers=_h(tok)).json()["session_id"]
+
+    # Giả lập học sinh rời đi 2 giờ: lùi mốc tương tác gần nhất về quá khứ
+    s = db.get(SessionModel, sid)
+    s.cap_nhat_luc = datetime.now(timezone.utc) - timedelta(hours=2)
+    db.commit()
+
+    # Quay lại làm và hoàn thành ngay
+    r = client.post(f"/api/sessions/{sid}/message",
+                    json={"noi_dung": "x=5", "dap_an_nhap": "5"}, headers=_h(tok))
+    assert r.json()["da_xong"] is True
+    # Thời gian phải bị chặn ở ~ngưỡng (60s), KHÔNG phải ~7200s
+    assert r.json()["thoi_gian_giay"] <= 60
+
+
 def _seed_tn4pa(db, bat_buoc: bool):
     p = Problem(
         chuyen_de="Test", loai_cau="TN4PA", do_kho="de",

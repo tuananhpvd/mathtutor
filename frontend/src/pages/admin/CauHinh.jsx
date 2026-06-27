@@ -13,6 +13,7 @@ export default function CauHinh() {
   const [cfg, setCfg] = useState(null)
   const [nguong, setNguong] = useState('')
   const [temp, setTemp] = useState('')
+  const [nghi, setNghi] = useState('')
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
@@ -29,6 +30,7 @@ export default function CauHinh() {
       setCfg(c)
       setNguong(c.nguong_co_khong_hieu)
       setTemp(c.llm_temperature)
+      setNghi(c.nguong_nghi_giay)
       setProvider(c.llm_provider || 'gemini')
       setModel(c.llm_model || '')
     })
@@ -109,6 +111,21 @@ export default function CauHinh() {
             />
             <Button onClick={() => luu('llm_temperature', Number(temp))}>Lưu</Button>
           </div>
+          <div className="flex items-end gap-2 sm:col-span-2">
+            <Input
+              label="Ngưỡng nghỉ (giây) — chặn thời gian rời đi khi tính giờ làm bài"
+              type="number"
+              min={30}
+              value={nghi}
+              onChange={(e) => setNghi(e.target.value)}
+            />
+            <Button onClick={() => luu('nguong_nghi_giay', Number(nghi))}>Lưu</Button>
+          </div>
+          <p className="text-[11px] text-muted sm:col-span-2">
+            Khoảng cách giữa 2 lần học sinh thao tác vượt ngưỡng này được coi là "rời đi" và chỉ
+            tính tối đa bằng ngưỡng — để thời gian hoàn thành phản ánh đúng công sức thực, kể cả khi
+            học sinh "quay lại làm sau".
+          </p>
           {msg && <p className="text-sm text-success sm:col-span-2">{msg}</p>}
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
         </CardBody>

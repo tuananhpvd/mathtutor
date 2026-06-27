@@ -105,12 +105,19 @@ def _migrate_them_cot(engine) -> None:
     from sqlalchemy import inspect, text
 
     insp = inspect(engine)
-    if "problems" not in insp.get_table_names():
-        return
-    cot = {c["name"] for c in insp.get_columns("problems")}
-    if "tao_luc" not in cot:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc DATETIME"))
+    ten_bang = insp.get_table_names()
+    if "problems" in ten_bang:
+        cot = {c["name"] for c in insp.get_columns("problems")}
+        if "tao_luc" not in cot:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc DATETIME"))
+    if "sessions" in ten_bang:
+        cot_s = {c["name"] for c in insp.get_columns("sessions")}
+        if "thoi_gian_hoat_dong_giay" not in cot_s:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE sessions ADD COLUMN thoi_gian_hoat_dong_giay INTEGER DEFAULT 0"
+                ))
 
 
 def init_db() -> None:

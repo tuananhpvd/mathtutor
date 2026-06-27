@@ -21,6 +21,15 @@ from app.models.turn import Turn, VaiTroTurn
 from app.services.progress_service import cap_nhat_tien_do
 
 
+def _nguong_nghi_giay(db: Session) -> int:
+    """Ngưỡng nghỉ (giây) từ cấu hình admin; lỗi → mặc định 180s."""
+    try:
+        from app.services.admin_service import lay_cau_hinh
+        return int(lay_cau_hinh(db).get("nguong_nghi_giay", 180))
+    except Exception:
+        return 180
+
+
 def _steps_to_list(problem: Problem) -> list[dict]:
     return [
         {
@@ -205,9 +214,23 @@ def xu_ly_luot(
         trang_thai, ket_qua, noi_dung, yeu_cau_goi_y, dap_an_nhap, loai_cau, problem.meta
     )
 
-    # Mốc trước khi ghi đè (để phát hiện ý vừa hoàn thành — TNDS)
+    # Ý đang xét trước khi ghi đè (để dồn thời gian vào đúng ý — TNDS)
     y_truoc = session.y_hien_tai
-    y_truoc_da_xong = (session.trang_thai_y or {}).get(y_truoc) == "xong"
+
+    now = datetime.now(timezone.utc)
+    # --- THỜI GIAN HOẠT ĐỘNG: cộng dồn khoảng từ lần tương tác trước, CHẶN khoảng nghỉ dài.
+    # Nhờ vậy "quay lại làm sau" (rời đi nhiều giờ/ngày) chỉ tính tối đa = ngưỡng nghỉ.
+    moc_truoc = session.cap_nhat_luc or session.bat_dau_luc
+    if moc_truoc is not None and moc_truoc.tzinfo is None:
+        moc_truoc = moc_truoc.replace(tzinfo=timezone.utc)
+    nguong = _nguong_nghi_giay(db)
+    them = int(max(0, min((now - moc_truoc).total_seconds(), nguong))) if moc_truoc else 0
+    session.thoi_gian_hoat_dong_giay = int(session.thoi_gian_hoat_dong_giay or 0) + them
+    # TNDS: dồn thời gian hoạt động của lượt này vào ý đang xét.
+    if loai_cau == "TNDS" and y_truoc:
+        tg = dict(session.thoi_gian_y or {})
+        tg[y_truoc] = int(tg.get(y_truoc, 0)) + them
+        session.thoi_gian_y = tg
 
     # Ghi lại trạng thái
     session.buoc_hien_tai = trang_thai_moi.buoc_hien_tai
@@ -218,19 +241,8 @@ def xu_ly_luot(
     session.so_lan_khong_hieu = trang_thai_moi.so_lan_khong_hieu
     session.so_y_dung = trang_thai_moi.so_y_dung
     session.da_suy_luan = trang_thai_moi.da_suy_luan
-    now = datetime.now(timezone.utc)
     session.cap_nhat_luc = now
 
-    # TNDS: ghi thời gian hoàn thành của ý vừa được chốt đúng (giây dành cho ý đó)
-    if (loai_cau == "TNDS" and y_truoc and not y_truoc_da_xong
-            and (trang_thai_moi.trang_thai_y or {}).get(y_truoc) == "xong"):
-        bd_y = session.bat_dau_luc
-        if bd_y is not None and bd_y.tzinfo is None:
-            bd_y = bd_y.replace(tzinfo=timezone.utc)
-        tong_da_qua = (now - bd_y).total_seconds() if bd_y else 0
-        tg = dict(session.thoi_gian_y or {})
-        tg[y_truoc] = max(0, int(tong_da_qua - sum(tg.values())))
-        session.thoi_gian_y = tg
     if trang_thai_moi.da_xong:
         session.trang_thai = TrangThaiSession.hoan_thanh
         # Điểm cuối: TNDS theo bậc thang số ý đúng; TLN/TN4PA hoàn thành = 1.0
@@ -238,11 +250,8 @@ def xu_ly_luot(
             session.diem = diem_bac_thang(trang_thai_moi.so_y_dung)
         else:
             session.diem = 1.0
-        # Thời gian làm bài (giây): từ lúc tạo phiên đến khi hoàn thành.
-        bd = session.bat_dau_luc
-        if bd is not None and bd.tzinfo is None:
-            bd = bd.replace(tzinfo=timezone.utc)
-        session.thoi_gian_giay = max(0, int((now - bd).total_seconds())) if bd else None
+        # Thời gian làm bài = tổng thời gian HOẠT ĐỘNG (đã chặn nghỉ).
+        session.thoi_gian_giay = int(session.thoi_gian_hoat_dong_giay or 0)
 
     van_ban_raw = llm.dien_dat(chi_thi.to_dict())
 
