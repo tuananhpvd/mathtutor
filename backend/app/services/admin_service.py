@@ -12,6 +12,7 @@ from app.models.flag import Flag, TrangThaiCo
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
 from app.models.session import Session as SessionModel
+from app.models.session import TrangThaiSession
 from app.models.user import TrangThaiUser, User, VaiTro
 
 # Cấu hình mặc định (dùng khi DB chưa có bản ghi).
@@ -46,15 +47,44 @@ CAU_HINH_BI_MAT = {"llm_api_key_gemini", "llm_api_key_anthropic", "llm_api_key_o
 
 
 def thong_ke(db: Session) -> dict:
+    base_cau_hoi = db.query(Problem).filter(Problem.bi_an == False)  # noqa: E712
     return {
+        # Người dùng
         "so_nguoi_dung": db.query(User).count(),
         "so_giao_vien": db.query(User).filter(User.vai_tro == VaiTro.gv).count(),
         "so_hoc_sinh": db.query(User).filter(User.vai_tro == VaiTro.hs).count(),
-        "so_cau_hoi": db.query(Problem).count(),
-        "so_cau_da_duyet": db.query(Problem)
-        .filter(Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet)
-        .count(),
-        "so_phien": db.query(SessionModel).count(),
+        "so_lop": db.query(Lop).count(),
+        # Câu hỏi
+        "so_cau_hoi": base_cau_hoi.count(),
+        "so_cau_da_duyet": base_cau_hoi.filter(
+            Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet
+        ).count(),
+        "so_cau_cho_duyet": base_cau_hoi.filter(
+            Problem.trang_thai_duyet == TrangThaiDuyet.cho_duyet
+        ).count(),
+        "so_cau_an": db.query(Problem).filter(Problem.bi_an == True).count(),  # noqa: E712
+        "cau_theo_loai": {
+            loai: base_cau_hoi.filter(Problem.loai_cau == loai).count()
+            for loai in ("TN4PA", "TNDS", "TLN")
+        },
+        "cau_theo_do_kho": {
+            dk: base_cau_hoi.filter(Problem.do_kho == dk).count()
+            for dk in ("de", "tb", "kho")
+        },
+        # Phiên học
+        "so_phien": db.query(SessionModel).filter(
+            SessionModel.bi_an == False  # noqa: E712
+        ).count(),
+        "so_phien_dang_lam": db.query(SessionModel).filter(
+            SessionModel.bi_an == False,  # noqa: E712
+            SessionModel.trang_thai == TrangThaiSession.dang_lam,
+        ).count(),
+        "so_phien_hoan_thanh": db.query(SessionModel).filter(
+            SessionModel.bi_an == False,  # noqa: E712
+            SessionModel.trang_thai == TrangThaiSession.hoan_thanh,
+        ).count(),
+        # Cờ
+        "so_co_tong": db.query(Flag).count(),
         "so_co_chua_xu_ly": db.query(Flag)
         .filter(Flag.trang_thai == TrangThaiCo.cho_xu_ly)
         .count(),

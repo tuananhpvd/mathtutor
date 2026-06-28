@@ -7,7 +7,14 @@ from app.db.session import get_db
 from app.models.problem import Problem, TrangThaiDuyet
 from app.models.user import VaiTro
 from app.schemas.problem import ProblemCreate, ProblemUpdate
-from app.services.problem_service import sua_problem, tao_problem, xoa_problem
+from app.services.problem_service import (
+    anh_huong_xoa_vinh_vien,
+    khoi_phuc_problem,
+    sua_problem,
+    tao_problem,
+    xoa_problem,
+    xoa_vinh_vien_problem,
+)
 
 router = APIRouter(prefix="/api/problems", tags=["problems"])
 
@@ -71,7 +78,10 @@ def _strip_answers(p: Problem) -> dict:
 def danh_sach_bai(current_user: CurrentUser, db: Session = Depends(get_db)):
     q = db.query(Problem)
     if current_user.vai_tro == VaiTro.hs:
-        q = q.filter(Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet)
+        q = q.filter(
+            Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet,
+            Problem.bi_an == False,  # noqa: E712
+        )
         return [_strip_answers(p) for p in q.all()]
 
     # GV/Admin: mới tạo lên trước (theo tao_luc, fallback id cho bản ghi cũ chưa có tao_luc).
@@ -85,7 +95,7 @@ def danh_sach_bai(current_user: CurrentUser, db: Session = Depends(get_db)):
          "dang_ten": p.dang.ten if p.dang else None,
          "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
          "trang_thai_duyet": p.trang_thai_duyet.value,
-         "nguon": p.nguon.value,
+         "nguon": p.nguon.value, "bi_an": p.bi_an,
          "tao_luc": p.tao_luc.isoformat() if p.tao_luc else None}
         for p in problems
     ]
@@ -97,7 +107,7 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
     if p is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài")
     if current_user.vai_tro == VaiTro.hs:
-        if p.trang_thai_duyet != TrangThaiDuyet.da_duyet:
+        if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài")
         return _strip_answers(p)
     return _problem_full(p)
@@ -131,7 +141,31 @@ def cap_nhat_bai(problem_id: int, body: ProblemUpdate, db: Session = Depends(get
 @router.delete("/{problem_id}", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
 def xoa_bai(problem_id: int, db: Session = Depends(get_db)):
     try:
-        xoa_problem(db, problem_id)
+        return xoa_problem(db, problem_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.patch("/{problem_id}/khoi-phuc", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def khoi_phuc_bai(problem_id: int, db: Session = Depends(get_db)):
+    try:
+        khoi_phuc_problem(db, problem_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True}
+
+
+@router.get("/{problem_id}/anh-huong", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def xem_anh_huong(problem_id: int, db: Session = Depends(get_db)):
+    try:
+        return anh_huong_xoa_vinh_vien(db, problem_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{problem_id}/vinh-vien", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def xoa_bai_vinh_vien(problem_id: int, db: Session = Depends(get_db)):
+    try:
+        return xoa_vinh_vien_problem(db, problem_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

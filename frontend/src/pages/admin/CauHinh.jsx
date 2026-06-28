@@ -35,6 +35,10 @@ export default function CauHinh() {
   const [msgPt, setMsgPt] = useState('')
   const [dangQuet, setDangQuet] = useState(false)
 
+  // Số gợi ý mặc định theo độ khó
+  const [goiY, setGoiY] = useState(null)
+  const [msgGoiY, setMsgGoiY] = useState('')
+
   function nap() {
     api.adminGetConfig().then((c) => {
       setCfg(c)
@@ -49,6 +53,7 @@ export default function CauHinh() {
       setThinkOpenai(c.llm_thinking_openai === true)
       setTuDong(c.tu_dong_phan_tich !== false)
       setChuKy(c.chu_ky_phut_phan_tich ?? 360)
+      setGoiY(c.so_goi_y_mac_dinh ? { ...c.so_goi_y_mac_dinh } : { de: 2, tb: 3, kho: 4 })
     })
   }
   useEffect(nap, [])
@@ -75,6 +80,15 @@ export default function CauHinh() {
     } finally {
       setDangQuet(false)
     }
+  }
+
+  async function luuGoiY() {
+    setMsgGoiY(''); setError('')
+    try {
+      await api.adminSetConfig('so_goi_y_mac_dinh', goiY)
+      nap()
+      setMsgGoiY('Đã lưu.')
+    } catch (e) { setError(e.message) }
   }
 
   async function luu(khoa, gia_tri) {
@@ -287,26 +301,29 @@ export default function CauHinh() {
 
       <Card>
         <CardHeader title="Số gợi ý mặc định theo độ khó" subtitle="Giá trị khởi tạo khi tạo/AI sinh bài" />
-        <CardBody className="flex gap-6">
-          {Object.entries(cfg.so_goi_y_mac_dinh || {}).map(([k, v]) => (
-            <div key={k}>
-              <p className="text-sm text-muted uppercase">{k}</p>
-              <p className="text-2xl font-semibold text-primary">{v}</p>
-            </div>
-          ))}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader title="Bảng điểm bậc thang TNDS" subtitle="Số ý đúng → điểm" />
-        <CardBody>
-          <div className="flex gap-3">
-            {Object.entries(cfg.bang_bac_thang || {}).map(([k, v]) => (
-              <div key={k} className="rounded-md bg-surface-2 px-4 py-2 text-center">
-                <p className="text-xs text-muted">{k} ý đúng</p>
-                <p className="text-lg font-semibold text-ink">{v}</p>
-              </div>
-            ))}
+        <CardBody className="flex flex-col gap-4">
+          <div className="flex gap-4 items-end flex-wrap">
+            {goiY && (
+              <>
+                <Input
+                  type="number" label="Dễ" value={goiY.de} min={1} max={10}
+                  className="w-24"
+                  onChange={(e) => setGoiY((g) => ({ ...g, de: Number(e.target.value) }))}
+                />
+                <Input
+                  type="number" label="Trung bình" value={goiY.tb} min={1} max={10}
+                  className="w-28"
+                  onChange={(e) => setGoiY((g) => ({ ...g, tb: Number(e.target.value) }))}
+                />
+                <Input
+                  type="number" label="Khó" value={goiY.kho} min={1} max={10}
+                  className="w-24"
+                  onChange={(e) => setGoiY((g) => ({ ...g, kho: Number(e.target.value) }))}
+                />
+                <Button onClick={luuGoiY}>Lưu</Button>
+                {msgGoiY && <span className="text-sm text-success">{msgGoiY}</span>}
+              </>
+            )}
           </div>
         </CardBody>
       </Card>

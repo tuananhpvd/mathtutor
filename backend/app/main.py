@@ -7,6 +7,7 @@ from app.api.admin import router as admin_api_router
 from app.api.auth import admin_router, gv_router, hs_router
 from app.api.auth import router as auth_router
 from app.api.danh_muc import router as danh_muc_router
+from app.api.dat_lai import gv_router as dat_lai_gv_router
 from app.api.gv import router as gv_api_router
 from app.api.hs import router as hs_api_router
 from app.api.monitor import router as monitor_router
@@ -52,6 +53,7 @@ app.include_router(admin_api_router)
 app.include_router(danh_muc_router)
 app.include_router(gv_api_router)
 app.include_router(hs_api_router)
+app.include_router(dat_lai_gv_router)
 
 
 @app.get("/api/health")

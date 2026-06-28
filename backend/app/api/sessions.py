@@ -116,6 +116,7 @@ def phien_dang_do(current_user: CurrentUser, db: Session = Depends(get_db)):
         .filter(
             SessionModel.hoc_sinh_id == current_user.id,
             SessionModel.trang_thai == TrangThaiSession.dang_lam,
+            SessionModel.bi_an == False,  # noqa: E712
         )
         .order_by(SessionModel.cap_nhat_luc.desc())
         .all()
@@ -149,7 +150,7 @@ def phien_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
     """
     rows = (
         db.query(SessionModel)
-        .filter(SessionModel.hoc_sinh_id == current_user.id)
+        .filter(SessionModel.hoc_sinh_id == current_user.id, SessionModel.bi_an == False)  # noqa: E712
         .order_by(SessionModel.cap_nhat_luc.desc())
         .all()
     )

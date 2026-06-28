@@ -19,7 +19,11 @@ def cap_nhat_tien_do(db: Session, hoc_sinh_id: int, chuyen_de: str) -> Progress:
     rows = (
         db.query(SessionModel)
         .join(Problem, Problem.id == SessionModel.problem_id)
-        .filter(SessionModel.hoc_sinh_id == hoc_sinh_id, Problem.chuyen_de == chuyen_de)
+        .filter(
+            SessionModel.hoc_sinh_id == hoc_sinh_id,
+            SessionModel.bi_an == False,  # noqa: E712
+            Problem.chuyen_de == chuyen_de,
+        )
         .all()
     )
     so_bai_lam = len(rows)
@@ -87,10 +91,14 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
     from app.models.problem import TrangThaiDuyet
 
     problems = (
-        db.query(Problem).filter(Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet).all()
+        db.query(Problem)
+        .filter(Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet, Problem.bi_an == False)  # noqa: E712
+        .all()
     )
     sessions = (
-        db.query(SessionModel).filter(SessionModel.hoc_sinh_id == hoc_sinh_id).all()
+        db.query(SessionModel)
+        .filter(SessionModel.hoc_sinh_id == hoc_sinh_id, SessionModel.bi_an == False)  # noqa: E712
+        .all()
     )
 
     sess_by_pid: dict[int, list] = {}

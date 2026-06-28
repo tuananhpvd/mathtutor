@@ -112,12 +112,20 @@ def _migrate_them_cot(engine) -> None:
         if "tao_luc" not in cot:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc DATETIME"))
+        if "bi_an" not in cot:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE problems ADD COLUMN bi_an BOOLEAN DEFAULT 0 NOT NULL"))
     if "sessions" in ten_bang:
         cot_s = {c["name"] for c in insp.get_columns("sessions")}
         if "thoi_gian_hoat_dong_giay" not in cot_s:
             with engine.begin() as conn:
                 conn.execute(text(
                     "ALTER TABLE sessions ADD COLUMN thoi_gian_hoat_dong_giay INTEGER DEFAULT 0"
+                ))
+        if "bi_an" not in cot_s:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE sessions ADD COLUMN bi_an BOOLEAN DEFAULT 0 NOT NULL"
                 ))
     if "phan_tich_hs" in ten_bang:
         cot_pt = {c["name"] for c in insp.get_columns("phan_tich_hs")}

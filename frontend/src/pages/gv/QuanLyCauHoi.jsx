@@ -696,6 +696,10 @@ export default function QuanLyCauHoi() {
   const [fTrangThai, setFTrangThai] = useState('')
   const [sua, setSua] = useState(null)
   const [taoMoi, setTaoMoi] = useState(false)
+  const [modalXoaVV, setModalXoaVV] = useState(null)   // { r, anhHuong }
+  const [dangTaiAH, setDangTaiAH] = useState(false)
+  const [dangXoaVV, setDangXoaVV] = useState(false)
+  const [daXacNhan, setDaXacNhan] = useState(false)
 
   async function tai() {
     const [rs, dm] = await Promise.allSettled([api.listProblems(), api.getDanhMuc()])
@@ -714,9 +718,39 @@ export default function QuanLyCauHoi() {
     catch (e) { setError(e.message) }
   }
   async function xoa(r) {
-    if (!window.confirm(`Xóa câu hỏi #${r.id}? Hành động này không hoàn tác.`)) return
-    try { await api.deleteProblem(r.id); await tai() }
+    const msg = r.bi_an
+      ? `Câu hỏi #${r.id} đang bị ẩn. Xóa vĩnh viễn?`
+      : `Xóa câu hỏi #${r.id}?\n\nNếu đã có dữ liệu học sinh, câu hỏi sẽ được ẩn (không xóa vĩnh viễn, HS không thấy nữa).`
+    if (!window.confirm(msg)) return
+    try {
+      const res = await api.deleteProblem(r.id)
+      if (res?.an) setError('Câu hỏi đã có phiên học của HS — đã ẩn khỏi danh sách HS (dữ liệu được giữ lại).')
+      await tai()
+    } catch (e) { setError(e.message) }
+  }
+  async function khoiPhuc(r) {
+    if (!window.confirm(`Khôi phục câu hỏi #${r.id}? Câu hỏi sẽ hiển thị lại cho HS.`)) return
+    try { await api.khoiPhucProblem(r.id); await tai() }
     catch (e) { setError(e.message) }
+  }
+  async function moModalXoaVV(r) {
+    setDangTaiAH(true)
+    setDaXacNhan(false)
+    try {
+      const ah = await api.anhHuongProblem(r.id)
+      setModalXoaVV({ r, anhHuong: ah })
+    } catch (e) { setError(e.message) }
+    finally { setDangTaiAH(false) }
+  }
+  async function thucHienXoaVV() {
+    if (!modalXoaVV) return
+    setDangXoaVV(true)
+    try {
+      await api.xoaVinhVienProblem(modalXoaVV.r.id)
+      setModalXoaVV(null)
+      await tai()
+    } catch (e) { setError(e.message) }
+    finally { setDangXoaVV(false) }
   }
 
   return (
@@ -780,7 +814,12 @@ export default function QuanLyCauHoi() {
                 {
                   key: 'trang_thai_duyet',
                   header: 'Trạng thái',
-                  render: (r) => <Badge trang_thai={r.trang_thai_duyet} />,
+                  render: (r) => (
+                    <div className="flex flex-wrap gap-1">
+                      <Badge trang_thai={r.trang_thai_duyet} />
+                      {r.bi_an && <Badge tone="neutral">Đã ẩn</Badge>}
+                    </div>
+                  ),
                 },
                 {
                   key: 'actions',
@@ -788,12 +827,23 @@ export default function QuanLyCauHoi() {
                   render: (r) => (
                     <div className="flex justify-end gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setSua(r.id)}>Xem / Sửa</Button>
-                      {r.trang_thai_duyet !== 'da_duyet' && (
+                      {!r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
                         <Button size="sm" variant="ghost" onClick={() => duyet(r)}>Duyệt</Button>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
-                        <span className="text-danger">Xóa</span>
-                      </Button>
+                      {r.bi_an ? (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={() => khoiPhuc(r)}>
+                            <span className="text-primary">Khôi phục</span>
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => moModalXoaVV(r)} disabled={dangTaiAH}>
+                            <span className="text-danger">Xóa vĩnh viễn</span>
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
+                          <span className="text-danger">Xóa</span>
+                        </Button>
+                      )}
                     </div>
                   ),
                 },
@@ -821,6 +871,44 @@ export default function QuanLyCauHoi() {
           onDong={() => setTaoMoi(false)}
           onLuuXong={() => { setTaoMoi(false); tai() }}
         />
+      )}
+
+      {modalXoaVV && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-danger">⚠️ Xóa vĩnh viễn câu hỏi #{modalXoaVV.r.id}</h2>
+            <p className="text-sm text-muted">
+              Hành động này <strong>không thể hoàn tác</strong>. Toàn bộ dữ liệu liên quan sẽ bị xóa:
+            </p>
+            <div className="bg-danger-soft rounded-lg px-4 py-3 text-sm flex flex-col gap-1">
+              <span>🗂 <strong>{modalXoaVV.anhHuong.so_phien}</strong> phiên học</span>
+              <span>👤 <strong>{modalXoaVV.anhHuong.so_hoc_sinh}</strong> học sinh bị ảnh hưởng</span>
+              <span>💬 <strong>{modalXoaVV.anhHuong.so_luot}</strong> lượt hội thoại</span>
+              <span>🚩 <strong>{modalXoaVV.anhHuong.so_co}</strong> cờ theo dõi</span>
+            </div>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={daXacNhan}
+                onChange={(e) => setDaXacNhan(e.target.checked)}
+              />
+              <span>Tôi hiểu rằng dữ liệu sẽ bị xóa vĩnh viễn và không thể khôi phục</span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setModalXoaVV(null); setDaXacNhan(false) }}>
+                Hủy
+              </Button>
+              <Button
+                onClick={thucHienXoaVV}
+                disabled={!daXacNhan || dangXoaVV}
+                className="bg-danger text-white hover:bg-danger/90 disabled:opacity-40"
+              >
+                {dangXoaVV ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

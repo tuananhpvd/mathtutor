@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -44,5 +44,7 @@ class Session(Base):
     cap_nhat_luc: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
+    # Soft-reset: True khi GV yêu cầu đặt lại tiến độ HS và admin đã duyệt.
+    bi_an: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     turns: Mapped[list["Turn"]] = relationship("Turn", back_populates="session")  # noqa: F821

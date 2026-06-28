@@ -73,7 +73,10 @@ def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
 def ho_so_nang_luc(db: Session, hoc_sinh_id: int) -> dict:
     """Hồ sơ năng lực + đề xuất theo luật cho 1 học sinh."""
     sessions = (
-        db.query(SessionModel).filter(SessionModel.hoc_sinh_id == hoc_sinh_id).all()
+        db.query(SessionModel).filter(
+            SessionModel.hoc_sinh_id == hoc_sinh_id,
+            SessionModel.bi_an == False,  # noqa: E712
+        ).all()
     )
     p_ids = {s.problem_id for s in sessions}
     problems = (
@@ -269,6 +272,13 @@ def lay_phan_tich(db: Session, hoc_sinh_id: int) -> dict:
 
     ho_so = ho_so_nang_luc(db, hoc_sinh_id)
     ban = db.query(PhanTich).filter(PhanTich.hoc_sinh_id == hoc_sinh_id).first()
+
+    # Cache lỗi thời: được tạo từ nhiều bài hơn số bài hiện tại (sessions bị ẩn sau reset).
+    if ban is not None and (ban.so_bai_luc_tao or 0) > ho_so["tong_hoan_thanh"]:
+        db.delete(ban)
+        db.commit()
+        ban = None
+
     ho_so["ai"] = _ai_dict(ban)
     ho_so["nen_cap_nhat"] = _nen_cap_nhat(ho_so, ban)
     ho_so["tu_dong_phan_tich"] = bool(lay_cau_hinh(db).get("tu_dong_phan_tich", True))

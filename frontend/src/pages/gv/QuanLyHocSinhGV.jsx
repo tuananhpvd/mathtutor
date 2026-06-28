@@ -15,6 +15,8 @@ export default function QuanLyHocSinhGV() {
   const [q, setQ] = useState('')
   const [fLop, setFLop] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
+  const [modalDatLai, setModalDatLai] = useState(null)  // HS đang chọn đặt lại
+  const [dangDatLai, setDangDatLai] = useState(false)
 
   function tai() {
     api.gvHocSinh().then(setRows).catch((e) => setError(e.message))
@@ -48,6 +50,16 @@ export default function QuanLyHocSinhGV() {
   async function xoa(h) {
     if (!window.confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
     try { await api.gvXoaHocSinh(h.id); tai() } catch (e) { setError(e.message) }
+  }
+  async function datLai() {
+    if (!modalDatLai) return
+    setDangDatLai(true)
+    try {
+      await api.gvDatLaiTienDo(modalDatLai.id)
+      setModalDatLai(null)
+      tai()
+    } catch (e) { setError(e.message) }
+    finally { setDangDatLai(false) }
   }
 
   const loc = useMemo(() => {
@@ -85,9 +97,9 @@ export default function QuanLyHocSinhGV() {
                 onChange={(e) => setForm((f) => ({ ...f, lop_id: e.target.value }))}
                 options={[{ value: '', label: '— chọn lớp —' }, ...lopOptions]} required />
               <Button type="submit" disabled={!form.lop_id}>Tạo học sinh</Button>
-              {(ok || error) && (
+              {ok && (
                 <div className="sm:col-span-5">
-                  {ok && <span className="text-sm text-success">{ok}</span>}
+                  <span className="text-sm text-success">{ok}</span>
                 </div>
               )}
             </form>
@@ -130,10 +142,13 @@ export default function QuanLyHocSinhGV() {
               {
                 key: 'act', header: '',
                 render: (r) => (
-                  <div className="flex justify-end gap-1">
+                  <div className="flex justify-end gap-1 flex-wrap">
                     <Button size="sm" variant="ghost" onClick={() => setSua(r)}>Sửa</Button>
                     <Button size="sm" variant="ghost" onClick={() => doiTrangThai(r)}>
                       {r.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setModalDatLai(r)}>
+                      <span className="text-warning">Đặt lại tiến độ</span>
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
                       <span className="text-danger">Xóa</span>
@@ -152,6 +167,33 @@ export default function QuanLyHocSinhGV() {
       {sua && (
         <SuaHocSinhModal hs={sua} showLop lopOptions={lopOptions}
           onClose={() => setSua(null)} onSaved={() => { setSua(null); tai() }} />
+      )}
+
+      {modalDatLai && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-warning">⚠️ Đặt lại tiến độ: {modalDatLai.ho_ten}</h2>
+            <p className="text-sm text-muted">
+              Sau khi xác nhận, các thông tin sau sẽ bị ẩn đi và <strong>không thể hoàn tác</strong>:
+            </p>
+            <ul className="text-sm bg-warning-soft rounded-lg px-4 py-3 flex flex-col gap-1 list-disc list-inside text-warning">
+              <li>Toàn bộ phiên học và lịch sử hội thoại</li>
+              <li>Điểm số và tiến độ theo chuyên đề</li>
+              <li>Phân tích năng lực đã lưu</li>
+            </ul>
+            <p className="text-sm text-muted">Cờ theo dõi hành vi vẫn được giữ lại.</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setModalDatLai(null)}>Hủy</Button>
+              <Button
+                onClick={datLai}
+                disabled={dangDatLai}
+                className="bg-warning text-white hover:bg-warning/90 disabled:opacity-40"
+              >
+                {dangDatLai ? 'Đang đặt lại...' : 'Xác nhận đặt lại'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

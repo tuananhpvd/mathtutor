@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession } from '../../auth'
 import Dashboard from './Dashboard'
@@ -29,9 +29,30 @@ const TIEU_DE = {
   nhat_ky: 'Nhật ký hoạt động',
 }
 
+const NAV_KEYS = NAV.map((n) => n.key)
+const DEFAULT_PAGE = 'dashboard'
+
+function pageFromHash() {
+  const h = window.location.hash.slice(1)
+  return NAV_KEYS.includes(h) ? h : DEFAULT_PAGE
+}
+
 export default function QuanTriApp({ onLogout }) {
   const { ho_ten } = getSession() || {}
-  const [page, setPage] = useState('dashboard')
+  const [page, setPage] = useState(pageFromHash)
+
+  function navigate(key) {
+    window.location.hash = key
+    setPage(key)
+  }
+
+  useEffect(() => {
+    function onHashChange() {
+      setPage(pageFromHash())
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   return (
     <RoleLayout
@@ -39,7 +60,7 @@ export default function QuanTriApp({ onLogout }) {
       ho_ten={ho_ten}
       nav={NAV}
       active={page}
-      onNavigate={setPage}
+      onNavigate={navigate}
       onLogout={() => {
         clearSession()
         onLogout()

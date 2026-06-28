@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession } from '../../auth'
 import TrangChu from './TrangChu'
@@ -14,29 +14,48 @@ const NAV = [
   { key: 'tai_khoan', label: 'Tài khoản' },
 ]
 
+const NAV_KEYS = NAV.map((n) => n.key)
+const DEFAULT_PAGE = 'trang_chu'
+
+function pageFromHash() {
+  const h = window.location.hash.slice(1)
+  return NAV_KEYS.includes(h) ? h : DEFAULT_PAGE
+}
+
 export default function HocSinhApp({ onLogout }) {
   const { ho_ten } = getSession() || {}
-  const [page, setPage] = useState('trang_chu')
+  const [page, setPage] = useState(pageFromHash)
   const [phongHoc, setPhongHoc] = useState(null) // {problemId} | {sessionId}
   const [locBai, setLocBai] = useState(null) // bộ lọc ban đầu cho ChonBai
 
   function moBaiMoi(problemId) {
     setPhongHoc({ problemId })
-    setPage('phong_hoc')
+    setPage('phong_hoc') // không cập nhật hash — phòng học là trang tạm thời
   }
   function lamTiep(sessionId) {
     setPhongHoc({ sessionId })
     setPage('phong_hoc')
   }
   function luyenDang(r) {
-    // r: {chuyen_de, dang_id, ten} từ phân tích năng lực
     setLocBai({ chuyen_de: r.chuyen_de, dang_id: r.dang_id })
+    window.location.hash = 'chon_bai'
     setPage('chon_bai')
   }
   function dieuHuong(key) {
-    setLocBai(null) // chọn menu thường → bỏ bộ lọc ép
+    setLocBai(null)
+    window.location.hash = key
     setPage(key)
   }
+
+  useEffect(() => {
+    function onHashChange() {
+      const newPage = pageFromHash()
+      setLocBai(null)
+      setPage(newPage)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   return (
     <RoleLayout
@@ -60,8 +79,8 @@ export default function HocSinhApp({ onLogout }) {
         <PhongHoc
           problemId={phongHoc.problemId}
           sessionId={phongHoc.sessionId}
-          onTrangChu={() => setPage('trang_chu')}
-          onChonBai={() => setPage('chon_bai')}
+          onTrangChu={() => dieuHuong('trang_chu')}
+          onChonBai={() => dieuHuong('chon_bai')}
         />
       )}
       {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}

@@ -115,11 +115,82 @@ def test_hs_khong_tao_duoc_cau_hoi(client, db):
     assert r.status_code == 403
 
 
-def test_xoa_bai_co_phien_bi_chan(client, db):
+def test_xoa_bai_co_phien_bi_an(client, db):
+    """Câu hỏi đã có phiên học → soft-delete (bi_an=True), không xóa cứng."""
     hs, gv, _, p = seed_all(db)
     htok = _token(client, "hs_test")
     client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(htok))
     gtok = _token(client, "gv_test")
     r = client.delete(f"/api/problems/{p.id}", headers=_h(gtok))
+    assert r.status_code == 200
+    assert r.json()["an"] is True
+    # Câu hỏi vẫn còn trong DB nhưng bi_an = True
+    from app.models.problem import Problem
+    p_db = db.get(Problem, p.id)
+    assert p_db is not None
+    assert p_db.bi_an is True
+    # HS không thấy câu hỏi đã ẩn
+    hs_r = client.get("/api/problems", headers=_h(htok))
+    ids = [x["id"] for x in hs_r.json()]
+    assert p.id not in ids
+
+
+def test_khoi_phuc_bai(client, db):
+    """Sau khi ẩn, GV khôi phục → câu hỏi hiển thị lại."""
+    hs, gv, _, p = seed_all(db)
+    htok = _token(client, "hs_test")
+    client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(htok))
+    gtok = _token(client, "gv_test")
+    client.delete(f"/api/problems/{p.id}", headers=_h(gtok))
+    r = client.patch(f"/api/problems/{p.id}/khoi-phuc", headers=_h(gtok))
+    assert r.status_code == 200
+    from app.models.problem import Problem
+    assert db.get(Problem, p.id).bi_an is False
+
+
+def test_anh_huong_xoa_vinh_vien(client, db):
+    """API /anh-huong trả số liệu chính xác trước khi xóa vĩnh viễn."""
+    hs, gv, _, p = seed_all(db)
+    htok = _token(client, "hs_test")
+    gtok = _token(client, "gv_test")
+    # Tạo phiên + gợi ý (để có turn)
+    s = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(htok)).json()
+    client.post(f"/api/sessions/{s['session_id']}/message",
+                json={"noi_dung": "GỢI Ý"}, headers=_h(htok))
+    # Ẩn câu hỏi
+    client.delete(f"/api/problems/{p.id}", headers=_h(gtok))
+    # Xem ảnh hưởng
+    r = client.get(f"/api/problems/{p.id}/anh-huong", headers=_h(gtok))
+    assert r.status_code == 200
+    ah = r.json()
+    assert ah["so_phien"] == 1
+    assert ah["so_hoc_sinh"] == 1
+    assert ah["so_luot"] >= 1
+
+
+def test_xoa_vinh_vien(client, db):
+    """Xóa vĩnh viễn câu đã ẩn → cascade xóa session/turn/flag, câu hỏi biến mất khỏi DB."""
+    from app.models.problem import Problem
+    from app.models.session import Session as SessionModel
+    hs, gv, _, p = seed_all(db)
+    htok = _token(client, "hs_test")
+    gtok = _token(client, "gv_test")
+    s = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(htok)).json()
+    sid = s["session_id"]
+    # Ẩn rồi xóa vĩnh viễn
+    client.delete(f"/api/problems/{p.id}", headers=_h(gtok))
+    r = client.delete(f"/api/problems/{p.id}/vinh-vien", headers=_h(gtok))
+    assert r.status_code == 200
+    assert r.json()["so_phien_da_xoa"] == 1
+    # Câu hỏi và phiên học đều biến mất
+    assert db.get(Problem, p.id) is None
+    assert db.get(SessionModel, sid) is None
+
+
+def test_xoa_vinh_vien_yeu_cau_bi_an_truoc(client, db):
+    """Không thể xóa vĩnh viễn câu hỏi chưa qua bước ẩn."""
+    _, gv, _, p = seed_all(db)
+    gtok = _token(client, "gv_test")
+    r = client.delete(f"/api/problems/{p.id}/vinh-vien", headers=_h(gtok))
     assert r.status_code == 400
-    assert "phiên" in r.json()["detail"]
+    assert "ẩn" in r.json()["detail"]

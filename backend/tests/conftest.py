@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 import app.models.cauhinh  # noqa: F401
 import app.models.flag  # noqa: F401
 import app.models.lop  # noqa: F401
+import app.models.phan_tich  # noqa: F401
 import app.models.problem  # noqa: F401
 import app.models.progress  # noqa: F401
 import app.models.session  # noqa: F401
