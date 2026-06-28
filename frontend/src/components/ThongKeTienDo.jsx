@@ -127,57 +127,60 @@ export default function ThongKeTienDo({ tk }) {
         </div>
       </Card>
 
-      {/* 2) THEO THỜI GIAN */}
-      <Card>
-        <CardHeader title="Theo thời gian" subtitle="Thời gian hoàn thành bài theo mức độ" />
-        <CardBody className="flex flex-col gap-4">
-          <TheSo icon="⏱️" label="Tổng thời gian làm bài"
-            value={dinhDangThoiGian(tg.tong_thoi_gian_giay)} tone="primary" />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {MUC.map(([k, ten]) => (
-              <div key={k} className="rounded-lg border border-border p-4">
-                <p className="text-sm font-semibold text-ink mb-2">{ten}</p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="inline-flex items-center gap-1 text-success">⚡ Nhanh nhất</span>
-                  <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '—'}</b>
+      {/* 2) THEO THỜI GIAN (trái) + THEO MỨC ĐỘ (phải) — 2 cột bằng chiều cao */}
+      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+        <Card className="h-full flex flex-col">
+          <CardHeader title="Theo thời gian" subtitle="Thời gian hoàn thành bài theo mức độ" />
+          <CardBody className="flex flex-col gap-4 flex-1">
+            <TheSo icon="⏱️" label="Tổng thời gian làm bài"
+              value={dinhDangThoiGian(tg.tong_thoi_gian_giay)} tone="primary" />
+            <div className="flex flex-col gap-3">
+              {MUC.map(([k, ten]) => (
+                <div key={k} className="rounded-lg border border-border p-4">
+                  <p className="text-sm font-semibold text-ink mb-2">{ten}</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="inline-flex items-center gap-1 text-success">⚡ Nhanh nhất</span>
+                    <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '—'}</b>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="inline-flex items-center gap-1 text-danger">🐢 Chậm nhất</span>
+                    <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '—'}</b>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="inline-flex items-center gap-1 text-danger">🐢 Chậm nhất</span>
-                  <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '—'}</b>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card className="h-full flex flex-col">
+          <CardHeader title="Theo mức độ" subtitle="Tiến độ từng mức độ" />
+          <CardBody className="flex-1">
+            {tk.theo_do_kho.map((r) => (
+              <HangTienDo key={r.do_kho} ten={r.ten} r={r} />
+            ))}
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* 3) THEO DẠNG BÀI — 2 cột chuyên đề */}
+      <Card>
+        <CardHeader title="Theo dạng bài" subtitle="Tiến độ từng dạng trong mỗi chuyên đề" />
+        <CardBody>
+          {tk.theo_dang.length === 0 && <p className="text-sm text-muted">Chưa có bài nào.</p>}
+          <div className="grid lg:grid-cols-2 gap-4 items-start">
+            {tk.theo_dang.map((cd) => (
+              <div key={cd.chuyen_de} className="rounded-lg border border-border overflow-hidden">
+                <div className="bg-primary-soft px-4 py-2 text-primary font-bold text-sm">
+                  {cd.chuyen_de}
+                </div>
+                <div className="px-4">
+                  {cd.dang.map((r) => (
+                    <HangTienDo key={r.ten} ten={r.ten} r={r} />
+                  ))}
                 </div>
               </div>
             ))}
           </div>
-        </CardBody>
-      </Card>
-
-      {/* 3) THEO MỨC ĐỘ */}
-      <Card>
-        <CardHeader title="Theo mức độ" subtitle="Tiến độ từng mức độ" />
-        <CardBody>
-          {tk.theo_do_kho.map((r) => (
-            <HangTienDo key={r.do_kho} ten={r.ten} r={r} />
-          ))}
-        </CardBody>
-      </Card>
-
-      {/* 4) THEO DẠNG BÀI */}
-      <Card>
-        <CardHeader title="Theo dạng bài" subtitle="Tiến độ từng dạng trong mỗi chuyên đề" />
-        <CardBody className="flex flex-col gap-5">
-          {tk.theo_dang.length === 0 && <p className="text-sm text-muted">Chưa có bài nào.</p>}
-          {tk.theo_dang.map((cd) => (
-            <div key={cd.chuyen_de} className="rounded-lg border border-border overflow-hidden">
-              <div className="bg-primary-soft px-4 py-2 text-primary font-bold text-sm">
-                {cd.chuyen_de}
-              </div>
-              <div className="px-4">
-                {cd.dang.map((r) => (
-                  <HangTienDo key={r.ten} ten={r.ten} r={r} />
-                ))}
-              </div>
-            </div>
-          ))}
         </CardBody>
       </Card>
     </div>

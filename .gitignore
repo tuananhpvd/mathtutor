@@ -15,3 +15,9 @@ dist/
 .vscode/
 .idea/
 *.swp
+
+# Dev server logs (detached supervisor)
+dev-backend.log
+dev-backend.err
+dev-frontend.log
+dev-frontend.err

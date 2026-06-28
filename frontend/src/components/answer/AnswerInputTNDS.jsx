@@ -16,6 +16,7 @@ export default function AnswerInputTNDS({
   y_hien_tai,
   trang_thai_y = {},
   cho_chon = true,
+  buoc_mo_ta = null,
   onGui,
   dang_gui,
 }) {
@@ -54,7 +55,15 @@ export default function AnswerInputTNDS({
           {cho_chon === false ? (
             // Pha suy luận: nhập biểu thức để máy chấm trước khi được chốt Đúng/Sai
             <>
-              <p className="text-sm font-medium text-ink">Trả lời câu hỏi gợi ý bên ô chat vào đây</p>
+              {buoc_mo_ta && (
+                <div className="rounded-md bg-primary-soft/60 px-3 py-2">
+                  <p className="text-xs font-semibold text-primary mb-0.5">
+                    Việc cần làm cho ý {yDangXet.ky_hieu})
+                  </p>
+                  <p className="text-sm text-ink">{renderY(buoc_mo_ta)}</p>
+                </div>
+              )}
+              <p className="text-sm font-medium text-ink">Nhập câu trả lời vào ô bên dưới</p>
               <AnswerInputTLN onGui={onGui} dang_gui={dang_gui} />
             </>
           ) : (

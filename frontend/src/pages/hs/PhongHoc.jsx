@@ -344,6 +344,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
                       y_hien_tai={trangThai.y_hien_tai}
                       trang_thai_y={trangThai.trang_thai_y}
                       cho_chon={trangThai.cho_chon_dung_sai}
+                      buoc_mo_ta={trangThai.buoc_mo_ta}
                       onGui={gui}
                       dang_gui={dangGui}
                     />

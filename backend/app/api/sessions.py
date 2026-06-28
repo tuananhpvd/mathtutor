@@ -26,11 +26,18 @@ from app.services.tutor_service import tao_phien, xu_ly_luot
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
 
-def _buoc_info(problem, buoc_so: int) -> tuple[str | None, int | None]:
-    """Trả (mo_ta bước hiện tại, tổng số bước) từ solution_steps."""
+def _buoc_info(problem, buoc_so: int, y_hien_tai: str | None = None) -> tuple[str | None, int | None]:
+    """Trả (mo_ta bước hiện tại, tổng số bước) từ solution_steps.
+
+    TNDS: mỗi ý có 1 bước riêng (pham_vi = ký hiệu ý) → lấy mô tả theo ý đang xét
+    để HS biết cần làm gì cho ý hiện tại. Các loại khác lấy theo thứ tự bước.
+    """
     steps = problem.solution_steps if problem else []
     tong = len(steps) if steps else None
-    mo_ta = next((s.mo_ta for s in steps if s.thu_tu == buoc_so), None)
+    if problem and problem.loai_cau.value == "TNDS" and y_hien_tai:
+        mo_ta = next((s.mo_ta for s in steps if s.pham_vi == y_hien_tai), None)
+    else:
+        mo_ta = next((s.mo_ta for s in steps if s.thu_tu == buoc_so), None)
     return mo_ta, tong
 
 
@@ -86,7 +93,7 @@ def tao_phien_moi(
 
     llm = get_llm_client(lay_cau_hinh(db))
     session, van_ban = tao_phien(db, current_user.id, body.problem_id, llm)
-    mo_ta, tong = _buoc_info(problem, session.buoc_hien_tai)
+    mo_ta, tong = _buoc_info(problem, session.buoc_hien_tai, session.y_hien_tai)
     return TaoPhienResponse(
         session_id=session.id,
         van_ban=van_ban,
@@ -182,8 +189,8 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
         cap_goi_y_hien_tai=session.cap_goi_y_hien_tai,
         diem=session.diem,
         thoi_gian_giay=session.thoi_gian_giay,
-        buoc_mo_ta=_buoc_info(problem, session.buoc_hien_tai)[0],
-        tong_buoc=_buoc_info(problem, session.buoc_hien_tai)[1],
+        buoc_mo_ta=_buoc_info(problem, session.buoc_hien_tai, session.y_hien_tai)[0],
+        tong_buoc=_buoc_info(problem, session.buoc_hien_tai, session.y_hien_tai)[1],
         cho_chon_dap_an=_cho_chon_dap_an(problem, session.buoc_hien_tai),
         cho_chon_dung_sai=_cho_chon_dung_sai(problem, session),
         thoi_gian_y=session.thoi_gian_y,
@@ -227,7 +234,7 @@ def gui_tin(
         yeu_cau_goi_y=body.yeu_cau_goi_y,
         llm=llm,
     )
-    mo_ta, tong = _buoc_info(problem, result["buoc_hien_tai"])
+    mo_ta, tong = _buoc_info(problem, result["buoc_hien_tai"], result.get("y_hien_tai"))
     result["buoc_mo_ta"] = mo_ta
     result["tong_buoc"] = tong
     result["cho_chon_dap_an"] = _cho_chon_dap_an(problem, result["buoc_hien_tai"])
