@@ -37,3 +37,18 @@ class SuaLopRequest(BaseModel):
 class DatCauHinhRequest(BaseModel):
     khoa: str
     gia_tri: object
+
+
+class KiemTraDangNhapRequest(BaseModel):
+    dang_nhaps: list[str] = Field(..., min_length=1)
+
+
+class TaiKhoanImportItem(BaseModel):
+    ho_ten: str = Field(..., min_length=1)
+    dang_nhap: str = Field(..., min_length=1)
+    mat_khau: str = Field(..., min_length=4)
+    vai_tro: str = Field(..., description="gv | hs")
+
+
+class ImportTaiKhoanRequest(BaseModel):
+    tai_khoans: list[TaiKhoanImportItem] = Field(..., min_length=1)

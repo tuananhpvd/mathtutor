@@ -132,4 +132,6 @@ export const api = {
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
   adminKiemTraHS: (lop_id, dang_nhaps) => post(`/admin/lop/${lop_id}/kiem-tra-hs`, { dang_nhaps }),
   adminImportHSBatch: (lop_id, hoc_sinhs) => post(`/admin/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),
+  adminKiemTraDangNhap: (dang_nhaps) => post('/admin/users/kiem-tra-dang-nhap', { dang_nhaps }),
+  adminImportTaiKhoanBatch: (tai_khoans) => post('/admin/users/import-batch', { tai_khoans }),
 }

@@ -10,6 +10,8 @@ from app.schemas.admin import (
     DatCauHinhRequest,
     DoiTrangThaiRequest,
     GanLopRequest,
+    ImportTaiKhoanRequest,
+    KiemTraDangNhapRequest,
     SuaLopRequest,
     SuaTaiKhoanRequest,
     TaoLopRequest,
@@ -25,6 +27,7 @@ from app.services.admin_service import (
     dat_cau_hinh,
     doi_trang_thai_tai_khoan,
     gan_lop_tai_khoan,
+    import_tai_khoan_batch,
     lay_cau_hinh_an_toan,
     sua_lop,
     sua_tai_khoan,
@@ -57,6 +60,23 @@ def tao_user(body: TaoTaiKhoanRequest, current_user: CurrentUser, db: Session = 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"id": u.id, "dang_nhap": u.dang_nhap, "vai_tro": u.vai_tro.value}
+
+
+@router.post("/users/kiem-tra-dang-nhap", dependencies=_ADMIN)
+def kiem_tra_dang_nhap(body: KiemTraDangNhapRequest, db: Session = Depends(get_db)):
+    """Kiểm tra tên đăng nhập nào đã tồn tại trong toàn hệ thống."""
+    trung = kiem_tra_trung_dang_nhap(db, body.dang_nhaps)
+    return {"trung": trung}
+
+
+@router.post("/users/import-batch", dependencies=_ADMIN)
+def import_users_batch(body: ImportTaiKhoanRequest, db: Session = Depends(get_db)):
+    """Tạo hàng loạt tài khoản GV/HS. Bỏ qua tên đăng nhập đã tồn tại."""
+    try:
+        result = import_tai_khoan_batch(db, [t.model_dump() for t in body.tai_khoans])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
 
 
 @router.patch("/users/{user_id}", dependencies=_ADMIN)

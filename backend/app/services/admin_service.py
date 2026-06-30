@@ -354,6 +354,26 @@ def lay_cau_hinh_an_toan(db: Session) -> dict:
     return ket_qua
 
 
+def import_tai_khoan_batch(db: Session, tai_khoans: list[dict]) -> dict:
+    """Tạo hàng loạt tài khoản GV/HS. Bỏ qua dang_nhap đã tồn tại."""
+    da_tao, bo_qua = [], []
+    for tk in tai_khoans:
+        if db.query(User).filter(User.dang_nhap == tk["dang_nhap"]).first():
+            bo_qua.append(tk["dang_nhap"])
+            continue
+        u = User(
+            vai_tro=VaiTro(tk["vai_tro"]),
+            ho_ten=tk["ho_ten"].strip(),
+            dang_nhap=tk["dang_nhap"].strip(),
+            mat_khau_hash=hash_password(tk["mat_khau"]),
+            lop_id=None,
+        )
+        db.add(u)
+        da_tao.append(tk["ho_ten"])
+    db.commit()
+    return {"da_tao": da_tao, "bo_qua": bo_qua}
+
+
 def dat_cau_hinh(db: Session, khoa: str, gia_tri) -> dict:
     if khoa not in CAU_HINH_MAC_DINH:
         raise ValueError(f"Khóa cấu hình không hợp lệ: {khoa}")

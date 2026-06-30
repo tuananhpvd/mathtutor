@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
+import ImportTaiKhoanDialog from '../../components/admin/ImportTaiKhoanDialog'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 
 const FORM_RONG = { ho_ten: '', dang_nhap: '', mat_khau: '', vai_tro: 'hs' }
@@ -12,6 +13,7 @@ export default function QuanLyTaiKhoan() {
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [sua, setSua] = useState(null)
+  const [showImport, setShowImport] = useState(false)
   // lọc
   const [q, setQ] = useState('')
   const [fVai, setFVai] = useState('')
@@ -64,7 +66,15 @@ export default function QuanLyTaiKhoan() {
   return (
     <div className="flex flex-col gap-5">
       <Card>
-        <CardHeader title="Tạo tài khoản" subtitle="Giáo viên hoặc học sinh" />
+        <CardHeader
+          title="Tạo tài khoản"
+          subtitle="Giáo viên hoặc học sinh"
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>
+              Import từ Excel
+            </Button>
+          }
+        />
         <CardBody>
           <form onSubmit={tao} className="grid sm:grid-cols-5 gap-3 items-end">
             <Input label="Họ tên" value={form.ho_ten}
@@ -145,6 +155,13 @@ export default function QuanLyTaiKhoan() {
           showRole
           onClose={() => setSua(null)}
           onSaved={() => { setSua(null); tai() }}
+        />
+      )}
+
+      {showImport && (
+        <ImportTaiKhoanDialog
+          onClose={() => setShowImport(false)}
+          onSaved={(msg) => { setShowImport(false); setOk(msg); tai() }}
         />
       )}
     </div>
