@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
+import ImportHocSinhDialog from '../../components/gv/ImportHocSinhDialog'
 
 export default function QuanLyLop() {
   const [lops, setLops] = useState([])
@@ -13,6 +14,9 @@ export default function QuanLyLop() {
   const [moRong, setMoRong] = useState({})
   const [suaLop, setSuaLop] = useState(null) // {id, ten, gv_id}
   const [suaHs, setSuaHs] = useState(null)
+  const [importHsLop, setImportHsLop] = useState(null)
+  const [importMsg, setImportMsg] = useState('')
+  const [errThemLop, setErrThemLop] = useState('')
 
   function tai() {
     api.adminLopChiTiet().then(setLops).catch((e) => setError(e.message))
@@ -20,6 +24,12 @@ export default function QuanLyLop() {
   }
   useEffect(tai, [])
 
+  // gvOptionsAdd: dùng cho form Thêm lớp — không có option "Chưa phân công"
+  const gvOptionsAdd = [
+    { value: '', label: '— Chọn GV phụ trách —' },
+    ...gvList.map((g) => ({ value: String(g.id), label: g.ho_ten })),
+  ]
+  // gvOptions: dùng cho form Sửa lớp — có option "Chưa phân công" để xóa GV
   const gvOptions = [
     { value: '', label: '— Chưa phân công —' },
     ...gvList.map((g) => ({ value: String(g.id), label: g.ho_ten })),
@@ -31,9 +41,22 @@ export default function QuanLyLop() {
 
   async function themLop() {
     if (!newTen.trim()) return
+    if (!newGv) {
+      setErrThemLop('Phải chọn GV phụ trách')
+      return
+    }
+    const trung = lops.find(
+      (l) => l.ten.trim().toLowerCase() === newTen.trim().toLowerCase() &&
+             String(l.gv_id) === newGv
+    )
+    if (trung) {
+      const gv = gvList.find((g) => String(g.id) === newGv)
+      setErrThemLop(`Đã có lớp "${trung.ten}", do GV ${gv?.ho_ten || ''} phụ trách`)
+      return
+    }
     try {
-      await api.adminCreateLop({ ten: newTen.trim(), gv_id: newGv ? Number(newGv) : null })
-      setNewTen(''); setNewGv(''); tai()
+      await api.adminCreateLop({ ten: newTen.trim(), gv_id: Number(newGv) })
+      setNewTen(''); setNewGv(''); setErrThemLop(''); tai()
     } catch (e) { setError(e.message) }
   }
   async function luuSuaLop() {
@@ -75,12 +98,17 @@ export default function QuanLyLop() {
 
       <Card>
         <CardHeader title="Thêm lớp" subtitle="Tên lớp + giáo viên phụ trách (tùy chọn)" />
-        <CardBody>
+        <CardBody className="flex flex-col gap-3">
           <div className="grid sm:grid-cols-3 gap-3 items-end">
-            <Input label="Tên lớp" value={newTen} onChange={(e) => setNewTen(e.target.value)} placeholder="vd: 12A2" />
-            <Select label="Giáo viên phụ trách" value={newGv} onChange={(e) => setNewGv(e.target.value)} options={gvOptions} />
+            <Input label="Tên lớp" value={newTen}
+              onChange={(e) => { setNewTen(e.target.value); setErrThemLop('') }}
+              placeholder="vd: 12A2" />
+            <Select label="GV phụ trách (bắt buộc)" value={newGv}
+              onChange={(e) => { setNewGv(e.target.value); setErrThemLop('') }}
+              options={gvOptionsAdd} />
             <Button onClick={themLop}>Thêm lớp</Button>
           </div>
+          {errThemLop && <p className="text-sm text-danger">{errThemLop}</p>}
         </CardBody>
       </Card>
 
@@ -109,6 +137,9 @@ export default function QuanLyLop() {
                       <span className="text-muted text-sm"> · GV: {l.gv_ten || '— chưa phân công —'} · {l.so_hoc_sinh} học sinh</span>
                     </div>
                     <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setImportHsLop(l)}>
+                        Thêm danh sách học sinh
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => setMoRong((m) => ({ ...m, [l.id]: !m[l.id] }))}>
                         {moRong[l.id] ? 'Ẩn học sinh' : 'Xem học sinh'}
                       </Button>
@@ -148,6 +179,13 @@ export default function QuanLyLop() {
         </CardBody>
       </Card>
 
+      {importMsg && (
+        <p className="text-sm text-success bg-green-50 rounded-md px-3 py-2">
+          {importMsg}{' '}
+          <button onClick={() => setImportMsg('')} className="ml-2 font-bold text-muted">✕</button>
+        </p>
+      )}
+
       {suaHs && (
         <SuaTaiKhoanModal
           user={suaHs}
@@ -155,6 +193,20 @@ export default function QuanLyLop() {
           lopOptions={lopOptions}
           onClose={() => setSuaHs(null)}
           onSaved={() => { setSuaHs(null); tai() }}
+        />
+      )}
+
+      {importHsLop && (
+        <ImportHocSinhDialog
+          lop={importHsLop}
+          onKiemTra={(dns) => api.adminKiemTraHS(importHsLop.id, dns)}
+          onImport={(hs) => api.adminImportHSBatch(importHsLop.id, hs)}
+          onClose={() => setImportHsLop(null)}
+          onSaved={(msg) => {
+            setImportHsLop(null)
+            setImportMsg(msg)
+            tai()
+          }}
         />
       )}
     </div>

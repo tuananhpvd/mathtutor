@@ -10,6 +10,10 @@ from app.schemas.gv import (
     DoiTrangThaiRequest,
     GanLopRequest,
     HoSoUpdate,
+    ImportHSBatchRequest,
+    ImportLopRequest,
+    KiemTraHSRequest,
+    KiemTraTrungRequest,
     SuaHocSinhRequest,
     SuaLopGVRequest,
     TaoHocSinhRequest,
@@ -49,6 +53,29 @@ def them_lop(body: TaoLopGVRequest, current_user: CurrentUser, db: Session = Dep
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"id": lop_.id, "ten": lop_.ten}
+
+
+@router.post("/lop/kiem-tra-trung", dependencies=_GV)
+def kiem_tra_trung(body: KiemTraTrungRequest, current_user: CurrentUser,
+                   db: Session = Depends(get_db)):
+    """Kiểm tra tên nào trong danh sách đã tồn tại trong lớp của GV này."""
+    return gv_service.kiem_tra_trung_ten_lop(db, current_user.id, body.ten_lops)
+
+
+@router.post("/lop/import-batch", dependencies=_GV)
+def import_lop_batch(body: ImportLopRequest, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Tạo nhiều lớp cùng lúc từ danh sách tên. Bỏ qua tên trùng hoặc rỗng."""
+    da_tao, bo_qua = [], []
+    for ten in body.ten_lops:
+        ten = ten.strip()
+        if not ten:
+            continue
+        try:
+            lop_ = gv_service.tao_lop_gv(db, current_user.id, ten)
+            da_tao.append(lop_.ten)
+        except ValueError:
+            bo_qua.append(ten)
+    return {"da_tao": da_tao, "bo_qua": bo_qua}
 
 
 @router.patch("/lop/{lop_id}", dependencies=_GV)
@@ -123,3 +150,24 @@ def xoa_hoc_sinh(hs_id: int, current_user: CurrentUser, db: Session = Depends(ge
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True}
+
+
+@router.post("/lop/{lop_id}/kiem-tra-hs", dependencies=_GV)
+def kiem_tra_hs(lop_id: int, body: KiemTraHSRequest, db: Session = Depends(get_db)):
+    """Kiểm tra tên đăng nhập nào đã tồn tại trong toàn hệ thống."""
+    trung = gv_service.kiem_tra_trung_dang_nhap(db, body.dang_nhaps)
+    return {"trung": trung}
+
+
+@router.post("/lop/{lop_id}/import-hs-batch", dependencies=_GV)
+def import_hs_batch(lop_id: int, body: ImportHSBatchRequest, current_user: CurrentUser,
+                    db: Session = Depends(get_db)):
+    """Tạo hàng loạt học sinh vào lớp. Bỏ qua tên đăng nhập đã tồn tại."""
+    try:
+        result = gv_service.import_hs_batch(
+            db, current_user.id, lop_id,
+            [h.model_dump() for h in body.hoc_sinhs],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result

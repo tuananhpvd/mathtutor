@@ -133,6 +133,24 @@ def lop_cua_gv(db: Session, gv_id: int) -> list[dict]:
     ]
 
 
+def kiem_tra_trung_ten_lop(db: Session, gv_id: int, ten_lops: list[str]) -> dict:
+    """Kiểm tra danh sách tên lớp: tên nào đã tồn tại trong lớp của GV này."""
+    ten_clean = [t.strip() for t in ten_lops if t.strip()]
+    lops = db.query(Lop).filter(Lop.gv_id == gv_id, Lop.ten.in_(ten_clean)).all()
+    lop_by_ten = {lop.ten: lop for lop in lops}
+    result = {}
+    for ten in ten_clean:
+        if ten in lop_by_ten:
+            lop = lop_by_ten[ten]
+            so_hs = db.query(User).filter(
+                User.lop_id == lop.id, User.vai_tro == VaiTro.hs
+            ).count()
+            result[ten] = {"ton_tai": True, "so_hoc_sinh": so_hs}
+        else:
+            result[ten] = {"ton_tai": False, "so_hoc_sinh": 0}
+    return result
+
+
 def tao_lop_gv(db: Session, gv_id: int, ten: str) -> Lop:
     if not ten or not ten.strip():
         raise ValueError("Tên lớp không được rỗng")
@@ -153,6 +171,58 @@ def sua_lop_gv(db: Session, gv_id: int, lop_id: int, ten: str) -> Lop:
     db.commit()
     db.refresh(lop)
     return lop
+
+
+def kiem_tra_trung_dang_nhap(db: Session, dang_nhaps: list[str]) -> list[str]:
+    """Trả về các dang_nhap đã tồn tại trong hệ thống."""
+    rows = db.query(User.dang_nhap).filter(User.dang_nhap.in_(dang_nhaps)).all()
+    return [r[0] for r in rows]
+
+
+def import_hs_batch(db: Session, gv_id: int, lop_id: int,
+                    hoc_sinhs: list[dict]) -> dict:
+    """Tạo hàng loạt HS vào lớp. Bỏ qua dang_nhap đã tồn tại."""
+    if not _so_huu_lop(db, gv_id, lop_id):
+        raise ValueError("Không có quyền với lớp này")
+    da_tao, bo_qua = [], []
+    for hs in hoc_sinhs:
+        if db.query(User).filter(User.dang_nhap == hs["dang_nhap"]).first():
+            bo_qua.append(hs["dang_nhap"])
+            continue
+        u = User(
+            vai_tro=VaiTro.hs,
+            ho_ten=hs["ho_ten"].strip(),
+            dang_nhap=hs["dang_nhap"].strip(),
+            mat_khau_hash=hash_password(hs["mat_khau"]),
+            lop_id=lop_id,
+        )
+        db.add(u)
+        da_tao.append(hs["ho_ten"])
+    db.commit()
+    return {"da_tao": da_tao, "bo_qua": bo_qua}
+
+
+def import_hs_batch_admin(db: Session, lop_id: int, hoc_sinhs: list[dict]) -> dict:
+    """Admin: tạo hàng loạt HS vào lớp, không kiểm tra quyền sở hữu GV."""
+    lop = db.get(Lop, lop_id)
+    if not lop:
+        raise ValueError("Lớp không tồn tại")
+    da_tao, bo_qua = [], []
+    for hs in hoc_sinhs:
+        if db.query(User).filter(User.dang_nhap == hs["dang_nhap"]).first():
+            bo_qua.append(hs["dang_nhap"])
+            continue
+        u = User(
+            vai_tro=VaiTro.hs,
+            ho_ten=hs["ho_ten"].strip(),
+            dang_nhap=hs["dang_nhap"].strip(),
+            mat_khau_hash=hash_password(hs["mat_khau"]),
+            lop_id=lop_id,
+        )
+        db.add(u)
+        da_tao.append(hs["ho_ten"])
+    db.commit()
+    return {"da_tao": da_tao, "bo_qua": bo_qua}
 
 
 def xoa_lop_gv(db: Session, gv_id: int, lop_id: int) -> None:

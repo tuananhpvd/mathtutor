@@ -74,6 +74,10 @@ export const api = {
   gvCapNhatHoSo: (body) => request('/gv/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
   gvLop: () => request('/gv/lop'),
   gvTaoLop: (body) => post('/gv/lop', body),
+  gvKiemTraTrung: (ten_lops) => post('/gv/lop/kiem-tra-trung', { ten_lops }),
+  gvKiemTraHS: (lop_id, dang_nhaps) => post(`/gv/lop/${lop_id}/kiem-tra-hs`, { dang_nhaps }),
+  gvImportHSBatch: (lop_id, hoc_sinhs) => post(`/gv/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),
+  gvImportLopBatch: (ten_lops) => post('/gv/lop/import-batch', { ten_lops }),
   gvSuaLop: (id, body) => request(`/gv/lop/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   gvXoaLop: (id) => request(`/gv/lop/${id}`, { method: 'DELETE' }),
   gvHocSinh: () => request('/gv/hoc-sinh'),
@@ -126,4 +130,6 @@ export const api = {
   adminSetConfig: (khoa, gia_tri) =>
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
+  adminKiemTraHS: (lop_id, dang_nhaps) => post(`/admin/lop/${lop_id}/kiem-tra-hs`, { dang_nhaps }),
+  adminImportHSBatch: (lop_id, hoc_sinhs) => post(`/admin/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),
 }

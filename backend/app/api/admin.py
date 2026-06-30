@@ -15,6 +15,7 @@ from app.schemas.admin import (
     TaoLopRequest,
     TaoTaiKhoanRequest,
 )
+from app.schemas.gv import ImportHSBatchRequest, KiemTraHSRequest
 from app.services.admin_service import (
     danh_sach_giao_vien,
     danh_sach_hoc_sinh,
@@ -33,6 +34,7 @@ from app.services.admin_service import (
     xoa_lop,
     xoa_tai_khoan,
 )
+from app.services.gv_service import import_hs_batch_admin, kiem_tra_trung_dang_nhap
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 _ADMIN = [require_role(VaiTro.admin)]
@@ -159,6 +161,24 @@ def set_config(body: DatCauHinhRequest, current_user: CurrentUser, db: Session =
         return dat_cau_hinh(db, body.khoa, body.gia_tri)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/lop/{lop_id}/kiem-tra-hs", dependencies=_ADMIN)
+def admin_kiem_tra_hs(lop_id: int, body: KiemTraHSRequest, db: Session = Depends(get_db)):
+    """Kiểm tra tên đăng nhập nào đã tồn tại trong toàn hệ thống."""
+    trung = kiem_tra_trung_dang_nhap(db, body.dang_nhaps)
+    return {"trung": trung}
+
+
+@router.post("/lop/{lop_id}/import-hs-batch", dependencies=_ADMIN)
+def admin_import_hs_batch(lop_id: int, body: ImportHSBatchRequest,
+                          db: Session = Depends(get_db)):
+    """Admin: tạo hàng loạt học sinh vào lớp."""
+    try:
+        result = import_hs_batch_admin(db, lop_id, [h.model_dump() for h in body.hoc_sinhs])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
 
 
 @router.post("/phan-tich/quet", dependencies=_ADMIN)
