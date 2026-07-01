@@ -50,6 +50,17 @@ def _problem_full(p: Problem) -> dict:
     }
 
 
+def _meta_cho_gv(p: Problem) -> dict:
+    """Meta trong danh sách GV: chỉ phương án/ý để hiển thị, không lộ đáp án đúng."""
+    meta = p.meta or {}
+    if p.loai_cau.value == "TN4PA":
+        return {"phuong_an": meta.get("phuong_an") or {}}
+    if p.loai_cau.value == "TNDS":
+        return {"y": [{"ky_hieu": y.get("ky_hieu", ""), "noi_dung_y": y.get("noi_dung_y", "")}
+                      for y in meta.get("y") or []]}
+    return {}
+
+
 def _strip_answers(p: Problem) -> dict:
     """Trả dữ liệu bài cho HS — lọc bỏ mọi trường đáp án."""
     meta_safe: dict = {}
@@ -94,6 +105,8 @@ def danh_sach_bai(current_user: CurrentUser, db: Session = Depends(get_db)):
         {"id": p.id, "chuyen_de": p.chuyen_de, "dang_id": p.dang_id,
          "dang_ten": p.dang.ten if p.dang else None,
          "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
+         "de_bai": p.de_bai,
+         "meta": _meta_cho_gv(p),
          "trang_thai_duyet": p.trang_thai_duyet.value,
          "nguon": p.nguon.value, "bi_an": p.bi_an,
          "tao_luc": p.tao_luc.isoformat() if p.tao_luc else None}
