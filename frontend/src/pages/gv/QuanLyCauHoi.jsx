@@ -2,8 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Input, Select, Table } from '../../components/ui'
 import Formula from '../../components/Formula'
+import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
+
+function kiemTraDapAnTLN(v) {
+  const val = String(v ?? '').trim()
+  if (!val) return 'Đáp án cuối không được để trống'
+  if (val.length > 4) return 'Đáp án cuối tối đa 4 ký tự (gồm dấu - và dấu ,)'
+  if (!/^-?\d+([.,]\d+)?$/.test(val)) return 'Đáp án cuối phải là số nguyên hoặc số thập phân (ví dụ: 3, -2, 1,5)'
+  return null
+}
 const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
 const NHAN_NGUON = { gv_nhap: 'GV', ai_sinh: 'AI' }
 
@@ -468,11 +477,16 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
               )}
 
               {bai.loai_cau === 'TLN' && (
-                <Input
-                  label="Đáp án cuối (để máy đối chiếu)"
-                  value={bai.meta?.dap_an_cuoi ?? ''}
-                  onChange={(e) => setMeta({ dap_an_cuoi: e.target.value })}
-                />
+                <div>
+                  <Input
+                    label="Đáp án cuối (để máy đối chiếu)"
+                    value={bai.meta?.dap_an_cuoi ?? ''}
+                    onChange={(e) => setMeta({ dap_an_cuoi: e.target.value })}
+                  />
+                  <p className="text-[11px] text-muted mt-1">
+                    Số nguyên hoặc thập phân, tối đa 4 ký tự (ví dụ: <code>3</code>, <code>-2</code>, <code>1,5</code>)
+                  </p>
+                </div>
               )}
 
               {/* Các bước lời giải */}
@@ -606,8 +620,12 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
   const dangOptions = dungDangOptions(danhMuc)
 
   async function luu() {
-    setDangLuu(true)
     setError('')
+    if (bai.loai_cau === 'TLN') {
+      const err = kiemTraDapAnTLN(bai.meta?.dap_an_cuoi)
+      if (err) { setError(err); return }
+    }
+    setDangLuu(true)
     try {
       const opt = dangOptions.find((o) => o.value === String(bai.dang_id || ''))
       await api.updateProblem(id, {
@@ -654,6 +672,10 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
     setError('')
     if (!bai.de_bai.trim()) { setError('Vui lòng nhập đề bài.'); return }
     if (!bai.dang_id) { setError('Vui lòng chọn Chuyên đề › Dạng.'); return }
+    if (bai.loai_cau === 'TLN') {
+      const err = kiemTraDapAnTLN(bai.meta?.dap_an_cuoi)
+      if (err) { setError(err); return }
+    }
     setDangLuu(true)
     try {
       const opt = dangOptions.find((o) => o.value === String(bai.dang_id || ''))
@@ -703,6 +725,8 @@ export default function QuanLyCauHoi() {
   const [fPhamVi, setFPhamVi] = useState('')
   const [sua, setSua] = useState(null)
   const [taoMoi, setTaoMoi] = useState(false)
+  const [importMo, setImportMo] = useState(false)
+  const [importOk, setImportOk] = useState('')
   const [modalXoaVV, setModalXoaVV] = useState(null)   // { r, anhHuong }
   const [dangTaiAH, setDangTaiAH] = useState(false)
   const [dangXoaVV, setDangXoaVV] = useState(false)
@@ -746,7 +770,11 @@ export default function QuanLyCauHoi() {
     catch (e) { setError(e.message) }
   }
   async function chiaSe(r) {
-    if (!window.confirm(`Chia sẻ câu hỏi #${r.id} lên kho chung?\nSau khi chia sẻ, mọi giáo viên đều thấy và học sinh tự chọn được.`)) return
+    const dangChung = r.pham_vi === 'chung'
+    const msg = dangChung
+      ? `Thu hồi câu hỏi #${r.id} về riêng tư?\nHọc sinh sẽ không tự chọn được nữa (bài đang làm dở không bị ảnh hưởng).`
+      : `Chia sẻ câu hỏi #${r.id} lên kho chung?\nMọi giáo viên đều thấy và học sinh tự chọn được.`
+    if (!window.confirm(msg)) return
     try { await api.chiaSeProblem(r.id); await tai() }
     catch (e) { setError(e.message) }
   }
@@ -773,6 +801,12 @@ export default function QuanLyCauHoi() {
 
   return (
     <div className="flex flex-col gap-4">
+      {importOk && (
+        <p className="text-success text-sm bg-success-soft rounded-md px-3 py-2">
+          ✓ {importOk}
+          <button onClick={() => setImportOk('')} className="ml-2 font-bold">✕</button>
+        </p>
+      )}
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
           {error}
@@ -806,7 +840,10 @@ export default function QuanLyCauHoi() {
             ))}
           </div>
         </div>
-        <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setImportMo(true)}>Import từ Excel</Button>
+          <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
+        </div>
       </div>
 
       <Card>
@@ -872,8 +909,14 @@ export default function QuanLyCauHoi() {
                       {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
                         <Button size="sm" variant="ghost" onClick={() => duyet(r)}>Duyệt</Button>
                       )}
-                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && r.pham_vi === 'rieng_tu' && (
-                        <Button size="sm" variant="success" onClick={() => chiaSe(r)}>Chia sẻ</Button>
+                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (
+                        <Button
+                          size="sm"
+                          variant={r.pham_vi === 'chung' ? 'secondary' : 'success'}
+                          onClick={() => chiaSe(r)}
+                        >
+                          {r.pham_vi === 'chung' ? 'Thu hồi' : 'Chia sẻ'}
+                        </Button>
                       )}
                       {r.la_cua_toi && (
                         r.bi_an ? (
@@ -917,6 +960,13 @@ export default function QuanLyCauHoi() {
           danhMuc={danhMuc}
           onDong={() => setTaoMoi(false)}
           onLuuXong={() => { setTaoMoi(false); tai() }}
+        />
+      )}
+
+      {importMo && (
+        <ImportCauHoiDialog
+          onClose={() => setImportMo(false)}
+          onSaved={(msg) => { setImportMo(false); setImportOk(msg); tai() }}
         />
       )}
 

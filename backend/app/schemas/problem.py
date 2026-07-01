@@ -22,6 +22,20 @@ class ProblemCreate(BaseModel):
     solution_steps: list[SolutionStepIn] = Field(default_factory=list)
 
 
+class ImportCauHoiItem(BaseModel):
+    """Mỗi item trong batch import — validation do service xử lý để lỗi từng dòng không hủy cả mẻ."""
+    loai_cau: str
+    chuyen_de: str = ""
+    dang_ten: str | None = None
+    do_kho: str = "tb"
+    de_bai: str = ""
+    meta: dict = Field(default_factory=dict)
+
+
+class ImportBatchRequest(BaseModel):
+    items: list[ImportCauHoiItem] = Field(..., min_length=1)
+
+
 class ProblemUpdate(BaseModel):
     """Cập nhật câu hỏi (GV/Admin). Mọi trường tùy chọn; chỉ áp dụng trường được gửi.
 

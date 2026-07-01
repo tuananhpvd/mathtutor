@@ -1,5 +1,8 @@
 """Service: GV/Admin sửa & xóa câu hỏi (Problem) + các bước lời giải."""
 
+import re
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.danh_muc import Dang
@@ -22,6 +25,19 @@ LOAI_DAP_AN_THEO_LOAI = {
     "TNDS": "dung_sai_4y",
     "TLN": "gia_tri",
 }
+
+_RE_SO_TLN = re.compile(r"^-?\d+([.,]\d+)?$")
+
+
+def _kiem_tra_dap_an_tln(meta: dict) -> None:
+    """Đáp án TLN phải là số nguyên/thập phân ≤ 4 ký tự (gồm -, ,)."""
+    v = str(meta.get("dap_an_cuoi") or "").strip()
+    if not v:
+        raise ValueError("Đáp án cuối không được để trống")
+    if len(v) > 4:
+        raise ValueError("Đáp án cuối tối đa 4 ký tự (gồm dấu - và dấu ,)")
+    if not _RE_SO_TLN.match(v):
+        raise ValueError("Đáp án cuối phải là số nguyên hoặc số thập phân (ví dụ: 3, -2, 1,5)")
 
 
 def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem:
@@ -55,6 +71,10 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
     except ValueError:
         raise ValueError("che_do_so_khop không hợp lệ")
 
+    meta = du_lieu.get("meta") or {}
+    if loai == LoaiCau.TLN:
+        _kiem_tra_dap_an_tln(meta)
+
     p = Problem(
         chuyen_de=chuyen_de,
         dang_id=dang_id,
@@ -68,7 +88,7 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
         pham_vi=PhamVi.rieng_tu,
         nguon=Nguon.gv_nhap,
         nguoi_tao_id=nguoi_tao_id,
-        meta=du_lieu.get("meta") or {},
+        meta=meta,
     )
     db.add(p)
     db.flush()
@@ -84,6 +104,65 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
     db.commit()
     db.refresh(p)
     return p
+
+
+def import_batch(db: Session, items: list, nguoi_tao_id: int | None) -> dict:
+    """Import hàng loạt câu hỏi từ file mẫu. Trạng thái: cho_duyet + rieng_tu."""
+    da_tao: list[int] = []
+    loi: list[dict] = []
+
+    for i, item in enumerate(items):
+        try:
+            loai = LoaiCau(item.loai_cau)
+            do_kho = DoKho(item.do_kho)
+            de_bai = (item.de_bai or "").strip()
+            if not de_bai:
+                raise ValueError("Đề bài không được rỗng")
+            chuyen_de = (item.chuyen_de or "").strip()
+            if not chuyen_de:
+                raise ValueError("Chuyên đề không được rỗng")
+
+            meta = item.meta or {}
+            if loai == LoaiCau.TLN:
+                _kiem_tra_dap_an_tln(meta)
+
+            dang_id: int | None = None
+            if item.dang_ten:
+                dang = db.query(Dang).filter(
+                    func.lower(Dang.ten) == item.dang_ten.strip().lower()
+                ).first()
+                if dang is not None:
+                    dang_id = dang.id
+                    if dang.chuyen_de is not None:
+                        chuyen_de = dang.chuyen_de.ten
+
+            sp = db.begin_nested()
+            try:
+                p = Problem(
+                    chuyen_de=chuyen_de,
+                    dang_id=dang_id,
+                    loai_cau=loai,
+                    do_kho=do_kho,
+                    de_bai=de_bai,
+                    loai_dap_an_nhap=LOAI_DAP_AN_THEO_LOAI[loai.value],
+                    trang_thai_duyet=TrangThaiDuyet.cho_duyet,
+                    pham_vi=PhamVi.rieng_tu,
+                    nguon=Nguon.gv_nhap,
+                    nguoi_tao_id=nguoi_tao_id,
+                    meta=meta,
+                )
+                db.add(p)
+                db.flush()
+                sp.commit()
+                da_tao.append(p.id)
+            except Exception as e:
+                sp.rollback()
+                raise e
+        except Exception as e:
+            loi.append({"dong": i + 1, "ly_do": str(e)})
+
+    db.commit()
+    return {"da_tao": len(da_tao), "ids": da_tao, "loi": loi}
 
 
 def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
@@ -119,6 +198,8 @@ def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
         except ValueError:
             raise ValueError("do_kho phải là de | tb | kho")
     if "meta" in du_lieu and du_lieu["meta"] is not None:
+        if p.loai_cau == LoaiCau.TLN:
+            _kiem_tra_dap_an_tln(du_lieu["meta"])
         p.meta = du_lieu["meta"]
     if "trang_thai_duyet" in du_lieu and du_lieu["trang_thai_duyet"]:
         try:

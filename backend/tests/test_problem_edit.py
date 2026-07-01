@@ -189,6 +189,67 @@ def test_xoa_vinh_vien(client, db):
     assert db.get(SessionModel, sid) is None
 
 
+def test_chia_se_toggle(client, db):
+    """Endpoint /chia-se toggle rieng_tu ↔ chung."""
+    _, gv, _, p = seed_all(db)
+    tok = _token(client, "gv_test")
+    # Ban đầu seed là chung → toggle về rieng_tu
+    r = client.post(f"/api/problems/{p.id}/chia-se", headers=_h(tok))
+    assert r.status_code == 200
+    assert r.json()["pham_vi"] == "rieng_tu"
+    # Toggle lại về chung
+    r2 = client.post(f"/api/problems/{p.id}/chia-se", headers=_h(tok))
+    assert r2.status_code == 200
+    assert r2.json()["pham_vi"] == "chung"
+
+
+def test_tao_tln_dap_an_cuoi_sai(client, db):
+    """Tạo TLN với đáp án cuối không hợp lệ → 400."""
+    _, gv, _, _ = seed_all(db)
+    tok = _token(client, "gv_test")
+    # Quá 4 ký tự
+    r = client.post("/api/problems", json={
+        "loai_cau": "TLN", "do_kho": "tb", "de_bai": "Tìm x.",
+        "chuyen_de": "Khảo sát hàm số", "meta": {"dap_an_cuoi": "12345"},
+    }, headers=_h(tok))
+    assert r.status_code == 400
+    assert "4 ký tự" in r.json()["detail"]
+
+    # Không phải số
+    r2 = client.post("/api/problems", json={
+        "loai_cau": "TLN", "do_kho": "tb", "de_bai": "Tìm x.",
+        "chuyen_de": "Khảo sát hàm số", "meta": {"dap_an_cuoi": "abc"},
+    }, headers=_h(tok))
+    assert r2.status_code == 400
+
+
+def test_tao_tln_dap_an_cuoi_hop_le(client, db):
+    """Tạo TLN với đáp án hợp lệ: số nguyên, thập phân dấu phẩy, số âm."""
+    _, gv, _, _ = seed_all(db)
+    tok = _token(client, "gv_test")
+    for da in ["3", "-2", "1,5", "-1,5", "0"]:
+        r = client.post("/api/problems", json={
+            "loai_cau": "TLN", "do_kho": "de", "de_bai": f"Tìm x ({da}).",
+            "chuyen_de": "Khảo sát hàm số", "meta": {"dap_an_cuoi": da},
+        }, headers=_h(tok))
+        assert r.status_code == 200, f"Đáp án '{da}' phải hợp lệ, nhưng nhận {r.status_code}: {r.text}"
+
+
+def test_import_tln_dap_an_cuoi_sai_bi_bao_loi(client, db):
+    """Import TLN với đáp án cuối sai → dòng đó vào lỗi, không tạo."""
+    _, gv, _, _ = seed_all(db)
+    tok = _token(client, "gv_test")
+    items = [
+        {"loai_cau": "TLN", "chuyen_de": "Test", "de_bai": "x", "meta": {"dap_an_cuoi": "12345"}},
+        {"loai_cau": "TLN", "chuyen_de": "Test", "de_bai": "y", "meta": {"dap_an_cuoi": "3"}},
+    ]
+    r = client.post("/api/problems/import-batch", json={"items": items}, headers=_h(tok))
+    res = r.json()
+    assert res["da_tao"] == 1
+    assert len(res["loi"]) == 1
+    assert "4 ký tự" in res["loi"][0]["ly_do"]
+
+
 def test_xoa_vinh_vien_yeu_cau_bi_an_truoc(client, db):
     """Không thể xóa vĩnh viễn câu hỏi chưa qua bước ẩn."""
     _, gv, _, p = seed_all(db)

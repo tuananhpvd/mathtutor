@@ -7,9 +7,10 @@ from app.auth.deps import CurrentUser, require_role
 from app.db.session import get_db
 from app.models.problem import PhamVi, Problem, TrangThaiDuyet
 from app.models.user import VaiTro
-from app.schemas.problem import ProblemCreate, ProblemUpdate
+from app.schemas.problem import ImportBatchRequest, ProblemCreate, ProblemUpdate
 from app.services.problem_service import (
     anh_huong_xoa_vinh_vien,
+    import_batch,
     khoi_phuc_problem,
     sua_problem,
     tao_problem,
@@ -145,6 +146,13 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
     return _problem_full(p)
 
 
+@router.post("/import-batch", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def import_batch_bai(body: ImportBatchRequest, current_user: CurrentUser,
+                     db: Session = Depends(get_db)):
+    """Import hàng loạt câu hỏi từ file mẫu. Trạng thái: cho_duyet + rieng_tu."""
+    return import_batch(db, body.items, current_user.id)
+
+
 @router.post("", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
 def tao_bai(body: ProblemCreate, current_user: CurrentUser, db: Session = Depends(get_db)):
     du_lieu = body.model_dump()
@@ -206,15 +214,15 @@ def khoi_phuc_bai(problem_id: int, current_user: CurrentUser, db: Session = Depe
 
 @router.post("/{problem_id}/chia-se", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
 def chia_se_bai(problem_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
-    """Chia sẻ câu hỏi riêng tư lên kho chung (không cần admin duyệt)."""
+    """Toggle phạm vi câu hỏi: rieng_tu ↔ chung. Chỉ áp dụng cho câu đã duyệt."""
     p = db.get(Problem, problem_id)
     if p is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
     if current_user.vai_tro != VaiTro.admin and p.nguoi_tao_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Chỉ người tạo mới được chia sẻ câu hỏi này")
+        raise HTTPException(status_code=403, detail="Chỉ người tạo mới được thay đổi phạm vi câu hỏi này")
     if p.trang_thai_duyet != TrangThaiDuyet.da_duyet:
-        raise HTTPException(status_code=400, detail="Câu hỏi phải được duyệt trước khi chia sẻ")
-    p.pham_vi = PhamVi.chung
+        raise HTTPException(status_code=400, detail="Câu hỏi phải được duyệt trước khi thay đổi phạm vi")
+    p.pham_vi = PhamVi.rieng_tu if p.pham_vi == PhamVi.chung else PhamVi.chung
     db.commit()
     return {"ok": True, "pham_vi": p.pham_vi.value}
 
