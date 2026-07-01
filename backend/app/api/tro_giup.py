@@ -35,3 +35,12 @@ def tra_loi(yc_id: int, body: TraLoiRequest, current_user: CurrentUser,
         return tro_giup_service.tra_loi(db, current_user.id, yc_id, body.noi_dung)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{yc_id}", dependencies=_GV)
+def xoa_yeu_cau(yc_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        tro_giup_service.xoa_yeu_cau(db, current_user.id, yc_id)
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

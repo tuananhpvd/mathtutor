@@ -179,6 +179,7 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
               <div key={tb.id}
                 className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3 flex flex-col gap-2">
                 <div className="text-sm text-ink leading-relaxed">
+                  <span className="font-medium">Trả lời: </span>
                   {renderNoiDung(tb.noi_dung)}
                 </div>
                 <div className="flex items-center justify-between gap-2 flex-wrap">

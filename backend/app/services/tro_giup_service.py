@@ -37,6 +37,25 @@ def _mo_ta_bai(db: Session, problem_id: int) -> str:
     return ten
 
 
+def _noi_dung_cau_hoi(db: Session, problem_id: int) -> dict:
+    """Trả de_bai + loai_cau + nội dung hiển thị (phương án / ý) — không lộ đáp án đúng."""
+    p = db.get(Problem, problem_id)
+    if p is None:
+        return {}
+    meta = p.meta or {}
+    loai = p.loai_cau.value if p.loai_cau else None
+    if loai == "TN4PA":
+        meta_hien_thi = {"phuong_an": meta.get("phuong_an") or {}}
+    elif loai == "TNDS":
+        meta_hien_thi = {
+            "y": [{"ky_hieu": y.get("ky_hieu", ""), "noi_dung_y": y.get("noi_dung_y", "")}
+                  for y in meta.get("y") or []]
+        }
+    else:
+        meta_hien_thi = {}
+    return {"de_bai": p.de_bai, "loai_cau": loai, "meta_hien_thi": meta_hien_thi}
+
+
 def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None = None) -> dict:
     session = db.get(SessionModel, session_id)
     if session is None or session.hoc_sinh_id != hs_id:
@@ -90,6 +109,7 @@ def _dict(db: Session, yc: YeuCauTroGiup, hs_ten: dict | None = None) -> dict:
         "session_id": yc.session_id,
         "problem_id": yc.problem_id,
         "bai": _mo_ta_bai(db, yc.problem_id),
+        **_noi_dung_cau_hoi(db, yc.problem_id),
         "buoc": yc.buoc,
         "y": yc.y,
         "noi_dung": yc.noi_dung,
@@ -146,3 +166,13 @@ def tra_loi(db: Session, gv_id: int, yc_id: int, noi_dung: str) -> dict:
         lien_ket_id=yc.session_id,
     )
     return {"id": yc.id, "trang_thai": yc.trang_thai.value}
+
+
+def xoa_yeu_cau(db: Session, gv_id: int, yc_id: int) -> None:
+    yc = db.get(YeuCauTroGiup, yc_id)
+    if yc is None:
+        raise ValueError("Yêu cầu không tồn tại")
+    if _gv_cua_hs(db, yc.hoc_sinh_id) != gv_id:
+        raise ValueError("Không có quyền với yêu cầu này")
+    db.delete(yc)
+    db.commit()

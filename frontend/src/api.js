@@ -154,6 +154,7 @@ export const api = {
   gvTroGiup: (chiChoXuLy = false) =>
     request(`/tro-giup/gv${chiChoXuLy ? '?chi_cho_xu_ly=true' : ''}`),
   gvTraLoiTroGiup: (id, noi_dung) => post(`/tro-giup/${id}/tra-loi`, { noi_dung }),
+  gvXoaTroGiup: (id) => request(`/tro-giup/${id}`, { method: 'DELETE' }),
 
   // Giao bài/nhiệm vụ (A3)
   gvTaoNhiemVu: (body) => post('/nhiem-vu', body),

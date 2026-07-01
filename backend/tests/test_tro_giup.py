@@ -101,6 +101,45 @@ def test_gv_khac_lop_khong_tra_loi_duoc(db, client):
     assert r.status_code == 400
 
 
+def test_xoa_yeu_cau(db, client):
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+    yc_id = client.post("/api/tro-giup", headers=h_hs, json={"session_id": sid}).json()["id"]
+
+    h_gv = _h(client, "gv1")
+    # GV thấy 1 yêu cầu
+    assert len(client.get("/api/tro-giup/gv", headers=h_gv).json()) == 1
+    # Xóa → 204/200
+    r = client.delete(f"/api/tro-giup/{yc_id}", headers=h_gv)
+    assert r.status_code == 200, r.text
+    assert r.json()["ok"] is True
+    # Không còn trong danh sách
+    assert client.get("/api/tro-giup/gv", headers=h_gv).json() == []
+
+
+def test_gv_khac_lop_khong_xoa_duoc(db, client):
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+    yc_id = client.post("/api/tro-giup", headers=h_hs, json={"session_id": sid}).json()["id"]
+
+    h_gv2 = _h(client, "gv2")
+    r = client.delete(f"/api/tro-giup/{yc_id}", headers=h_gv2)
+    assert r.status_code == 400
+
+
+def test_response_co_de_bai(db, client):
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+    client.post("/api/tro-giup", headers=h_hs, json={"session_id": sid})
+
+    h_gv = _h(client, "gv1")
+    ds = client.get("/api/tro-giup/gv", headers=h_gv).json()
+    assert ds[0]["de_bai"] == "Tìm x."
+
+
 def test_hs_khong_nho_duoc_phien_nguoi_khac(db, client):
     _seed(db)
     # tạo HS khác chưa có lớp
