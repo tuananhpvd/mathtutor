@@ -61,6 +61,36 @@ def _tu_dong_gan_co_khong_hieu(db: Session, session: SessionModel) -> None:
         ghi_chu=f"Học sinh đã 'không hiểu'/xin gợi ý {session.so_lan_khong_hieu} lần "
                 f"(ngưỡng {nguong}) — nên hỗ trợ thêm.",
     ))
+    _bao_hs_gap_kho(db, session)
+
+
+def _bao_hs_gap_kho(db: Session, session: SessionModel) -> None:
+    """Báo HS (trung tính, minh bạch) rằng đang gặp khó ở phần nào — kèm gợi ý
+    'Nhờ thầy/cô'. Tạo trong cùng transaction (không commit lẻ)."""
+    from app.models.thong_bao import LoaiThongBao, ThongBao
+
+    p = db.get(Problem, session.problem_id)
+    phan = p.chuyen_de if p else "bài tập"
+    if p and p.dang:
+        phan += f" › {p.dang.ten}"
+    vi_tri = ""
+    if session.y_hien_tai:
+        vi_tri = f" (ý {session.y_hien_tai})"
+    elif session.buoc_hien_tai:
+        vi_tri = f" (bước {session.buoc_hien_tai})"
+    noi_dung = (
+        f"Hệ thống nhận thấy em đang gặp khó ở «{phan}»{vi_tri}. "
+        f"Thầy/cô đã được báo để hỗ trợ em. Em có thể bấm '🙋 Nhờ thầy/cô' "
+        f"ngay trong bài nếu cần giúp đỡ nhé."
+    )
+    db.add(ThongBao(
+        nguoi_nhan_id=session.hoc_sinh_id,
+        loai=LoaiThongBao.co,
+        tieu_de="Em đang cần hỗ trợ?",
+        noi_dung=noi_dung,
+        lien_ket_loai="session",
+        lien_ket_id=session.id,
+    ))
 
 
 def _nguong_co_chot_chan(db: Session) -> int:
@@ -354,6 +384,8 @@ def xu_ly_luot(
 
     if trang_thai_moi.da_xong:
         cap_nhat_tien_do(db, session.hoc_sinh_id, problem.chuyen_de)
+        from app.services.chuoi_ngay_service import kiem_tra_va_cap_nhat_cot_moc
+        kiem_tra_va_cap_nhat_cot_moc(db, session.hoc_sinh_id)
 
     db.commit()
 

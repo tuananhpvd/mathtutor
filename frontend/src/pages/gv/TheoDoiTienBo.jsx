@@ -4,6 +4,8 @@ import { Badge, Button, Card, CardBody, CardHeader, Select, Table } from '../../
 import { dinhDangThoiGian } from '../../utils/format'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
+import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
+import MucTieuPanel from '../../components/MucTieuPanel'
 
 function PhanTrang({ trang, tong, onLui, onToi }) {
   if (tong <= 1) return null
@@ -29,6 +31,8 @@ export default function TheoDoiTienBo() {
   const [tongHop, setTongHop] = useState(null)
   const [trangHs, setTrangHs] = useState(1)
   const [trangNk, setTrangNk] = useState(1)
+  const [nhanXetHs, setNhanXetHs] = useState(null) // {id, ho_ten} đang gửi nhận xét
+  const [thongBaoOk, setThongBaoOk] = useState('')
   const MOI_TRANG = 5
 
   useEffect(() => {
@@ -225,19 +229,53 @@ export default function TheoDoiTienBo() {
         </CardBody>
       </Card>
 
+      {thongBaoOk && (
+        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5">
+          ✓ {thongBaoOk}
+        </div>
+      )}
+
       {hsChon && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-lg font-bold text-ink">Tiến độ chi tiết: {hsChon.ho_ten}</h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-lg font-bold text-ink">Tiến độ chi tiết: {hsChon.ho_ten}</h3>
+            <Button size="sm"
+              onClick={() => setNhanXetHs({ id: hsChon.hoc_sinh_id, ho_ten: hsChon.ho_ten })}>
+              💬 Gửi nhận xét
+            </Button>
+          </div>
           {dangTaiTk ? (
             <p className="text-sm text-muted">Đang tải thống kê...</p>
           ) : (
             <>
               <PhanTichNangLuc pt={ptChon} vaiTro="gv"
                 onCapNhat={capNhatAi} dangCapNhat={dangCapNhatAi} />
+              <MucTieuPanel
+                key={chon}
+                tieuDe="🎯 Mục tiêu của học sinh"
+                phuDe="Đặt mục tiêu cho em hoặc dùng gợi ý theo điểm yếu"
+                taiDs={() => api.gvMucTieu(chon)}
+                taiDeXuat={() => api.gvMucTieuDeXuat(chon)}
+                taoMt={(body) => api.gvTaoMucTieu(chon, body)}
+                xoaMt={api.xoaMucTieu}
+              />
               <ThongKeTienDo tk={tkChon} />
             </>
           )}
         </div>
+      )}
+
+      {nhanXetHs && (
+        <GuiNhanXetModal
+          hsId={nhanXetHs.id}
+          hoTen={nhanXetHs.ho_ten}
+          onClose={() => setNhanXetHs(null)}
+          onSent={(msg) => {
+            setNhanXetHs(null)
+            setThongBaoOk(msg)
+            setTimeout(() => setThongBaoOk(''), 4000)
+          }}
+        />
       )}
     </div>
   )

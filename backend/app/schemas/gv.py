@@ -55,3 +55,7 @@ class HocSinhImportItem(BaseModel):
 
 class ImportHSBatchRequest(BaseModel):
     hoc_sinhs: list[HocSinhImportItem] = Field(..., min_length=1)
+
+
+class GuiNhanXetRequest(BaseModel):
+    noi_dung: str = Field(..., min_length=1)

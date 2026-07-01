@@ -9,6 +9,7 @@ from app.models.user import VaiTro
 from app.schemas.gv import (
     DoiTrangThaiRequest,
     GanLopRequest,
+    GuiNhanXetRequest,
     HoSoUpdate,
     ImportHSBatchRequest,
     ImportLopRequest,
@@ -171,3 +172,22 @@ def import_hs_batch(lop_id: int, body: ImportHSBatchRequest, current_user: Curre
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return result
+
+
+@router.get("/hoc-sinh/{hs_id}/nhan-xet-nhap", dependencies=_GV)
+def nhan_xet_nhap(hs_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Bản nháp nhận xét gợi ý (AI/luật) để GV duyệt/sửa trước khi gửi."""
+    try:
+        return {"noi_dung": gv_service.nhap_nhan_xet(db, current_user.id, hs_id)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/hoc-sinh/{hs_id}/nhan-xet", dependencies=_GV)
+def gui_nhan_xet(hs_id: int, body: GuiNhanXetRequest, current_user: CurrentUser,
+                 db: Session = Depends(get_db)):
+    """GV gửi nhận xét cho HS (hiện trên Trang chủ HS + thông báo)."""
+    try:
+        return gv_service.gui_nhan_xet(db, current_user.id, hs_id, body.noi_dung)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

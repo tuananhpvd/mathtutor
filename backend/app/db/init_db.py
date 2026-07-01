@@ -2,17 +2,22 @@ import json
 from pathlib import Path
 
 # Đăng ký tất cả model với metadata
+import app.models.cot_moc  # noqa: F401
 import app.models.cauhinh  # noqa: F401
 import app.models.danh_muc  # noqa: F401
 import app.models.flag  # noqa: F401
 import app.models.lop  # noqa: F401
+import app.models.muc_tieu  # noqa: F401
+import app.models.nhiem_vu  # noqa: F401
 import app.models.phan_tich  # noqa: F401
 import app.models.problem  # noqa: F401
 import app.models.progress  # noqa: F401
 import app.models.session  # noqa: F401
 import app.models.solution_step  # noqa: F401
+import app.models.thong_bao  # noqa: F401
 import app.models.turn  # noqa: F401
 import app.models.user  # noqa: F401
+import app.models.yeu_cau_tro_giup  # noqa: F401
 from app.auth.security import hash_password
 from app.db.base import Base, SessionLocal, engine
 from app.models.danh_muc import ChuyenDe, Dang

@@ -64,6 +64,8 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
   const [tk, setTk] = useState(null)
   const [loading, setLoading] = useState(true)
   const [trang, setTrang] = useState(1)
+  const [nhanXet, setNhanXet] = useState([])
+  const [chuoi, setChuoi] = useState(null) // {chuoi_ngay, tong_bai_hoan_thanh, cot_moc_da_dat}
 
   useEffect(() => {
     Promise.all([api.getDangDo(), api.getThongKeMe()])
@@ -73,6 +75,10 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
+    api.thongBao()
+      .then((rows) => setNhanXet((rows || []).filter((t) => t.loai === 'nhan_xet').slice(0, 3)))
+      .catch(() => {})
+    api.hsChuoiNgay().then(setChuoi).catch(() => {})
   }, [])
 
   const tongTrang = Math.max(1, Math.ceil(baiDo.length / MOI_TRANG))
@@ -93,6 +99,56 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
           Gia sư sẽ dẫn dắt bằng câu hỏi gợi mở — em tự tìm ra lời giải nhé.
         </p>
       </div>
+
+      {/* Chuỗi ngày học + cột mốc mới */}
+      {chuoi && (chuoi.chuoi_ngay > 0 || chuoi.cot_moc_da_dat?.length > 0) && (
+        <div className="flex flex-wrap gap-3 items-start">
+          {chuoi.chuoi_ngay > 0 && (
+            <div className="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning-soft px-4 py-2.5 shrink-0">
+              <span className="text-xl">🔥</span>
+              <div>
+                <p className="text-sm font-bold text-warning leading-tight">{chuoi.chuoi_ngay} ngày liên tiếp</p>
+                <p className="text-[11px] text-muted">Chuỗi ngày học của em</p>
+              </div>
+            </div>
+          )}
+          {(() => {
+            const bay_ngay_truoc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            const moi = (chuoi.cot_moc_da_dat || []).filter(
+              (m) => m.dat_luc && new Date(m.dat_luc) >= bay_ngay_truoc
+            ).slice(0, 2)
+            return moi.map((m) => (
+              <div key={m.loai}
+                className="flex items-center gap-2 rounded-xl border border-success/40 bg-success-soft px-4 py-2.5">
+                <div>
+                  <p className="text-sm font-bold text-success leading-tight">{m.tieu_de}</p>
+                  <p className="text-[11px] text-muted">{m.mo_ta}</p>
+                </div>
+              </div>
+            ))
+          })()}
+        </div>
+      )}
+
+      {/* Nhận xét mới nhất của thầy/cô */}
+      {nhanXet.length > 0 && (
+        <Card>
+          <CardHeader title="💬 Nhận xét của thầy/cô"
+            subtitle="Lời nhắn từ giáo viên đồng hành cùng em" />
+          <CardBody className="flex flex-col gap-3">
+            {nhanXet.map((tb) => (
+              <div key={tb.id}
+                className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
+                <p className="text-sm text-ink whitespace-pre-wrap break-words">{tb.noi_dung}</p>
+                <p className="text-xs text-muted mt-1.5">
+                  {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
+                  {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleDateString('vi-VN')}` : ''}
+                </p>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
 
       {/* Tổng quan tiến độ */}
       <Card>

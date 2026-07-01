@@ -17,6 +17,9 @@ export default function QuanLyCo() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [fTT, setFTT] = useState('')
+  const [xuLy, setXuLy] = useState(null) // cờ đang xử lý (mở modal lời nhắn)
+  const [loiNhan, setLoiNhan] = useState('')
+  const [dangGui, setDangGui] = useState(false)
 
   function taiFlags() {
     return api.listFlags(fTT || undefined).then(setRows).catch(() => {})
@@ -34,10 +37,30 @@ export default function QuanLyCo() {
     }
   }, [fTT])
 
-  async function capNhat(id, trang_thai) {
-    await api.updateFlag(id, trang_thai)
+  async function capNhat(id, trang_thai, loi_nhan = '') {
+    await api.updateFlag(id, trang_thai, loi_nhan)
     await taiFlags()
   }
+
+  function moXuLy(flag) {
+    setXuLy(flag)
+    setLoiNhan('')
+  }
+
+  async function xacNhanXuLy() {
+    if (!xuLy) return
+    setDangGui(true)
+    try {
+      await capNhat(xuLy.id, 'da_xu_ly', loiNhan.trim())
+      setXuLy(null)
+      setLoiNhan('')
+    } finally {
+      setDangGui(false)
+    }
+  }
+
+  // Cờ liên quan đến HS (gửi lời nhắn được); cờ nội dung (chốt chặn) chỉ xử lý.
+  const coTheNhanHs = (loai) => loai !== 'chot_chan_nhieu'
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,7 +85,13 @@ export default function QuanLyCo() {
             <Table
               columns={[
                 { key: 'id', header: '#', className: 'w-12' },
-                { key: 'session_id', header: 'Phiên', render: (r) => `#${r.session_id ?? '-'}` },
+                { key: 'hoc_sinh_ten', header: 'Học sinh', render: (r) => r.hoc_sinh_ten || '—' },
+                {
+                  key: 'bai', header: 'Bài',
+                  render: (r) => r.chuyen_de
+                    ? `${r.chuyen_de}${r.dang_ten ? ` › ${r.dang_ten}` : ''}`
+                    : `Phiên #${r.session_id ?? '-'}`,
+                },
                 {
                   key: 'loai_co',
                   header: 'Loại cờ',
@@ -82,9 +111,15 @@ export default function QuanLyCo() {
                   render: (r) =>
                     r.trang_thai === 'cho_xu_ly' ? (
                       <div className="flex gap-2">
-                        <Button size="sm" variant="success" onClick={() => capNhat(r.id, 'da_xu_ly')}>
-                          Đã xử lý
-                        </Button>
+                        {coTheNhanHs(r.loai_co) ? (
+                          <Button size="sm" variant="success" onClick={() => moXuLy(r)}>
+                            Xử lý & nhắn HS
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="success" onClick={() => capNhat(r.id, 'da_xu_ly')}>
+                            Đã xử lý
+                          </Button>
+                        )}
                         <Button size="sm" variant="secondary" onClick={() => capNhat(r.id, 'bo_qua')}>
                           Bỏ qua
                         </Button>
@@ -99,6 +134,40 @@ export default function QuanLyCo() {
           )}
         </CardBody>
       </Card>
+
+      {xuLy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+            <div className="px-5 pt-5 pb-3 border-b border-border">
+              <h2 className="font-bold text-lg text-ink">Xử lý cờ & nhắn học sinh</h2>
+              <p className="text-sm text-muted mt-0.5">
+                {xuLy.hoc_sinh_ten ? `${xuLy.hoc_sinh_ten} · ` : ''}
+                {xuLy.chuyen_de || `Phiên #${xuLy.session_id}`}
+              </p>
+            </div>
+            <div className="px-5 py-4">
+              <label className="text-sm font-medium text-ink">Lời nhắn cho học sinh (tùy chọn)</label>
+              <textarea
+                value={loiNhan}
+                onChange={(e) => setLoiNhan(e.target.value)}
+                rows={4}
+                placeholder="VD: Em xem lại ví dụ mẫu phần này rồi thử lại nhé. Cần thì nhờ thầy/cô."
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm text-ink
+                  focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y"
+              />
+              <p className="text-xs text-muted mt-1">
+                Để trống nếu chỉ muốn đánh dấu đã xử lý mà không nhắn HS.
+              </p>
+            </div>
+            <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+              <Button variant="secondary" onClick={() => setXuLy(null)} disabled={dangGui}>Hủy</Button>
+              <Button onClick={xacNhanXuLy} disabled={dangGui}>
+                {dangGui ? 'Đang lưu...' : (loiNhan.trim() ? 'Xử lý & gửi lời nhắn' : 'Đánh dấu đã xử lý')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

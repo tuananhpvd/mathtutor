@@ -11,10 +11,14 @@ from app.api.dat_lai import gv_router as dat_lai_gv_router
 from app.api.gv import router as gv_api_router
 from app.api.hs import router as hs_api_router
 from app.api.monitor import router as monitor_router
+from app.api.muc_tieu import router as muc_tieu_router
+from app.api.nhiem_vu import router as nhiem_vu_router
 from app.api.problems import router as problems_router
 from app.api.progress import router as progress_router
 from app.api.questions_ai import router as questions_ai_router
 from app.api.sessions import router as sessions_router
+from app.api.thong_bao import router as thong_bao_router
+from app.api.tro_giup import router as tro_giup_router
 
 
 @asynccontextmanager
@@ -54,6 +58,10 @@ app.include_router(danh_muc_router)
 app.include_router(gv_api_router)
 app.include_router(hs_api_router)
 app.include_router(dat_lai_gv_router)
+app.include_router(thong_bao_router)
+app.include_router(tro_giup_router)
+app.include_router(nhiem_vu_router)
+app.include_router(muc_tieu_router)
 
 
 @app.get("/api/health")

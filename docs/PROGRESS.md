@@ -4,10 +4,10 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-06-30, phiên bản **v18**)
+## 1. Trạng thái tổng quan (cập nhật 2026-06-30, phiên bản **v19**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **177/177 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **213/213 test backend xanh** (`pytest`).
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
@@ -95,8 +95,19 @@ Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `
 > cột `problems.tao_luc`, `sessions.thoi_gian_hoat_dong_giay`, `phan_tich_hs.nguon`). Đổi model lớn
 > → cân nhắc xoá `backend/dev.db` rồi chạy lại để seed schema mới.
 
-## 6. Việc tiếp theo gợi ý
+## 6. Đồng hành GV↔HS (A1–B1, C1) — triển khai tháng 2026-06
 
-- [ ] Tiếp tục hoàn thiện trải nghiệm theo yêu cầu phát sinh của user.
+| Phase | Mô tả | Trạng thái |
+|---|---|---|
+| A1 | Thông báo (chuông) + GV nhận xét HS (AI gợi ý nhận xét sẵn) | ✅ Done |
+| A2 | HS nhờ thầy/cô trong bài, GV trả lời inline | ✅ Done |
+| A3 | GV giao nhiệm vụ/bài tập theo lớp/từng HS/theo điểm yếu | ✅ Done |
+| A4 | Khép vòng cờ: GV xử lý cờ kèm nhắn HS (trung tính/minh bạch) | ✅ Done |
+| B1 | Mục tiêu học tập: HS tự đặt / GV đặt / hệ thống gợi ý theo điểm yếu | ✅ Done |
+| C1 | Chuỗi ngày học (streak) + 8 cột mốc nhẹ (bài/chuỗi ngày) | ✅ Done |
+
+## 7. Việc tiếp theo gợi ý
+
+- [ ] Đưa lên GitHub (commit + push + tag v19) khi muốn.
 - [ ] (Khi chạy thật/dự thi) thực hiện checklist mục 2.
 - [ ] Rà DoD toàn sản phẩm theo `docs/PLAN.md`.

@@ -316,3 +316,45 @@ def xoa_hs_gv(db: Session, gv_id: int, hs_id: int) -> None:
     db.query(Progress).filter(Progress.hoc_sinh_id == hs_id).delete()
     db.delete(db.get(User, hs_id))
     db.commit()
+
+
+# ---------- Nhận xét gửi học sinh (đồng hành GV→HS) ----------
+
+
+def nhap_nhan_xet(db: Session, gv_id: int, hs_id: int) -> str:
+    """Trả về một bản nháp nhận xét cho HS, dựa trên phân tích năng lực sẵn có
+    (không gọi LLM mới — tái dùng bản đã cache/luật để tiết kiệm quota)."""
+    if not _so_huu_hs(db, gv_id, hs_id):
+        raise ValueError("Không có quyền với học sinh này")
+    from app.services.phan_tich_service import lay_phan_tich
+
+    ho_so = lay_phan_tich(db, hs_id)
+    ai = ho_so.get("ai") or {}
+    draft = (ai.get("cho_hoc_sinh") or "").strip()
+    if not draft:
+        draft = " ".join(ho_so.get("de_xuat_hs") or []).strip()
+    if not draft:
+        draft = "Em đang cố gắng tốt. Hãy tiếp tục luyện tập đều đặn nhé!"
+    return draft
+
+
+def gui_nhan_xet(db: Session, gv_id: int, hs_id: int, noi_dung: str) -> dict:
+    """GV gửi nhận xét cho HS → tạo thông báo cho HS."""
+    if not _so_huu_hs(db, gv_id, hs_id):
+        raise ValueError("Không có quyền với học sinh này")
+    noi_dung = (noi_dung or "").strip()
+    if not noi_dung:
+        raise ValueError("Nội dung nhận xét không được để trống")
+
+    from app.models.thong_bao import LoaiThongBao
+    from app.services import thong_bao_service
+
+    tb = thong_bao_service.tao(
+        db,
+        nguoi_nhan_id=hs_id,
+        noi_dung=noi_dung,
+        loai=LoaiThongBao.nhan_xet,
+        nguoi_gui_id=gv_id,
+        tieu_de="Nhận xét của thầy/cô",
+    )
+    return {"id": tb.id, "tao_luc": tb.tao_luc.isoformat() if tb.tao_luc else None}

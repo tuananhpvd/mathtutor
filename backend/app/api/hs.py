@@ -7,7 +7,7 @@ from app.auth.deps import CurrentUser, require_role
 from app.db.session import get_db
 from app.models.user import VaiTro
 from app.schemas.hs import HoSoUpdate
-from app.services import hs_service
+from app.services import chuoi_ngay_service, hs_service
 
 router = APIRouter(prefix="/api/hs", tags=["hs"])
 _HS = [require_role(VaiTro.hs)]
@@ -22,3 +22,8 @@ def ho_so(current_user: CurrentUser, db: Session = Depends(get_db)):
 def cap_nhat_ho_so(body: HoSoUpdate, current_user: CurrentUser, db: Session = Depends(get_db)):
     hs = hs_service.cap_nhat_ho_so(db, current_user, body.ho_ten, body.mat_khau)
     return hs_service.ho_so(db, hs)
+
+
+@router.get("/chuoi-ngay", dependencies=_HS)
+def chuoi_ngay(current_user: CurrentUser, db: Session = Depends(get_db)):
+    return chuoi_ngay_service.ho_so_chuoi_va_moc(db, current_user.id)

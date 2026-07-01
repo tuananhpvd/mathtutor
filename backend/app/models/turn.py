@@ -10,6 +10,7 @@ from app.db.base import Base
 class VaiTroTurn(str, enum.Enum):
     hoc_sinh = "hoc_sinh"
     gia_su = "gia_su"
+    giao_vien = "giao_vien"  # GV trả lời trực tiếp trong bài (A2)
 
 
 class Turn(Base):

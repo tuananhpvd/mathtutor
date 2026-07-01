@@ -64,8 +64,12 @@ export const api = {
   xoaVinhVienProblem: (id) => request(`/problems/${id}/vinh-vien`, { method: 'DELETE' }),
   listFlags: (trang_thai) =>
     request('/monitor/flags' + (trang_thai ? `?trang_thai=${trang_thai}` : '')),
-  updateFlag: (id, trang_thai) =>
-    request(`/monitor/flags/${id}?trang_thai=${trang_thai}`, { method: 'PATCH' }),
+  updateFlag: (id, trang_thai, loi_nhan = '') =>
+    request(
+      `/monitor/flags/${id}?trang_thai=${trang_thai}` +
+        (loi_nhan ? `&loi_nhan=${encodeURIComponent(loi_nhan)}` : ''),
+      { method: 'PATCH' }
+    ),
   listSessionsHoanThanh: () => request('/monitor/sessions-hoan-thanh'),
 
   // Giáo viên — hồ sơ + quản lý lớp & học sinh của mình
@@ -134,4 +138,38 @@ export const api = {
   adminImportHSBatch: (lop_id, hoc_sinhs) => post(`/admin/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),
   adminKiemTraDangNhap: (dang_nhaps) => post('/admin/users/kiem-tra-dang-nhap', { dang_nhaps }),
   adminImportTaiKhoanBatch: (tai_khoans) => post('/admin/users/import-batch', { tai_khoans }),
+
+  // Thông báo (đồng hành GV↔HS)
+  thongBao: () => request('/thong-bao'),
+  thongBaoChuaDoc: () => request('/thong-bao/chua-doc'),
+  thongBaoDaDoc: (id) => post(`/thong-bao/${id}/da-doc`),
+  thongBaoDocHet: () => post('/thong-bao/doc-het'),
+  // GV gửi nhận xét cho HS
+  gvNhanXetNhap: (hs_id) => request(`/gv/hoc-sinh/${hs_id}/nhan-xet-nhap`),
+  gvGuiNhanXet: (hs_id, noi_dung) => post(`/gv/hoc-sinh/${hs_id}/nhan-xet`, { noi_dung }),
+
+  // Nhờ thầy/cô (A2)
+  hsNhoThayCo: (session_id, noi_dung) => post('/tro-giup', { session_id, noi_dung }),
+  gvTroGiup: (chiChoXuLy = false) =>
+    request(`/tro-giup/gv${chiChoXuLy ? '?chi_cho_xu_ly=true' : ''}`),
+  gvTraLoiTroGiup: (id, noi_dung) => post(`/tro-giup/${id}/tra-loi`, { noi_dung }),
+
+  // Giao bài/nhiệm vụ (A3)
+  gvTaoNhiemVu: (body) => post('/nhiem-vu', body),
+  gvNhiemVu: () => request('/nhiem-vu/gv'),
+  gvDeXuatNhiemVu: (hoc_sinh_id) => request(`/nhiem-vu/de-xuat?hoc_sinh_id=${hoc_sinh_id}`),
+  gvXoaNhiemVu: (id) => request(`/nhiem-vu/${id}`, { method: 'DELETE' }),
+  hsNhiemVu: () => request('/nhiem-vu/hs'),
+
+  // Chuỗi ngày học + cột mốc (C1)
+  hsChuoiNgay: () => request('/hs/chuoi-ngay'),
+
+  // Mục tiêu học tập (B1)
+  hsMucTieu: () => request('/muc-tieu/hs'),
+  hsMucTieuDeXuat: () => request('/muc-tieu/hs/de-xuat'),
+  hsTaoMucTieu: (body) => post('/muc-tieu/hs', body),
+  gvMucTieu: (hoc_sinh_id) => request(`/muc-tieu/gv/${hoc_sinh_id}`),
+  gvMucTieuDeXuat: (hoc_sinh_id) => request(`/muc-tieu/gv/${hoc_sinh_id}/de-xuat`),
+  gvTaoMucTieu: (hoc_sinh_id, body) => post(`/muc-tieu/gv/${hoc_sinh_id}`, body),
+  xoaMucTieu: (id) => request(`/muc-tieu/${id}`, { method: 'DELETE' }),
 }

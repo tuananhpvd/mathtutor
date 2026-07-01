@@ -25,8 +25,33 @@ def danh_sach_co(
         except ValueError:
             raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ")
     flags = q.order_by(Flag.tao_luc.desc()).limit(100).all()
-    return [
-        {
+
+    # Bổ sung tên HS + bài để GV biết gắn cờ cho ai / phần nào (A4).
+    from app.models.problem import Problem
+    from app.models.session import Session as SessionModel
+    from app.models.user import User
+
+    s_ids = {f.session_id for f in flags if f.session_id}
+    sessions = (
+        {s.id: s for s in db.query(SessionModel).filter(SessionModel.id.in_(s_ids)).all()}
+        if s_ids else {}
+    )
+    hs_ids = {s.hoc_sinh_id for s in sessions.values()}
+    p_ids = {s.problem_id for s in sessions.values()}
+    hs_ten = (
+        {u.id: u.ho_ten for u in db.query(User).filter(User.id.in_(hs_ids)).all()}
+        if hs_ids else {}
+    )
+    problems = (
+        {p.id: p for p in db.query(Problem).filter(Problem.id.in_(p_ids)).all()}
+        if p_ids else {}
+    )
+
+    out = []
+    for f in flags:
+        s = sessions.get(f.session_id)
+        p = problems.get(s.problem_id) if s else None
+        out.append({
             "id": f.id,
             "session_id": f.session_id,
             "turn_id": f.turn_id,
@@ -34,9 +59,11 @@ def danh_sach_co(
             "trang_thai": f.trang_thai.value,
             "ghi_chu": f.ghi_chu,
             "tao_luc": f.tao_luc.isoformat(),
-        }
-        for f in flags
-    ]
+            "hoc_sinh_ten": hs_ten.get(s.hoc_sinh_id) if s else None,
+            "chuyen_de": p.chuyen_de if p else None,
+            "dang_ten": (p.dang.ten if p and p.dang else None),
+        })
+    return out
 
 
 @router.post("/flags", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -50,7 +77,7 @@ def gan_co_thu_cong(
         session_id=session_id,
         loai_co=LoaiCo.thu_cong,
         ghi_chu=ghi_chu,
-        xu_ly_boi=current_user.email if current_user else None,
+        xu_ly_boi=current_user.dang_nhap if current_user else None,
     )
     db.add(flag)
     db.commit()
@@ -62,6 +89,8 @@ def gan_co_thu_cong(
 def cap_nhat_co(
     flag_id: int,
     trang_thai: str,
+    current_user: CurrentUser,
+    loi_nhan: str = "",
     db: Session = Depends(get_db),
 ):
     flag = db.get(Flag, flag_id)
@@ -71,7 +100,24 @@ def cap_nhat_co(
         flag.trang_thai = TrangThaiCo(trang_thai)
     except ValueError:
         raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ")
+    flag.xu_ly_boi = current_user.dang_nhap
     db.commit()
+
+    # Khép vòng: GV để lại lời nhắn → báo cho HS (A4).
+    loi_nhan = (loi_nhan or "").strip()
+    if loi_nhan and flag.session_id:
+        from app.models.session import Session as SessionModel
+        from app.models.thong_bao import LoaiThongBao
+        from app.services import thong_bao_service
+
+        s = db.get(SessionModel, flag.session_id)
+        if s is not None:
+            thong_bao_service.tao(
+                db, nguoi_nhan_id=s.hoc_sinh_id, noi_dung=loi_nhan,
+                loai=LoaiThongBao.co, nguoi_gui_id=current_user.id,
+                tieu_de="Lời nhắn từ thầy/cô",
+                lien_ket_loai="session", lien_ket_id=s.id,
+            )
     return {"id": flag.id, "trang_thai": flag.trang_thai.value}
 
 

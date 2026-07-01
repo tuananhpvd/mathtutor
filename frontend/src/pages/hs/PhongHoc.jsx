@@ -114,6 +114,27 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
   })
   const [dangGui, setDangGui] = useState(false)
   const chatRef = useRef(null)
+  // Nhờ thầy/cô (A2)
+  const [nhoMo, setNhoMo] = useState(false)
+  const [nhoText, setNhoText] = useState('')
+  const [nhoDangGui, setNhoDangGui] = useState(false)
+  const [nhoOk, setNhoOk] = useState('')
+
+  async function guiNhoThayCo() {
+    if (!sid) return
+    setNhoDangGui(true)
+    try {
+      await api.hsNhoThayCo(sid, nhoText.trim() || null)
+      setNhoMo(false)
+      setNhoText('')
+      setNhoOk('Đã gửi yêu cầu tới thầy/cô. Em sẽ nhận được trả lời sớm nhé!')
+      setTimeout(() => setNhoOk(''), 5000)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setNhoDangGui(false)
+    }
+  }
 
   // Khởi tạo: làm tiếp (sessionId) hoặc bắt đầu mới (problemId).
   useEffect(() => {
@@ -287,7 +308,12 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
               ))}
               {dangGui && <TypingBubble />}
             </div>
-            <div className="border-t border-border pt-2 flex justify-center gap-2">
+            {nhoOk && (
+              <div className="rounded-lg bg-success-soft text-success text-sm px-3 py-2 text-center">
+                ✓ {nhoOk}
+              </div>
+            )}
+            <div className="border-t border-border pt-2 flex flex-wrap justify-center gap-2">
               <Button
                 variant="warning"
                 disabled={dangGui || daXong}
@@ -295,12 +321,46 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
               >
                 💡 GỢI Ý CHO EM
               </Button>
+              <Button variant="secondary" disabled={!sid} onClick={() => setNhoMo(true)}>
+                🙋 NHỜ THẦY/CÔ
+              </Button>
               <Button variant="primary" onClick={onChonBai}>
                 ↩ QUAY LẠI LÀM SAU
               </Button>
             </div>
           </CardBody>
         </Card>
+
+        {nhoMo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
+              <div className="px-5 pt-5 pb-3 border-b border-border">
+                <h2 className="font-bold text-lg text-ink">Nhờ thầy/cô giúp đỡ</h2>
+                <p className="text-sm text-muted mt-0.5">
+                  Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong bài.
+                </p>
+              </div>
+              <div className="px-5 py-4">
+                <textarea
+                  value={nhoText}
+                  onChange={(e) => setNhoText(e.target.value)}
+                  rows={4}
+                  placeholder="Em có thể mô tả chỗ chưa hiểu (không bắt buộc)..."
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-ink
+                    focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y"
+                />
+              </div>
+              <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+                <Button variant="secondary" onClick={() => setNhoMo(false)} disabled={nhoDangGui}>
+                  Hủy
+                </Button>
+                <Button onClick={guiNhoThayCo} disabled={nhoDangGui}>
+                  {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Vùng trả lời / banner hoàn thành */}
         <Card className="lg:col-span-2">

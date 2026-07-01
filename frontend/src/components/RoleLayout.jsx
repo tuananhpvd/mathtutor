@@ -7,6 +7,8 @@
  *        active, onNavigate(key), onLogout, title, children.
  */
 
+import ChuongThongBao from './ChuongThongBao'
+
 const ACCENT = {
   hs: { ten: 'Học sinh', mau: 'text-hs', vach: 'border-hs' },
   gv: { ten: 'Giáo viên', mau: 'text-gv', vach: 'border-gv' },
@@ -30,7 +32,8 @@ function Brand({ vai_tro }) {
 
 function UserMenu({ ho_ten, onLogout }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
+      <ChuongThongBao />
       <span className="text-sm text-muted hidden sm:inline">{ho_ten}</span>
       <button
         onClick={onLogout}
