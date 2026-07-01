@@ -8,6 +8,7 @@ export default function QuanLyGiaoVien() {
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
   const [chonLop, setChonLop] = useState({}) // {gv_id: lop_id} cho dropdown phân công
+  const [hienLop, setHienLop] = useState({}) // {gv_id: boolean}
 
   function tai() {
     api.adminGiaoVien().then(setGvs).catch((e) => setError(e.message))
@@ -77,16 +78,25 @@ export default function QuanLyGiaoVien() {
                   </div>
                 </div>
 
-                <div className="text-sm">
+                <div className="flex items-center gap-2 text-sm flex-wrap">
                   <span className="text-muted">Lớp phụ trách: </span>
                   {g.lops.length === 0 ? (
                     <span className="text-muted">chưa có</span>
                   ) : (
                     <span className="text-ink font-medium">{g.lops.map((l) => l.ten).join(', ')}</span>
                   )}
+                  {g.lops.length > 0 && (
+                    <button
+                      onClick={() => setHienLop((h) => ({ ...h, [g.id]: !h[g.id] }))}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors"
+                    >
+                      {hienLop[g.id] ? 'Ẩn' : 'Hiện'}
+                      <span style={{ display: 'inline-block', transform: hienLop[g.id] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▾</span>
+                    </button>
+                  )}
                 </div>
 
-                {g.lops.map((l) => (
+                {hienLop[g.id] && g.lops.map((l) => (
                   <div key={l.id} className="rounded-md bg-surface-2 px-3 py-2">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-ink text-sm">{l.ten}

@@ -6,6 +6,22 @@ import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 
 const FORM_RONG = { ho_ten: '', dang_nhap: '', mat_khau: '', vai_tro: 'hs' }
 const NHAN_VAI = { admin: 'Quản trị', gv: 'Giáo viên', hs: 'Học sinh' }
+const MOI_TRANG_TK = 10
+
+function PhanTrangTK({ trang, tongTrang, total, onChange }) {
+  if (tongTrang <= 1) return null
+  return (
+    <div className="flex items-center justify-between gap-2 pt-3 border-t border-border mt-1">
+      <span className="text-xs text-muted">{total} tài khoản · Trang {trang}/{tongTrang}</span>
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="secondary" disabled={trang === 1} onClick={() => onChange(1)}>«</Button>
+        <Button size="sm" variant="secondary" disabled={trang === 1} onClick={() => onChange(trang - 1)}>‹</Button>
+        <Button size="sm" variant="secondary" disabled={trang === tongTrang} onClick={() => onChange(trang + 1)}>›</Button>
+        <Button size="sm" variant="secondary" disabled={trang === tongTrang} onClick={() => onChange(tongTrang)}>»</Button>
+      </div>
+    </div>
+  )
+}
 
 export default function QuanLyTaiKhoan() {
   const confirm = useConfirm()
@@ -19,6 +35,7 @@ export default function QuanLyTaiKhoan() {
   const [q, setQ] = useState('')
   const [fVai, setFVai] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
+  const [trang, setTrang] = useState(1)
 
   function tai() {
     api.adminUsers().then(setRows).catch(() => {})
@@ -63,6 +80,8 @@ export default function QuanLyTaiKhoan() {
       return true
     })
   }, [rows, q, fVai, fTrangThai])
+  const tongTrangTK = Math.max(1, Math.ceil(loc.length / MOI_TRANG_TK))
+  const locTrang = loc.slice((trang - 1) * MOI_TRANG_TK, trang * MOI_TRANG_TK)
 
   return (
     <div className="flex flex-col gap-5">
@@ -105,11 +124,11 @@ export default function QuanLyTaiKhoan() {
         <CardBody className="flex flex-col gap-3">
           <div className="grid sm:grid-cols-3 gap-3">
             <Input label="Tìm kiếm" placeholder="Tên hoặc đăng nhập..."
-              value={q} onChange={(e) => setQ(e.target.value)} />
-            <Select label="Vai trò" value={fVai} onChange={(e) => setFVai(e.target.value)}
+              value={q} onChange={(e) => { setQ(e.target.value); setTrang(1) }} />
+            <Select label="Vai trò" value={fVai} onChange={(e) => { setFVai(e.target.value); setTrang(1) }}
               options={[{ value: '', label: 'Tất cả' }, { value: 'gv', label: 'Giáo viên' },
                 { value: 'hs', label: 'Học sinh' }, { value: 'admin', label: 'Quản trị' }]} />
-            <Select label="Trạng thái" value={fTrangThai} onChange={(e) => setFTrangThai(e.target.value)}
+            <Select label="Trạng thái" value={fTrangThai} onChange={(e) => { setFTrangThai(e.target.value); setTrang(1) }}
               options={[{ value: '', label: 'Tất cả' }, { value: 'hoat_dong', label: 'Hoạt động' },
                 { value: 'khoa', label: 'Đã khóa' }]} />
           </div>
@@ -141,10 +160,11 @@ export default function QuanLyTaiKhoan() {
                   ),
               },
             ]}
-            rows={loc}
+            rows={locTrang}
             rowKey={(r) => r.id}
             empty="Không có tài khoản phù hợp."
           />
+          <PhanTrangTK trang={trang} tongTrang={tongTrangTK} total={loc.length} onChange={setTrang} />
         </CardBody>
       </Card>
 

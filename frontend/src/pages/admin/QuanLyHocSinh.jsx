@@ -3,6 +3,23 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table, useConfirm } from '../../components/ui'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 
+const MOI_TRANG_HS = 10
+
+function PhanTrangHS({ trang, tongTrang, total, onChange }) {
+  if (tongTrang <= 1) return null
+  return (
+    <div className="flex items-center justify-between gap-2 pt-3 border-t border-border mt-1">
+      <span className="text-xs text-muted">{total} học sinh · Trang {trang}/{tongTrang}</span>
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="secondary" disabled={trang === 1} onClick={() => onChange(1)}>«</Button>
+        <Button size="sm" variant="secondary" disabled={trang === 1} onClick={() => onChange(trang - 1)}>‹</Button>
+        <Button size="sm" variant="secondary" disabled={trang === tongTrang} onClick={() => onChange(trang + 1)}>›</Button>
+        <Button size="sm" variant="secondary" disabled={trang === tongTrang} onClick={() => onChange(tongTrang)}>»</Button>
+      </div>
+    </div>
+  )
+}
+
 export default function QuanLyHocSinh() {
   const confirm = useConfirm()
   const [rows, setRows] = useState([])
@@ -12,6 +29,7 @@ export default function QuanLyHocSinh() {
   const [fLop, setFLop] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
   const [sua, setSua] = useState(null)
+  const [trang, setTrang] = useState(1)
 
   function tai() {
     api.adminHocSinh().then(setRows).catch((e) => setError(e.message))
@@ -47,6 +65,8 @@ export default function QuanLyHocSinh() {
       return true
     })
   }, [rows, q, fLop, fTrangThai])
+  const tongTrangHS = Math.max(1, Math.ceil(loc.length / MOI_TRANG_HS))
+  const locTrang = loc.slice((trang - 1) * MOI_TRANG_HS, trang * MOI_TRANG_HS)
 
   return (
     <div className="flex flex-col gap-5">
@@ -61,11 +81,11 @@ export default function QuanLyHocSinh() {
         <CardBody className="flex flex-col gap-3">
           <div className="grid sm:grid-cols-3 gap-3">
             <Input label="Tìm kiếm" placeholder="Tên hoặc đăng nhập..."
-              value={q} onChange={(e) => setQ(e.target.value)} />
-            <Select label="Lớp" value={fLop} onChange={(e) => setFLop(e.target.value)}
+              value={q} onChange={(e) => { setQ(e.target.value); setTrang(1) }} />
+            <Select label="Lớp" value={fLop} onChange={(e) => { setFLop(e.target.value); setTrang(1) }}
               options={[{ value: '', label: 'Tất cả lớp' },
                 ...allLop.map((l) => ({ value: String(l.id), label: l.ten }))]} />
-            <Select label="Trạng thái" value={fTrangThai} onChange={(e) => setFTrangThai(e.target.value)}
+            <Select label="Trạng thái" value={fTrangThai} onChange={(e) => { setFTrangThai(e.target.value); setTrang(1) }}
               options={[{ value: '', label: 'Tất cả' }, { value: 'hoat_dong', label: 'Hoạt động' },
                 { value: 'khoa', label: 'Đã khóa' }]} />
           </div>
@@ -102,10 +122,11 @@ export default function QuanLyHocSinh() {
                 ),
               },
             ]}
-            rows={loc}
+            rows={locTrang}
             rowKey={(r) => r.id}
             empty="Không có học sinh phù hợp."
           />
+          <PhanTrangHS trang={trang} tongTrang={tongTrangHS} total={loc.length} onChange={setTrang} />
         </CardBody>
       </Card>
 

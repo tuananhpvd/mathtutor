@@ -716,6 +716,8 @@ const TABS_PHAM_VI = [
   { value: 'chung', label: 'Kho chung' },
 ]
 
+const MOI_TRANG_CH = 20
+
 export default function QuanLyCauHoi() {
   const confirm = useConfirm()
   const [rows, setRows] = useState([])
@@ -724,6 +726,7 @@ export default function QuanLyCauHoi() {
   const [error, setError] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
   const [fPhamVi, setFPhamVi] = useState('')
+  const [trangCH, setTrangCH] = useState(1)
   const [sua, setSua] = useState(null)
   const [taoMoi, setTaoMoi] = useState(false)
   const [importMo, setImportMo] = useState(false)
@@ -749,6 +752,8 @@ export default function QuanLyCauHoi() {
     if (fPhamVi === 'chung') return r.pham_vi === 'chung'
     return true
   })
+  const tongTrangCH = Math.max(1, Math.ceil(loc.length / MOI_TRANG_CH))
+  const locTrang = loc.slice((trangCH - 1) * MOI_TRANG_CH, trangCH * MOI_TRANG_CH)
 
   async function duyet(r) {
     try { await api.duyetCau(r.id, 'duyet'); await tai() }
@@ -825,7 +830,7 @@ export default function QuanLyCauHoi() {
             label="Lọc trạng thái duyệt"
             className="w-48"
             value={fTrangThai}
-            onChange={(e) => setFTrangThai(e.target.value)}
+            onChange={(e) => { setFTrangThai(e.target.value); setTrangCH(1) }}
             options={[
               { value: '', label: 'Tất cả' },
               { value: 'da_duyet', label: 'Đã duyệt' },
@@ -835,7 +840,7 @@ export default function QuanLyCauHoi() {
           />
           <div className="flex gap-1 pb-0.5">
             {TABS_PHAM_VI.map((t) => (
-              <button key={t.value} onClick={() => setFPhamVi(t.value)}
+              <button key={t.value} onClick={() => { setFPhamVi(t.value); setTrangCH(1) }}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   fPhamVi === t.value
                     ? 'bg-primary text-white border-primary'
@@ -941,10 +946,27 @@ export default function QuanLyCauHoi() {
                   ),
                 },
               ]}
-              rows={loc}
+              rows={locTrang}
               rowKey={(r) => r.id}
               empty="Chưa có câu hỏi nào."
             />
+          )}
+          {!loading && tongTrangCH > 1 && (
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-border mt-2">
+              <span className="text-xs text-muted">
+                {loc.length} câu hỏi · Trang {trangCH}/{tongTrangCH}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="secondary" disabled={trangCH === 1}
+                  onClick={() => setTrangCH(1)}>«</Button>
+                <Button size="sm" variant="secondary" disabled={trangCH === 1}
+                  onClick={() => setTrangCH(t => t - 1)}>‹</Button>
+                <Button size="sm" variant="secondary" disabled={trangCH === tongTrangCH}
+                  onClick={() => setTrangCH(t => t + 1)}>›</Button>
+                <Button size="sm" variant="secondary" disabled={trangCH === tongTrangCH}
+                  onClick={() => setTrangCH(tongTrangCH)}>»</Button>
+              </div>
+            </div>
           )}
         </CardBody>
       </Card>

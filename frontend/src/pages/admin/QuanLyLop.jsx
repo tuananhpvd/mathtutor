@@ -4,6 +4,23 @@ import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } 
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 import ImportHocSinhDialog from '../../components/gv/ImportHocSinhDialog'
 
+const MOI_TRANG_LP = 10
+
+function PhanTrangLP({ trang, tongTrang, total, onChange }) {
+  if (tongTrang <= 1) return null
+  return (
+    <div className="flex items-center justify-between gap-2 pt-3 border-t border-border mt-1">
+      <span className="text-xs text-muted">{total} lớp · Trang {trang}/{tongTrang}</span>
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="secondary" disabled={trang === 1} onClick={() => onChange(1)}>«</Button>
+        <Button size="sm" variant="secondary" disabled={trang === 1} onClick={() => onChange(trang - 1)}>‹</Button>
+        <Button size="sm" variant="secondary" disabled={trang === tongTrang} onClick={() => onChange(trang + 1)}>›</Button>
+        <Button size="sm" variant="secondary" disabled={trang === tongTrang} onClick={() => onChange(tongTrang)}>»</Button>
+      </div>
+    </div>
+  )
+}
+
 export default function QuanLyLop() {
   const confirm = useConfirm()
   const [lops, setLops] = useState([])
@@ -12,6 +29,7 @@ export default function QuanLyLop() {
   const [newTen, setNewTen] = useState('')
   const [newGv, setNewGv] = useState('')
   const [q, setQ] = useState('')
+  const [trang, setTrang] = useState(1)
   const [moRong, setMoRong] = useState({})
   const [suaLop, setSuaLop] = useState(null) // {id, ten, gv_id}
   const [suaHs, setSuaHs] = useState(null)
@@ -88,6 +106,8 @@ export default function QuanLyLop() {
     const kw = q.trim().toLowerCase()
     return kw ? lops.filter((l) => l.ten.toLowerCase().includes(kw)) : lops
   }, [lops, q])
+  const tongTrangLP = Math.max(1, Math.ceil(loc.length / MOI_TRANG_LP))
+  const locTrang = loc.slice((trang - 1) * MOI_TRANG_LP, trang * MOI_TRANG_LP)
 
   return (
     <div className="flex flex-col gap-5">
@@ -116,9 +136,9 @@ export default function QuanLyLop() {
       <Card>
         <CardHeader title="Danh sách lớp" subtitle={`${loc.length}/${lops.length} lớp`} />
         <CardBody className="flex flex-col gap-3">
-          <Input label="Tìm lớp" placeholder="Tên lớp..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input label="Tìm lớp" placeholder="Tên lớp..." value={q} onChange={(e) => { setQ(e.target.value); setTrang(1) }} />
           <div className="flex flex-col gap-2">
-            {loc.map((l) => (
+            {locTrang.map((l) => (
               <div key={l.id} className="rounded-lg border border-border">
                 {suaLop?.id === l.id ? (
                   <div className="grid sm:grid-cols-3 gap-3 items-end p-3">
@@ -177,6 +197,7 @@ export default function QuanLyLop() {
             ))}
             {loc.length === 0 && <p className="text-sm text-muted">Không có lớp phù hợp.</p>}
           </div>
+          <PhanTrangLP trang={trang} tongTrang={tongTrangLP} total={loc.length} onChange={setTrang} />
         </CardBody>
       </Card>
 

@@ -4,7 +4,7 @@ import { Badge, Button, Card, CardBody, CardHeader, useConfirm } from '../../com
 import Formula from '../../components/Formula'
 import MixedChatInput from '../../components/MixedChatInput'
 
-const TRANG_KT = 10
+const TRANG_KT = 5
 
 function renderNoiDung(text) {
   if (!text) return null
@@ -146,7 +146,7 @@ export default function HoTroHocSinh() {
 
         {/* Đề bài đầy đủ + phương án / ý */}
         {yc.de_bai && (
-          <div className="mt-2 rounded-lg bg-surface border border-border px-3 py-2 text-sm text-ink space-y-1">
+          <div className="mt-2 rounded-lg bg-primary-soft/40 border border-primary/20 px-3 py-2 text-sm text-ink space-y-1">
             <div>{renderNoiDung(yc.de_bai)}</div>
             {yc.loai_cau === 'TN4PA' && yc.meta_hien_thi?.phuong_an &&
               Object.entries(yc.meta_hien_thi.phuong_an).map(([k, v]) => (
@@ -167,18 +167,18 @@ export default function HoTroHocSinh() {
 
         {/* Câu hỏi của học sinh */}
         {yc.noi_dung && (
-          <p className="text-sm text-ink mt-2 italic">
-            <span className="font-medium not-italic">Học sinh hỏi: </span>
-            "{renderNoiDung(yc.noi_dung)}"
-          </p>
+          <div className="mt-2 rounded-lg bg-warning-soft border border-warning/30 px-3 py-2 text-sm text-ink">
+            <span className="font-medium text-warning">Học sinh hỏi: </span>
+            <span className="italic">"{renderNoiDung(yc.noi_dung)}"</span>
+          </div>
         )}
 
         {/* Câu trả lời của GV (mục Đã trả lời) */}
         {yc.tra_loi && (
-          <p className="text-sm text-ink mt-1.5">
-            <span className="font-medium text-gv">Trả lời: </span>
+          <div className="mt-2 rounded-lg bg-success-soft border border-success/30 px-3 py-2 text-sm text-ink">
+            <span className="font-medium text-success">Trả lời: </span>
             {renderNoiDung(yc.tra_loi)}
-          </p>
+          </div>
         )}
 
         {/* Form trả lời (mục Chờ xử lý) */}
@@ -219,36 +219,44 @@ export default function HoTroHocSinh() {
         <div className="rounded-lg bg-danger-soft text-danger text-sm px-4 py-2.5">{loi}</div>
       )}
 
-      <Card>
-        <CardHeader title="Yêu cầu cần trả lời"
-          subtitle={`${choXuLy.length} học sinh đang chờ thầy/cô giúp`} />
-        <CardBody className="flex flex-col gap-3">
-          {loading ? (
-            <p className="text-sm text-muted">Đang tải...</p>
-          ) : choXuLy.length === 0 ? (
-            <p className="text-sm text-muted">Không có yêu cầu nào đang chờ. 👍</p>
-          ) : (
-            <>
-              {choHienThi.map((yc) => (
-                <CardYeuCau key={yc.id} yc={yc} tone="warning" />
-              ))}
-              <PhanTrang trang={trangCho} tongTrang={tongTrangCho} onChange={setTrangCho} />
-            </>
-          )}
-        </CardBody>
-      </Card>
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <Card>
+          <CardHeader title="Yêu cầu cần trả lời"
+            subtitle={`${choXuLy.length} học sinh đang chờ thầy/cô giúp`} />
+          <CardBody className="flex flex-col gap-3">
+            {loading ? (
+              <p className="text-sm text-muted">Đang tải...</p>
+            ) : choXuLy.length === 0 ? (
+              <p className="text-sm text-muted">Không có yêu cầu nào đang chờ. 👍</p>
+            ) : (
+              <>
+                {choHienThi.map((yc) => (
+                  <CardYeuCau key={yc.id} yc={yc} tone="warning" />
+                ))}
+                <PhanTrang trang={trangCho} tongTrang={tongTrangCho} onChange={setTrangCho} />
+              </>
+            )}
+          </CardBody>
+        </Card>
 
-      {daTraLoi.length > 0 && (
         <Card>
           <CardHeader title="Đã trả lời" subtitle={`${daTraLoi.length} yêu cầu`} />
           <CardBody className="flex flex-col gap-3">
-            {daHienThi.map((yc) => (
-              <CardYeuCau key={yc.id} yc={yc} tone="done" />
-            ))}
-            <PhanTrang trang={trangDa} tongTrang={tongTrangDa} onChange={setTrangDa} />
+            {loading ? (
+              <p className="text-sm text-muted">Đang tải...</p>
+            ) : daTraLoi.length === 0 ? (
+              <p className="text-sm text-muted">Chưa có yêu cầu nào được trả lời.</p>
+            ) : (
+              <>
+                {daHienThi.map((yc) => (
+                  <CardYeuCau key={yc.id} yc={yc} tone="done" />
+                ))}
+                <PhanTrang trang={trangDa} tongTrang={tongTrangDa} onChange={setTrangDa} />
+              </>
+            )}
           </CardBody>
         </Card>
-      )}
+      </div>
     </div>
   )
 }

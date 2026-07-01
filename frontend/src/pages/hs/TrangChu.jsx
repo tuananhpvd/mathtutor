@@ -157,100 +157,6 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
         </div>
       )}
 
-      {/* Nhận xét + Trả lời — 2 cột */}
-      {(nhanXet.length > 0 || traLoi.length > 0) && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* Cột trái: Nhận xét */}
-          {nhanXet.length > 0 && (
-            <Card className="h-full">
-              <CardHeader title="💬 Nhận xét của thầy/cô"
-                subtitle={`${nhanXet.length} lời nhắn từ giáo viên`} />
-              <CardBody className="flex flex-col gap-3">
-                {nxTrang.map((tb) => (
-                  <div key={tb.id}
-                    className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
-                    <p className="text-sm text-ink whitespace-pre-wrap break-words">{tb.noi_dung}</p>
-                    <p className="text-xs text-muted mt-1.5">
-                      {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
-                      {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleDateString('vi-VN')}` : ''}
-                    </p>
-                  </div>
-                ))}
-                {tongTrangNx > 1 && (
-                  <div className="flex items-center justify-center gap-3 pt-1">
-                    <Button size="sm" variant="secondary" disabled={trangNx <= 1}
-                      onClick={() => setTrangNx((t) => t - 1)}>← Trước</Button>
-                    <span className="text-sm text-muted">{trangNx}/{tongTrangNx}</span>
-                    <Button size="sm" variant="secondary" disabled={trangNx >= tongTrangNx}
-                      onClick={() => setTrangNx((t) => t + 1)}>Sau →</Button>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Cột phải: Trả lời */}
-          {traLoi.length > 0 && (
-            <Card className="h-full">
-              <CardHeader title="👩‍🏫 Thầy/cô đã trả lời"
-                subtitle={`${traLoi.length} câu trả lời`} />
-              <CardBody className="flex flex-col gap-3">
-                {tlTrang.map((tb) => (
-                  <div key={tb.id}
-                    className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3 flex flex-col gap-2">
-                    <div className="text-sm text-ink leading-relaxed">
-                      <span className="font-medium">Trả lời: </span>
-                      {renderNoiDung(tb.noi_dung)}
-                    </div>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-xs text-muted">
-                        {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
-                        {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleString('vi-VN')}` : ''}
-                      </p>
-                      {tb.lien_ket_id && onLamTiep && (
-                        <Button size="sm" variant="secondary"
-                          onClick={() => onLamTiep(tb.lien_ket_id)}>
-                          Tiếp tục bài
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {tongTrangTl > 1 && (
-                  <div className="flex items-center justify-center gap-3 pt-1">
-                    <Button size="sm" variant="secondary" disabled={trangTl <= 1}
-                      onClick={() => setTrangTl((t) => t - 1)}>← Trước</Button>
-                    <span className="text-sm text-muted">{trangTl}/{tongTrangTl}</span>
-                    <Button size="sm" variant="secondary" disabled={trangTl >= tongTrangTl}
-                      onClick={() => setTrangTl((t) => t + 1)}>Sau →</Button>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Tổng quan tiến độ */}
-      <Card>
-        <CardHeader title="Tiến độ của em" subtitle="Tổng quan tình hình luyện tập" />
-        <CardBody>
-          {loading || !tq ? (
-            <p className="text-sm text-muted">Đang tải...</p>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <TheTongQuan label="Tổng số bài" value={tq.tong} tone="primary" />
-              <TheTongQuan label="Đã hoàn thành" value={tq.hoan_thanh}
-                sub={pct(tq.hoan_thanh, tq.tong)} tone="success" />
-              <TheTongQuan label="Đang làm dở" value={tq.dang_lam}
-                sub={pct(tq.dang_lam, tq.tong)} tone="warning" />
-              <TheTongQuan label="Chưa làm" value={tq.chua_lam}
-                sub={pct(tq.chua_lam, tq.tong)} tone="danger" />
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
       {/* Nút bắt đầu làm bài mới — to & nổi bật */}
       <Button onClick={onChonBai}
         className="w-full py-4 text-lg font-bold shadow-[var(--shadow-pop)]">
@@ -404,6 +310,101 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
           </CardBody>
         </Card>
       </div>
+
+      {/* Tổng quan tiến độ */}
+      <Card>
+        <CardHeader title="Tiến độ của em" subtitle="Tổng quan tình hình luyện tập" />
+        <CardBody>
+          {loading || !tq ? (
+            <p className="text-sm text-muted">Đang tải...</p>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <TheTongQuan label="Tổng số bài" value={tq.tong} tone="primary" />
+              <TheTongQuan label="Đã hoàn thành" value={tq.hoan_thanh}
+                sub={pct(tq.hoan_thanh, tq.tong)} tone="success" />
+              <TheTongQuan label="Đang làm dở" value={tq.dang_lam}
+                sub={pct(tq.dang_lam, tq.tong)} tone="warning" />
+              <TheTongQuan label="Chưa làm" value={tq.chua_lam}
+                sub={pct(tq.chua_lam, tq.tong)} tone="danger" />
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Nhận xét + Trả lời — 2 cột */}
+      {(nhanXet.length > 0 || traLoi.length > 0) && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          {/* Cột trái: Nhận xét */}
+          {nhanXet.length > 0 && (
+            <Card className="h-full">
+              <CardHeader title="💬 Nhận xét của thầy/cô"
+                subtitle={`${nhanXet.length} lời nhắn từ giáo viên`} />
+              <CardBody className="flex flex-col gap-3">
+                {nxTrang.map((tb) => (
+                  <div key={tb.id}
+                    className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
+                    <p className="text-sm text-ink whitespace-pre-wrap break-words">{tb.noi_dung}</p>
+                    <p className="text-xs text-muted mt-1.5">
+                      {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
+                      {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleDateString('vi-VN')}` : ''}
+                    </p>
+                  </div>
+                ))}
+                {tongTrangNx > 1 && (
+                  <div className="flex items-center justify-center gap-3 pt-1">
+                    <Button size="sm" variant="secondary" disabled={trangNx <= 1}
+                      onClick={() => setTrangNx((t) => t - 1)}>← Trước</Button>
+                    <span className="text-sm text-muted">{trangNx}/{tongTrangNx}</span>
+                    <Button size="sm" variant="secondary" disabled={trangNx >= tongTrangNx}
+                      onClick={() => setTrangNx((t) => t + 1)}>Sau →</Button>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Cột phải: Trả lời */}
+          {traLoi.length > 0 && (
+            <Card className="h-full">
+              <CardHeader title="👩‍🏫 Thầy/cô đã trả lời"
+                subtitle={`${traLoi.length} câu trả lời`} />
+              <CardBody className="flex flex-col gap-3">
+                {tlTrang.map((tb) => (
+                  <div key={tb.id}
+                    className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3 flex flex-col gap-2">
+                    <div className="text-sm text-ink leading-relaxed">
+                      <span className="font-medium">Trả lời: </span>
+                      {renderNoiDung(tb.noi_dung)}
+                    </div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <p className="text-xs text-muted">
+                        {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
+                        {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleString('vi-VN')}` : ''}
+                      </p>
+                      {tb.lien_ket_id && onLamTiep && (
+                        <Button size="sm" variant="secondary"
+                          onClick={() => onLamTiep(tb.lien_ket_id)}>
+                          Tiếp tục bài
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {tongTrangTl > 1 && (
+                  <div className="flex items-center justify-center gap-3 pt-1">
+                    <Button size="sm" variant="secondary" disabled={trangTl <= 1}
+                      onClick={() => setTrangTl((t) => t - 1)}>← Trước</Button>
+                    <span className="text-sm text-muted">{trangTl}/{tongTrangTl}</span>
+                    <Button size="sm" variant="secondary" disabled={trangTl >= tongTrangTl}
+                      onClick={() => setTrangTl((t) => t + 1)}>Sau →</Button>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          )}
+        </div>
+      )}
+
     </div>
   )
 }
