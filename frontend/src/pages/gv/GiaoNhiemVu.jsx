@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
+import { phanTachTg } from '../../utils/format'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm', TNDS: 'Đúng/Sai', TLN: 'Tự luận' }
 const DO_KHO_LABEL = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
@@ -510,10 +511,14 @@ export default function GiaoNhiemVu() {
               </div>
 
               {/* Tóm tắt */}
-              <p className="text-xs text-muted">
-                {nv.so_bai} bài · {nv.so_hs} học sinh · {nv.so_hs_hoan_thanh}/{nv.so_hs} hoàn thành
-                {nv.han_chot ? ` · hạn ${new Date(nv.han_chot).toLocaleDateString('vi-VN')}` : ''}
-                {nv.tao_luc ? ` · giao ${new Date(nv.tao_luc).toLocaleDateString('vi-VN')}` : ''}
+              <p className="flex items-center flex-wrap gap-x-1 text-xs text-muted">
+                <span>{nv.so_bai} bài</span>
+                <span className="font-bold text-ink">·</span>
+                <span>{nv.so_hs} học sinh</span>
+                <span className="font-bold text-ink">·</span>
+                <span>{nv.so_hs_hoan_thanh}/{nv.so_hs} hoàn thành</span>
+                {nv.han_chot && <><span className="font-bold text-ink">·</span><span>hạn {phanTachTg(nv.han_chot)?.ngay}</span></>}
+                {nv.tao_luc && <><span className="font-bold text-ink">·</span><span>giao {phanTachTg(nv.tao_luc)?.ngay}</span></>}
               </p>
 
               {/* === XEM CHI TIẾT === */}

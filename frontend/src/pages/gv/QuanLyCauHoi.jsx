@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Input, Select, Table, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
+import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 
@@ -894,7 +895,7 @@ export default function QuanLyCauHoi() {
                 {
                   key: 'tao_luc',
                   header: 'Ngày giờ tạo',
-                  render: (r) => <span className="text-muted text-sm">{dinhDangNgay(r.tao_luc)}</span>,
+                  render: (r) => <CotThoiGian iso={r.tao_luc} />,
                 },
                 {
                   key: 'trang_thai_duyet',

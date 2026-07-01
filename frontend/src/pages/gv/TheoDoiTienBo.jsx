@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Select, Table } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
+import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
@@ -459,7 +460,7 @@ export default function TheoDoiTienBo() {
               {
                 key: 'luc',
                 header: 'Hoàn thành lúc',
-                render: (r) => new Date(r.hoan_thanh_luc).toLocaleString('vi-VN'),
+                render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
               },
             ]}
             rows={nkTrang}

@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { getSession } from '../../auth'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
 import Formula from '../../components/Formula'
+import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
 import { dinhDangThoiGian } from '../../utils/format'
 
 function renderNoiDung(text) {
@@ -344,10 +345,10 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                   <div key={tb.id}
                     className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
                     <p className="text-sm text-ink whitespace-pre-wrap break-words">{tb.noi_dung}</p>
-                    <p className="text-xs text-muted mt-1.5">
-                      {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
-                      {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleDateString('vi-VN')}` : ''}
-                    </p>
+                    <div className="flex items-center flex-wrap gap-x-0.5 text-xs text-muted mt-1.5">
+                      {tb.nguoi_gui_ten && <span>— {tb.nguoi_gui_ten}</span>}
+                      {tb.tao_luc && <ThoiGianPhanCach iso={tb.tao_luc} />}
+                    </div>
                   </div>
                 ))}
                 {tongTrangNx > 1 && (
@@ -377,10 +378,10 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                       {renderNoiDung(tb.noi_dung)}
                     </div>
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <p className="text-xs text-muted">
-                        {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
-                        {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleString('vi-VN')}` : ''}
-                      </p>
+                      <div className="flex items-center flex-wrap gap-x-0.5 text-xs text-muted">
+                        {tb.nguoi_gui_ten && <span>— {tb.nguoi_gui_ten}</span>}
+                        {tb.tao_luc && <ThoiGianPhanCach iso={tb.tao_luc} />}
+                      </div>
                       {tb.lien_ket_id && onLamTiep && (
                         <Button size="sm" variant="secondary"
                           onClick={() => onLamTiep(tb.lien_ket_id)}>

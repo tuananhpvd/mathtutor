@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 import MixedChatInput from '../../components/MixedChatInput'
+import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
 
 const TRANG_KT = 5
 
@@ -19,10 +20,6 @@ function renderNoiDung(text) {
     )
 }
 
-function thoiGian(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleString('vi-VN')
-}
 
 function NganCanh({ yc }) {
   const parts = []
@@ -128,10 +125,10 @@ export default function HoTroHocSinh() {
       <div key={yc.id} className={`rounded-xl border ${borderClass} px-4 py-3`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 flex-wrap text-sm">
               <span className="font-semibold text-ink">{yc.hoc_sinh_ten}</span>
               {tone === 'done' && <Badge tone="success">Đã trả lời</Badge>}
-              <span className="text-xs text-muted">{thoiGian(yc.tao_luc)}</span>
+              <ThoiGianPhanCach iso={yc.tao_luc} />
             </div>
             <NganCanh yc={yc} />
           </div>

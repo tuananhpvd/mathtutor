@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Card, CardBody, CardHeader, Table } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
+import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 
 const NHAN_CO = {
   ro_ri_dap_an: 'Rò rỉ đáp án',
@@ -49,7 +50,7 @@ export default function NhatKy() {
                 {
                   key: 'luc',
                   header: 'Thời điểm',
-                  render: (r) => new Date(r.hoan_thanh_luc).toLocaleString('vi-VN'),
+                  render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
                 },
                 { key: 'ho_ten', header: 'Học sinh' },
                 { key: 'chuyen_de', header: 'Chuyên đề' },
@@ -76,7 +77,7 @@ export default function NhatKy() {
               {
                 key: 'tao_luc',
                 header: 'Thời điểm',
-                render: (r) => new Date(r.tao_luc).toLocaleString('vi-VN'),
+                render: (r) => <CotThoiGian iso={r.tao_luc} />,
               },
               { key: 'session_id', header: 'Phiên', render: (r) => `#${r.session_id ?? '-'}` },
               { key: 'loai_co', header: 'Loại', render: (r) => NHAN_CO[r.loai_co] || r.loai_co },

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
 import Formula from '../../components/Formula'
+import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm', TNDS: 'Đúng/Sai', TLN: 'Trả lời ngắn' }
 
@@ -58,10 +59,12 @@ export default function NhiemVu({ onChon }) {
             <Card key={nv.id}>
               <CardHeader
                 title={nv.tieu_de}
-                subtitle={[
-                  nv.gv_ten ? `Giao bởi ${nv.gv_ten}` : null,
-                  nv.tao_luc ? `vào lúc ${new Date(nv.tao_luc).toLocaleString('vi-VN')}` : null,
-                ].filter(Boolean).join(' · ') || undefined}
+                subtitle={nv.gv_ten ? (
+                  <span className="inline-flex items-center gap-0.5 flex-wrap">
+                    <span>Giao bởi <b>{nv.gv_ten}</b></span>
+                    {nv.tao_luc && <ThoiGianPhanCach iso={nv.tao_luc} />}
+                  </span>
+                ) : undefined}
                 action={
                   <div className="flex items-center gap-2">
                     {han && <Badge tone={han.tone}>{han.text}</Badge>}

@@ -1,3 +1,14 @@
+// Tách ISO timestamp → { gio: "HH:MM:SS", ngay: "DD/MM/YYYY" }
+export function phanTachTg(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d)) return null
+  return {
+    gio: d.toLocaleTimeString('vi-VN'),
+    ngay: d.toLocaleDateString('vi-VN'),
+  }
+}
+
 // Định dạng thời gian giây → "Xs" / "Xm Ys".
 export function dinhDangThoiGian(giay) {
   if (giay == null) return '—'
