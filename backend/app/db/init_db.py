@@ -1,9 +1,10 @@
 import json
 from pathlib import Path
 
+import app.models.cauhinh  # noqa: F401
+
 # Đăng ký tất cả model với metadata
 import app.models.cot_moc  # noqa: F401
-import app.models.cauhinh  # noqa: F401
 import app.models.danh_muc  # noqa: F401
 import app.models.flag  # noqa: F401
 import app.models.lop  # noqa: F401
@@ -138,6 +139,24 @@ def _migrate_them_cot(engine) -> None:
             with engine.begin() as conn:
                 conn.execute(text(
                     "ALTER TABLE phan_tich_hs ADD COLUMN nguon VARCHAR(16) DEFAULT 'ai'"
+                ))
+    if "problems" in ten_bang:
+        cot = {c["name"] for c in insp.get_columns("problems")}
+        if "pham_vi" not in cot:
+            with engine.begin() as conn:
+                # Thêm cột, mặc định chung (dữ liệu đã da_duyet → giữ nguyên trong kho chung)
+                conn.execute(text(
+                    "ALTER TABLE problems ADD COLUMN pham_vi VARCHAR(20) DEFAULT 'chung' NOT NULL"
+                ))
+                # GV nhập đang chờ duyệt → auto duyệt + riêng tư
+                conn.execute(text(
+                    "UPDATE problems SET trang_thai_duyet='da_duyet', pham_vi='rieng_tu' "
+                    "WHERE trang_thai_duyet='cho_duyet' AND nguon='gv_nhap'"
+                ))
+                # AI sinh đang chờ duyệt → riêng tư (giữ cho_duyet để GV vẫn duyệt được)
+                conn.execute(text(
+                    "UPDATE problems SET pham_vi='rieng_tu' "
+                    "WHERE trang_thai_duyet='cho_duyet' AND nguon='ai_sinh'"
                 ))
 
 

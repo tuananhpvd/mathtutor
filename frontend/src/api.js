@@ -60,6 +60,7 @@ export const api = {
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProblem: (id) => request(`/problems/${id}`, { method: 'DELETE' }),
   khoiPhucProblem: (id) => request(`/problems/${id}/khoi-phuc`, { method: 'PATCH' }),
+  chiaSeProblem: (id) => request(`/problems/${id}/chia-se`, { method: 'POST' }),
   anhHuongProblem: (id) => request(`/problems/${id}/anh-huong`),
   xoaVinhVienProblem: (id) => request(`/problems/${id}/vinh-vien`, { method: 'DELETE' }),
   listFlags: (trang_thai) =>

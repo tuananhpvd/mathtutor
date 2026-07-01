@@ -1,10 +1,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, require_role
 from app.db.session import get_db
-from app.models.problem import Problem, TrangThaiDuyet
+from app.models.problem import PhamVi, Problem, TrangThaiDuyet
 from app.models.user import VaiTro
 from app.schemas.problem import ProblemCreate, ProblemUpdate
 from app.services.problem_service import (
@@ -45,6 +46,8 @@ def _problem_full(p: Problem) -> dict:
         "loai_dap_an_nhap": p.loai_dap_an_nhap,
         "che_do_so_khop": p.che_do_so_khop.value,
         "trang_thai_duyet": p.trang_thai_duyet.value,
+        "pham_vi": p.pham_vi.value,
+        "nguoi_tao_id": p.nguoi_tao_id,
         "meta": p.meta,
         "solution_steps": _steps_full(p),
     }
@@ -89,13 +92,24 @@ def _strip_answers(p: Problem) -> dict:
 def danh_sach_bai(current_user: CurrentUser, db: Session = Depends(get_db)):
     q = db.query(Problem)
     if current_user.vai_tro == VaiTro.hs:
+        # HS chỉ thấy bài đã duyệt + kho chung (riêng_tư phải được giao qua nhiệm vụ)
         q = q.filter(
             Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet,
+            Problem.pham_vi == PhamVi.chung,
             Problem.bi_an == False,  # noqa: E712
         )
         return [_strip_answers(p) for p in q.all()]
 
-    # GV/Admin: mới tạo lên trước (theo tao_luc, fallback id cho bản ghi cũ chưa có tao_luc).
+    # GV: bài của mình (mọi pham_vi) + bài kho chung của người khác
+    if current_user.vai_tro == VaiTro.gv:
+        q = q.filter(
+            or_(
+                Problem.nguoi_tao_id == current_user.id,
+                Problem.pham_vi == PhamVi.chung,
+            )
+        )
+
+    # Admin: xem tất cả
     problems = sorted(
         q.all(),
         key=lambda p: (p.tao_luc.isoformat() if p.tao_luc else "", p.id),
@@ -108,6 +122,9 @@ def danh_sach_bai(current_user: CurrentUser, db: Session = Depends(get_db)):
          "de_bai": p.de_bai,
          "meta": _meta_cho_gv(p),
          "trang_thai_duyet": p.trang_thai_duyet.value,
+         "pham_vi": p.pham_vi.value,
+         "nguoi_tao_id": p.nguoi_tao_id,
+         "la_cua_toi": (p.nguoi_tao_id == current_user.id),
          "nguon": p.nguon.value, "bi_an": p.bi_an,
          "tao_luc": p.tao_luc.isoformat() if p.tao_luc else None}
         for p in problems
@@ -120,7 +137,9 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
     if p is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài")
     if current_user.vai_tro == VaiTro.hs:
-        if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
+        if (p.trang_thai_duyet != TrangThaiDuyet.da_duyet
+                or p.bi_an
+                or p.pham_vi == PhamVi.rieng_tu):
             raise HTTPException(status_code=404, detail="Không tìm thấy bài")
         return _strip_answers(p)
     return _problem_full(p)
@@ -137,7 +156,14 @@ def tao_bai(body: ProblemCreate, current_user: CurrentUser, db: Session = Depend
 
 
 @router.patch("/{problem_id}", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def cap_nhat_bai(problem_id: int, body: ProblemUpdate, db: Session = Depends(get_db)):
+def cap_nhat_bai(problem_id: int, body: ProblemUpdate, current_user: CurrentUser,
+                 db: Session = Depends(get_db)):
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    # Chỉ người tạo hoặc admin mới được sửa
+    if current_user.vai_tro != VaiTro.admin and p.nguoi_tao_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền sửa câu hỏi này")
     du_lieu = body.model_dump(exclude_unset=True)
     # solution_steps là list[SolutionStepIn] → chuyển về list[dict]
     if "solution_steps" in du_lieu and du_lieu["solution_steps"] is not None:
@@ -152,7 +178,12 @@ def cap_nhat_bai(problem_id: int, body: ProblemUpdate, db: Session = Depends(get
 
 
 @router.delete("/{problem_id}", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def xoa_bai(problem_id: int, db: Session = Depends(get_db)):
+def xoa_bai(problem_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    if current_user.vai_tro != VaiTro.admin and p.nguoi_tao_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xóa câu hỏi này")
     try:
         return xoa_problem(db, problem_id)
     except ValueError as e:
@@ -160,12 +191,32 @@ def xoa_bai(problem_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{problem_id}/khoi-phuc", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def khoi_phuc_bai(problem_id: int, db: Session = Depends(get_db)):
+def khoi_phuc_bai(problem_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    if current_user.vai_tro != VaiTro.admin and p.nguoi_tao_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền khôi phục câu hỏi này")
     try:
         khoi_phuc_problem(db, problem_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True}
+
+
+@router.post("/{problem_id}/chia-se", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def chia_se_bai(problem_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Chia sẻ câu hỏi riêng tư lên kho chung (không cần admin duyệt)."""
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    if current_user.vai_tro != VaiTro.admin and p.nguoi_tao_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Chỉ người tạo mới được chia sẻ câu hỏi này")
+    if p.trang_thai_duyet != TrangThaiDuyet.da_duyet:
+        raise HTTPException(status_code=400, detail="Câu hỏi phải được duyệt trước khi chia sẻ")
+    p.pham_vi = PhamVi.chung
+    db.commit()
+    return {"ok": True, "pham_vi": p.pham_vi.value}
 
 
 @router.get("/{problem_id}/anh-huong", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -177,7 +228,12 @@ def xem_anh_huong(problem_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{problem_id}/vinh-vien", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def xoa_bai_vinh_vien(problem_id: int, db: Session = Depends(get_db)):
+def xoa_bai_vinh_vien(problem_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    if current_user.vai_tro != VaiTro.admin and p.nguoi_tao_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xóa vĩnh viễn câu hỏi này")
     try:
         return xoa_vinh_vien_problem(db, problem_id)
     except ValueError as e:

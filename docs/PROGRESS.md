@@ -4,14 +4,14 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-06-30, phiên bản **v19**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-01, phiên bản **v22**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **213/213 test backend xanh** (`pytest`).
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v14` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+- Versioning: tag `v1`…`v21` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
   commit + push + tạo tag phiên bản kế tiếp; tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
@@ -73,6 +73,12 @@ ngày/model.
     với tải file mẫu (4 cột: Họ tên, Tên đăng nhập, Mật khẩu, Vai trò); parse → validate
     (thiếu trường, mật khẩu < 4 ký tự, vai trò không hợp lệ → đỏ + lý do); kiểm tra trùng
     tên đăng nhập toàn hệ thống; preview 5 cột; Xác nhận chỉ tạo dòng hợp lệ.
+- **Phân quyền câu hỏi pham_vi (v22):** enum `PhamVi` (`rieng_tu` | `chung`) trên bảng `problems`.
+  Luồng: GV tạo thủ công → `da_duyet + rieng_tu` ngay (không cần duyệt); AI sinh → `cho_duyet +
+  rieng_tu`; GV duyệt AI → `da_duyet + chung` (tự chia sẻ 1 bước). GV có thể "Chia sẻ" câu riêng tư
+  lên kho chung qua endpoint `/problems/{id}/chia-se`. GV thấy câu của mình + kho chung; HS chỉ thấy
+  `da_duyet + chung + !bi_an`. Bảo vệ sửa/xóa theo người tạo; giao nhiệm vụ câu riêng tư chỉ người
+  tạo được giao. Migration tự động khi khởi động (`init_db._migrate_them_cot`). 213/213 test xanh.
 
 ## 4. Quyết định sản phẩm cần nhớ
 
@@ -92,8 +98,8 @@ Tài khoản seed: `admin/admin123`, `gv1/gv123`, `hs1/hs123`.
 Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `npm run build`.
 
 > DB: `create_all()` KHÔNG ALTER bảng cũ — đã có migration nhẹ `init_db._migrate_them_cot` (thêm
-> cột `problems.tao_luc`, `sessions.thoi_gian_hoat_dong_giay`, `phan_tich_hs.nguon`). Đổi model lớn
-> → cân nhắc xoá `backend/dev.db` rồi chạy lại để seed schema mới.
+> cột `problems.tao_luc`, `sessions.thoi_gian_hoat_dong_giay`, `phan_tich_hs.nguon`,
+> `problems.pham_vi`). Đổi model lớn → cân nhắc xoá `backend/dev.db` rồi chạy lại để seed schema mới.
 
 ## 6. Đồng hành GV↔HS (A1–B1, C1) — triển khai tháng 2026-06
 
@@ -108,6 +114,6 @@ Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `
 
 ## 7. Việc tiếp theo gợi ý
 
-- [ ] Đưa lên GitHub (commit + push + tag v19) khi muốn.
+- [ ] Đưa lên GitHub (commit + push + tag v22) khi muốn.
 - [ ] (Khi chạy thật/dự thi) thực hiện checklist mục 2.
 - [ ] Rà DoD toàn sản phẩm theo `docs/PLAN.md`.

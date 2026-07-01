@@ -49,6 +49,9 @@ def danh_sach_cho_duyet(current_user: CurrentUser, db: Session = Depends(get_db)
         Problem.nguon == Nguon.ai_sinh,
         Problem.trang_thai_duyet == TrangThaiDuyet.cho_duyet,
     )
+    # GV chỉ thấy câu AI của mình; Admin thấy tất cả
+    if current_user.vai_tro == VaiTro.gv:
+        q = q.filter(Problem.nguoi_tao_id == current_user.id)
     return [
         {"id": p.id, "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
          "chuyen_de": p.chuyen_de, "dang_ten": (p.dang.ten if p.dang else None),

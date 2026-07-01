@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.nhiem_vu import NhiemVu, NhiemVuBai, NhiemVuHocSinh
-from app.models.problem import Problem, TrangThaiDuyet
+from app.models.problem import PhamVi, Problem, TrangThaiDuyet
 from app.models.session import Session as SessionModel
 from app.models.session import TrangThaiSession
 from app.models.thong_bao import LoaiThongBao
@@ -85,6 +85,11 @@ def tao_nhiem_vu(
     for p in ps:
         if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
             raise ValueError("Chỉ giao được bài đã duyệt")
+        if p.pham_vi == PhamVi.rieng_tu and p.nguoi_tao_id != gv_id:
+            raise ValueError(
+                f"Câu hỏi #{p.id} là riêng tư — chỉ người tạo mới được giao. "
+                "Hãy yêu cầu người tạo chia sẻ lên kho chung trước."
+            )
 
     nv = NhiemVu(
         gv_id=gv_id, tieu_de=tieu_de,

@@ -677,8 +677,8 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
   return (
     <KhungModal tieu_de="Tạo câu hỏi mới" error={error} onDong={onDong}>
       <p className="text-[12px] text-muted bg-surface-2 rounded-md px-3 py-2 mb-3">
-        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu ở trạng thái
-        <b> Chờ duyệt</b> — bấm "Duyệt" ở danh sách để mở cho học sinh.
+        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu <b>riêng tư và sẵn sàng dùng ngay</b> —
+        bấm <b>"Chia sẻ"</b> để HS tự chọn luyện, hoặc giao thẳng cho HS qua "Giao nhiệm vụ".
       </p>
       <ThanCauHoiForm
         bai={bai} setBai={setBai} dangOptions={dangOptions} choChonLoai
@@ -688,12 +688,19 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
   )
 }
 
+const TABS_PHAM_VI = [
+  { value: '', label: 'Tất cả' },
+  { value: 'cua_toi', label: 'Câu của tôi' },
+  { value: 'chung', label: 'Kho chung' },
+]
+
 export default function QuanLyCauHoi() {
   const [rows, setRows] = useState([])
   const [danhMuc, setDanhMuc] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
+  const [fPhamVi, setFPhamVi] = useState('')
   const [sua, setSua] = useState(null)
   const [taoMoi, setTaoMoi] = useState(false)
   const [modalXoaVV, setModalXoaVV] = useState(null)   // { r, anhHuong }
@@ -711,7 +718,12 @@ export default function QuanLyCauHoi() {
     tai().catch(() => {}).finally(() => setLoading(false))
   }, [])
 
-  const loc = rows.filter((r) => !fTrangThai || r.trang_thai_duyet === fTrangThai)
+  const loc = rows.filter((r) => {
+    if (fTrangThai && r.trang_thai_duyet !== fTrangThai) return false
+    if (fPhamVi === 'cua_toi') return r.la_cua_toi
+    if (fPhamVi === 'chung') return r.pham_vi === 'chung'
+    return true
+  })
 
   async function duyet(r) {
     try { await api.duyetCau(r.id, 'duyet'); await tai() }
@@ -733,6 +745,12 @@ export default function QuanLyCauHoi() {
     try { await api.khoiPhucProblem(r.id); await tai() }
     catch (e) { setError(e.message) }
   }
+  async function chiaSe(r) {
+    if (!window.confirm(`Chia sẻ câu hỏi #${r.id} lên kho chung?\nSau khi chia sẻ, mọi giáo viên đều thấy và học sinh tự chọn được.`)) return
+    try { await api.chiaSeProblem(r.id); await tai() }
+    catch (e) { setError(e.message) }
+  }
+
   async function moModalXoaVV(r) {
     setDangTaiAH(true)
     setDaXacNhan(false)
@@ -762,18 +780,32 @@ export default function QuanLyCauHoi() {
         </p>
       )}
       <div className="flex items-end justify-between gap-3 flex-wrap">
-        <Select
-          label="Lọc trạng thái duyệt"
-          className="w-56"
-          value={fTrangThai}
-          onChange={(e) => setFTrangThai(e.target.value)}
-          options={[
-            { value: '', label: 'Tất cả' },
-            { value: 'da_duyet', label: 'Đã duyệt' },
-            { value: 'cho_duyet', label: 'Chờ duyệt' },
-            { value: 'loai', label: 'Đã loại' },
-          ]}
-        />
+        <div className="flex flex-wrap items-end gap-3">
+          <Select
+            label="Lọc trạng thái duyệt"
+            className="w-48"
+            value={fTrangThai}
+            onChange={(e) => setFTrangThai(e.target.value)}
+            options={[
+              { value: '', label: 'Tất cả' },
+              { value: 'da_duyet', label: 'Đã duyệt' },
+              { value: 'cho_duyet', label: 'Chờ duyệt' },
+              { value: 'loai', label: 'Đã loại' },
+            ]}
+          />
+          <div className="flex gap-1 pb-0.5">
+            {TABS_PHAM_VI.map((t) => (
+              <button key={t.value} onClick={() => setFPhamVi(t.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  fPhamVi === t.value
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-surface text-ink border-border hover:border-primary'
+                }`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
       </div>
 
@@ -799,11 +831,16 @@ export default function QuanLyCauHoi() {
                 { key: 'do_kho', header: 'Mức độ', render: (r) => NHAN_KHO[r.do_kho] || r.do_kho },
                 {
                   key: 'nguon',
-                  header: 'Người tạo',
+                  header: 'Nguồn / Phạm vi',
                   render: (r) => (
-                    <Badge tone={r.nguon === 'ai_sinh' ? 'warning' : 'primary'}>
-                      {NHAN_NGUON[r.nguon] || 'GV'}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge tone={r.nguon === 'ai_sinh' ? 'warning' : 'primary'}>
+                        {NHAN_NGUON[r.nguon] || 'GV'}
+                      </Badge>
+                      <Badge tone={r.pham_vi === 'chung' ? 'success' : 'neutral'}>
+                        {r.pham_vi === 'chung' ? 'Dùng chung' : 'Riêng tư'}
+                      </Badge>
+                    </div>
                   ),
                 },
                 {
@@ -825,24 +862,34 @@ export default function QuanLyCauHoi() {
                   key: 'actions',
                   header: '',
                   render: (r) => (
-                    <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setSua(r.id)}>Xem / Sửa</Button>
-                      {!r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
+                    <div className="flex justify-end gap-1 flex-wrap">
+                      {r.la_cua_toi && (
+                        <Button size="sm" variant="ghost" onClick={() => setSua(r.id)}>Xem / Sửa</Button>
+                      )}
+                      {!r.la_cua_toi && (
+                        <Button size="sm" variant="ghost" onClick={() => setSua(r.id)}>Xem</Button>
+                      )}
+                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
                         <Button size="sm" variant="ghost" onClick={() => duyet(r)}>Duyệt</Button>
                       )}
-                      {r.bi_an ? (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => khoiPhuc(r)}>
-                            <span className="text-primary">Khôi phục</span>
+                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && r.pham_vi === 'rieng_tu' && (
+                        <Button size="sm" variant="success" onClick={() => chiaSe(r)}>Chia sẻ</Button>
+                      )}
+                      {r.la_cua_toi && (
+                        r.bi_an ? (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => khoiPhuc(r)}>
+                              <span className="text-primary">Khôi phục</span>
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => moModalXoaVV(r)} disabled={dangTaiAH}>
+                              <span className="text-danger">Xóa vĩnh viễn</span>
+                            </Button>
+                          </>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
+                            <span className="text-danger">Xóa</span>
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => moModalXoaVV(r)} disabled={dangTaiAH}>
-                            <span className="text-danger">Xóa vĩnh viễn</span>
-                          </Button>
-                        </>
-                      ) : (
-                        <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
-                          <span className="text-danger">Xóa</span>
-                        </Button>
+                        )
                       )}
                     </div>
                   ),

@@ -9,6 +9,7 @@ from app.models.problem import (
     DoKho,
     LoaiCau,
     Nguon,
+    PhamVi,
     Problem,
     TrangThaiDuyet,
 )
@@ -62,7 +63,9 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
         de_bai=de_bai,
         loai_dap_an_nhap=LOAI_DAP_AN_THEO_LOAI[loai.value],
         che_do_so_khop=che_do,
-        trang_thai_duyet=TrangThaiDuyet.cho_duyet,
+        # GV nhập thủ công → duyệt ngay + riêng tư (chia sẻ sau khi muốn vào kho chung)
+        trang_thai_duyet=TrangThaiDuyet.da_duyet,
+        pham_vi=PhamVi.rieng_tu,
         nguon=Nguon.gv_nhap,
         nguoi_tao_id=nguoi_tao_id,
         meta=du_lieu.get("meta") or {},

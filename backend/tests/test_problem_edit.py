@@ -77,9 +77,11 @@ def test_gv_tao_cau_hoi_tn4pa(client, db):
     data = r.json()
     assert data["loai_cau"] == "TN4PA"
     assert data["loai_dap_an_nhap"] == "chon_phuong_an"
-    assert data["trang_thai_duyet"] == TrangThaiDuyet.cho_duyet.value
+    # GV tạo → da_duyet + rieng_tu ngay
+    assert data["trang_thai_duyet"] == TrangThaiDuyet.da_duyet.value
+    assert data["pham_vi"] == "rieng_tu"
     assert data["meta"]["dap_an_dung"] == "B"
-    # HS không thấy bài chưa duyệt
+    # HS không thấy bài riêng tư dù đã duyệt
     htok = _token(client, "hs_test")
     assert client.get(f"/api/problems/{data['id']}", headers=_h(htok)).status_code == 404
 
