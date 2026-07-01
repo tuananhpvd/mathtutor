@@ -287,7 +287,7 @@ export default function CauHinh() {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <Button onClick={luuTuDong}>Lưu</Button>
-            <Button variant="ghost" onClick={quetNgay} disabled={dangQuet}>
+            <Button variant="secondary" onClick={quetNgay} disabled={dangQuet}>
               {dangQuet ? 'Đang quét...' : 'Quét ngay'}
             </Button>
             {msgPt && <span className="text-sm text-success">{msgPt}</span>}

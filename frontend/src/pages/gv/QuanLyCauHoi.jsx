@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, Input, Select, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, Input, Select, Table, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
 
@@ -493,7 +493,7 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted">Các bước & gợi ý</p>
-                  <Button size="sm" variant="ghost" onClick={themBuoc}>+ Thêm bước</Button>
+                  <Button size="sm" variant="secondary" onClick={themBuoc}>+ Thêm bước</Button>
                 </div>
                 {bai.solution_steps.map((s, si) => (
                   <div key={si} className="rounded-md border border-border p-3 flex flex-col gap-2">
@@ -717,6 +717,7 @@ const TABS_PHAM_VI = [
 ]
 
 export default function QuanLyCauHoi() {
+  const confirm = useConfirm()
   const [rows, setRows] = useState([])
   const [danhMuc, setDanhMuc] = useState([])
   const [loading, setLoading] = useState(true)
@@ -757,7 +758,7 @@ export default function QuanLyCauHoi() {
     const msg = r.bi_an
       ? `Câu hỏi #${r.id} đang bị ẩn. Xóa vĩnh viễn?`
       : `Xóa câu hỏi #${r.id}?\n\nNếu đã có dữ liệu học sinh, câu hỏi sẽ được ẩn (không xóa vĩnh viễn, HS không thấy nữa).`
-    if (!window.confirm(msg)) return
+    if (!await confirm(msg)) return
     try {
       const res = await api.deleteProblem(r.id)
       if (res?.an) setError('Câu hỏi đã có phiên học của HS — đã ẩn khỏi danh sách HS (dữ liệu được giữ lại).')
@@ -765,7 +766,7 @@ export default function QuanLyCauHoi() {
     } catch (e) { setError(e.message) }
   }
   async function khoiPhuc(r) {
-    if (!window.confirm(`Khôi phục câu hỏi #${r.id}? Câu hỏi sẽ hiển thị lại cho HS.`)) return
+    if (!await confirm(`Khôi phục câu hỏi #${r.id}? Câu hỏi sẽ hiển thị lại cho HS.`)) return
     try { await api.khoiPhucProblem(r.id); await tai() }
     catch (e) { setError(e.message) }
   }
@@ -774,8 +775,13 @@ export default function QuanLyCauHoi() {
     const msg = dangChung
       ? `Thu hồi câu hỏi #${r.id} về riêng tư?\nHọc sinh sẽ không tự chọn được nữa (bài đang làm dở không bị ảnh hưởng).`
       : `Chia sẻ câu hỏi #${r.id} lên kho chung?\nMọi giáo viên đều thấy và học sinh tự chọn được.`
-    if (!window.confirm(msg)) return
+    if (!await confirm(msg)) return
     try { await api.chiaSeProblem(r.id); await tai() }
+    catch (e) { setError(e.message) }
+  }
+  async function huyDuyet(r) {
+    if (!await confirm(`Hủy duyệt câu hỏi #${r.id}?\nCâu hỏi sẽ trở về trạng thái "Chờ duyệt".`)) return
+    try { await api.updateProblem(r.id, { trang_thai_duyet: 'cho_duyet' }); await tai() }
     catch (e) { setError(e.message) }
   }
 
@@ -901,13 +907,16 @@ export default function QuanLyCauHoi() {
                   render: (r) => (
                     <div className="flex justify-end gap-1 flex-wrap">
                       {r.la_cua_toi && (
-                        <Button size="sm" variant="ghost" onClick={() => setSua(r.id)}>Xem / Sửa</Button>
+                        <Button size="sm" variant="secondary" onClick={() => setSua(r.id)}>Xem / Sửa</Button>
                       )}
                       {!r.la_cua_toi && (
-                        <Button size="sm" variant="ghost" onClick={() => setSua(r.id)}>Xem</Button>
+                        <Button size="sm" variant="secondary" onClick={() => setSua(r.id)}>Xem</Button>
                       )}
                       {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
-                        <Button size="sm" variant="ghost" onClick={() => duyet(r)}>Duyệt</Button>
+                        <Button size="sm" variant="success" onClick={() => duyet(r)}>Duyệt</Button>
+                      )}
+                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (
+                        <Button size="sm" variant="warning" onClick={() => huyDuyet(r)}>Hủy duyệt</Button>
                       )}
                       {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (
                         <Button
@@ -921,17 +930,11 @@ export default function QuanLyCauHoi() {
                       {r.la_cua_toi && (
                         r.bi_an ? (
                           <>
-                            <Button size="sm" variant="ghost" onClick={() => khoiPhuc(r)}>
-                              <span className="text-primary">Khôi phục</span>
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => moModalXoaVV(r)} disabled={dangTaiAH}>
-                              <span className="text-danger">Xóa vĩnh viễn</span>
-                            </Button>
+                            <Button size="sm" variant="primary" onClick={() => khoiPhuc(r)}>Khôi phục</Button>
+                            <Button size="sm" variant="danger" onClick={() => moModalXoaVV(r)} disabled={dangTaiAH}>Xóa vĩnh viễn</Button>
                           </>
                         ) : (
-                          <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
-                            <span className="text-danger">Xóa</span>
-                          </Button>
+                          <Button size="sm" variant="danger" onClick={() => xoa(r)}>Xóa</Button>
                         )
                       )}
                     </div>
@@ -993,7 +996,7 @@ export default function QuanLyCauHoi() {
               <span>Tôi hiểu rằng dữ liệu sẽ bị xóa vĩnh viễn và không thể khôi phục</span>
             </label>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => { setModalXoaVV(null); setDaXacNhan(false) }}>
+              <Button variant="secondary" onClick={() => { setModalXoaVV(null); setDaXacNhan(false) }}>
                 Hủy
               </Button>
               <Button

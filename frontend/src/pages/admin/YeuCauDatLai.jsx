@@ -108,10 +108,10 @@ export default function YeuCauDatLai() {
                         </Button>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="danger"
                           onClick={() => { setModal({ yc, hanh_dong: 'tu_choi' }); setGhiChu('') }}
                         >
-                          <span className="text-danger">Từ chối</span>
+                          Từ chối
                         </Button>
                       </div>
                     )}
@@ -148,7 +148,7 @@ export default function YeuCauDatLai() {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setModal(null)}>Hủy</Button>
+              <Button variant="secondary" onClick={() => setModal(null)}>Hủy</Button>
               <Button
                 onClick={xuLy}
                 disabled={dangXuLy}

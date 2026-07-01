@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table, useConfirm } from '../../components/ui'
 import SuaHocSinhModal from '../../components/gv/SuaHocSinhModal'
 
 const FORM_RONG = { ho_ten: '', dang_nhap: '', mat_khau: '', lop_id: '' }
 
 export default function QuanLyHocSinhGV() {
+  const confirm = useConfirm()
   const [rows, setRows] = useState([])
   const [lops, setLops] = useState([])
   const [form, setForm] = useState(FORM_RONG)
@@ -48,7 +49,7 @@ export default function QuanLyHocSinhGV() {
     tai()
   }
   async function xoa(h) {
-    if (!window.confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
+    if (!await confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
     try { await api.gvXoaHocSinh(h.id); tai() } catch (e) { setError(e.message) }
   }
   async function datLai() {
@@ -143,16 +144,12 @@ export default function QuanLyHocSinhGV() {
                 key: 'act', header: '',
                 render: (r) => (
                   <div className="flex justify-end gap-1 flex-wrap">
-                    <Button size="sm" variant="ghost" onClick={() => setSua(r)}>Sửa</Button>
-                    <Button size="sm" variant="ghost" onClick={() => doiTrangThai(r)}>
+                    <Button size="sm" variant="secondary" onClick={() => setSua(r)}>Sửa</Button>
+                    <Button size="sm" variant={r.trang_thai === 'hoat_dong' ? 'warning' : 'success'} onClick={() => doiTrangThai(r)}>
                       {r.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setModalDatLai(r)}>
-                      <span className="text-warning">Đặt lại tiến độ</span>
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
-                      <span className="text-danger">Xóa</span>
-                    </Button>
+                    <Button size="sm" variant="warning" onClick={() => setModalDatLai(r)}>Đặt lại tiến độ</Button>
+                    <Button size="sm" variant="danger" onClick={() => xoa(r)}>Xóa</Button>
                   </div>
                 ),
               },
@@ -183,7 +180,7 @@ export default function QuanLyHocSinhGV() {
             </ul>
             <p className="text-sm text-muted">Cờ theo dõi hành vi vẫn được giữ lại.</p>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setModalDatLai(null)}>Hủy</Button>
+              <Button variant="secondary" onClick={() => setModalDatLai(null)}>Hủy</Button>
               <Button
                 onClick={datLai}
                 disabled={dangDatLai}

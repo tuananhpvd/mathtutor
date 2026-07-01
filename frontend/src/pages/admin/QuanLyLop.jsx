@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from '../../components/ui'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 import ImportHocSinhDialog from '../../components/gv/ImportHocSinhDialog'
 
 export default function QuanLyLop() {
+  const confirm = useConfirm()
   const [lops, setLops] = useState([])
   const [gvList, setGvList] = useState([])
   const [error, setError] = useState('')
@@ -69,7 +70,7 @@ export default function QuanLyLop() {
     } catch (e) { setError(e.message) }
   }
   async function xoaLop(l) {
-    if (!window.confirm(`Xóa lớp "${l.ten}"? Học sinh trong lớp sẽ bị gỡ khỏi lớp.`)) return
+    if (!await confirm(`Xóa lớp "${l.ten}"? Học sinh trong lớp sẽ bị gỡ khỏi lớp.`)) return
     try { await api.adminDeleteLop(l.id); tai() }
     catch (e) { setError(e.message) }
   }
@@ -78,7 +79,7 @@ export default function QuanLyLop() {
     tai()
   }
   async function xoaHs(h) {
-    if (!window.confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
+    if (!await confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
     try { await api.adminDeleteUser(h.id); tai() }
     catch (e) { setError(e.message) }
   }
@@ -137,14 +138,14 @@ export default function QuanLyLop() {
                       <span className="text-muted text-sm"> · GV: {l.gv_ten || '— chưa phân công —'} · {l.so_hoc_sinh} học sinh</span>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setImportHsLop(l)}>
+                      <Button size="sm" variant="secondary" onClick={() => setImportHsLop(l)}>
                         Thêm danh sách học sinh
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setMoRong((m) => ({ ...m, [l.id]: !m[l.id] }))}>
+                      <Button size="sm" variant="secondary" onClick={() => setMoRong((m) => ({ ...m, [l.id]: !m[l.id] }))}>
                         {moRong[l.id] ? 'Ẩn học sinh' : 'Xem học sinh'}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setSuaLop({ id: l.id, ten: l.ten, gv_id: l.gv_id || '' })}>Sửa</Button>
-                      <Button size="sm" variant="ghost" onClick={() => xoaLop(l)}><span className="text-danger">Xóa</span></Button>
+                      <Button size="sm" variant="secondary" onClick={() => setSuaLop({ id: l.id, ten: l.ten, gv_id: l.gv_id || '' })}>Sửa</Button>
+                      <Button size="sm" variant="danger" onClick={() => xoaLop(l)}>Xóa</Button>
                     </div>
                   </div>
                 )}
@@ -162,11 +163,11 @@ export default function QuanLyLop() {
                           </Badge>
                         </div>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => setSuaHs(h)}>Sửa</Button>
-                          <Button size="sm" variant="ghost" onClick={() => doiTrangThaiHs(h)}>
+                          <Button size="sm" variant="secondary" onClick={() => setSuaHs(h)}>Sửa</Button>
+                          <Button size="sm" variant={h.trang_thai === 'hoat_dong' ? 'warning' : 'success'} onClick={() => doiTrangThaiHs(h)}>
                             {h.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'}
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => xoaHs(h)}><span className="text-danger">Xóa</span></Button>
+                          <Button size="sm" variant="danger" onClick={() => xoaHs(h)}>Xóa</Button>
                         </div>
                       </div>
                     ))}

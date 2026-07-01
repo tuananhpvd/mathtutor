@@ -211,7 +211,7 @@ export default function TheoDoiTienBo() {
                     key: 'xem',
                     header: '',
                     render: (r) => (
-                      <Button size="sm" variant="ghost" onClick={() => xemHs(r.hoc_sinh_id)}>
+                      <Button size="sm" variant="secondary" onClick={() => xemHs(r.hoc_sinh_id)}>
                         Xem biểu đồ
                       </Button>
                     ),

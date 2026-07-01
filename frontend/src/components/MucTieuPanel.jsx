@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from './ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from './ui'
 
 const NHAN_LOAI = { tuan: 'Theo tuần', chu_de: 'Theo chủ đề' }
 const NHAN_NGUON = { hs: 'Em tự đặt', gv: 'Thầy/cô đặt', he_thong: 'Gợi ý' }
@@ -22,6 +22,7 @@ function ThanhTienDo({ hien_tai, chi_tieu_so, da_dat }) {
  * Props: taiDs(), taiDeXuat(), taoMt(body), xoaMt(id), tieuDe, phụ đề.
  */
 export default function MucTieuPanel({ taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, phuDe, choPhepThem = true }) {
+  const confirm = useConfirm()
   const [ds, setDs] = useState([])
   const [danhMuc, setDanhMuc] = useState([])
   const [deXuat, setDeXuat] = useState(null)
@@ -86,7 +87,7 @@ export default function MucTieuPanel({ taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, p
   }
 
   async function xoa(mt) {
-    if (!window.confirm('Xóa mục tiêu này?')) return
+    if (!await confirm('Xóa mục tiêu này?')) return
     try { await xoaMt(mt.id); tai() } catch (e) { setLoi(e.message) }
   }
 

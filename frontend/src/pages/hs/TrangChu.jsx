@@ -253,7 +253,7 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                         <span>Bước {b.buoc_hien_tai}</span>
                       </p>
                     </div>
-                    <Button size="sm" onClick={() => onLamTiep(b.session_id)}>
+                    <Button size="sm" variant="warning" onClick={() => onLamTiep(b.session_id)}>
                       Làm tiếp
                     </Button>
                   </div>

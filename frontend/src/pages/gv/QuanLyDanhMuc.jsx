@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Button, Card, CardBody, CardHeader, Input } from '../../components/ui'
+import { Button, Card, CardBody, CardHeader, Input, useConfirm } from '../../components/ui'
 
 function FormInput({ label, value, onChange, placeholder }) {
   return (
@@ -93,6 +93,7 @@ function DangRow({ dang, onXoa, onSua }) {
 }
 
 export default function QuanLyDanhMuc() {
+  const confirm = useConfirm()
   const [danhMuc, setDanhMuc] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -129,7 +130,7 @@ export default function QuanLyDanhMuc() {
   }
 
   async function xoaCD(cd) {
-    if (!window.confirm(`Xóa chuyên đề "${cd.ten}"?`)) return
+    if (!await confirm(`Xóa chuyên đề "${cd.ten}"?`)) return
     try { await api.xoaChuyenDe(cd.id); await tai() }
     catch (e) { setError(e.message) }
   }
@@ -156,7 +157,7 @@ export default function QuanLyDanhMuc() {
   }
 
   async function xoaDang(dang) {
-    if (!window.confirm(`Xóa dạng "${dang.ten}"?`)) return
+    if (!await confirm(`Xóa dạng "${dang.ten}"?`)) return
     try { await api.xoaDang(dang.id); await tai() }
     catch (e) { setError(e.message) }
   }

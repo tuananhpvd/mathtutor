@@ -186,15 +186,15 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
                 </div>
                 <p className="text-sm text-ink line-clamp-3">{renderDe(b.de_bai)}</p>
                 {dangDo ? (
-                  <Button className="w-full mt-1" onClick={() => onLamTiep(tt.session_id)}>
+                  <Button className="w-full mt-1" variant="warning" onClick={() => onLamTiep(tt.session_id)}>
                     Làm tiếp
                   </Button>
                 ) : daXong ? (
-                  <Button className="w-full mt-1" onClick={() => onChon(b.id)}>
+                  <Button className="w-full mt-1" variant="success" onClick={() => onChon(b.id)}>
                     Làm lại
                   </Button>
                 ) : (
-                  <Button className="w-full mt-1" onClick={() => onChon(b.id)}>
+                  <Button className="w-full mt-1" variant="primary" onClick={() => onChon(b.id)}>
                     Bắt đầu
                   </Button>
                 )}

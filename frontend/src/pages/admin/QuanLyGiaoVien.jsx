@@ -92,8 +92,8 @@ export default function QuanLyGiaoVien() {
                       <span className="font-semibold text-ink text-sm">{l.ten}
                         <span className="text-muted font-normal"> · {l.hoc_sinhs.length} học sinh</span>
                       </span>
-                      <Button size="sm" variant="ghost" onClick={() => goPhanCong(l.id)}>
-                        <span className="text-danger">Gỡ phụ trách</span>
+                      <Button size="sm" variant="danger" onClick={() => goPhanCong(l.id)}>
+                        Gỡ phụ trách
                       </Button>
                     </div>
                     {l.hoc_sinhs.length > 0 && (

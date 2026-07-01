@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm', TNDS: 'Đúng/Sai', TLN: 'Tự luận' }
@@ -34,6 +34,7 @@ function renderDeBai(text) {
 }
 
 export default function GiaoNhiemVu() {
+  const confirm = useConfirm()
   const [bais, setBais] = useState([])
   const [hocSinhs, setHocSinhs] = useState([])
   const [lops, setLops] = useState([])
@@ -174,7 +175,7 @@ export default function GiaoNhiemVu() {
   }
 
   async function xoa(nv) {
-    if (!window.confirm(`Xóa nhiệm vụ "${nv.tieu_de}"?`)) return
+    if (!await confirm(`Xóa nhiệm vụ "${nv.tieu_de}"?`)) return
     try { await api.gvXoaNhiemVu(nv.id); taiNhiemVu() } catch (e) { setLoi(e.message) }
   }
 
@@ -434,9 +435,7 @@ export default function GiaoNhiemVu() {
             <div key={nv.id} className="rounded-xl border border-border px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold text-ink">{nv.tieu_de}</span>
-                <Button size="sm" variant="ghost" onClick={() => xoa(nv)}>
-                  <span className="text-danger">Xóa</span>
-                </Button>
+                <Button size="sm" variant="danger" onClick={() => xoa(nv)}>Xóa</Button>
               </div>
               <p className="text-xs text-muted mt-0.5">
                 {nv.so_bai} bài · {nv.so_hs} học sinh · {nv.so_hs_hoan_thanh}/{nv.so_hs} hoàn thành

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table, useConfirm } from '../../components/ui'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 
 export default function QuanLyHocSinh() {
+  const confirm = useConfirm()
   const [rows, setRows] = useState([])
   const [allLop, setAllLop] = useState([])
   const [error, setError] = useState('')
@@ -32,7 +33,7 @@ export default function QuanLyHocSinh() {
     tai()
   }
   async function xoa(h) {
-    if (!window.confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
+    if (!await confirm(`Xóa học sinh "${h.ho_ten}"?`)) return
     try { await api.adminDeleteUser(h.id); tai() }
     catch (e) { setError(e.message) }
   }
@@ -92,13 +93,11 @@ export default function QuanLyHocSinh() {
                 key: 'act', header: '',
                 render: (r) => (
                   <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setSua(r)}>Sửa</Button>
-                    <Button size="sm" variant="ghost" onClick={() => doiTrangThai(r)}>
+                    <Button size="sm" variant="secondary" onClick={() => setSua(r)}>Sửa</Button>
+                    <Button size="sm" variant={r.trang_thai === 'hoat_dong' ? 'warning' : 'success'} onClick={() => doiTrangThai(r)}>
                       {r.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
-                      <span className="text-danger">Xóa</span>
-                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => xoa(r)}>Xóa</Button>
                   </div>
                 ),
               },

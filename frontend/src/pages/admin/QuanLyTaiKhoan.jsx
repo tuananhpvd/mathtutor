@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table, useConfirm } from '../../components/ui'
 import ImportTaiKhoanDialog from '../../components/admin/ImportTaiKhoanDialog'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
 
@@ -8,6 +8,7 @@ const FORM_RONG = { ho_ten: '', dang_nhap: '', mat_khau: '', vai_tro: 'hs' }
 const NHAN_VAI = { admin: 'Quản trị', gv: 'Giáo viên', hs: 'Học sinh' }
 
 export default function QuanLyTaiKhoan() {
+  const confirm = useConfirm()
   const [rows, setRows] = useState([])
   const [form, setForm] = useState(FORM_RONG)
   const [error, setError] = useState('')
@@ -48,7 +49,7 @@ export default function QuanLyTaiKhoan() {
     tai()
   }
   async function xoa(u) {
-    if (!window.confirm(`Xóa tài khoản "${u.ho_ten}"? Không hoàn tác.`)) return
+    if (!await confirm(`Xóa tài khoản "${u.ho_ten}"? Không hoàn tác.`)) return
     try { await api.adminDeleteUser(u.id); tai() }
     catch (e) { setError(e.message) }
   }
@@ -131,13 +132,11 @@ export default function QuanLyTaiKhoan() {
                 render: (r) =>
                   r.vai_tro === 'admin' ? <span className="text-muted">—</span> : (
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setSua(r)}>Sửa</Button>
-                      <Button size="sm" variant="ghost" onClick={() => doiTrangThai(r)}>
+                      <Button size="sm" variant="secondary" onClick={() => setSua(r)}>Sửa</Button>
+                      <Button size="sm" variant={r.trang_thai === 'hoat_dong' ? 'warning' : 'success'} onClick={() => doiTrangThai(r)}>
                         {r.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => xoa(r)}>
-                        <span className="text-danger">Xóa</span>
-                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => xoa(r)}>Xóa</Button>
                     </div>
                   ),
               },

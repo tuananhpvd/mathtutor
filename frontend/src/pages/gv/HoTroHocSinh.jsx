@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 import MixedChatInput from '../../components/MixedChatInput'
 
@@ -52,6 +52,7 @@ function PhanTrang({ trang, tongTrang, onChange }) {
 }
 
 export default function HoTroHocSinh() {
+  const confirm = useConfirm()
   const [ds, setDs] = useState([])
   const [loading, setLoading] = useState(true)
   const [traLoiId, setTraLoiId] = useState(null)
@@ -98,7 +99,7 @@ export default function HoTroHocSinh() {
   }
 
   async function xoa(yc) {
-    if (!window.confirm(`Xóa yêu cầu trợ giúp của ${yc.hoc_sinh_ten}?`)) return
+    if (!await confirm(`Xóa yêu cầu trợ giúp của ${yc.hoc_sinh_ten}?`)) return
     setDangXoa(yc.id)
     try {
       await api.gvXoaTroGiup(yc.id)
