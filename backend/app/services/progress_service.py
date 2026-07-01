@@ -167,6 +167,48 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
         for dmap in [theo_dang_map[cd]]
     ]
 
+    # ── Nhiệm vụ hoàn thành ──────────────────────────────────────────────────
+    from app.models.nhiem_vu import NhiemVuBai, NhiemVuHocSinh
+
+    done_pids: set[int] = {
+        pid for pid, ss in sess_by_pid.items()
+        if any(s.trang_thai == TrangThaiSession.hoan_thanh for s in ss)
+    }
+    nv_hs_rows = (
+        db.query(NhiemVuHocSinh)
+        .filter(NhiemVuHocSinh.hoc_sinh_id == hoc_sinh_id)
+        .all()
+    )
+    nv_ids = [x.nhiem_vu_id for x in nv_hs_rows]
+    so_nhiem_vu = len(nv_ids)
+    so_nhiem_vu_hoan_thanh = 0
+    if nv_ids:
+        bai_rows = db.query(NhiemVuBai).filter(NhiemVuBai.nhiem_vu_id.in_(nv_ids)).all()
+        bai_by_nv: dict[int, list[int]] = {}
+        for b in bai_rows:
+            bai_by_nv.setdefault(b.nhiem_vu_id, []).append(b.problem_id)
+        for nid in nv_ids:
+            pids = bai_by_nv.get(nid, [])
+            if pids and all(p in done_pids for p in pids):
+                so_nhiem_vu_hoan_thanh += 1
+
+    # ── Mục tiêu đạt ─────────────────────────────────────────────────────────
+    from app.models.muc_tieu import MucTieu
+    from app.services.muc_tieu_service import _ds_hoan_thanh, _tien_do
+
+    muc_tieu_list = (
+        db.query(MucTieu)
+        .filter(MucTieu.hoc_sinh_id == hoc_sinh_id, MucTieu.da_huy == False)  # noqa: E712
+        .all()
+    )
+    so_muc_tieu = len(muc_tieu_list)
+    so_muc_tieu_dat = 0
+    if muc_tieu_list:
+        comp = _ds_hoan_thanh(db, hoc_sinh_id)
+        so_muc_tieu_dat = sum(
+            1 for mt in muc_tieu_list if _tien_do(mt, comp) >= mt.chi_tieu_so
+        )
+
     return {
         "tong_quan": tong_quan,
         "thoi_gian": {
@@ -176,6 +218,8 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
         },
         "theo_do_kho": [theo_kho["de"], theo_kho["tb"], theo_kho["kho"]],
         "theo_dang": theo_dang,
+        "nhiem_vu": {"tong": so_nhiem_vu, "hoan_thanh": so_nhiem_vu_hoan_thanh},
+        "muc_tieu": {"tong": so_muc_tieu, "dat": so_muc_tieu_dat},
     }
 
 

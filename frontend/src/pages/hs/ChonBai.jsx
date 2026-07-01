@@ -97,7 +97,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <h2 className="text-xl font-semibold text-ink">Chọn bài luyện</h2>
+      <h2 className="text-xl font-semibold text-black">Chọn bài luyện</h2>
 
       {/* Bộ lọc theo cây danh mục */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -116,7 +116,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
           onChange={(e) => setFDangId(e.target.value)}
           disabled={!fChuyenDeId || dangList.length === 0}
           options={[
-            { value: '', label: fChuyenDeId ? 'Tất cả dạng' : '— chọn chuyên đề trước —' },
+            { value: '', label: fChuyenDeId ? 'Tất cả dạng' : 'Chọn chuyên đề trước' },
             ...dangList.map((d) => ({ value: String(d.id), label: d.ten })),
           ]}
         />

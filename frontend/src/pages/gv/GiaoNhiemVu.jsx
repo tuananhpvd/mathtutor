@@ -174,9 +174,69 @@ export default function GiaoNhiemVu() {
     }
   }
 
+  const [xemNv, setXemNv] = useState(null) // nv.id đang mở Xem
+  // suaNv: {id, tieu_de, mo_ta, han_chot, chonBai: Set<number>, openCdSua, openDangSua}
+  const [suaNv, setSuaNv] = useState(null)
+  const [dangLuuSua, setDangLuuSua] = useState(false)
+
+  function moSua(nv) {
+    if (suaNv?.id === nv.id) { setSuaNv(null); return }
+    setSuaNv({
+      id: nv.id,
+      tieu_de: nv.tieu_de,
+      mo_ta: nv.mo_ta || '',
+      han_chot: nv.han_chot ? nv.han_chot.slice(0, 10) : '',
+      chonBai: new Set((nv.bai || []).map((b) => b.id)),
+      openCd: new Set(),
+      openDang: new Set(),
+    })
+  }
+
+  function toggleSuaSet(key, field) {
+    setSuaNv((s) => {
+      const next = new Set(s[field])
+      next.has(key) ? next.delete(key) : next.add(key)
+      return { ...s, [field]: next }
+    })
+  }
+  function toggleSuaBai(id) {
+    setSuaNv((s) => {
+      const next = new Set(s.chonBai)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return { ...s, chonBai: next }
+    })
+  }
+  function chonNhomSua(items) {
+    setSuaNv((s) => {
+      const allSel = items.every((b) => s.chonBai.has(b.id))
+      const next = new Set(s.chonBai)
+      allSel ? items.forEach((b) => next.delete(b.id)) : items.forEach((b) => next.add(b.id))
+      return { ...s, chonBai: next }
+    })
+  }
+
   async function xoa(nv) {
     if (!await confirm(`Xóa nhiệm vụ "${nv.tieu_de}"?`)) return
     try { await api.gvXoaNhiemVu(nv.id); taiNhiemVu() } catch (e) { setLoi(e.message) }
+  }
+
+  async function luuSua() {
+    if (!suaNv) return
+    if (suaNv.chonBai.size === 0) { setLoi('Cần chọn ít nhất 1 bài'); return }
+    setDangLuuSua(true)
+    try {
+      await api.gvCapNhatNhiemVu(suaNv.id, {
+        tieu_de: suaNv.tieu_de,
+        mo_ta: suaNv.mo_ta || null,
+        han_chot: suaNv.han_chot || null,
+        problem_ids: [...suaNv.chonBai],
+      })
+      setSuaNv(null)
+      taiNhiemVu()
+      setOk('Đã lưu thay đổi nhiệm vụ.')
+      setTimeout(() => setOk(''), 3000)
+    } catch (e) { setLoi(e.message) }
+    finally { setDangLuuSua(false) }
   }
 
   return (
@@ -432,25 +492,210 @@ export default function GiaoNhiemVu() {
           {nhiemVus.length === 0 ? (
             <p className="text-sm text-muted">Chưa giao nhiệm vụ nào.</p>
           ) : nhiemVus.map((nv) => (
-            <div key={nv.id} className="rounded-xl border border-border px-4 py-3">
-              <div className="flex items-center justify-between gap-2">
+            <div key={nv.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
+              {/* Tiêu đề + nút */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="font-semibold text-ink">{nv.tieu_de}</span>
-                <Button size="sm" variant="danger" onClick={() => xoa(nv)}>Xóa</Button>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" variant="secondary"
+                    onClick={() => { setXemNv(xemNv === nv.id ? null : nv.id); setSuaNv(null) }}>
+                    {xemNv === nv.id ? 'Ẩn' : 'Xem'}
+                  </Button>
+                  <Button size="sm" variant="warning"
+                    onClick={() => { moSua(nv); setXemNv(null) }}>
+                    {suaNv?.id === nv.id ? 'Hủy sửa' : 'Sửa'}
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={() => xoa(nv)}>Xóa</Button>
+                </div>
               </div>
-              <p className="text-xs text-muted mt-0.5">
+
+              {/* Tóm tắt */}
+              <p className="text-xs text-muted">
                 {nv.so_bai} bài · {nv.so_hs} học sinh · {nv.so_hs_hoan_thanh}/{nv.so_hs} hoàn thành
                 {nv.han_chot ? ` · hạn ${new Date(nv.han_chot).toLocaleDateString('vi-VN')}` : ''}
+                {nv.tao_luc ? ` · giao ${new Date(nv.tao_luc).toLocaleDateString('vi-VN')}` : ''}
               </p>
-              {nv.hoc_sinh.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {nv.hoc_sinh.map((h, i) => {
-                    const xong = h.tong_bai > 0 && h.so_hoan_thanh >= h.tong_bai
-                    return (
-                      <Badge key={i} tone={xong ? 'success' : 'warning'}>
-                        {h.ho_ten}: {h.so_hoan_thanh}/{h.tong_bai}
-                      </Badge>
-                    )
-                  })}
+
+              {/* === XEM CHI TIẾT === */}
+              {xemNv === nv.id && (
+                <div className="flex flex-col gap-3 border-t border-border pt-3">
+                  {/* Tiến độ học sinh */}
+                  {nv.hoc_sinh.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-ink mb-1.5">Tiến độ học sinh</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {nv.hoc_sinh.map((h, i) => {
+                          const xong = h.tong_bai > 0 && h.so_hoan_thanh >= h.tong_bai
+                          return (
+                            <Badge key={i} tone={xong ? 'success' : 'warning'}>
+                              {h.ho_ten}: {h.so_hoan_thanh}/{h.tong_bai}
+                            </Badge>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {/* Danh sách câu hỏi */}
+                  <div>
+                    <p className="text-xs font-semibold text-ink mb-1.5">Câu hỏi trong nhiệm vụ ({nv.so_bai})</p>
+                    <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+                      {(nv.bai || []).map((b) => (
+                        <div key={b.id} className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1.5 mb-1.5">
+                            <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
+                            <Badge tone={DO_KHO_TONE[b.do_kho] || 'primary'}>{DO_KHO_LABEL[b.do_kho] || b.do_kho}</Badge>
+                            <span className="text-xs text-muted">{b.chuyen_de}{b.dang_ten ? ` › ${b.dang_ten}` : ''}</span>
+                          </div>
+                          <p className="text-sm text-ink leading-relaxed">{renderDeBai(b.de_bai)}</p>
+                          {b.loai_cau === 'TN4PA' && b.meta?.phuong_an && (
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                              {Object.entries(b.meta.phuong_an).map(([k, v]) => (
+                                <span key={k} className="text-xs text-ink">
+                                  <span className="font-semibold text-primary">{k}.</span> {renderDeBai(v)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {b.loai_cau === 'TNDS' && b.meta?.y && (
+                            <div className="mt-2 flex flex-col gap-0.5">
+                              {b.meta.y.map((item) => (
+                                <span key={item.ky_hieu} className="text-xs text-ink">
+                                  <span className="font-semibold text-primary">{item.ky_hieu})</span> {renderDeBai(item.noi_dung_y)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === SỬA === */}
+              {suaNv?.id === nv.id && (
+                <div className="flex flex-col gap-3 border-t border-border pt-3">
+                  {/* Form tiêu đề/mô tả/hạn */}
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    <Input label="Tiêu đề" value={suaNv.tieu_de}
+                      onChange={(e) => setSuaNv((s) => ({ ...s, tieu_de: e.target.value }))} />
+                    <Input label="Mô tả" value={suaNv.mo_ta}
+                      onChange={(e) => setSuaNv((s) => ({ ...s, mo_ta: e.target.value }))} />
+                    <Input label="Hạn nộp" type="date" value={suaNv.han_chot}
+                      onChange={(e) => setSuaNv((s) => ({ ...s, han_chot: e.target.value }))} />
+                  </div>
+
+                  {/* Accordion chọn bài (dùng lại grouped + baiLoc) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-xs font-semibold text-ink">
+                        Câu hỏi <span className="text-primary">({suaNv.chonBai.size} đã chọn)</span>
+                      </p>
+                      <div className="flex gap-2 items-center">
+                        {LOAI_FILTER.slice(1).map(({ value, label }) => (
+                          <button key={value} onClick={() => setFilterLoai(filterLoai === value ? '' : value)}
+                            className={`px-2 py-0.5 rounded-full text-xs font-semibold border transition-colors ${
+                              filterLoai === value ? 'bg-primary text-white border-primary' : 'bg-surface text-ink border-border hover:border-primary'
+                            }`}>{label}</button>
+                        ))}
+                        <input value={qBai} onChange={(e) => setQBai(e.target.value)}
+                          placeholder="Tìm bài..."
+                          className="rounded-md border border-border px-2 py-0.5 text-xs w-28 focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                      </div>
+                    </div>
+                    <div className="overflow-y-auto max-h-[40vh] rounded-lg border border-border flex flex-col divide-y divide-border">
+                      {Object.keys(grouped).length === 0 ? (
+                        <p className="text-sm text-muted px-3 py-4 text-center">Không tìm thấy câu hỏi.</p>
+                      ) : Object.entries(grouped).map(([cd, dangs]) => {
+                        const allInCd = Object.values(dangs).flat()
+                        const soChon = allInCd.filter((b) => suaNv.chonBai.has(b.id)).length
+                        const isOpen = suaNv.openCd.has(cd)
+                        return (
+                          <div key={cd}>
+                            <div className="flex items-center gap-2 px-3 py-2 bg-primary-soft cursor-pointer select-none"
+                              onClick={() => toggleSuaSet(cd, 'openCd')}>
+                              <span className="text-[10px] text-primary">{isOpen ? '▼' : '▶'}</span>
+                              <span className="text-sm font-bold text-primary flex-1 truncate">{cd}</span>
+                              <span className="text-xs text-muted shrink-0">
+                                {soChon > 0 ? <><b className="text-primary">{soChon}</b>/</> : ''}{allInCd.length}
+                              </span>
+                              <button onClick={(e) => { e.stopPropagation(); chonNhomSua(allInCd) }}
+                                className="text-[11px] text-primary hover:underline px-1 font-medium shrink-0">
+                                {allInCd.every((b) => suaNv.chonBai.has(b.id)) ? 'Bỏ chọn' : 'Chọn tất cả'}
+                              </button>
+                            </div>
+                            {isOpen && Object.entries(dangs).map(([dang, items]) => {
+                              const dKey = `${cd}::${dang}`
+                              const isOpenD = suaNv.openDang.has(dKey)
+                              const soChonD = items.filter((b) => suaNv.chonBai.has(b.id)).length
+                              return (
+                                <div key={dKey} className="border-t border-border/60">
+                                  <div className="flex items-center gap-2 pl-6 pr-3 py-1.5 bg-surface-2 cursor-pointer select-none"
+                                    onClick={() => toggleSuaSet(dKey, 'openDang')}>
+                                    <span className="text-[10px] text-muted">{isOpenD ? '▼' : '▶'}</span>
+                                    <span className="text-sm font-semibold text-ink flex-1 truncate">{dang}</span>
+                                    <span className="text-xs text-muted shrink-0">
+                                      {soChonD > 0 ? <><b className="text-primary">{soChonD}</b>/</> : ''}{items.length}
+                                    </span>
+                                    <button onClick={(e) => { e.stopPropagation(); chonNhomSua(items) }}
+                                      className="text-[11px] text-primary hover:underline px-1 font-medium shrink-0">
+                                      {items.every((b) => suaNv.chonBai.has(b.id)) ? 'Bỏ chọn' : 'Chọn tất cả'}
+                                    </button>
+                                  </div>
+                                  {isOpenD && (
+                                    <div className="divide-y divide-border/40">
+                                      {items.map((b) => (
+                                        <label key={b.id}
+                                          className={`flex gap-3 pl-8 pr-4 py-2.5 cursor-pointer hover:bg-surface-2 ${
+                                            suaNv.chonBai.has(b.id) ? 'bg-primary-soft/20' : ''
+                                          }`}>
+                                          <input type="checkbox" checked={suaNv.chonBai.has(b.id)}
+                                            onChange={() => toggleSuaBai(b.id)}
+                                            className="mt-0.5 shrink-0 accent-[var(--color-primary)]" />
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex flex-wrap gap-1.5 mb-1">
+                                              <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
+                                              <Badge tone={DO_KHO_TONE[b.do_kho] || 'primary'}>{DO_KHO_LABEL[b.do_kho] || b.do_kho}</Badge>
+                                            </div>
+                                            <p className="text-sm text-ink leading-relaxed">{renderDeBai(b.de_bai)}</p>
+                                            {b.loai_cau === 'TN4PA' && b.meta?.phuong_an && (
+                                              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5">
+                                                {Object.entries(b.meta.phuong_an).map(([k, v]) => (
+                                                  <span key={k} className="text-xs text-ink">
+                                                    <span className="font-semibold text-primary">{k}.</span> {renderDeBai(v)}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+                                            {b.loai_cau === 'TNDS' && b.meta?.y && (
+                                              <div className="mt-1.5 flex flex-col gap-0.5">
+                                                {b.meta.y.map((item) => (
+                                                  <span key={item.ky_hieu} className="text-xs text-ink">
+                                                    <span className="font-semibold text-primary">{item.ky_hieu})</span> {renderDeBai(item.noi_dung_y)}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="primary" onClick={luuSua} disabled={dangLuuSua}>
+                      {dangLuuSua ? 'Đang lưu...' : 'Lưu thay đổi'}
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setSuaNv(null)}>Hủy</Button>
+                  </div>
                 </div>
               )}
             </div>

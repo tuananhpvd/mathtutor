@@ -38,6 +38,14 @@ def de_xuat(hoc_sinh_id: int, current_user: CurrentUser, db: Session = Depends(g
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.patch("/{nv_id}", dependencies=_GV)
+def cap_nhat(nv_id: int, body: dict, current_user: CurrentUser, db: Session = Depends(get_db)):
+    try:
+        return nhiem_vu_service.cap_nhat_nhiem_vu(db, current_user.id, nv_id, body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.delete("/{nv_id}", dependencies=_GV)
 def xoa(nv_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:

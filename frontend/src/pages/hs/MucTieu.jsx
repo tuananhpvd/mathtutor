@@ -5,8 +5,8 @@ export default function MucTieu() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-semibold text-ink">Mục tiêu của em</h2>
-        <p className="text-muted text-sm mt-1">
+        <h2 className="text-xl font-semibold text-black">Mục tiêu của em</h2>
+        <p className="text-black/90 text-sm mt-1">
           Đặt mục tiêu theo tuần hoặc theo chủ đề để luyện tập có định hướng và theo dõi tiến bộ.
         </p>
       </div>

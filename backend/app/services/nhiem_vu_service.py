@@ -162,9 +162,24 @@ def danh_sach_gv(db: Session, gv_id: int) -> list[dict]:
         for u in db.query(User).filter(User.id.in_({h.hoc_sinh_id for h in hs_rows})).all()
     }
 
+    # Batch-load tất cả Problem để trả chi tiết bài
+    all_pids = {pid for pids in bai_by_nv.values() for pid in pids}
+    problems_map = (
+        {p.id: p for p in db.query(Problem).filter(Problem.id.in_(all_pids)).all()}
+        if all_pids else {}
+    )
+
+    def _meta_safe(p: Problem) -> dict:
+        if p.loai_cau.value == "TN4PA":
+            return {"phuong_an": (p.meta or {}).get("phuong_an", {})}
+        if p.loai_cau.value == "TNDS":
+            return {"y": [{"ky_hieu": y.get("ky_hieu", ""), "noi_dung_y": y.get("noi_dung_y", "")}
+                          for y in (p.meta or {}).get("y", [])]}
+        return {}
+
     out = []
     for nv in nhiem_vus:
-        pids = list(set(bai_by_nv.get(nv.id, [])))
+        pids = list(dict.fromkeys(bai_by_nv.get(nv.id, [])))
         hids = hs_by_nv.get(nv.id, [])
         hs_prog = []
         so_xong_het = 0
@@ -174,12 +189,24 @@ def danh_sach_gv(db: Session, gv_id: int) -> list[dict]:
             if pids and n == len(pids):
                 so_xong_het += 1
             hs_prog.append({"ho_ten": hs_ten.get(hid), "so_hoan_thanh": n, "tong_bai": len(pids)})
+        bai_detail = []
+        for pid in pids:
+            p = problems_map.get(pid)
+            if p:
+                bai_detail.append({
+                    "id": p.id, "chuyen_de": p.chuyen_de,
+                    "dang_ten": p.dang.ten if p.dang else None,
+                    "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
+                    "de_bai": p.de_bai, "meta": _meta_safe(p),
+                    "pham_vi": p.pham_vi.value,
+                })
         out.append({
             "id": nv.id, "tieu_de": nv.tieu_de, "mo_ta": nv.mo_ta,
             "han_chot": nv.han_chot.isoformat() if nv.han_chot else None,
             "tao_luc": nv.tao_luc.isoformat() if nv.tao_luc else None,
             "so_bai": len(pids), "so_hs": len(hids),
             "so_hs_hoan_thanh": so_xong_het, "hoc_sinh": hs_prog,
+            "bai": bai_detail,
         })
     return out
 
@@ -222,6 +249,7 @@ def danh_sach_hs(db: Session, hs_id: int) -> list[dict]:
                 "problem_id": pid, "chuyen_de": p.chuyen_de,
                 "dang_ten": p.dang.ten if p.dang else None,
                 "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
+                "de_bai": p.de_bai,
                 "da_hoan_thanh": pid in done,
             })
         so_ht = sum(1 for b in bai if b["da_hoan_thanh"])
@@ -236,6 +264,41 @@ def danh_sach_hs(db: Session, hs_id: int) -> list[dict]:
     out.sort(key=lambda x: x["tao_luc"] or "", reverse=True)
     out.sort(key=lambda x: x["tong_bai"] > 0 and x["so_hoan_thanh"] >= x["tong_bai"])
     return out
+
+
+def cap_nhat_nhiem_vu(db: Session, gv_id: int, nv_id: int, data: dict) -> dict:
+    nv = db.get(NhiemVu, nv_id)
+    if nv is None or nv.gv_id != gv_id:
+        raise ValueError("Nhiệm vụ không tồn tại hoặc không thuộc quyền của bạn")
+    if "tieu_de" in data:
+        tieu_de = (data["tieu_de"] or "").strip()
+        if not tieu_de:
+            raise ValueError("Tiêu đề không được để trống")
+        nv.tieu_de = tieu_de
+    if "mo_ta" in data:
+        nv.mo_ta = (data["mo_ta"] or "").strip() or None
+    if "han_chot" in data:
+        from datetime import datetime
+        v = data["han_chot"]
+        nv.han_chot = datetime.fromisoformat(v) if v else None
+    if "problem_ids" in data:
+        new_pids = list(dict.fromkeys(data["problem_ids"] or []))
+        if not new_pids:
+            raise ValueError("Cần chọn ít nhất 1 bài")
+        ps = db.query(Problem).filter(Problem.id.in_(new_pids)).all()
+        if len(ps) != len(new_pids):
+            raise ValueError("Có bài không tồn tại")
+        for p in ps:
+            if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
+                raise ValueError("Chỉ giao được bài đã duyệt")
+            if p.pham_vi == PhamVi.rieng_tu and p.nguoi_tao_id != gv_id:
+                raise ValueError(f"Câu hỏi #{p.id} là riêng tư — chỉ người tạo mới được giao")
+        db.query(NhiemVuBai).filter(NhiemVuBai.nhiem_vu_id == nv_id).delete()
+        for pid in new_pids:
+            db.add(NhiemVuBai(nhiem_vu_id=nv_id, problem_id=pid))
+    db.commit()
+    return {"id": nv.id, "tieu_de": nv.tieu_de, "mo_ta": nv.mo_ta,
+            "han_chot": nv.han_chot.isoformat() if nv.han_chot else None}
 
 
 def xoa_nhiem_vu(db: Session, gv_id: int, nv_id: int) -> None:

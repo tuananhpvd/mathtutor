@@ -66,6 +66,74 @@ function HangTienDo({ ten, r }) {
   )
 }
 
+const MUC_CFG = {
+  de:  { ten: 'Dễ',         bg: 'bg-success-soft', ring: 'var(--color-success)', txt: 'text-success' },
+  tb:  { ten: 'Trung bình', bg: 'bg-warning-soft', ring: 'var(--color-warning)', txt: 'text-warning' },
+  kho: { ten: 'Khó',        bg: 'bg-danger-soft',  ring: 'var(--color-danger)',  txt: 'text-danger'  },
+}
+
+function BieuDoPie({ r, size = 110, stroke = 13 }) {
+  const radius = (size - stroke) / 2
+  const circ = 2 * Math.PI * radius
+  const parts = [
+    { n: r.hoan_thanh, color: 'var(--color-success)' },
+    { n: r.dang_lam,   color: 'var(--color-warning)' },
+    { n: r.chua_lam,   color: 'var(--color-danger)'  },
+  ]
+  let cum = 0
+  const segs = parts.map(({ n, color }) => {
+    const len = r.tong > 0 ? (n / r.tong) * circ : 0
+    const seg = { len, offset: cum, color }
+    cum += len
+    return seg
+  })
+  const htPct = pct(r.hoan_thanh, r.tong)
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke="var(--color-surface-2)" strokeWidth={stroke} />
+        {segs.map((s, i) => s.len > 0.1 && (
+          <circle key={i} cx={size / 2} cy={size / 2} r={radius} fill="none"
+            stroke={s.color} strokeWidth={stroke}
+            strokeDasharray={`${s.len} ${circ - s.len}`}
+            strokeDashoffset={-s.offset}
+            style={{ transition: 'stroke-dashoffset .6s ease' }} />
+        ))}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none gap-0.5">
+        <span className="text-[22px] font-extrabold text-ink">{htPct}%</span>
+        <span className="text-[9px] text-muted">hoàn thành</span>
+      </div>
+    </div>
+  )
+}
+
+function TheMucDo({ r, size }) {
+  const cfg = MUC_CFG[r.do_kho] || { ten: r.ten, bg: 'bg-surface-2', ring: 'var(--color-primary)', txt: 'text-primary' }
+  return (
+    <div className={`rounded-2xl ${cfg.bg} px-3 py-4 flex flex-col items-center gap-3`}>
+      <p className={`text-xs font-bold uppercase tracking-widest ${cfg.txt}`}>{cfg.ten}</p>
+      <BieuDoPie r={r} size={size} />
+      <div className="w-full flex flex-col gap-1">
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success inline-block" />Hoàn thành</span>
+          <b className="text-ink">{r.hoan_thanh}</b>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning inline-block" />Đang dở</span>
+          <b className="text-ink">{r.dang_lam}</b>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger inline-block" />Chưa làm</span>
+          <b className="text-ink">{r.chua_lam}</b>
+        </div>
+        <p className="text-center text-[10px] text-muted mt-0.5">Tổng {r.tong} bài</p>
+      </div>
+    </div>
+  )
+}
+
 function TheSo({ icon, label, value, tone = 'primary' }) {
   const toneCls = {
     primary: 'text-primary bg-primary-soft',
@@ -127,22 +195,22 @@ export default function ThongKeTienDo({ tk }) {
         </div>
       </Card>
 
-      {/* 2) THEO THỜI GIAN (trái) + THEO MỨC ĐỘ (phải) — 2 cột bằng chiều cao */}
+      {/* 2) THEO THỜI GIAN (trái) + THEO MỨC ĐỘ (phải) — 2 cột cao bằng nhau */}
       <div className="grid lg:grid-cols-2 gap-6 items-stretch">
         <Card className="h-full flex flex-col">
           <CardHeader title="Theo thời gian" subtitle="Thời gian hoàn thành bài theo mức độ" />
-          <CardBody className="flex flex-col gap-4 flex-1">
+          <CardBody className="flex flex-col gap-3 flex-1">
             <TheSo icon="⏱️" label="Tổng thời gian làm bài"
               value={dinhDangThoiGian(tg.tong_thoi_gian_giay)} tone="primary" />
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {MUC.map(([k, ten]) => (
-                <div key={k} className="rounded-lg border border-border p-4">
-                  <p className="text-sm font-semibold text-ink mb-2">{ten}</p>
+                <div key={k} className="rounded-lg border border-border px-3 py-2.5">
+                  <p className="text-sm font-semibold text-ink mb-1">{ten}</p>
                   <div className="flex items-center justify-between text-sm">
                     <span className="inline-flex items-center gap-1 text-success">⚡ Nhanh nhất</span>
                     <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '—'}</b>
                   </div>
-                  <div className="flex items-center justify-between text-sm mt-1">
+                  <div className="flex items-center justify-between text-sm mt-0.5">
                     <span className="inline-flex items-center gap-1 text-danger">🐢 Chậm nhất</span>
                     <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '—'}</b>
                   </div>
@@ -153,11 +221,13 @@ export default function ThongKeTienDo({ tk }) {
         </Card>
 
         <Card className="h-full flex flex-col">
-          <CardHeader title="Theo mức độ" subtitle="Tiến độ từng mức độ" />
-          <CardBody className="flex-1">
-            {tk.theo_do_kho.map((r) => (
-              <HangTienDo key={r.do_kho} ten={r.ten} r={r} />
-            ))}
+          <CardHeader title="Theo mức độ" subtitle="Tỉ lệ hoàn thành từng mức" />
+          <CardBody className="flex-1 flex items-center py-6">
+            <div className="grid grid-cols-3 gap-3 w-full">
+              {tk.theo_do_kho.map((r) => (
+                <TheMucDo key={r.do_kho} r={r} size={128} />
+              ))}
+            </div>
           </CardBody>
         </Card>
       </div>

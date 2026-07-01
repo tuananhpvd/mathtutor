@@ -43,6 +43,17 @@ export default function MucTieuPanel({ taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, p
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const dsSapXep = useMemo(() => {
+    const chuaDat = ds.filter((mt) => !mt.da_dat).sort((a, b) => {
+      if (!a.han && !b.han) return 0
+      if (!a.han) return 1
+      if (!b.han) return -1
+      return new Date(a.han) - new Date(b.han)
+    })
+    const daDat = ds.filter((mt) => mt.da_dat)
+    return [...chuaDat, ...daDat]
+  }, [ds])
+
   const dangOptions = useMemo(() => {
     const opts = [{ value: '', label: '— Chọn dạng —' }]
     danhMuc.forEach((cd) =>
@@ -146,7 +157,7 @@ export default function MucTieuPanel({ taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, p
         {/* Danh sách */}
         {ds.length === 0 ? (
           <p className="text-sm text-muted">Chưa có mục tiêu nào.</p>
-        ) : ds.map((mt) => (
+        ) : dsSapXep.map((mt) => (
           <div key={mt.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

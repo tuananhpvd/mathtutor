@@ -138,10 +138,22 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
     if p is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài")
     if current_user.vai_tro == VaiTro.hs:
-        if (p.trang_thai_duyet != TrangThaiDuyet.da_duyet
-                or p.bi_an
-                or p.pham_vi == PhamVi.rieng_tu):
+        if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
             raise HTTPException(status_code=404, detail="Không tìm thấy bài")
+        if p.pham_vi == PhamVi.rieng_tu:
+            # Bài riêng tư: HS chỉ được truy cập nếu bài thuộc nhiệm vụ GV giao cho họ
+            from app.models.nhiem_vu import NhiemVuBai, NhiemVuHocSinh
+            assigned = (
+                db.query(NhiemVuBai)
+                .join(NhiemVuHocSinh, NhiemVuBai.nhiem_vu_id == NhiemVuHocSinh.nhiem_vu_id)
+                .filter(
+                    NhiemVuBai.problem_id == problem_id,
+                    NhiemVuHocSinh.hoc_sinh_id == current_user.id,
+                )
+                .first()
+            )
+            if not assigned:
+                raise HTTPException(status_code=404, detail="Không tìm thấy bài")
         return _strip_answers(p)
     return _problem_full(p)
 

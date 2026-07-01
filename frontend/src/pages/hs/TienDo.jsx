@@ -26,7 +26,7 @@ export default function TienDo({ onLuyenDang }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-2xl font-bold text-ink">Tiến độ học tập</h2>
+      <h2 className="text-2xl font-bold text-black">Tiến độ học tập</h2>
       <PhanTichNangLuc pt={pt} vaiTro="hs" onCapNhat={capNhatAi} dangCapNhat={dangCapNhat}
         onLuyen={onLuyenDang} />
       <ThongKeTienDo tk={tk} />

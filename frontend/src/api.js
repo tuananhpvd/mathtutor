@@ -162,6 +162,7 @@ export const api = {
   gvNhiemVu: () => request('/nhiem-vu/gv'),
   gvDeXuatNhiemVu: (hoc_sinh_id) => request(`/nhiem-vu/de-xuat?hoc_sinh_id=${hoc_sinh_id}`),
   gvXoaNhiemVu: (id) => request(`/nhiem-vu/${id}`, { method: 'DELETE' }),
+  gvCapNhatNhiemVu: (id, body) => request(`/nhiem-vu/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   hsNhiemVu: () => request('/nhiem-vu/hs'),
 
   // Chuỗi ngày học + cột mốc (C1)
