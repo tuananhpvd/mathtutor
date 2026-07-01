@@ -7,6 +7,262 @@ import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
 import MucTieuPanel from '../../components/MucTieuPanel'
 
+/* ── Tính thống kê lớp từ danh sách HS ───────────────────────────── */
+function tinhThongKeLop(hsLop) {
+  const coData = hsLop.filter((h) => (h.tien_do || []).length > 0)
+
+  // Tỉ lệ đúng TB của mỗi HS
+  function tyLeTB(h) {
+    const td = h.tien_do || []
+    if (!td.length) return null
+    const co = td.filter((t) => t.so_bai_hoan_thanh > 0)
+    if (!co.length) return null
+    return co.reduce((s, t) => s + t.ty_le_dung_trung_binh, 0) / co.length
+  }
+
+  const tongBaiLam = hsLop.reduce((s, h) =>
+    s + (h.tien_do || []).reduce((a, t) => a + t.so_bai_lam, 0), 0)
+  const tongHoanThanh = hsLop.reduce((s, h) =>
+    s + (h.tien_do || []).reduce((a, t) => a + t.so_bai_hoan_thanh, 0), 0)
+  const tongThoiGian = hsLop.reduce((s, h) =>
+    s + (h.tien_do || []).reduce((a, t) => a + (t.tong_thoi_gian_giay || 0), 0), 0)
+
+  // Tỉ lệ đúng TB toàn lớp
+  const tlList = coData.map(tyLeTB).filter((v) => v !== null)
+  const tlTB = tlList.length ? tlList.reduce((a, b) => a + b, 0) / tlList.length : null
+
+  // Phân bố năng lực
+  const phanBo = { gioi: 0, kha: 0, tb: 0, yeu: 0, chuaLam: 0 }
+  for (const h of hsLop) {
+    const tl = tyLeTB(h)
+    if (tl === null) phanBo.chuaLam++
+    else if (tl >= 0.8) phanBo.gioi++
+    else if (tl >= 0.6) phanBo.kha++
+    else if (tl >= 0.4) phanBo.tb++
+    else phanBo.yeu++
+  }
+
+  // Mức độ hoạt động
+  const baiMoiHs = hsLop.map((h) => ({
+    ...h,
+    tongBai: (h.tien_do || []).reduce((s, t) => s + t.so_bai_lam, 0),
+  }))
+  const chuaLam = baiMoiHs.filter((h) => h.tongBai === 0)
+  const tichCuc = [...baiMoiHs].sort((a, b) => b.tongBai - a.tongBai).slice(0, 3).filter((h) => h.tongBai > 0)
+  const dangDo = hsLop.filter((h) =>
+    (h.tien_do || []).some((t) => t.so_bai_lam > t.so_bai_hoan_thanh))
+
+  // Thống kê theo chuyên đề
+  const cdMap = {}
+  for (const h of hsLop) {
+    for (const t of h.tien_do || []) {
+      if (!cdMap[t.chuyen_de]) cdMap[t.chuyen_de] = { baiLam: 0, hoanThanh: 0, tlList: [] }
+      cdMap[t.chuyen_de].baiLam += t.so_bai_lam
+      cdMap[t.chuyen_de].hoanThanh += t.so_bai_hoan_thanh
+      if (t.so_bai_hoan_thanh > 0)
+        cdMap[t.chuyen_de].tlList.push(t.ty_le_dung_trung_binh)
+    }
+  }
+  const cdArr = Object.entries(cdMap).map(([ten, v]) => ({
+    ten,
+    baiLam: v.baiLam,
+    hoanThanh: v.hoanThanh,
+    tlTB: v.tlList.length ? v.tlList.reduce((a, b) => a + b, 0) / v.tlList.length : null,
+  }))
+  const cdNhieu = [...cdArr].sort((a, b) => b.baiLam - a.baiLam).slice(0, 3)
+  const cdIt = [...cdArr].sort((a, b) => a.baiLam - b.baiLam).slice(0, 3)
+  const cdCoTl = cdArr.filter((c) => c.tlTB !== null)
+  const cdCaoNhat = cdCoTl.length ? [...cdCoTl].sort((a, b) => b.tlTB - a.tlTB)[0] : null
+  const cdThapNhat = cdCoTl.length ? [...cdCoTl].sort((a, b) => a.tlTB - b.tlTB)[0] : null
+
+  return {
+    tongHs: hsLop.length,
+    coData: coData.length,
+    tongBaiLam,
+    tongHoanThanh,
+    tongThoiGian,
+    tlTB,
+    phanBo,
+    tichCuc,
+    chuaLam,
+    dangDo,
+    cdNhieu,
+    cdIt,
+    cdCaoNhat,
+    cdThapNhat,
+  }
+}
+
+/* ── Dialog thống kê lớp ─────────────────────────────────────────── */
+function ThongKeLopDialog({ tenLop, stats, onDong }) {
+  const { tongHs, coData, tongBaiLam, tongHoanThanh, tongThoiGian, tlTB,
+    phanBo, tichCuc, chuaLam, dangDo, cdNhieu, cdIt, cdCaoNhat, cdThapNhat } = stats
+
+  const pct = (n) => tongHs ? Math.round((n / tongHs) * 100) : 0
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: 'rgba(0,0,0,0.45)' }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onDong() }}
+    >
+      <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-7xl flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-8 py-5 border-b border-border">
+          <div>
+            <p className="text-xl font-bold text-ink">Thống kê lớp {tenLop}</p>
+            <p className="text-sm text-muted mt-0.5">{coData}/{tongHs} học sinh có dữ liệu</p>
+          </div>
+          <button onClick={onDong} className="text-muted hover:text-ink text-2xl leading-none">✕</button>
+        </div>
+
+        {/* Body — 2 cột */}
+        <div className="p-8 grid grid-cols-2 gap-8">
+          {/* Cột trái */}
+          <div className="flex flex-col gap-7">
+            {/* 1. Tổng quan */}
+            <section>
+              <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Tổng quan</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Học sinh', val: tongHs },
+                  { label: 'Bài đã làm', val: tongBaiLam },
+                  { label: 'Hoàn thành', val: tongHoanThanh },
+                  { label: 'Tỉ lệ đúng TB', val: tlTB !== null ? `${Math.round(tlTB * 100)}%` : '—' },
+                  { label: 'TB bài/HS', val: tongHs ? (tongBaiLam / tongHs).toFixed(1) : '—' },
+                  { label: 'Tổng thời gian', val: dinhDangThoiGian(tongThoiGian) },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl bg-surface-2 px-4 py-4">
+                    <p className="text-sm text-muted">{item.label}</p>
+                    <p className="text-xl font-bold text-ink mt-1">{item.val}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 3. Mức độ hoạt động */}
+            <section>
+              <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Mức độ hoạt động</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Tích cực nhất</p>
+                  {tichCuc.length === 0
+                    ? <p className="text-sm text-muted">Chưa có</p>
+                    : tichCuc.map((h) => (
+                      <p key={h.hoc_sinh_id} className="text-sm text-ink leading-relaxed">
+                        {h.ho_ten} <span className="text-muted">({h.tongBai})</span>
+                      </p>
+                    ))}
+                </div>
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Đang làm dở</p>
+                  {dangDo.length === 0
+                    ? <p className="text-sm text-muted">Không có</p>
+                    : dangDo.slice(0, 3).map((h) => (
+                      <p key={h.hoc_sinh_id} className="text-sm text-ink leading-relaxed">{h.ho_ten}</p>
+                    ))}
+                  {dangDo.length > 3 && <p className="text-xs text-muted mt-1">+{dangDo.length - 3} khác</p>}
+                </div>
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Chưa làm bài nào</p>
+                  {chuaLam.length === 0
+                    ? <p className="text-sm text-success">Tất cả đã làm 👍</p>
+                    : chuaLam.slice(0, 3).map((h) => (
+                      <p key={h.hoc_sinh_id} className="text-sm text-danger leading-relaxed">{h.ho_ten}</p>
+                    ))}
+                  {chuaLam.length > 3 && <p className="text-xs text-muted mt-1">+{chuaLam.length - 3} khác</p>}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Cột phải */}
+          <div className="flex flex-col gap-7">
+            {/* 2. Phân bố năng lực */}
+            <section>
+              <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Phân bố năng lực</p>
+              <div className="flex flex-col gap-3">
+                {[
+                  { label: 'Giỏi (≥80%)', val: phanBo.gioi, tone: 'success' },
+                  { label: 'Khá (60–79%)', val: phanBo.kha, tone: 'primary' },
+                  { label: 'Trung bình (40–59%)', val: phanBo.tb, tone: 'warning' },
+                  { label: 'Yếu (<40%)', val: phanBo.yeu, tone: 'danger' },
+                  { label: 'Chưa có dữ liệu', val: phanBo.chuaLam, tone: 'neutral' },
+                ].map((r) => (
+                  <div key={r.label} className="flex items-center gap-3">
+                    <span className="text-sm text-ink w-40 shrink-0">{r.label}</span>
+                    <div className="flex-1 bg-surface-2 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-2.5 rounded-full ${
+                          r.tone === 'success' ? 'bg-success' :
+                          r.tone === 'primary' ? 'bg-primary' :
+                          r.tone === 'warning' ? 'bg-warning' :
+                          r.tone === 'danger' ? 'bg-danger' : 'bg-muted'
+                        }`}
+                        style={{ width: `${pct(r.val)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-ink w-20 text-right shrink-0">
+                      {r.val} ({pct(r.val)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 4. Chuyên đề */}
+            <section>
+              <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Chuyên đề</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Được học nhiều nhất</p>
+                  {cdNhieu.length === 0
+                    ? <p className="text-sm text-muted">Chưa có</p>
+                    : cdNhieu.map((c) => (
+                      <p key={c.ten} className="text-sm text-ink leading-relaxed">
+                        {c.ten} <span className="text-muted">({c.baiLam})</span>
+                      </p>
+                    ))}
+                </div>
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Ít được học nhất</p>
+                  {cdIt.length === 0
+                    ? <p className="text-sm text-muted">Chưa có</p>
+                    : cdIt.map((c) => (
+                      <p key={c.ten} className="text-sm text-ink leading-relaxed">
+                        {c.ten} <span className="text-muted">({c.baiLam})</span>
+                      </p>
+                    ))}
+                </div>
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Tỉ lệ đúng cao nhất</p>
+                  {cdCaoNhat
+                    ? <p className="text-sm text-ink leading-relaxed">
+                        {cdCaoNhat.ten} <span className="text-success font-medium">({Math.round(cdCaoNhat.tlTB * 100)}%)</span>
+                      </p>
+                    : <p className="text-sm text-muted">Chưa có</p>}
+                </div>
+                <div className="rounded-xl bg-surface-2 px-4 py-4">
+                  <p className="text-sm text-muted mb-2">Tỉ lệ đúng thấp nhất</p>
+                  {cdThapNhat
+                    ? <p className="text-sm text-ink leading-relaxed">
+                        {cdThapNhat.ten} <span className="text-danger font-medium">({Math.round(cdThapNhat.tlTB * 100)}%)</span>
+                      </p>
+                    : <p className="text-sm text-muted">Chưa có</p>}
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div className="px-8 pb-6 pt-4 flex justify-end border-t border-border">
+          <Button variant="secondary" onClick={onDong}>Đóng</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PhanTrang({ trang, tong, onLui, onToi }) {
   if (tong <= 1) return null
   return (
@@ -33,7 +289,10 @@ export default function TheoDoiTienBo() {
   const [trangNk, setTrangNk] = useState(1)
   const [nhanXetHs, setNhanXetHs] = useState(null) // {id, ho_ten} đang gửi nhận xét
   const [thongBaoOk, setThongBaoOk] = useState('')
+  const [lopDialog, setLopDialog] = useState(null) // tên lớp đang xem thống kê
+  const [trangLop, setTrangLop] = useState(1)
   const MOI_TRANG = 5
+  const MOI_TRANG_LOP = 5
 
   useEffect(() => {
     api
@@ -84,6 +343,14 @@ export default function TheoDoiTienBo() {
     const ten = [...new Set(students.map((s) => s.lop_ten).filter(Boolean))].sort()
     return ten.map((t) => ({ value: t, label: t }))
   }, [students])
+
+  // Danh sách lớp kèm số HS (cho card thống kê lớp)
+  const lopDsThongKe = useMemo(() => {
+    const ten = [...new Set(students.map((s) => s.lop_ten).filter(Boolean))].sort()
+    return ten.map((t) => ({ ten: t, soHs: students.filter((s) => s.lop_ten === t).length }))
+  }, [students])
+  const tongTrangLop = Math.max(1, Math.ceil(lopDsThongKe.length / MOI_TRANG_LOP))
+  const lopTrang = lopDsThongKe.slice((trangLop - 1) * MOI_TRANG_LOP, trangLop * MOI_TRANG_LOP)
   const dsLoc = useMemo(
     () => (fLop ? students.filter((s) => s.lop_ten === fLop) : students),
     [students, fLop]
@@ -145,6 +412,35 @@ export default function TheoDoiTienBo() {
                 </ul>
               )}
             </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {lopDsThongKe.length > 0 && (
+        <Card>
+          <CardHeader title="Lớp của tôi" subtitle="Xem thống kê tổng hợp của từng lớp" />
+          <CardBody className="pt-0 flex flex-col">
+            {lopTrang.map((l) => (
+              <div key={l.ten}
+                className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                <div>
+                  <span className="font-medium text-ink">{l.ten}</span>
+                  <span className="text-sm text-muted ml-2">· {l.soHs} học sinh</span>
+                </div>
+                <Button size="sm" variant="primary" onClick={() => setLopDialog(l.ten)}>
+                  Thống kê
+                </Button>
+              </div>
+            ))}
+            {tongTrangLop > 1 && (
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button size="sm" variant="secondary"
+                  disabled={trangLop <= 1} onClick={() => setTrangLop((t) => t - 1)}>Trước</Button>
+                <span className="text-sm text-muted">{trangLop}/{tongTrangLop}</span>
+                <Button size="sm" variant="secondary"
+                  disabled={trangLop >= tongTrangLop} onClick={() => setTrangLop((t) => t + 1)}>Sau</Button>
+              </div>
+            )}
           </CardBody>
         </Card>
       )}
@@ -277,6 +573,18 @@ export default function TheoDoiTienBo() {
           }}
         />
       )}
+
+      {lopDialog && (() => {
+        const hsLop = students.filter((s) => s.lop_ten === lopDialog)
+        const stats = tinhThongKeLop(hsLop)
+        return (
+          <ThongKeLopDialog
+            tenLop={lopDialog}
+            stats={stats}
+            onDong={() => setLopDialog(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
