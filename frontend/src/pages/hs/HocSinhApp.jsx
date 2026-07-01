@@ -20,24 +20,38 @@ const NAV = [
 
 const NAV_KEYS = NAV.map((n) => n.key)
 const DEFAULT_PAGE = 'trang_chu'
+const PHONG_HOC_KEY = 'hs_phong_hoc'
 
 function pageFromHash() {
   const h = window.location.hash.slice(1)
+  if (h === 'phong_hoc') return 'phong_hoc'
   return NAV_KEYS.includes(h) ? h : DEFAULT_PAGE
 }
 
 export default function HocSinhApp({ onLogout }) {
   const { ho_ten } = getSession() || {}
   const [page, setPage] = useState(pageFromHash)
-  const [phongHoc, setPhongHoc] = useState(null) // {problemId} | {sessionId}
+  const [phongHoc, setPhongHoc] = useState(() => {
+    // Khôi phục state phòng học khi F5 với hash #phong_hoc
+    if (window.location.hash.slice(1) === 'phong_hoc') {
+      try { return JSON.parse(sessionStorage.getItem(PHONG_HOC_KEY)) } catch { return null }
+    }
+    return null
+  })
   const [locBai, setLocBai] = useState(null) // bộ lọc ban đầu cho ChonBai
 
   function moBaiMoi(problemId) {
-    setPhongHoc({ problemId })
-    setPage('phong_hoc') // không cập nhật hash — phòng học là trang tạm thời
+    const state = { problemId }
+    sessionStorage.setItem(PHONG_HOC_KEY, JSON.stringify(state))
+    setPhongHoc(state)
+    window.location.hash = 'phong_hoc'
+    setPage('phong_hoc')
   }
   function lamTiep(sessionId) {
-    setPhongHoc({ sessionId })
+    const state = { sessionId }
+    sessionStorage.setItem(PHONG_HOC_KEY, JSON.stringify(state))
+    setPhongHoc(state)
+    window.location.hash = 'phong_hoc'
     setPage('phong_hoc')
   }
   function luyenDang(r) {
@@ -47,6 +61,7 @@ export default function HocSinhApp({ onLogout }) {
   }
   function dieuHuong(key) {
     setLocBai(null)
+    if (key !== 'phong_hoc') sessionStorage.removeItem(PHONG_HOC_KEY)
     window.location.hash = key
     setPage(key)
   }
@@ -55,6 +70,10 @@ export default function HocSinhApp({ onLogout }) {
     function onHashChange() {
       const newPage = pageFromHash()
       setLocBai(null)
+      if (newPage !== 'phong_hoc') {
+        sessionStorage.removeItem(PHONG_HOC_KEY)
+        setPhongHoc(null)
+      }
       setPage(newPage)
     }
     window.addEventListener('hashchange', onHashChange)

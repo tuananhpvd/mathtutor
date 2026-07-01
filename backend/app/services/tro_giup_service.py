@@ -42,15 +42,19 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
     if session is None or session.hoc_sinh_id != hs_id:
         raise ValueError("Phiên không tồn tại")
 
+    noi_dung_sach = (noi_dung or "").strip() or None
     yc = YeuCauTroGiup(
         hoc_sinh_id=hs_id,
         session_id=session_id,
         problem_id=session.problem_id,
         buoc=session.buoc_hien_tai,
         y=session.y_hien_tai,
-        noi_dung=(noi_dung or "").strip() or None,
+        noi_dung=noi_dung_sach,
     )
     db.add(yc)
+    # Lưu turn HS để khi tải lại session vẫn thấy ngữ cảnh nhờ thầy/cô.
+    chat_nd = f"🙋 Nhờ thầy/cô: {noi_dung_sach}" if noi_dung_sach else "🙋 Em cần thầy/cô giúp đỡ ở bước này."
+    db.add(Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd))
     db.commit()
     db.refresh(yc)
 

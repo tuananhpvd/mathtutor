@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { Button, Card, CardBody, ChatBubble, TypingBubble } from '../../components/ui'
 import Formula from '../../components/Formula'
+import MixedChatInput from '../../components/MixedChatInput'
 import AnswerInputTN4PA from '../../components/answer/AnswerInputTN4PA'
 import AnswerInputTNDS from '../../components/answer/AnswerInputTNDS'
 import AnswerInputTLN from '../../components/answer/AnswerInputTLN'
@@ -123,10 +124,14 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
   async function guiNhoThayCo() {
     if (!sid) return
     setNhoDangGui(true)
+    const nd = nhoText.trim()
     try {
-      await api.hsNhoThayCo(sid, nhoText.trim() || null)
+      await api.hsNhoThayCo(sid, nd || null)
       setNhoMo(false)
       setNhoText('')
+      // Hiện nội dung nhờ vào khung chat
+      const chatNd = nd ? `🙋 Nhờ thầy/cô: ${nd}` : '🙋 Em cần thầy/cô giúp đỡ ở bước này.'
+      setTurns((ts) => [...ts, { vai_tro: 'hoc_sinh', noi_dung: chatNd }])
       setNhoOk('Đã gửi yêu cầu tới thầy/cô. Em sẽ nhận được trả lời sớm nhé!')
       setTimeout(() => setNhoOk(''), 5000)
     } catch (e) {
@@ -321,7 +326,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
               >
                 💡 GỢI Ý CHO EM
               </Button>
-              <Button variant="secondary" disabled={!sid} onClick={() => setNhoMo(true)}>
+              <Button variant="secondary" disabled={!sid}
+                onClick={() => { setNhoMo((v) => !v); setNhoText('') }}>
                 🙋 NHỜ THẦY/CÔ
               </Button>
               <Button variant="primary" onClick={onChonBai}>
@@ -332,34 +338,32 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
         </Card>
 
         {nhoMo && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-              <div className="px-5 pt-5 pb-3 border-b border-border">
-                <h2 className="font-bold text-lg text-ink">Nhờ thầy/cô giúp đỡ</h2>
-                <p className="text-sm text-muted mt-0.5">
+          <Card className="lg:col-span-3 border-secondary/40 bg-secondary/5">
+            <CardBody className="flex flex-col gap-3 pt-4">
+              <div>
+                <p className="font-semibold text-sm text-ink">🙋 Nhờ thầy/cô giúp đỡ</p>
+                <p className="text-xs text-muted mt-0.5">
                   Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong bài.
+                  Em có thể mô tả bằng chữ hoặc chèn công thức toán.
                 </p>
               </div>
-              <div className="px-5 py-4">
-                <textarea
-                  value={nhoText}
-                  onChange={(e) => setNhoText(e.target.value)}
-                  rows={4}
-                  placeholder="Em có thể mô tả chỗ chưa hiểu (không bắt buộc)..."
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm text-ink
-                    focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y"
-                />
-              </div>
-              <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
-                <Button variant="secondary" onClick={() => setNhoMo(false)} disabled={nhoDangGui}>
+              <MixedChatInput
+                value={nhoText}
+                onChange={setNhoText}
+                placeholder="Mô tả chỗ chưa hiểu (không bắt buộc)..."
+                rows={2}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="secondary"
+                  onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
                   Hủy
                 </Button>
-                <Button onClick={guiNhoThayCo} disabled={nhoDangGui}>
+                <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
                   {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
                 </Button>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         )}
 
         {/* Vùng trả lời / banner hoàn thành */}

@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
+import Formula from '../../components/Formula'
+import MixedChatInput from '../../components/MixedChatInput'
+
+function renderNoiDung(text) {
+  if (!text) return null
+  return String(text)
+    .split(/(\$[^$]+\$)/g)
+    .map((p, i) =>
+      p.startsWith('$') && p.endsWith('$') ? (
+        <Formula key={i} latex={p.slice(1, -1)} />
+      ) : (
+        <span key={i}>{p}</span>
+      )
+    )
+}
 
 function thoiGian(iso) {
   if (!iso) return ''
@@ -88,17 +103,17 @@ export default function HoTroHocSinh() {
                 </div>
                 <NganCanh yc={yc} />
                 {yc.noi_dung && (
-                  <p className="text-sm text-ink mt-2 italic">“{yc.noi_dung}”</p>
+                  <p className="text-sm text-ink mt-2 italic">
+                    "{renderNoiDung(yc.noi_dung)}"
+                  </p>
                 )}
                 {traLoiId === yc.id ? (
                   <div className="mt-3 flex flex-col gap-2">
-                    <textarea
+                    <MixedChatInput
                       value={text}
-                      onChange={(e) => setText(e.target.value)}
+                      onChange={setText}
+                      placeholder="Viết câu trả lời / gợi ý cho học sinh... (có thể chèn công thức)"
                       rows={3}
-                      placeholder="Viết câu trả lời / gợi ý cho học sinh..."
-                      className="w-full rounded-lg border border-border px-3 py-2 text-sm text-ink
-                        focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y"
                     />
                     {loi && <p className="text-sm text-danger">{loi}</p>}
                     <div className="flex gap-2 justify-end">
@@ -131,10 +146,15 @@ export default function HoTroHocSinh() {
                   <Badge tone="success">Đã trả lời</Badge>
                 </div>
                 <NganCanh yc={yc} />
-                {yc.noi_dung && <p className="text-sm text-muted mt-1.5 italic">“{yc.noi_dung}”</p>}
+                {yc.noi_dung && (
+                  <p className="text-sm text-muted mt-1.5 italic">
+                    "{renderNoiDung(yc.noi_dung)}"
+                  </p>
+                )}
                 {yc.tra_loi && (
                   <p className="text-sm text-ink mt-1.5">
-                    <span className="font-medium text-gv">Trả lời: </span>{yc.tra_loi}
+                    <span className="font-medium text-gv">Trả lời: </span>
+                    {renderNoiDung(yc.tra_loi)}
                   </p>
                 )}
               </div>

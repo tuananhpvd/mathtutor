@@ -2,7 +2,21 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { getSession } from '../../auth'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
+import Formula from '../../components/Formula'
 import { dinhDangThoiGian } from '../../utils/format'
+
+function renderNoiDung(text) {
+  if (!text) return null
+  return String(text)
+    .split(/(\$[^$]+\$)/g)
+    .map((p, i) =>
+      p.startsWith('$') && p.endsWith('$') ? (
+        <Formula key={i} latex={p.slice(1, -1)} />
+      ) : (
+        <span key={i}>{p}</span>
+      )
+    )
+}
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm', TNDS: 'Đúng/Sai', TLN: 'Trả lời ngắn' }
 const pct = (n, t) => (t > 0 ? Math.round((n / t) * 100) : 0)
@@ -65,6 +79,7 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
   const [loading, setLoading] = useState(true)
   const [trang, setTrang] = useState(1)
   const [nhanXet, setNhanXet] = useState([])
+  const [traLoi, setTraLoi] = useState([])
   const [chuoi, setChuoi] = useState(null) // {chuoi_ngay, tong_bai_hoan_thanh, cot_moc_da_dat}
 
   useEffect(() => {
@@ -76,7 +91,11 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
       .catch(() => {})
       .finally(() => setLoading(false))
     api.thongBao()
-      .then((rows) => setNhanXet((rows || []).filter((t) => t.loai === 'nhan_xet').slice(0, 3)))
+      .then((rows) => {
+        const all = rows || []
+        setNhanXet(all.filter((t) => t.loai === 'nhan_xet').slice(0, 3))
+        setTraLoi(all.filter((t) => t.loai === 'tra_loi').slice(0, 5))
+      })
       .catch(() => {})
     api.hsChuoiNgay().then(setChuoi).catch(() => {})
   }, [])
@@ -144,6 +163,36 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                   {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
                   {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleDateString('vi-VN')}` : ''}
                 </p>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Thầy/cô đã trả lời yêu cầu hỗ trợ */}
+      {traLoi.length > 0 && (
+        <Card>
+          <CardHeader title="👩‍🏫 Thầy/cô đã trả lời"
+            subtitle="Thầy/cô vừa giải đáp thắc mắc của em trong bài học" />
+          <CardBody className="flex flex-col gap-3">
+            {traLoi.map((tb) => (
+              <div key={tb.id}
+                className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3 flex flex-col gap-2">
+                <div className="text-sm text-ink leading-relaxed">
+                  {renderNoiDung(tb.noi_dung)}
+                </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-xs text-muted">
+                    {tb.nguoi_gui_ten ? `— ${tb.nguoi_gui_ten}` : ''}
+                    {tb.tao_luc ? ` · ${new Date(tb.tao_luc).toLocaleString('vi-VN')}` : ''}
+                  </p>
+                  {tb.lien_ket_id && onLamTiep && (
+                    <Button size="sm" variant="secondary"
+                      onClick={() => onLamTiep(tb.lien_ket_id)}>
+                      Tiếp tục bài
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </CardBody>

@@ -1,5 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
+import Formula from './Formula'
+
+function renderNoiDung(text) {
+  if (!text) return null
+  return String(text)
+    .split(/(\$[^$]+\$)/g)
+    .map((p, i) =>
+      p.startsWith('$') && p.endsWith('$') ? (
+        <Formula key={i} latex={p.slice(1, -1)} />
+      ) : (
+        <span key={i}>{p}</span>
+      )
+    )
+}
 
 const NHAN_LOAI = {
   nhan_xet: 'Nhận xét của thầy/cô',
@@ -130,7 +144,7 @@ export default function ChuongThongBao() {
                       {thoiGianGon(tb.tao_luc)}
                     </span>
                   </div>
-                  <p className="text-sm text-ink mt-1 whitespace-pre-wrap break-words">{tb.noi_dung}</p>
+                  <p className="text-sm text-ink mt-1 leading-relaxed break-words">{renderNoiDung(tb.noi_dung)}</p>
                   {tb.nguoi_gui_ten && (
                     <p className="text-[11px] text-muted mt-1">— {tb.nguoi_gui_ten}</p>
                   )}
