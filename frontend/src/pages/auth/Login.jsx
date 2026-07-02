@@ -14,7 +14,7 @@ export default function Login({ onLogin }) {
     setLoading(true)
     try {
       const res = await api.login(form.dang_nhap, form.mat_khau)
-      saveSession(res.access_token, res.vai_tro, res.ho_ten)
+      saveSession(res.access_token, res.vai_tro, res.ho_ten, res.la_quan_ly)
       onLogin(res.vai_tro)
     } catch (err) {
       setError(err.message)

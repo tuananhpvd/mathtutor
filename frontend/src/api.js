@@ -27,8 +27,8 @@ export const api = {
   login: (dang_nhap, mat_khau) => post('/auth/login', { dang_nhap, mat_khau }),
   health: () => request('/health'),
 
-  // Học sinh — bài & phiên
-  listProblems: () => request('/problems'),
+  // Học sinh — bài & phiên (gv_id: Quản lý/Admin lọc theo GV)
+  listProblems: (gv_id) => request('/problems' + (gv_id ? `?gv_id=${gv_id}` : '')),
   getProblem: (id) => request(`/problems/${id}`),
   createSession: (problem_id) => post('/sessions', { problem_id }),
   getSession: (id) => request(`/sessions/${id}`),
@@ -60,7 +60,6 @@ export const api = {
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProblem: (id) => request(`/problems/${id}`, { method: 'DELETE' }),
   khoiPhucProblem: (id) => request(`/problems/${id}/khoi-phuc`, { method: 'PATCH' }),
-  chiaSeProblem: (id) => request(`/problems/${id}/chia-se`, { method: 'POST' }),
   anhHuongProblem: (id) => request(`/problems/${id}/anh-huong`),
   xoaVinhVienProblem: (id) => request(`/problems/${id}/vinh-vien`, { method: 'DELETE' }),
   listFlags: (trang_thai) =>
@@ -98,8 +97,10 @@ export const api = {
   // Đặt lại tiến độ HS (GV thực hiện ngay)
   gvDatLaiTienDo: (hs_id) => post(`/gv/dat-lai/${hs_id}`, {}),
 
-  // Danh mục chuyên đề / dạng (GV + Admin)
-  getDanhMuc: () => request('/danh-muc'),
+  // Danh mục chuyên đề / dạng (GV + Admin; gv_id: Quản lý/Admin lọc theo GV)
+  getDanhMuc: (gv_id) => request('/danh-muc' + (gv_id ? `?gv_id=${gv_id}` : '')),
+  // Danh sách GV để tài khoản Quản lý chọn quản lý nội dung
+  listGiaoVienQuanLy: () => request('/danh-muc/giao-vien'),
   themChuyenDe: (body) => post('/danh-muc/chuyen-de', body),
   capNhatChuyenDe: (id, body) =>
     request(`/danh-muc/chuyen-de/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

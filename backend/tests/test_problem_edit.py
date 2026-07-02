@@ -1,5 +1,6 @@
 """Test API GV sửa/xóa câu hỏi + duyệt."""
 
+from app.auth.security import hash_password
 from app.models.problem import TrangThaiDuyet
 from tests.test_api_flow import _h, _token, seed_all
 
@@ -77,13 +78,14 @@ def test_gv_tao_cau_hoi_tn4pa(client, db):
     data = r.json()
     assert data["loai_cau"] == "TN4PA"
     assert data["loai_dap_an_nhap"] == "chon_phuong_an"
-    # GV tạo → da_duyet + rieng_tu ngay
+    # GV tạo → da_duyet ngay
     assert data["trang_thai_duyet"] == TrangThaiDuyet.da_duyet.value
-    assert data["pham_vi"] == "rieng_tu"
     assert data["meta"]["dap_an_dung"] == "B"
-    # HS không thấy bài riêng tư dù đã duyệt
+    # HS lớp do gv_test chủ nhiệm → thấy được bài đã duyệt của GV mình (không lộ đáp án)
     htok = _token(client, "hs_test")
-    assert client.get(f"/api/problems/{data['id']}", headers=_h(htok)).status_code == 404
+    r_hs = client.get(f"/api/problems/{data['id']}", headers=_h(htok))
+    assert r_hs.status_code == 200
+    assert "dap_an_dung" not in r_hs.json().get("meta", {})
 
 
 def test_gv_tao_cau_hoi_tnds_va_tln(client, db):
@@ -189,18 +191,35 @@ def test_xoa_vinh_vien(client, db):
     assert db.get(SessionModel, sid) is None
 
 
-def test_chia_se_toggle(client, db):
-    """Endpoint /chia-se toggle rieng_tu ↔ chung."""
+def test_gv_khac_khong_sua_duoc_bai(client, db):
+    """GV khác (không phải người tạo, không phải Quản lý) không sửa được bài."""
+    from app.models.user import User, VaiTro
     _, gv, _, p = seed_all(db)
-    tok = _token(client, "gv_test")
-    # Ban đầu seed là chung → toggle về rieng_tu
-    r = client.post(f"/api/problems/{p.id}/chia-se", headers=_h(tok))
-    assert r.status_code == 200
-    assert r.json()["pham_vi"] == "rieng_tu"
-    # Toggle lại về chung
-    r2 = client.post(f"/api/problems/{p.id}/chia-se", headers=_h(tok))
-    assert r2.status_code == 200
-    assert r2.json()["pham_vi"] == "chung"
+    gv2 = User(vai_tro=VaiTro.gv, ho_ten="GV2", dang_nhap="gv2_test",
+               mat_khau_hash=hash_password("pass"))
+    db.add(gv2)
+    db.commit()
+    tok2 = _token(client, "gv2_test")
+    r = client.patch(f"/api/problems/{p.id}", json={"de_bai": "Sửa trộm"}, headers=_h(tok2))
+    assert r.status_code == 403
+
+
+def test_quan_ly_sua_duoc_va_gui_thong_bao(client, db):
+    """Tài khoản Quản lý sửa được bài của GV khác và gửi thông báo cho chủ."""
+    from app.models.thong_bao import ThongBao
+    from app.models.user import User, VaiTro
+    _, gv, _, p = seed_all(db)
+    ql = User(vai_tro=VaiTro.gv, ho_ten="Quản lý", dang_nhap="ql_test",
+              mat_khau_hash=hash_password("pass"), la_quan_ly=True)
+    db.add(ql)
+    db.commit()
+    tok = _token(client, "ql_test")
+    r = client.patch(f"/api/problems/{p.id}", json={"de_bai": "Đề mới"}, headers=_h(tok))
+    assert r.status_code == 200, r.text
+    assert r.json()["de_bai"] == "Đề mới"
+    # Chủ sở hữu (gv) nhận được 1 thông báo loại quan_ly
+    tb = db.query(ThongBao).filter(ThongBao.nguoi_nhan_id == gv.id).all()
+    assert any(t.loai.value == "quan_ly" for t in tb)
 
 
 def test_tao_tln_dap_an_cuoi_sai(client, db):

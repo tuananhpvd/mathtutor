@@ -17,11 +17,12 @@ def _h(client, dn):
     return {"Authorization": f"Bearer {_login(client, dn)}"}
 
 
-def _bai(db, chuyen_de, dang_id=None, duyet=True):
+def _bai(db, chuyen_de, dang_id=None, duyet=True, nguoi_tao_id=None):
     p = Problem(
         chuyen_de=chuyen_de, dang_id=dang_id, loai_cau="TLN", do_kho="tb",
         de_bai="Tìm x.", loai_dap_an_nhap="gia_tri",
         trang_thai_duyet=TrangThaiDuyet.da_duyet if duyet else TrangThaiDuyet.cho_duyet,
+        nguoi_tao_id=nguoi_tao_id,
         meta={"dap_an_cuoi": "5"},
     )
     db.add(p)
@@ -48,8 +49,8 @@ def _seed(db):
                mat_khau_hash=hash_password("password"), lop_id=lop.id)
     db.add_all([hs1, hs2])
     db.flush()
-    p1 = _bai(db, "Khảo sát hàm số")
-    p2 = _bai(db, "Số phức")
+    p1 = _bai(db, "Khảo sát hàm số", nguoi_tao_id=gv.id)
+    p2 = _bai(db, "Số phức", nguoi_tao_id=gv.id)
     db.commit()
     return {"lop": lop.id, "hs1": hs1.id, "hs2": hs2.id, "p1": p1.id, "p2": p2.id}
 

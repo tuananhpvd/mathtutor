@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.nhiem_vu import NhiemVu, NhiemVuBai, NhiemVuHocSinh
-from app.models.problem import PhamVi, Problem, TrangThaiDuyet
+from app.models.problem import Problem, TrangThaiDuyet
 from app.models.session import Session as SessionModel
 from app.models.session import TrangThaiSession
 from app.models.thong_bao import LoaiThongBao
@@ -85,11 +85,8 @@ def tao_nhiem_vu(
     for p in ps:
         if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
             raise ValueError("Chỉ giao được bài đã duyệt")
-        if p.pham_vi == PhamVi.rieng_tu and p.nguoi_tao_id != gv_id:
-            raise ValueError(
-                f"Câu hỏi #{p.id} là riêng tư — chỉ người tạo mới được giao. "
-                "Hãy yêu cầu người tạo chia sẻ lên kho chung trước."
-            )
+        if p.nguoi_tao_id != gv_id:
+            raise ValueError(f"Câu hỏi #{p.id} không thuộc bạn — chỉ được giao bài của mình")
 
     nv = NhiemVu(
         gv_id=gv_id, tieu_de=tieu_de,
@@ -198,7 +195,6 @@ def danh_sach_gv(db: Session, gv_id: int) -> list[dict]:
                     "dang_ten": p.dang.ten if p.dang else None,
                     "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
                     "de_bai": p.de_bai, "meta": _meta_safe(p),
-                    "pham_vi": p.pham_vi.value,
                 })
         out.append({
             "id": nv.id, "tieu_de": nv.tieu_de, "mo_ta": nv.mo_ta,
@@ -291,8 +287,8 @@ def cap_nhat_nhiem_vu(db: Session, gv_id: int, nv_id: int, data: dict) -> dict:
         for p in ps:
             if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
                 raise ValueError("Chỉ giao được bài đã duyệt")
-            if p.pham_vi == PhamVi.rieng_tu and p.nguoi_tao_id != gv_id:
-                raise ValueError(f"Câu hỏi #{p.id} là riêng tư — chỉ người tạo mới được giao")
+            if p.nguoi_tao_id != gv_id:
+                raise ValueError(f"Câu hỏi #{p.id} không thuộc bạn — chỉ được giao bài của mình")
         db.query(NhiemVuBai).filter(NhiemVuBai.nhiem_vu_id == nv_id).delete()
         for pid in new_pids:
             db.add(NhiemVuBai(nhiem_vu_id=nv_id, problem_id=pid))

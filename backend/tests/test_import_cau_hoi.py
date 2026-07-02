@@ -1,6 +1,6 @@
 """Tests import hàng loạt câu hỏi từ file mẫu (GV)."""
 
-from app.models.problem import PhamVi, TrangThaiDuyet
+from app.models.problem import TrangThaiDuyet
 from tests.test_api_flow import _h, _token, seed_all
 
 
@@ -84,8 +84,8 @@ def test_import_tln(client, db):
     assert r.json()["da_tao"] == 1
 
 
-def test_trang_thai_import_la_cho_duyet_rieng_tu(client, db):
-    """Câu hỏi import phải là cho_duyet + rieng_tu (không phải da_duyet như tạo thủ công)."""
+def test_trang_thai_import_la_cho_duyet(client, db):
+    """Câu hỏi import phải là cho_duyet, thuộc người tạo (không da_duyet như tạo thủ công)."""
     from app.models.problem import Problem
     _, gv, _, _ = seed_all(db)
     tok = _token(client, "gv_test")
@@ -100,7 +100,7 @@ def test_trang_thai_import_la_cho_duyet_rieng_tu(client, db):
     pid = r.json()["ids"][0]
     p = db.get(Problem, pid)
     assert p.trang_thai_duyet == TrangThaiDuyet.cho_duyet
-    assert p.pham_vi == PhamVi.rieng_tu
+    assert p.nguoi_tao_id == gv.id
 
 
 def test_hs_khong_import_duoc(client, db):

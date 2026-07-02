@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Enum, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -28,6 +28,8 @@ class User(Base):
     trang_thai: Mapped[TrangThaiUser] = mapped_column(
         Enum(TrangThaiUser), default=TrangThaiUser.hoat_dong, nullable=False
     )
+    # Tài khoản GV đặc biệt "Quản lý": toàn quyền trên nội dung mọi GV (không phải admin).
+    la_quan_ly: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     lop_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("lop.id"), nullable=True)
 
     lop: Mapped["Lop | None"] = relationship("Lop", back_populates="hoc_sinhs", foreign_keys=[lop_id])  # noqa: F821

@@ -1,5 +1,6 @@
 [
   {"vai_tro": "admin", "dang_nhap": "admin", "mat_khau": "admin123", "ho_ten": "Quản trị"},
   {"vai_tro": "gv", "dang_nhap": "gv1", "mat_khau": "gv123", "ho_ten": "Cô Lan", "lop": "12A1"},
+  {"vai_tro": "gv", "dang_nhap": "quanly", "mat_khau": "quanly123", "ho_ten": "Quản lý", "la_quan_ly": true},
   {"vai_tro": "hs", "dang_nhap": "hs1", "mat_khau": "hs123", "ho_ten": "Học sinh A", "lop": "12A1"}
 ]

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input } from '../../components/ui'
 
-export default function TaiKhoanCaNhan() {
+export default function TaiKhoanCaNhan({ onHoTenChange }) {
   const [hs, setHs] = useState(null)
   const [hoTen, setHoTen] = useState('')
   const [matKhau, setMatKhau] = useState('')
@@ -22,6 +22,7 @@ export default function TaiKhoanCaNhan() {
       setMsg('Đã lưu thay đổi.')
       setMatKhau('')
       tai()
+      onHoTenChange?.(hoTen.trim())
     } catch (e2) { setErr(e2.message) }
   }
 

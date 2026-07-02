@@ -700,8 +700,8 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
   return (
     <KhungModal tieu_de="Tạo câu hỏi mới" error={error} onDong={onDong}>
       <p className="text-[12px] text-muted bg-surface-2 rounded-md px-3 py-2 mb-3">
-        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu <b>riêng tư và sẵn sàng dùng ngay</b> —
-        bấm <b>"Chia sẻ"</b> để HS tự chọn luyện, hoặc giao thẳng cho HS qua "Giao nhiệm vụ".
+        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu <b>đã duyệt, sẵn sàng dùng ngay</b> —
+        học sinh trong lớp em phụ trách tự chọn luyện được, hoặc giao thẳng qua "Giao nhiệm vụ".
       </p>
       <ThanCauHoiForm
         bai={bai} setBai={setBai} dangOptions={dangOptions} choChonLoai
@@ -711,22 +711,15 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
   )
 }
 
-const TABS_PHAM_VI = [
-  { value: '', label: 'Tất cả' },
-  { value: 'cua_toi', label: 'Câu của tôi' },
-  { value: 'chung', label: 'Kho chung' },
-]
-
 const MOI_TRANG_CH = 20
 
-export default function QuanLyCauHoi() {
+export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
   const confirm = useConfirm()
   const [rows, setRows] = useState([])
   const [danhMuc, setDanhMuc] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
-  const [fPhamVi, setFPhamVi] = useState('')
   const [trangCH, setTrangCH] = useState(1)
   const [sua, setSua] = useState(null)
   const [taoMoi, setTaoMoi] = useState(false)
@@ -738,19 +731,19 @@ export default function QuanLyCauHoi() {
   const [daXacNhan, setDaXacNhan] = useState(false)
 
   async function tai() {
-    const [rs, dm] = await Promise.allSettled([api.listProblems(), api.getDanhMuc()])
+    const [rs, dm] = await Promise.allSettled([api.listProblems(gvId), api.getDanhMuc(gvId)])
     if (rs.status === 'fulfilled') setRows(rs.value)
     if (dm.status === 'fulfilled') setDanhMuc(dm.value)
   }
 
   useEffect(() => {
+    setLoading(true)
     tai().catch(() => {}).finally(() => setLoading(false))
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gvId])
 
   const loc = rows.filter((r) => {
     if (fTrangThai && r.trang_thai_duyet !== fTrangThai) return false
-    if (fPhamVi === 'cua_toi') return r.la_cua_toi
-    if (fPhamVi === 'chung') return r.pham_vi === 'chung'
     return true
   })
   const tongTrangCH = Math.max(1, Math.ceil(loc.length / MOI_TRANG_CH))
@@ -774,15 +767,6 @@ export default function QuanLyCauHoi() {
   async function khoiPhuc(r) {
     if (!await confirm(`Khôi phục câu hỏi #${r.id}? Câu hỏi sẽ hiển thị lại cho HS.`)) return
     try { await api.khoiPhucProblem(r.id); await tai() }
-    catch (e) { setError(e.message) }
-  }
-  async function chiaSe(r) {
-    const dangChung = r.pham_vi === 'chung'
-    const msg = dangChung
-      ? `Thu hồi câu hỏi #${r.id} về riêng tư?\nHọc sinh sẽ không tự chọn được nữa (bài đang làm dở không bị ảnh hưởng).`
-      : `Chia sẻ câu hỏi #${r.id} lên kho chung?\nMọi giáo viên đều thấy và học sinh tự chọn được.`
-    if (!await confirm(msg)) return
-    try { await api.chiaSeProblem(r.id); await tai() }
     catch (e) { setError(e.message) }
   }
   async function huyDuyet(r) {
@@ -839,23 +823,13 @@ export default function QuanLyCauHoi() {
               { value: 'loai', label: 'Đã loại' },
             ]}
           />
-          <div className="flex gap-1 pb-0.5">
-            {TABS_PHAM_VI.map((t) => (
-              <button key={t.value} onClick={() => { setFPhamVi(t.value); setTrangCH(1) }}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  fPhamVi === t.value
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-surface text-ink border-border hover:border-primary'
-                }`}>
-                {t.label}
-              </button>
-            ))}
+        </div>
+        {!toanQuyen && (
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setImportMo(true)}>Import từ Excel</Button>
+            <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setImportMo(true)}>Import từ Excel</Button>
-          <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
-        </div>
+        )}
       </div>
 
       <Card>
@@ -880,16 +854,11 @@ export default function QuanLyCauHoi() {
                 { key: 'do_kho', header: 'Mức độ', render: (r) => NHAN_KHO[r.do_kho] || r.do_kho },
                 {
                   key: 'nguon',
-                  header: 'Nguồn / Phạm vi',
+                  header: 'Nguồn',
                   render: (r) => (
-                    <div className="flex flex-wrap gap-1">
-                      <Badge tone={r.nguon === 'ai_sinh' ? 'warning' : 'primary'}>
-                        {NHAN_NGUON[r.nguon] || 'GV'}
-                      </Badge>
-                      <Badge tone={r.pham_vi === 'chung' ? 'success' : 'neutral'}>
-                        {r.pham_vi === 'chung' ? 'Dùng chung' : 'Riêng tư'}
-                      </Badge>
-                    </div>
+                    <Badge tone={r.nguon === 'ai_sinh' ? 'warning' : 'primary'}>
+                      {NHAN_NGUON[r.nguon] || 'GV'}
+                    </Badge>
                   ),
                 },
                 {
@@ -910,30 +879,20 @@ export default function QuanLyCauHoi() {
                 {
                   key: 'actions',
                   header: '',
-                  render: (r) => (
+                  render: (r) => {
+                    const coQuyen = r.la_cua_toi || toanQuyen
+                    return (
                     <div className="flex justify-end gap-1 flex-wrap">
-                      {r.la_cua_toi && (
-                        <Button size="sm" variant="secondary" onClick={() => setSua(r.id)}>Xem / Sửa</Button>
-                      )}
-                      {!r.la_cua_toi && (
-                        <Button size="sm" variant="secondary" onClick={() => setSua(r.id)}>Xem</Button>
-                      )}
-                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
+                      <Button size="sm" variant="secondary" onClick={() => setSua(r.id)}>
+                        {coQuyen ? 'Xem / Sửa' : 'Xem'}
+                      </Button>
+                      {coQuyen && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
                         <Button size="sm" variant="success" onClick={() => duyet(r)}>Duyệt</Button>
                       )}
-                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (
+                      {coQuyen && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (
                         <Button size="sm" variant="warning" onClick={() => huyDuyet(r)}>Hủy duyệt</Button>
                       )}
-                      {r.la_cua_toi && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (
-                        <Button
-                          size="sm"
-                          variant={r.pham_vi === 'chung' ? 'secondary' : 'success'}
-                          onClick={() => chiaSe(r)}
-                        >
-                          {r.pham_vi === 'chung' ? 'Thu hồi' : 'Chia sẻ'}
-                        </Button>
-                      )}
-                      {r.la_cua_toi && (
+                      {coQuyen && (
                         r.bi_an ? (
                           <>
                             <Button size="sm" variant="primary" onClick={() => khoiPhuc(r)}>Khôi phục</Button>
@@ -944,7 +903,8 @@ export default function QuanLyCauHoi() {
                         )
                       )}
                     </div>
-                  ),
+                    )
+                  },
                 },
               ]}
               rows={locTrang}

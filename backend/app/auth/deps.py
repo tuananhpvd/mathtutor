@@ -32,6 +32,11 @@ def _get_current_user(
 CurrentUser = Annotated[User, Depends(_get_current_user)]
 
 
+def co_toan_quyen(user: User) -> bool:
+    """Toàn quyền trên nội dung của MỌI GV: Admin hoặc tài khoản Quản lý."""
+    return user.vai_tro == VaiTro.admin or bool(user.la_quan_ly)
+
+
 def require_role(*roles: VaiTro):
     def _check(current_user: CurrentUser) -> User:
         if current_user.vai_tro not in roles:

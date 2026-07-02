@@ -11,3 +11,4 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     vai_tro: str
     ho_ten: str
+    la_quan_ly: bool = False

@@ -22,9 +22,12 @@ def _seed(db):
     db.flush()
     gv = User(vai_tro=VaiTro.gv, ho_ten="GV", dang_nhap="gv1",
               mat_khau_hash=hash_password("password"))
+    db.add(gv)
+    db.flush()
+    lop.gv_id = gv.id  # HS tự luyện bài của GV chủ nhiệm lớp
     hs = User(vai_tro=VaiTro.hs, ho_ten="HS", dang_nhap="hs1",
               mat_khau_hash=hash_password("password"), lop_id=lop.id)
-    db.add_all([gv, hs])
+    db.add(hs)
     db.commit()
 
 

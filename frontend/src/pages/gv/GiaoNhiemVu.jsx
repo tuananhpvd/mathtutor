@@ -406,9 +406,6 @@ export default function GiaoNhiemVu() {
                                         <Badge tone={DO_KHO_TONE[b.do_kho] || 'primary'}>
                                           {DO_KHO_LABEL[b.do_kho] || b.do_kho}
                                         </Badge>
-                                        {b.pham_vi === 'rieng_tu' && (
-                                          <Badge tone="neutral">Riêng tư</Badge>
-                                        )}
                                       </div>
                                       <p className="text-sm text-ink leading-relaxed">
                                         {renderDeBai(b.de_bai)}

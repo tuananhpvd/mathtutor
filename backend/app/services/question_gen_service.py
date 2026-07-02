@@ -12,7 +12,6 @@ from app.models.problem import (
     DoKho,
     LoaiCau,
     Nguon,
-    PhamVi,
     Problem,
     TrangThaiDuyet,
 )
@@ -49,7 +48,6 @@ def _luu_mot_cau(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
             CheDoSoKhopEnum.tuong_duong,
         ),
         trang_thai_duyet=TrangThaiDuyet.cho_duyet,
-        pham_vi=PhamVi.rieng_tu,
         nguon=Nguon.ai_sinh,
         nguoi_tao_id=nguoi_tao_id,
         meta=meta,
@@ -129,13 +127,12 @@ def sinh_va_luu(
 
 
 def duyet_cau(db: Session, problem_id: int, hanh_dong: str) -> Problem:
-    """hanh_dong: 'duyet' → da_duyet + pham_vi=chung (GV duyệt AI = chia sẻ luôn); 'loai' → loai."""
+    """hanh_dong: 'duyet' → da_duyet (câu vẫn thuộc riêng người tạo); 'loai' → loai."""
     problem = db.get(Problem, problem_id)
     if problem is None:
         raise ValueError("Không tìm thấy câu hỏi")
     if hanh_dong == "duyet":
         problem.trang_thai_duyet = TrangThaiDuyet.da_duyet
-        problem.pham_vi = PhamVi.chung
     elif hanh_dong == "loai":
         problem.trang_thai_duyet = TrangThaiDuyet.loai
     else:

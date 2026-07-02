@@ -18,9 +18,11 @@ def _now() -> datetime:
 
 class ChuyenDe(Base):
     __tablename__ = "chuyen_de"
+    # Tên chuyên đề chỉ duy nhất TRONG phạm vi một GV — các GV khác được trùng tên.
+    __table_args__ = (UniqueConstraint("nguoi_tao_id", "ten", name="uq_chuyende_nguoitao_ten"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    ten: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    ten: Mapped[str] = mapped_column(String(200), nullable=False)
     mo_ta: Mapped[str | None] = mapped_column(Text, nullable=True)
     thu_tu: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     nguoi_tao_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)

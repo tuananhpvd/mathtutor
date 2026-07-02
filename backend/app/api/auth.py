@@ -26,6 +26,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         access_token=token,
         vai_tro=user.vai_tro.value,
         ho_ten=user.ho_ten,
+        la_quan_ly=bool(user.la_quan_ly),
     )
 
 

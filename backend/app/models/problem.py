@@ -39,11 +39,6 @@ class CheDoSoKhopEnum(str, enum.Enum):
     dung_dang = "dung_dang"
 
 
-class PhamVi(str, enum.Enum):
-    rieng_tu = "rieng_tu"
-    chung = "chung"
-
-
 class Problem(Base):
     __tablename__ = "problems"
 
@@ -68,7 +63,6 @@ class Problem(Base):
     nguoi_tao_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     tao_luc: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=True)
     bi_an: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    pham_vi: Mapped[PhamVi] = mapped_column(Enum(PhamVi), default=PhamVi.chung, nullable=False)
     meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
     solution_steps: Mapped[list["SolutionStep"]] = relationship(  # noqa: F821

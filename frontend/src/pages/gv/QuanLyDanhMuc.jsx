@@ -92,7 +92,7 @@ function DangRow({ dang, onXoa, onSua }) {
   )
 }
 
-export default function QuanLyDanhMuc() {
+export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
   const confirm = useConfirm()
   const [danhMuc, setDanhMuc] = useState([])
   const [loading, setLoading] = useState(true)
@@ -110,13 +110,15 @@ export default function QuanLyDanhMuc() {
   const [dangThemDang, setDangThemDang] = useState(false)
 
   async function tai() {
-    const dm = await api.getDanhMuc()
+    const dm = await api.getDanhMuc(gvId)
     setDanhMuc(dm)
   }
 
   useEffect(() => {
+    setLoading(true)
     tai().catch((e) => setError(e.message)).finally(() => setLoading(false))
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gvId])
 
   async function themCD() {
     if (!tenCD.trim()) return
@@ -173,17 +175,19 @@ export default function QuanLyDanhMuc() {
         </p>
       )}
 
-      {/* Form thêm chuyên đề */}
-      <Card>
-        <CardHeader title="Thêm chuyên đề mới" />
-        <CardBody className="grid sm:grid-cols-3 gap-3 items-end">
-          <FormInput label="Tên chuyên đề" value={tenCD} onChange={setTenCD} placeholder="VD: Hình học không gian" />
-          <FormInput label="Mô tả (tùy chọn)" value={moTaCD} onChange={setMoTaCD} placeholder="" />
-          <Button onClick={themCD} disabled={!tenCD.trim() || dangThemCD}>
-            {dangThemCD ? 'Đang thêm...' : 'Thêm chuyên đề'}
-          </Button>
-        </CardBody>
-      </Card>
+      {/* Form thêm chuyên đề — ẩn với tài khoản Quản lý (chỉ sửa/xóa của GV) */}
+      {!toanQuyen && (
+        <Card>
+          <CardHeader title="Thêm chuyên đề mới" />
+          <CardBody className="grid sm:grid-cols-3 gap-3 items-end">
+            <FormInput label="Tên chuyên đề" value={tenCD} onChange={setTenCD} placeholder="VD: Hình học không gian" />
+            <FormInput label="Mô tả (tùy chọn)" value={moTaCD} onChange={setMoTaCD} placeholder="" />
+            <Button onClick={themCD} disabled={!tenCD.trim() || dangThemCD}>
+              {dangThemCD ? 'Đang thêm...' : 'Thêm chuyên đề'}
+            </Button>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Danh sách chuyên đề + dạng */}
       {danhMuc.length === 0 ? (
@@ -224,14 +228,16 @@ export default function QuanLyDanhMuc() {
                       <DangRow key={d.id} dang={d} onXoa={xoaDang} onSua={suaDang} />
                     ))
                   )}
-                  {/* Form thêm dạng */}
-                  <div className="grid sm:grid-cols-3 gap-2 mt-1 items-end">
-                    <FormInput label="Tên dạng mới" value={tenDang} onChange={setTenDang} placeholder="VD: Xét đơn điệu" />
-                    <FormInput label="Mô tả (tùy chọn)" value={moTaDang} onChange={setMoTaDang} placeholder="" />
-                    <Button size="sm" onClick={() => themDang(cd.id)} disabled={!tenDang.trim() || dangThemDang}>
-                      {dangThemDang ? 'Đang thêm...' : '+ Thêm dạng'}
-                    </Button>
-                  </div>
+                  {/* Form thêm dạng — ẩn với tài khoản Quản lý */}
+                  {!toanQuyen && (
+                    <div className="grid sm:grid-cols-3 gap-2 mt-1 items-end">
+                      <FormInput label="Tên dạng mới" value={tenDang} onChange={setTenDang} placeholder="VD: Xét đơn điệu" />
+                      <FormInput label="Mô tả (tùy chọn)" value={moTaDang} onChange={setMoTaDang} placeholder="" />
+                      <Button size="sm" onClick={() => themDang(cd.id)} disabled={!tenDang.trim() || dangThemDang}>
+                        {dangThemDang ? 'Đang thêm...' : '+ Thêm dạng'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardBody>

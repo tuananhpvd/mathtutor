@@ -87,12 +87,13 @@ DANH_MUC_SEED = [
 _DANG_MAP: dict[tuple[str, str], int] = {}
 
 
-def _seed_danh_muc(db) -> None:
+def _seed_danh_muc(db, nguoi_tao_id: int | None = None) -> None:
     for cd_data in DANH_MUC_SEED:
         cd = ChuyenDe(
             ten=cd_data["ten"],
             mo_ta=cd_data.get("mo_ta"),
             thu_tu=cd_data["thu_tu"],
+            nguoi_tao_id=nguoi_tao_id,
         )
         db.add(cd)
         db.flush()
@@ -101,6 +102,7 @@ def _seed_danh_muc(db) -> None:
                 chuyen_de_id=cd.id,
                 ten=d_data["ten"],
                 thu_tu=d_data.get("thu_tu", 0),
+                nguoi_tao_id=nguoi_tao_id,
             )
             db.add(dang)
             db.flush()
@@ -140,23 +142,12 @@ def _migrate_them_cot(engine) -> None:
                 conn.execute(text(
                     "ALTER TABLE phan_tich_hs ADD COLUMN nguon VARCHAR(16) DEFAULT 'ai'"
                 ))
-    if "problems" in ten_bang:
-        cot = {c["name"] for c in insp.get_columns("problems")}
-        if "pham_vi" not in cot:
+    if "users" in ten_bang:
+        cot_u = {c["name"] for c in insp.get_columns("users")}
+        if "la_quan_ly" not in cot_u:
             with engine.begin() as conn:
-                # Thêm cột, mặc định chung (dữ liệu đã da_duyet → giữ nguyên trong kho chung)
                 conn.execute(text(
-                    "ALTER TABLE problems ADD COLUMN pham_vi VARCHAR(20) DEFAULT 'chung' NOT NULL"
-                ))
-                # GV nhập đang chờ duyệt → auto duyệt + riêng tư
-                conn.execute(text(
-                    "UPDATE problems SET trang_thai_duyet='da_duyet', pham_vi='rieng_tu' "
-                    "WHERE trang_thai_duyet='cho_duyet' AND nguon='gv_nhap'"
-                ))
-                # AI sinh đang chờ duyệt → riêng tư (giữ cho_duyet để GV vẫn duyệt được)
-                conn.execute(text(
-                    "UPDATE problems SET pham_vi='rieng_tu' "
-                    "WHERE trang_thai_duyet='cho_duyet' AND nguon='ai_sinh'"
+                    "ALTER TABLE users ADD COLUMN la_quan_ly BOOLEAN DEFAULT 0 NOT NULL"
                 ))
 
 
@@ -180,6 +171,7 @@ def init_db() -> None:
                 ho_ten=u["ho_ten"],
                 dang_nhap=u["dang_nhap"],
                 mat_khau_hash=hash_password(u["mat_khau"]),
+                la_quan_ly=bool(u.get("la_quan_ly", False)),
             )
             if u.get("lop") == "12A1" and u["vai_tro"] == "hs":
                 user.lop_id = lop_12a1.id
@@ -188,20 +180,23 @@ def init_db() -> None:
         db.flush()
 
         gv = db.query(User).filter(User.dang_nhap == "gv1").first()
+        gv_id = gv.id if gv else None
         if gv:
             lop_12a1.gv_id = gv.id
 
-        # Seed danh mục chuyên đề → dạng
-        _seed_danh_muc(db)
+        # Seed danh mục chuyên đề → dạng, thuộc sở hữu gv1
+        _seed_danh_muc(db, gv_id)
 
-        # Seed bài mẫu — gán dang_id nếu problems.json khai báo "dang"
+        # Seed bài mẫu — gán dang_id nếu problems.json khai báo "dang"; chủ sở hữu gv1
         if (SEED_DIR / "problems.json").exists():
             problems_data = json.loads((SEED_DIR / "problems.json").read_text(encoding="utf-8"))
             for p_data in problems_data:
                 steps_data = p_data.pop("solution_steps", [])
                 dang_ten = p_data.pop("dang", None)  # tên dạng (tùy chọn)
                 dang_id = _DANG_MAP.get((p_data.get("chuyen_de", ""), dang_ten or ""))
-                problem = Problem(dang_id=dang_id, **{k: v for k, v in p_data.items()})
+                problem = Problem(
+                    dang_id=dang_id, nguoi_tao_id=gv_id, **{k: v for k, v in p_data.items()}
+                )
                 db.add(problem)
                 db.flush()
                 for s in steps_data:

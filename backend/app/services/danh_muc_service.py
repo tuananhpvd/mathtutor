@@ -7,12 +7,19 @@ from app.models.problem import Problem
 
 # ---------- ChuyenDe ----------
 
-def lay_tat_ca_chuyen_de(db: Session) -> list[ChuyenDe]:
-    return db.query(ChuyenDe).order_by(ChuyenDe.thu_tu, ChuyenDe.id).all()
+def lay_tat_ca_chuyen_de(db: Session, owner_id: int | None = None) -> list[ChuyenDe]:
+    q = db.query(ChuyenDe)
+    if owner_id is not None:
+        q = q.filter(ChuyenDe.nguoi_tao_id == owner_id)
+    return q.order_by(ChuyenDe.thu_tu, ChuyenDe.id).all()
 
 
 def tao_chuyen_de(db: Session, ten: str, mo_ta: str | None, thu_tu: int, nguoi_tao_id: int) -> ChuyenDe:
-    if db.query(ChuyenDe).filter(ChuyenDe.ten == ten).first():
+    # Tên chỉ cần duy nhất trong phạm vi của chính người tạo.
+    trung = db.query(ChuyenDe).filter(
+        ChuyenDe.ten == ten, ChuyenDe.nguoi_tao_id == nguoi_tao_id
+    ).first()
+    if trung:
         raise ValueError(f"Chuyên đề '{ten}' đã tồn tại")
     cd = ChuyenDe(ten=ten, mo_ta=mo_ta, thu_tu=thu_tu, nguoi_tao_id=nguoi_tao_id)
     db.add(cd)
@@ -26,7 +33,10 @@ def sua_chuyen_de(db: Session, cd_id: int, du_lieu: dict) -> ChuyenDe:
     if cd is None:
         raise ValueError("Không tìm thấy chuyên đề")
     if "ten" in du_lieu and du_lieu["ten"] != cd.ten:
-        if db.query(ChuyenDe).filter(ChuyenDe.ten == du_lieu["ten"]).first():
+        trung = db.query(ChuyenDe).filter(
+            ChuyenDe.ten == du_lieu["ten"], ChuyenDe.nguoi_tao_id == cd.nguoi_tao_id
+        ).first()
+        if trung:
             raise ValueError(f"Chuyên đề '{du_lieu['ten']}' đã tồn tại")
     for k, v in du_lieu.items():
         if v is not None:
@@ -87,9 +97,9 @@ def xoa_dang(db: Session, dang_id: int) -> None:
     db.commit()
 
 
-def lay_toan_bo_danh_muc(db: Session) -> list[dict]:
-    """Trả toàn bộ cây chuyên đề → dạng (dùng cho frontend)."""
-    cds = lay_tat_ca_chuyen_de(db)
+def lay_toan_bo_danh_muc(db: Session, owner_id: int | None = None) -> list[dict]:
+    """Trả cây chuyên đề → dạng. owner_id=None → tất cả (admin/Quản lý xem tổng)."""
+    cds = lay_tat_ca_chuyen_de(db, owner_id)
     result = []
     for cd in cds:
         result.append({
@@ -97,6 +107,7 @@ def lay_toan_bo_danh_muc(db: Session) -> list[dict]:
             "ten": cd.ten,
             "mo_ta": cd.mo_ta,
             "thu_tu": cd.thu_tu,
+            "nguoi_tao_id": cd.nguoi_tao_id,
             "dang_list": [
                 {
                     "id": d.id,

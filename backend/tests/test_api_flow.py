@@ -22,14 +22,13 @@ def seed_all(db):
                  mat_khau_hash=hash_password("pass"))
     db.add_all([hs, gv, admin])
     db.flush()
+    lop.gv_id = gv.id  # HS tự luyện bài của GV chủ nhiệm lớp
 
-    # Bài TLN đã duyệt, kho chung (để HS tự chọn), thuộc gv
-    from app.models.problem import PhamVi
+    # Bài TLN đã duyệt, thuộc gv (GV chủ nhiệm lớp HS → HS tự chọn được)
     p = Problem(
         chuyen_de="Test", loai_cau="TLN", do_kho="tb",
         de_bai="Tìm x.", loai_dap_an_nhap="gia_tri",
         trang_thai_duyet=TrangThaiDuyet.da_duyet,
-        pham_vi=PhamVi.chung,
         nguoi_tao_id=gv.id,
         meta={"dap_an_cuoi": "5"},
     )

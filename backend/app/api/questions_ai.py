@@ -3,12 +3,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth.deps import CurrentUser, require_role
+from app.auth.deps import CurrentUser, co_toan_quyen, require_role
 from app.db.session import get_db
 from app.llm.client import get_llm_client
 from app.models.problem import Nguon, Problem, TrangThaiDuyet
+from app.models.thong_bao import LoaiThongBao
 from app.models.user import VaiTro
 from app.schemas.question_gen import CauHoiNhapResponse, DuyetRequest, SinhCauHoiRequest
+from app.services import thong_bao_service
 from app.services.admin_service import lay_cau_hinh
 from app.services.question_gen_service import duyet_cau, sinh_va_luu
 
@@ -67,8 +69,22 @@ def duyet(
     current_user: CurrentUser,
     db: Session = Depends(get_db),
 ):
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    if not co_toan_quyen(current_user) and p.nguoi_tao_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Bạn không có quyền duyệt câu hỏi này")
+    owner_id, ten_bai = p.nguoi_tao_id, p.de_bai
     try:
         problem = duyet_cau(db, problem_id, body.hanh_dong)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    # Quản lý duyệt/loại câu của GV khác → thông báo cho chủ.
+    if co_toan_quyen(current_user) and owner_id and owner_id != current_user.id:
+        nhan = "đã duyệt câu hỏi" if body.hanh_dong == "duyet" else "đã loại câu hỏi"
+        thong_bao_service.tao(
+            db, nguoi_nhan_id=owner_id, noi_dung=f"{current_user.ho_ten} {nhan}: {ten_bai}",
+            loai=LoaiThongBao.quan_ly, nguoi_gui_id=current_user.id,
+            tieu_de="Quản lý cập nhật nội dung",
+        )
     return {"id": problem.id, "trang_thai_duyet": problem.trang_thai_duyet.value}

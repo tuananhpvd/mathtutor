@@ -13,6 +13,8 @@ def _seed_users(db):
     hs = User(vai_tro=VaiTro.hs, ho_ten="HS", dang_nhap="hs_dm", mat_khau_hash=hash_password("pass"), lop_id=lop.id)
     admin = User(vai_tro=VaiTro.admin, ho_ten="Admin", dang_nhap="admin_dm", mat_khau_hash=hash_password("pass"))
     db.add_all([gv, hs, admin])
+    db.flush()
+    lop.gv_id = gv.id  # HS đọc danh mục của GV chủ nhiệm lớp
     db.commit()
     return gv, hs, admin
 

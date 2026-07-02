@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
-import { getSession, clearSession } from '../../auth'
+import { getSession, clearSession, updateHoTen } from '../../auth'
 import TrangChu from './TrangChu'
 import ChonBai from './ChonBai'
 import PhongHoc from './PhongHoc'
@@ -29,8 +29,13 @@ function pageFromHash() {
 }
 
 export default function HocSinhApp({ onLogout }) {
-  const { ho_ten } = getSession() || {}
+  const [hoTen, setHoTen] = useState(() => (getSession() || {}).ho_ten || '')
   const [page, setPage] = useState(pageFromHash)
+
+  function capNhatHoTen(ten) {
+    updateHoTen(ten)
+    setHoTen(ten)
+  }
   const [phongHoc, setPhongHoc] = useState(() => {
     // Khôi phục state phòng học khi F5 với hash #phong_hoc
     if (window.location.hash.slice(1) === 'phong_hoc') {
@@ -83,7 +88,7 @@ export default function HocSinhApp({ onLogout }) {
   return (
     <RoleLayout
       vai_tro="hs"
-      ho_ten={ho_ten}
+      ho_ten={hoTen}
       nav={NAV}
       active={page === 'phong_hoc' ? 'chon_bai' : page}
       onNavigate={dieuHuong}
@@ -109,7 +114,7 @@ export default function HocSinhApp({ onLogout }) {
       {page === 'nhiem_vu' && <NhiemVu onChon={moBaiMoi} />}
       {page === 'muc_tieu' && <MucTieu />}
       {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}
-      {page === 'tai_khoan' && <TaiKhoanCaNhan />}
+      {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}
     </RoleLayout>
   )
 }

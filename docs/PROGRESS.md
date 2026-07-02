@@ -4,14 +4,14 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-01, phiên bản **v22**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-02, phiên bản **v31**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **213/213 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **227/227 test backend xanh** (`pytest`).
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v21` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+- Versioning: tag `v1`…`v30` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
   commit + push + tạo tag phiên bản kế tiếp; tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
@@ -114,6 +114,6 @@ Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `
 
 ## 7. Việc tiếp theo gợi ý
 
-- [ ] Đưa lên GitHub (commit + push + tag v22) khi muốn.
+- [ ] Đưa lên GitHub (commit + push + tag v32) khi muốn.
 - [ ] (Khi chạy thật/dự thi) thực hiện checklist mục 2.
 - [ ] Rà DoD toàn sản phẩm theo `docs/PLAN.md`.

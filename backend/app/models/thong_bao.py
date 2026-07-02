@@ -13,6 +13,7 @@ class LoaiThongBao(str, enum.Enum):
     nhiem_vu = "nhiem_vu"         # GV giao nhiệm vụ (A3)
     nho_tro_giup = "nho_tro_giup"  # HS nhờ thầy/cô → báo GV (A2)
     tra_loi = "tra_loi"           # GV trả lời yêu cầu "Nhờ thầy/cô" → báo HS (A2)
+    quan_ly = "quan_ly"           # Tài khoản Quản lý sửa/xóa nội dung của GV → báo GV
     he_thong = "he_thong"
 
 
