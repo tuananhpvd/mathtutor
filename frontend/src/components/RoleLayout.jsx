@@ -19,9 +19,7 @@ function Brand({ vai_tro }) {
   const a = ACCENT[vai_tro] || ACCENT.hs
   return (
     <div className="flex items-center gap-2">
-      <div className="h-8 w-8 rounded-md bg-primary text-white grid place-items-center font-bold">
-        M
-      </div>
+      <img src="/icon.png" alt="MathTutor" className="h-16 w-16 rounded-md object-cover" />
       <div className="leading-tight">
         <p className="font-semibold text-ink">MathTutor</p>
         <p className={`text-xs ${a.mau}`}>{a.ten}</p>

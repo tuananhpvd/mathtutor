@@ -704,11 +704,8 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
 // Vỏ modal chung (overlay phải) cho Sửa / Tạo.
 function KhungModal({ tieu_de, error, children, onDong }) {
   return (
-    <div className="fixed inset-0 z-20 bg-black/30 flex justify-end" onClick={onDong}>
-      <div
-        className="w-2/3 min-w-[620px] bg-surface h-full overflow-y-auto p-6 shadow-[var(--shadow-pop)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-20 bg-black/30 flex justify-end">
+      <div className="w-2/3 min-w-[620px] bg-surface h-full overflow-y-auto p-6 shadow-[var(--shadow-pop)]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-ink">{tieu_de}</h3>
           <button onClick={onDong} className="text-muted hover:text-ink text-lg">✕</button>

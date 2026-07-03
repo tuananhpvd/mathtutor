@@ -24,14 +24,11 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4">
+    <div className="min-h-screen flex items-start justify-center bg-bg px-4 pt-12">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-6">
-          <div className="h-12 w-12 rounded-lg bg-primary text-white grid place-items-center text-xl font-bold">
-            M
-          </div>
-          <h1 className="text-2xl font-semibold text-ink mt-3">MathTutor</h1>
-          <p className="text-muted text-sm">Gia sư Toán lớp 12 — học theo phương pháp gợi mở</p>
+          <img src="/logomt.png" alt="MathTutor" className="h-72 w-72 rounded-lg object-cover" />
+          <p className="text-primary text-[20px] font-bold mt-3">HỌC THEO PHƯƠNG PHÁP GỢI MỞ</p>
         </div>
 
         <Card className="p-6">
@@ -41,7 +38,6 @@ export default function Login({ onLogin }) {
               label="Tên đăng nhập"
               value={form.dang_nhap}
               onChange={(e) => setForm((f) => ({ ...f, dang_nhap: e.target.value }))}
-              placeholder="admin / gv1 / hs1"
               required
               autoFocus
             />
@@ -61,9 +57,6 @@ export default function Login({ onLogin }) {
             </Button>
           </form>
         </Card>
-        <p className="text-center text-xs text-muted mt-4">
-          Tài khoản demo — đổi mật khẩu trước khi dùng thật.
-        </p>
       </div>
     </div>
   )
