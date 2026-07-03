@@ -4,10 +4,22 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v39**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v40**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **266/266 test backend xanh** (`pytest`).
+- **✅ Thương hiệu (v40):** gắn 3 ảnh do user cung cấp vào `frontend/public/`: `logomt.png` (logo
+  trang login), `icon.png` (icon sidebar góc trên-trái, thay ô chữ "M" cũ), `favicon.png` (tab
+  trình duyệt, thay `favicon.svg`). Lưu ý: 2 file đầu user gửi ban đầu không có kênh alpha (PNG
+  color type 2 = truecolor không trong suốt) dù trông "nền trong suốt" trên máy họ — đã phát hiện
+  bằng cách tự viết decoder PNG (Node, không cần lib ngoài) đọc IHDR + giải nén IDAT, KHÔNG tự động
+  tách nền (rủi ro răng cưa/mất chi tiết) mà để user xuất lại file đúng alpha. Trang login cũng bỏ
+  chữ "MathTutor"/mô tả dài, logo phóng to (48→72, tỉ lệ so gốc x4.5), đổi layout từ canh giữa tuyệt
+  đối (`items-center`) sang canh từ trên (`items-start pt-12`) vì logo lớn đẩy khối nội dung sát
+  đáy màn hình.
+- **✅ Fix khung Sửa/Tạo câu hỏi tự đóng khi lỡ bấm ra ngoài (v40):** `KhungModal` có `onClick`
+  đóng modal gắn trên lớp overlay nền — bấm nhầm ngoài khung là mất dữ liệu đang sửa. Đã gỡ, giờ
+  chỉ đóng qua nút X / Lưu / Hủy.
 - **✅ Đồ thị/BBT vẽ lại theo style SGK Việt Nam, đen trắng thuần (v38 + v39):** sau khi so sánh
   với ảnh SGK thật, nhận thấy hình CAS vẽ đúng nhưng chưa quen mắt HS. Đã quyết định KHÔNG dùng
   TikZ/LaTeX (phân tích chi phí hạ tầng — cần cài LaTeX engine + sandbox riêng, không đáng so với
@@ -98,8 +110,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v39` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v40**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v40` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v41**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 
