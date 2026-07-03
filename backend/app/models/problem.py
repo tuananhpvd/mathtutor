@@ -52,6 +52,8 @@ class Problem(Base):
     loai_cau: Mapped[LoaiCau] = mapped_column(Enum(LoaiCau), nullable=False)
     do_kho: Mapped[DoKho] = mapped_column(Enum(DoKho), nullable=False)
     de_bai: Mapped[str] = mapped_column(Text, nullable=False)
+    # Ảnh minh họa (không bắt buộc) — URL tương đối /uploads/<file>. Mỗi câu tối đa 1 ảnh.
+    hinh_anh: Mapped[str | None] = mapped_column(String(300), nullable=True)
     loai_dap_an_nhap: Mapped[str] = mapped_column(String(50), nullable=False)
     che_do_so_khop: Mapped[CheDoSoKhopEnum] = mapped_column(
         Enum(CheDoSoKhopEnum), default=CheDoSoKhopEnum.tuong_duong, nullable=False

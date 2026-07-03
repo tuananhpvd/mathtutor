@@ -28,6 +28,9 @@ backend_out.txt
 backend_err.txt
 frontend_out.txt
 frontend_err.txt
+
+# Ảnh minh họa câu hỏi upload lúc chạy (không commit)
+uploads/
 backup_data.json
 luong_chay
 upload_dulieu

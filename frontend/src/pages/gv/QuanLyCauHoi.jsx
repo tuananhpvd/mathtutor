@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Input, Select, Table, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -290,6 +290,41 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
   const register = (fn) => { activeInsert.current = fn }
   const chen = (s, b) => activeInsert.current?.(s, b)
 
+  const [dangUpload, setDangUpload] = useState(false)
+  const [loiUpload, setLoiUpload] = useState('')
+  // Uploader dùng chung cho cả chọn file lẫn dán clipboard.
+  const taiLenFile = useCallback(async (file) => {
+    if (!file) return
+    setLoiUpload('')
+    setDangUpload(true)
+    try {
+      const { url } = await api.uploadHinh(file)
+      setBai((b) => ({ ...b, hinh_anh: url }))
+    } catch (err) {
+      setLoiUpload(err.message)
+    } finally {
+      setDangUpload(false)
+    }
+  }, [setBai])
+  function chonHinh(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    taiLenFile(file)
+  }
+  // Dán ảnh chụp màn hình bằng Ctrl+V (Win+Shift+S): bắt paste cấp document khi form mở.
+  // Chỉ xử lý khi clipboard có ảnh → dán chữ vào ô đề bài vẫn hoạt động bình thường.
+  useEffect(() => {
+    function danAnh(e) {
+      const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'))
+      if (!item) return
+      e.preventDefault()
+      const file = item.getAsFile()
+      if (file) taiLenFile(file)
+    }
+    document.addEventListener('paste', danAnh)
+    return () => document.removeEventListener('paste', danAnh)
+  }, [taiLenFile])
+
   function doiLoai(loai) {
     const t = templateTheoLoai(loai)
     setBai((b) => ({ ...b, loai_cau: loai, meta: t.meta, solution_steps: t.solution_steps }))
@@ -393,6 +428,47 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
                 multiline
                 registerActive={register}
               />
+
+              {/* Hình minh họa (tùy chọn) — hiện ở cột phải màn HS làm bài */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs text-muted">
+                  Hình minh họa (không bắt buộc — PNG/JPG/WebP, tối đa 3MB)
+                </p>
+                {bai.hinh_anh ? (
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={bai.hinh_anh}
+                      alt="Hình minh họa"
+                      className="max-h-40 max-w-full rounded-md border border-border"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setBai((b) => ({ ...b, hinh_anh: null }))}
+                    >
+                      Gỡ ảnh
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-primary hover:border-primary">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={chonHinh}
+                        disabled={dangUpload}
+                      />
+                      {dangUpload ? 'Đang tải ảnh...' : '＋ Chọn ảnh minh họa'}
+                    </label>
+                    <span className="text-xs text-muted">
+                      hoặc chụp màn hình rồi <b>Ctrl&nbsp;+&nbsp;V</b> để dán
+                    </span>
+                  </div>
+                )}
+                {loiUpload && <p className="text-xs text-danger">{loiUpload}</p>}
+              </div>
 
               {/* Đáp án theo loại câu */}
               {bai.loai_cau === 'TN4PA' && bai.meta?.phuong_an && (
@@ -634,6 +710,7 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
         do_kho: bai.do_kho,
         dang_id: bai.dang_id ? Number(bai.dang_id) : null,
         chuyen_de: opt?.cd || bai.chuyen_de,
+        hinh_anh: bai.hinh_anh ?? null,
         meta: bai.meta,
         solution_steps: chuanHoaSteps(bai.solution_steps),
       })
@@ -686,6 +763,7 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
         dang_id: Number(bai.dang_id),
         chuyen_de: opt?.cd || '',
         de_bai: bai.de_bai,
+        hinh_anh: bai.hinh_anh || null,
         meta: bai.meta,
         solution_steps: chuanHoaSteps(bai.solution_steps),
       })

@@ -82,6 +82,7 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
         de_bai=de_bai,
         loai_dap_an_nhap=LOAI_DAP_AN_THEO_LOAI[loai.value],
         che_do_so_khop=che_do,
+        hinh_anh=du_lieu.get("hinh_anh"),
         # GV nhập thủ công → duyệt ngay. Câu hỏi luôn thuộc riêng người tạo.
         trang_thai_duyet=TrangThaiDuyet.da_duyet,
         nguon=Nguon.gv_nhap,
@@ -189,6 +190,8 @@ def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
         p.chuyen_de = du_lieu["chuyen_de"]
     if "de_bai" in du_lieu and du_lieu["de_bai"]:
         p.de_bai = du_lieu["de_bai"]
+    if "hinh_anh" in du_lieu:  # gửi None = gỡ ảnh; chuỗi = đặt ảnh mới
+        p.hinh_anh = du_lieu["hinh_anh"]
     if "do_kho" in du_lieu and du_lieu["do_kho"]:
         try:
             p.do_kho = DoKho(du_lieu["do_kho"])

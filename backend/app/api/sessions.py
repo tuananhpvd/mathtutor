@@ -184,6 +184,7 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
         chuyen_de=_chuyen_de_ten(problem, dang_cd) if problem else "",
         dang_ten=(problem.dang.ten if problem and problem.dang else None),
         de_bai=problem.de_bai if problem else "",
+        hinh_anh=problem.hinh_anh if problem else None,
         meta=meta_safe,
         trang_thai=session.trang_thai.value,
         buoc_hien_tai=session.buoc_hien_tai,

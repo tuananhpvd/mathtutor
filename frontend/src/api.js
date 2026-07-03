@@ -55,6 +55,19 @@ export const api = {
   genQuestions: (body) => post('/questions-ai/generate', body),
   listChoDuyet: () => request('/questions-ai/cho-duyet'),
   duyetCau: (id, hanh_dong) => post(`/questions-ai/${id}/duyet`, { hanh_dong }),
+  uploadHinh: async (file) => {
+    const token = sessionStorage.getItem('token')
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch(BASE + '/problems/upload-hinh', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.detail || `Lỗi ${res.status}`)
+    return data // { url }
+  },
   createProblem: (body) => post('/problems', body),
   updateProblem: (id, body) =>
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

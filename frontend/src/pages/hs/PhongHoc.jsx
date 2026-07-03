@@ -114,6 +114,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
     dap_an_y: null,
   })
   const [dangGui, setDangGui] = useState(false)
+  const [zoomHinh, setZoomHinh] = useState(null)
   const chatRef = useRef(null)
   // Nhờ thầy/cô (A2)
   const [nhoMo, setNhoMo] = useState(false)
@@ -266,6 +267,14 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
 
   return (
     <div className="flex flex-col gap-4">
+      {zoomHinh && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 cursor-zoom-out"
+          onClick={() => setZoomHinh(null)}
+        >
+          <img src={zoomHinh} alt="Hình minh họa" className="max-h-[90vh] max-w-full rounded-lg" />
+        </div>
+      )}
       <div>
         <button onClick={onChonBai} className="text-sm text-muted hover:text-ink mb-2">
           ← Chọn bài khác
@@ -275,31 +284,46 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
             {problem.chuyen_de}
             {problem.dang_ten && <span className="text-ink"> › {problem.dang_ten}</span>}
           </p>
-          <span className="inline-block text-xs font-bold tracking-wide text-primary bg-surface rounded px-2 py-0.5 mb-1.5">
-            [{NHAN_LOAI_CAU[problem.loai_cau] || problem.loai_cau}]
-          </span>
-          <p className="text-base text-ink leading-relaxed">
-            {renderDeBai(problem.de_bai)}
-          </p>
-          {problem.loai_cau === 'TN4PA' && problem.meta?.phuong_an && (
-            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
-              {Object.entries(problem.meta.phuong_an).map(([k, v]) => (
-                <span key={k} className="text-sm text-ink leading-relaxed whitespace-nowrap">
-                  <span className="font-semibold text-primary">{k}.</span> {renderDeBai(v)}
-                </span>
-              ))}
+          {/* Có hình → 2 cột (đề trái, hình phải); không hình → 1 cột như cũ. Mobile tự xếp dọc. */}
+          <div className={problem.hinh_anh ? 'grid md:grid-cols-2 gap-4 items-start' : ''}>
+            <div>
+              <span className="inline-block text-xs font-bold tracking-wide text-primary bg-surface rounded px-2 py-0.5 mb-1.5">
+                [{NHAN_LOAI_CAU[problem.loai_cau] || problem.loai_cau}]
+              </span>
+              <p className="text-base text-ink leading-relaxed">
+                {renderDeBai(problem.de_bai)}
+              </p>
+              {problem.loai_cau === 'TN4PA' && problem.meta?.phuong_an && (
+                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
+                  {Object.entries(problem.meta.phuong_an).map(([k, v]) => (
+                    <span key={k} className="text-sm text-ink leading-relaxed whitespace-nowrap">
+                      <span className="font-semibold text-primary">{k}.</span> {renderDeBai(v)}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {problem.loai_cau === 'TNDS' && problem.meta?.y && (
+                <div className="mt-2 flex flex-col gap-1">
+                  {problem.meta.y.map((item) => (
+                    <p key={item.ky_hieu} className="text-sm text-ink leading-relaxed">
+                      <span className="font-semibold text-primary">{item.ky_hieu})</span>{' '}
+                      {renderDeBai(item.noi_dung_y)}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-          {problem.loai_cau === 'TNDS' && problem.meta?.y && (
-            <div className="mt-2 flex flex-col gap-1">
-              {problem.meta.y.map((item) => (
-                <p key={item.ky_hieu} className="text-sm text-ink leading-relaxed">
-                  <span className="font-semibold text-primary">{item.ky_hieu})</span>{' '}
-                  {renderDeBai(item.noi_dung_y)}
-                </p>
-              ))}
-            </div>
-          )}
+            {problem.hinh_anh && (
+              <div className="flex justify-center md:justify-end">
+                <img
+                  src={problem.hinh_anh}
+                  alt="Hình minh họa"
+                  className="max-h-80 max-w-full rounded-md border border-border bg-surface cursor-zoom-in"
+                  onClick={() => setZoomHinh(problem.hinh_anh)}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

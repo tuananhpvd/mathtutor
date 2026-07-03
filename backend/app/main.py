@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.admin import router as admin_api_router
 from app.api.auth import admin_router, gv_router, hs_router
@@ -19,6 +20,7 @@ from app.api.questions_ai import router as questions_ai_router
 from app.api.sessions import router as sessions_router
 from app.api.thong_bao import router as thong_bao_router
 from app.api.tro_giup import router as tro_giup_router
+from app.core.uploads import UPLOADS_DIR
 
 
 @asynccontextmanager
@@ -43,6 +45,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Phục vụ ảnh minh họa câu hỏi đã upload (GV thêm ở form / import).
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 app.include_router(auth_router)
 app.include_router(admin_router)

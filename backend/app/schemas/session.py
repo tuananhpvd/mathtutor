@@ -55,6 +55,7 @@ class ChiTietPhienResponse(BaseModel):
     chuyen_de: str
     dang_ten: str | None = None
     de_bai: str
+    hinh_anh: str | None = None
     meta: dict
     trang_thai: str
     buoc_hien_tai: int

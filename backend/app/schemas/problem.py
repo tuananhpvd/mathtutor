@@ -17,6 +17,7 @@ class ProblemCreate(BaseModel):
     dang_id: int | None = None
     chuyen_de: str | None = Field(None, max_length=200)
     de_bai: str = Field(..., min_length=1)
+    hinh_anh: str | None = Field(None, max_length=300)
     che_do_so_khop: str = "tuong_duong"
     meta: dict = Field(default_factory=dict)
     solution_steps: list[SolutionStepIn] = Field(default_factory=list)
@@ -46,6 +47,7 @@ class ProblemUpdate(BaseModel):
     dang_id: int | None = None
     do_kho: str | None = None  # de | tb | kho
     de_bai: str | None = Field(None, min_length=1)
+    hinh_anh: str | None = Field(None, max_length=300)  # None khi gửi = gỡ ảnh
     meta: dict | None = None
     solution_steps: list[SolutionStepIn] | None = None
     trang_thai_duyet: str | None = None  # cho_duyet | da_duyet | loai

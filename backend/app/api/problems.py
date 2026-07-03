@@ -1,9 +1,10 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import text as sql_text
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, co_toan_quyen, require_role
+from app.core.uploads import luu_hinh
 from app.db.session import get_db
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
@@ -91,6 +92,7 @@ def _problem_full(p: Problem, dang_cd: dict[int, str]) -> dict:
         "loai_cau": p.loai_cau.value,
         "do_kho": p.do_kho.value,
         "de_bai": p.de_bai,
+        "hinh_anh": p.hinh_anh,
         "loai_dap_an_nhap": p.loai_dap_an_nhap,
         "che_do_so_khop": p.che_do_so_khop.value,
         "trang_thai_duyet": p.trang_thai_duyet.value,
@@ -130,6 +132,7 @@ def _strip_answers(p: Problem, dang_cd: dict[int, str]) -> dict:
         "loai_cau": p.loai_cau.value,
         "do_kho": p.do_kho.value,
         "de_bai": p.de_bai,
+        "hinh_anh": p.hinh_anh,
         "loai_dap_an_nhap": p.loai_dap_an_nhap,
         "meta": meta_safe,
     }
@@ -217,6 +220,20 @@ def import_batch_bai(body: ImportBatchRequest, current_user: CurrentUser,
                      db: Session = Depends(get_db)):
     """Import hàng loạt câu hỏi từ file mẫu. Trạng thái: cho_duyet + rieng_tu."""
     return import_batch(db, body.items, current_user.id)
+
+
+@router.post("/upload-hinh", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+async def upload_hinh(file: UploadFile = File(...)):
+    """Upload 1 ảnh minh họa (PNG/JPG/WebP ≤ 3MB) → trả {url}. Chỉ GV/Admin.
+
+    Xác thực bằng nội dung file (magic bytes) ở lớp core, không tin content-type client.
+    """
+    data = await file.read()
+    try:
+        url = luu_hinh(data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"url": url}
 
 
 @router.post("", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
