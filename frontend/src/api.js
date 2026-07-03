@@ -68,6 +68,7 @@ export const api = {
     if (!res.ok) throw new Error(data.detail || `Lỗi ${res.status}`)
     return data // { url }
   },
+  veDoThi: (body) => post('/problems/ve-do-thi', body),
   createProblem: (body) => post('/problems', body),
   updateProblem: (id, body) =>
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

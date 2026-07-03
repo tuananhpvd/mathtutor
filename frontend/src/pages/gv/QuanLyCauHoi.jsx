@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Input, Select, Table, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
+import VeDoThiDialog from '../../components/gv/VeDoThiDialog'
 import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
@@ -292,14 +293,19 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
 
   const [dangUpload, setDangUpload] = useState(false)
   const [loiUpload, setLoiUpload] = useState('')
-  // Uploader dùng chung cho cả chọn file lẫn dán clipboard.
+  // Uploader dùng chung cho cả chọn file lẫn dán clipboard. Xóa hinh_spec cũ (nếu có) vì ảnh
+  // mới không còn phải là đồ thị đã vẽ — tránh nút "Vẽ lại" áp nhầm cho ảnh không liên quan.
   const taiLenFile = useCallback(async (file) => {
     if (!file) return
     setLoiUpload('')
     setDangUpload(true)
     try {
       const { url } = await api.uploadHinh(file)
-      setBai((b) => ({ ...b, hinh_anh: url }))
+      setBai((b) => {
+        const meta = { ...b.meta }
+        delete meta.hinh_spec
+        return { ...b, hinh_anh: url, meta }
+      })
     } catch (err) {
       setLoiUpload(err.message)
     } finally {
@@ -324,6 +330,13 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
     document.addEventListener('paste', danAnh)
     return () => document.removeEventListener('paste', danAnh)
   }, [taiLenFile])
+
+  // Vẽ đồ thị từ hàm số (GĐ3A) — CAS tự phân tích, GV chỉ nhập f(x).
+  const [veDoThiMo, setVeDoThiMo] = useState(false)
+  function xongVeHinh(url, spec) {
+    setBai((b) => ({ ...b, hinh_anh: url, meta: { ...b.meta, hinh_spec: spec } }))
+    setVeDoThiMo(false)
+  }
 
   function doiLoai(loai) {
     const t = templateTheoLoai(loai)
@@ -441,33 +454,58 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
                       alt="Hình minh họa"
                       className="max-h-40 max-w-full rounded-md border border-border"
                     />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setBai((b) => ({ ...b, hinh_anh: null }))}
-                    >
-                      Gỡ ảnh
-                    </Button>
+                    <div className="flex flex-col gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setBai((b) => {
+                          const meta = { ...b.meta }
+                          delete meta.hinh_spec
+                          return { ...b, hinh_anh: null, meta }
+                        })}
+                      >
+                        Gỡ ảnh
+                      </Button>
+                      {bai.meta?.hinh_spec?.loai === 'do_thi' && (
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setVeDoThiMo(true)}>
+                          📈 Vẽ lại
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-primary hover:border-primary">
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        className="hidden"
-                        onChange={chonHinh}
-                        disabled={dangUpload}
-                      />
-                      {dangUpload ? 'Đang tải ảnh...' : '＋ Chọn ảnh minh họa'}
-                    </label>
-                    <span className="text-xs text-muted">
-                      hoặc chụp màn hình rồi <b>Ctrl&nbsp;+&nbsp;V</b> để dán
-                    </span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-primary hover:border-primary">
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={chonHinh}
+                          disabled={dangUpload}
+                        />
+                        {dangUpload ? 'Đang tải ảnh...' : '＋ Chọn ảnh minh họa'}
+                      </label>
+                      <span className="text-xs text-muted">
+                        hoặc chụp màn hình rồi <b>Ctrl&nbsp;+&nbsp;V</b> để dán
+                      </span>
+                    </div>
+                    <div>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => setVeDoThiMo(true)}>
+                        📈 Vẽ đồ thị từ hàm số
+                      </Button>
+                    </div>
                   </div>
                 )}
                 {loiUpload && <p className="text-xs text-danger">{loiUpload}</p>}
+                {veDoThiMo && (
+                  <VeDoThiDialog
+                    initialSpec={bai.meta?.hinh_spec?.loai === 'do_thi' ? bai.meta.hinh_spec : null}
+                    onDong={() => setVeDoThiMo(false)}
+                    onXongHinh={xongVeHinh}
+                  />
+                )}
               </div>
 
               {/* Đáp án theo loại câu */}

@@ -65,6 +65,15 @@ def _parse_an_toan(expr_str: str):
     return _safe_sympify(sympy_str)
 
 
+def parse_bieu_thuc_an_toan(expr_str: str):
+    """Parse biểu thức toán (cú pháp SymPy hoặc LaTeX) an toàn, ném ValueError nếu hỏng.
+
+    Public wrapper của _parse_an_toan — dùng chung cho so khớp đáp án và các tiện ích
+    khác cần CAS (vd vẽ đồ thị) mà không phải chấm điểm HS.
+    """
+    return _parse_an_toan(expr_str)
+
+
 def kiem_tra_bieu_thuc(expr_str: str) -> bool:
     """True nếu biểu thức parse được an toàn bằng SymPy. Dùng để validate AI sinh."""
     if not expr_str or not str(expr_str).strip():

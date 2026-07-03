@@ -5,12 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, co_toan_quyen, require_role
 from app.core.uploads import luu_hinh
+from app.core.ve_hinh import du_lieu_do_thi
 from app.db.session import get_db
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
 from app.models.thong_bao import LoaiThongBao
 from app.models.user import User, VaiTro
-from app.schemas.problem import ImportBatchRequest, ProblemCreate, ProblemUpdate
+from app.schemas.problem import ImportBatchRequest, ProblemCreate, ProblemUpdate, VeDoThiRequest
 from app.services import thong_bao_service
 from app.services.problem_service import (
     anh_huong_xoa_vinh_vien,
@@ -234,6 +235,22 @@ async def upload_hinh(file: UploadFile = File(...)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"url": url}
+
+
+@router.post("/ve-do-thi", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def ve_do_thi(body: VeDoThiRequest):
+    """GĐ3A: GV chỉ nhập f(x) — CAS (SymPy) tự phân tích + lấy điểm mẫu để vẽ đồ thị.
+
+    Chỉ xem trước (không lưu gì); GV tự chụp SVG thành PNG rồi upload qua /upload-hinh như ảnh
+    thường. Không dùng LLM — tất định theo CAS, đúng nguyên tắc bất biến của dự án.
+    """
+    cua_so = None
+    if body.x_min is not None and body.x_max is not None:
+        cua_so = (body.x_min, body.x_max)
+    try:
+        return du_lieu_do_thi(body.bieu_thuc, cua_so)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])

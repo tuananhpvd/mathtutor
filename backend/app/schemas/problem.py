@@ -38,6 +38,15 @@ class ImportBatchRequest(BaseModel):
     items: list[ImportCauHoiItem] = Field(..., min_length=1)
 
 
+class VeDoThiRequest(BaseModel):
+    """GĐ3A: GV chỉ nhập hàm số — CAS (SymPy) tự phân tích để vẽ đồ thị. x_min/x_max tùy chọn
+    (không gửi = tự tính cửa sổ theo tiệm cận/cực trị)."""
+
+    bieu_thuc: str = Field(..., min_length=1, max_length=200)
+    x_min: float | None = None
+    x_max: float | None = None
+
+
 class ProblemUpdate(BaseModel):
     """Cập nhật câu hỏi (GV/Admin). Mọi trường tùy chọn; chỉ áp dụng trường được gửi.
 

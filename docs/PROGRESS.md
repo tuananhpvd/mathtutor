@@ -4,12 +4,12 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v34**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v35**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **236/236 test backend xanh** (`pytest`).
-- **✅ Ảnh minh họa câu hỏi — HOÀN THÀNH (GĐ1 v33 + GĐ2 v34):** mỗi câu tối đa 1 ảnh
-  (`problems.hinh_anh`). *Bỏ GĐ3 (tiện ích tạo hình bảng biến thiên/đồ thị) — làm sau nếu cần.*
+  Tailwind) chạy end-to-end. **258/258 test backend xanh** (`pytest`).
+- **✅ Ảnh minh họa câu hỏi — GĐ1 (v33) + GĐ2 (v34) HOÀN THÀNH:** mỗi câu tối đa 1 ảnh
+  (`problems.hinh_anh`).
   - **GĐ1 (v33):** module `app/core/uploads.py` (validate magic bytes PNG/JPG/WebP ≤ 3MB), endpoint
     `POST /api/problems/upload-hinh` (GV/Admin), mount `/uploads` (StaticFiles); `hinh_anh` qua
     `_problem_full`/`_strip_answers`/`ChiTietPhienResponse` (HS xem, không lộ đáp án). Frontend: ô
@@ -19,6 +19,28 @@
     mẫu Excel; GV **upload nhiều ảnh** trước → map `{tên file → URL}`; parser đọc `hinh_ten`, preview
     có cột Hình (✓ khớp / ⚠ chưa upload), khi xác nhận khớp tên→URL rồi gửi `hinh_anh`. Backend
     `ImportCauHoiItem.hinh_anh` + `import_batch` gán ảnh.
+- **✅ GĐ3A — Vẽ đồ thị từ hàm số (CAS, v35):** GV chỉ nhập f(x) — KHÔNG dùng LLM.
+  - `app/core/ve_hinh.py`: `phan_tich_ham_so()` (TXĐ, tiệm cận đứng/ngang/xiên, cực trị, khoảng
+    dấu f′ — dùng SymPy `solveset`/`limit`/`diff`, JSON-safe, chuẩn bị sẵn cho GĐ3B bảng biến
+    thiên) + `du_lieu_do_thi()` (lấy điểm mẫu, TÁCH đoạn tại tiệm cận đứng, khung y ưu tiên
+    cực trị/tiệm cận thay vì điểm mẫu thô — tránh khung "nổ" theo điểm sát tiệm cận).
+    Phạm vi: hàm hữu tỉ 1 biến x bậc ≤4 (đúng khảo sát hàm số lớp 12); ngoài phạm vi (căn/log/
+    lượng giác/tham số) → lỗi rõ ràng, gợi ý chuyển sang upload ảnh.
+  - Endpoint `POST /api/problems/ve-do-thi` (GV/Admin, không lưu DB — chỉ xem trước).
+  - `app/core/matching/cas.py` thêm `parse_bieu_thuc_an_toan()` (public wrapper của
+    `_parse_an_toan`) để `ve_hinh.py` tái dùng cơ chế parse an toàn có sẵn.
+  - Frontend `VeDoThiDialog.jsx`: GV nhập f(x) (+ x_min/x_max tùy chọn) → SVG (trục, lưới, tiệm
+    cận nét đứt, cực trị đánh dấu) → "Dùng hình này" chuyển SVG→canvas→PNG→upload qua
+    `/upload-hinh` có sẵn (tái dùng nguyên vẹn hạ tầng GĐ1). Spec (hàm + cửa sổ) lưu vào
+    `meta.hinh_spec` (KHÔNG đổi schema — `meta` vốn là JSON tự do) để "Vẽ lại" mở ra sửa tiếp.
+  - ⚠️ Bug đã sửa lúc code: `Symbol("x", real=True)` ≠ `Symbol("x")` mà `sympify()` tạo ra (SymPy
+    coi 2 symbol khác nhau dù cùng tên) → mọi hàm hợp lệ bị báo nhầm "chứa tham số". Sửa bỏ
+    `real=True` để khớp đúng loại symbol parser thực sự tạo ra.
+  - **Chưa làm:** GĐ3B (bảng biến thiên — tái dùng `phan_tich_ham_so()`, không cần sampling).
+  - ⚠️ **Chưa tự kiểm chứng bằng trình duyệt thật** (không có Playwright/browser automation trong
+    session) — luồng SVG→canvas→PNG (nơi rủi ro nhất: Image load từ Blob URL, canvas taint) mới
+    chỉ được xác nhận qua test backend (toán CAS) + build frontend (compile), CHƯA xác nhận bằng
+    mắt. User cần tự bấm thử "Vẽ đồ thị" → "Dùng hình này" trên trình duyệt trước khi tin tưởng.
   ⚠️ Bài học tái diễn: uvicorn `--reload` trên Windows để lại tiến trình con `multiprocessing.spawn`
   giữ port khi kill parent → phải kill cả tiến trình con; và đổi `vite.config.js` phải RESTART Vite.
 - **Thay đổi trong v32 (đã push):**
@@ -34,8 +56,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v34` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v35**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v35` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v36**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 
