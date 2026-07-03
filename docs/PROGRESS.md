@@ -4,11 +4,11 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v31** + 2 fix chưa push)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v32**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **228/228 test backend xanh** (`pytest`).
-- **Thay đổi sau v31 (chưa commit/push):**
+- **Thay đổi trong v32 (đã push):**
   1. **Tên chuyên đề luôn LIVE:** API `problems.py` + `sessions.py` suy tên chuyên đề qua
      `_lay_dang_cd_map(db)` (raw SQL JOIN `dang→chuyen_de`) thay vì đọc cột denormalized
      `problems.chuyen_de`. Cộng cascade trong `danh_muc_service.sua_chuyen_de` (đổi tên chuyên đề →
@@ -21,8 +21,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v30` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp; tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v32` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v33**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 
