@@ -4,24 +4,31 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v37** + style SGK chưa push)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v39**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **266/266 test backend xanh** (`pytest`).
-- **🆕 Đồ thị/BBT vẽ lại theo style SGK Việt Nam, đen trắng thuần (chưa push):** sau khi so sánh
+- **✅ Đồ thị/BBT vẽ lại theo style SGK Việt Nam, đen trắng thuần (v38 + v39):** sau khi so sánh
   với ảnh SGK thật, nhận thấy hình CAS vẽ đúng nhưng chưa quen mắt HS. Đã quyết định KHÔNG dùng
   TikZ/LaTeX (phân tích chi phí hạ tầng — cần cài LaTeX engine + sandbox riêng, không đáng so với
   giá trị) — vẫn dùng SVG thuần, chỉ sửa lớp vẽ (`VeDoThiDialog.jsx`/`VeBBTDialog.jsx`), **không
-  đụng `ve_hinh.py`** (CAS/dữ liệu không đổi).
-  - **Đồ thị:** bỏ lưới đầy + khung bao ngoài; thêm trục Ox/Oy có **mũi tên** (SVG `<marker>`) cắt
-    tại gốc + nhãn "O"; thêm **đường nét đứt chiếu** từ mỗi điểm cực trị xuống Ox và sang Oy (đúng
-    quy ước SGK) kèm nhãn số tại chân chiếu — thay cho lưới chia đều chung chung trước đó.
-  - **BBT:** thêm khung bảng thật (viền ngoài + kẻ dọc từng cột) thay vì chỉ 2 đường kẻ ngang;
-    đường nối hàng y có **mũi tên** (trước là `<line>` trơn không đầu mũi tên).
-  - **Màu sắc:** theo yêu cầu — toàn bộ nét/chữ màu đen (`#000`), nền trắng thuần; bỏ hết mã màu
-    xanh dương (đường cong), đỏ (cực trị/dấu −), vàng cam (tiệm cận), xám (lưới/nhãn) trước đó.
-  - ⚠️ Chỉ kiểm chứng bằng **truy vết tọa độ tay** (đối chiếu hình học không tràn/chồng lấn), vẫn
-    CHƯA xem được ảnh render thật (Read tool không rasterize `.svg`, không có Playwright/rsvg).
+  đụng `ve_hinh.py`** (CAS/dữ liệu không đổi) trong suốt cả quá trình tinh chỉnh.
+  - **v38 — bản vẽ lại đầu tiên:** đồ thị bỏ lưới đầy + khung bao ngoài, thêm trục Ox/Oy có mũi
+    tên (SVG `<marker>`) + nhãn "O", đường nét đứt chiếu cực trị xuống Ox/sang Oy. BBT: khung bảng
+    thật (viền ngoài + kẻ dọc từng cột), đường nối hàng y có mũi tên. Toàn bộ đen/trắng thuần.
+  - **v39 — tinh chỉnh qua nhiều vòng test thực tế của user (nhiều lỗi hiển thị chỉ lộ ra khi xem
+    ảnh chụp màn hình thật, không phát hiện được qua truy vết tọa độ tay):**
+    - BBT: điểm gián đoạn (hàm không xác định) đổi từ 1 nét đứt che số → **2 nét dọc song song**
+      thật (đúng quy ước SGK), số trái/phải dịch ra 2 bên (không đè lên nét); mũi tên rút ngắn
+      (GAP=5) để không chạm 2 nét song song; bỏ hết nét đơn dư thừa ở mốc cực trị (cả hàng x lẫn
+      y') — chỉ giữ lại đường ngăn cột nhãn "x"/"y'"/"y" theo yêu cầu; cỡ chữ/số +1 (13→14), dấu
+      +/− to hẳn (15→19).
+    - Đồ thị: nhãn "x"/"y"/"O" từng bị đường cong vẽ đè (do vẽ TRƯỚC đường cong trong thứ tự SVG)
+      → dời ra vẽ **sau cùng** + thêm **viền trắng (halo)** quanh mọi chữ/số (`paint-order:stroke`
+      + viền trắng 3px) — kỹ thuật chuẩn để chữ luôn đọc rõ dù đường vẽ đi ngang qua bên dưới.
+  - ⚠️ Việc CAS toán học được test tự động đầy đủ (`pytest`), nhưng phần TRÌNH BÀY (bố cục, va
+    chạm chữ/nét) chỉ phát hiện được qua ảnh chụp màn hình user gửi — môi trường này không có
+    Playwright/rsvg để tự render-kiểm-tra hình ảnh trước khi báo cáo.
 - **🔧 Hoàn thiện sau GĐ3B (v37, đã push):**
   1. **GV list thiếu `hinh_anh`:** endpoint `danh_sach_bai` (vai GV) dùng dict riêng, không qua
      `_problem_full` như màn sửa → thiếu trường `hinh_anh`. Đã thêm; frontend hiện icon 🖼️ cạnh
@@ -91,8 +98,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v37` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v38**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v39` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v40**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

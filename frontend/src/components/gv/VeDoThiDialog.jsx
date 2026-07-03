@@ -44,16 +44,14 @@ function DoThiSVG({ ketQua, svgRef }) {
         </clipPath>
       </defs>
 
-      {/* Trục Ox/Oy — mũi tên ở đầu dương, nhãn O tại gốc (đúng quy ước SGK, không khung bao) */}
+      {/* Trục Ox/Oy — mũi tên ở đầu dương (đúng quy ước SGK, không khung bao). Nhãn "x"/"y"/"O"
+          vẽ SAU đường cong (cuối file) để không bao giờ bị nét vẽ đè lên. */}
       {coTrucX && (
         <line x1={LE - 6} y1={sy(0)} x2={RONG - LE + 10} y2={sy(0)} stroke="#000" strokeWidth="1.5" markerEnd="url(#muiTenDoThi)" />
       )}
       {coTrucY && (
         <line x1={sx(0)} y1={CAO - LE + 6} x2={sx(0)} y2={LE - 10} stroke="#000" strokeWidth="1.5" markerEnd="url(#muiTenDoThi)" />
       )}
-      {coTrucX && <text x={RONG - LE + 12} y={sy(0) - 5} fontSize="12" fontStyle="italic">x</text>}
-      {coTrucY && <text x={sx(0) + 6} y={LE - 12} fontSize="12" fontStyle="italic">y</text>}
-      {coTrucX && coTrucY && <text x={sx(0) - 10} y={sy(0) + 14} fontSize="11">O</text>}
 
       {/* Tiệm cận + đường cong — cắt trong vùng vẽ để không lấn nhãn trục */}
       <g clipPath="url(#vungVeDoThi)">
@@ -88,18 +86,24 @@ function DoThiSVG({ ketQua, svgRef }) {
         ))}
       </g>
 
-      {/* Nhãn số tại chân đường chiếu trên 2 trục (điểm đặc biệt, không phải lưới chia đều) */}
-      {coTrucX && diemXDangChu.map((x0, i) => (
-        <text key={`lx${i}`} x={sx(x0)} y={sy(0) + 16} fontSize="11" textAnchor="middle">{dinhDangSo(x0)}</text>
-      ))}
-      {coTrucY && diemYDangChu.map((y0, i) => (
-        <text key={`ly${i}`} x={sx(0) - 8} y={sy(y0) + 4} fontSize="11" textAnchor="end">{dinhDangSo(y0)}</text>
-      ))}
-
       {/* Cực trị: chấm nhỏ tại điểm, không ghi chữ "CĐ/CT" nổi trên hình (đã có số ở chân chiếu) */}
       {cuc_tri.map((c, i) => (
         <circle key={`cham${i}`} cx={sx(c.x)} cy={sy(c.y)} r="2.5" fill="#000" />
       ))}
+
+      {/* Mọi chữ/số vẽ SAU CÙNG + viền trắng (halo) quanh glyph — nét vẽ nào đi qua bên dưới
+          cũng bị halo che, chữ luôn đọc rõ, không cần tính toán tránh va chạm với đường cong. */}
+      <g fill="#000" stroke="#fff" strokeWidth="3" strokeLinejoin="round" paintOrder="stroke">
+        {coTrucX && <text x={RONG - LE + 12} y={sy(0) - 5} fontSize="12" fontStyle="italic">x</text>}
+        {coTrucY && <text x={sx(0) + 6} y={LE - 12} fontSize="12" fontStyle="italic">y</text>}
+        {coTrucX && coTrucY && <text x={sx(0) - 10} y={sy(0) + 14} fontSize="11">O</text>}
+        {coTrucX && diemXDangChu.map((x0, i) => (
+          <text key={`lx${i}`} x={sx(x0)} y={sy(0) + 16} fontSize="11" textAnchor="middle">{dinhDangSo(x0)}</text>
+        ))}
+        {coTrucY && diemYDangChu.map((y0, i) => (
+          <text key={`ly${i}`} x={sx(0) - 8} y={sy(y0) + 4} fontSize="11" textAnchor="end">{dinhDangSo(y0)}</text>
+        ))}
+      </g>
     </svg>
   )
 }
