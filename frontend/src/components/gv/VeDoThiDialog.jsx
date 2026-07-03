@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { api } from '../../api'
 import { Button } from '../ui'
 import Formula from '../Formula'
+import { svgSangPngFile } from '../../utils/svgSangPng'
 
 // Kích thước cố định của SVG xem trước — cũng là kích thước ảnh PNG xuất ra (x2 cho nét rõ).
 const RONG = 480
@@ -124,32 +125,6 @@ function DoThiSVG({ ketQua, svgRef }) {
   )
 }
 
-// SVG (đã render trong DOM) -> PNG File, nền trắng, x2 độ phân giải cho nét rõ khi phóng to.
-async function svgSangPngFile(svgEl, tenFile) {
-  const xml = new XMLSerializer().serializeToString(svgEl)
-  const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }))
-  try {
-    const img = new Image()
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = () => reject(new Error('Không chuyển được hình sang ảnh'))
-      img.src = url
-    })
-    const canvas = document.createElement('canvas')
-    canvas.width = RONG * 2
-    canvas.height = CAO * 2
-    const ctx = canvas.getContext('2d')
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
-    if (!blob) throw new Error('Không tạo được file ảnh')
-    return new File([blob], tenFile, { type: 'image/png' })
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-}
-
 export default function VeDoThiDialog({ initialSpec, onDong, onXongHinh }) {
   const [bieuThuc, setBieuThuc] = useState(initialSpec?.bieu_thuc || '')
   const [xMin, setXMin] = useState(initialSpec?.x_min ?? '')
@@ -186,7 +161,7 @@ export default function VeDoThiDialog({ initialSpec, onDong, onXongHinh }) {
     setDangDung(true)
     setLoi('')
     try {
-      const file = await svgSangPngFile(svgRef.current, 'do-thi.png')
+      const file = await svgSangPngFile(svgRef.current, 'do-thi.png', RONG, CAO)
       const { url } = await api.uploadHinh(file)
       onXongHinh(url, {
         loai: 'do_thi',

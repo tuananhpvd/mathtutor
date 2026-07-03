@@ -1,16 +1,19 @@
-"""Phân tích hàm số để GV vẽ đồ thị mà không cần nhập gì ngoài f(x) (GĐ3A).
+"""Phân tích hàm số để GV vẽ đồ thị (GĐ3A) và bảng biến thiên (GĐ3B) mà không cần nhập gì
+ngoài f(x).
 
-CAS (SymPy) tất định: tìm miền xác định, tiệm cận, cực trị, khoảng dấu đạo hàm, rồi lấy điểm
-mẫu để vẽ đường cong. KHÔNG dùng LLM — đúng nguyên tắc "CAS quyết định đúng/sai/giá trị".
+CAS (SymPy) tất định: tìm miền xác định, tiệm cận, cực trị, khoảng dấu đạo hàm, giới hạn tại
+2 đầu vô cực và tại điểm gián đoạn, rồi lấy điểm mẫu để vẽ đường cong. KHÔNG dùng LLM — đúng
+nguyên tắc "CAS quyết định đúng/sai/giá trị".
 
 Phạm vi hỗ trợ: hàm hữu tỉ một biến x (đa thức / phân thức đa thức) bậc thấp — đúng trọng tâm
 khảo sát hàm số lớp 12 (đa thức bậc 3, trùng phương bậc 4, phân thức b1/b1 và b2/b1). Hàm ngoài
 phạm vi (căn, log, lượng giác, chứa tham số...) ném ValueError với thông báo tiếng Việt để GV
 chuyển sang upload ảnh thường.
 
-Thiết kế 2 tầng để dùng lại cho bảng biến thiên (GĐ3B, chưa làm):
+Thiết kế 2 tầng dùng chung cho cả đồ thị và bảng biến thiên:
   - _phan_tich(): nội bộ, có thể giữ đối tượng SymPy (khóa bắt đầu bằng "_" không xuất ra ngoài).
-  - phan_tich_ham_so(): JSON-safe — TXĐ, tiệm cận, cực trị, khoảng dấu. Đủ cho bảng biến thiên sau này.
+  - phan_tich_ham_so(): JSON-safe — TXĐ, tiệm cận, cực trị, khoảng dấu, giá trị biên tại từng
+    mốc (gia_tri_bien). Dùng trực tiếp cho API /ve-bbt (GĐ3B) — không cần lấy điểm mẫu.
   - du_lieu_do_thi(): phan_tich_ham_so() + lấy điểm mẫu — dùng cho API /ve-do-thi (GĐ3A).
 """
 
@@ -61,6 +64,23 @@ def _so(v) -> float:
     if abs(f.imag) > 1e-9:
         raise ValueError("Giá trị không thực")
     return float(f.real)
+
+
+def _dau_hieu(sympy_val) -> dict:
+    """SymPy số/±∞ → dict JSON-safe cho hàng "y" của bảng biến thiên."""
+    if sympy_val == oo:
+        return {"loai": "vo_cuc_duong", "gia_tri": None}
+    if sympy_val == -oo:
+        return {"loai": "vo_cuc_am", "gia_tri": None}
+    return {"loai": "so", "gia_tri": _so(sympy_val)}
+
+
+def _dau_hieu_an_toan(tinh) -> dict:
+    """Bọc _dau_hieu: SymPy không tính được (hiếm với hàm hữu tỉ) → "khong_xac_dinh" thay vì crash."""
+    try:
+        return _dau_hieu(tinh())
+    except (ValueError, TypeError, NotImplementedError):
+        return {"loai": "khong_xac_dinh", "gia_tri": None}
 
 
 def _phan_tich(bieu_thuc_str: str) -> dict:
@@ -150,6 +170,25 @@ def _phan_tich(bieu_thuc_str: str) -> dict:
         elif dau_truoc == "am" and dau_sau == "duong":
             cuc_tri.append({"x": _so(x0), "y": y0, "loai": "cuc_tieu"})
 
+    # Hàng "y" của bảng biến thiên: giá trị tại 2 đầu vô cực + tại từng mốc (điểm gián đoạn TXĐ
+    # cần giới hạn TRÁI/PHẢI riêng vì hàm không xác định đúng tại đó; điểm tới hạn dùng 1 giá trị
+    # đúng tại đó vì hàm liên tục ở đấy).
+    diem_loai_set = set(diem_loai_sym)
+    gia_tri_bien = [{"vi_tri": "-oo", "gia_tri": _dau_hieu_an_toan(lambda: limit(expr, X, -oo))}]
+    for x0 in moc_sym:
+        if any(x0 == d for d in diem_loai_set):
+            gia_tri_bien.append({
+                "vi_tri": _so(x0),
+                "trai": _dau_hieu_an_toan(lambda x0=x0: limit(expr, X, x0, "-")),
+                "phai": _dau_hieu_an_toan(lambda x0=x0: limit(expr, X, x0, "+")),
+            })
+        else:
+            gia_tri_bien.append({
+                "vi_tri": _so(x0),
+                "gia_tri": _dau_hieu_an_toan(lambda x0=x0: expr.subs(X, x0)),
+            })
+    gia_tri_bien.append({"vi_tri": "+oo", "gia_tri": _dau_hieu_an_toan(lambda: limit(expr, X, oo))})
+
     return {
         "bieu_thuc_chuan": str(expr),
         "moc": [_so(m) for m in moc_sym],
@@ -161,6 +200,7 @@ def _phan_tich(bieu_thuc_str: str) -> dict:
         ),
         "cuc_tri": cuc_tri,
         "khoang_dau": khoang_dau,
+        "gia_tri_bien": gia_tri_bien,
         "_expr": expr,
     }
 

@@ -4,10 +4,10 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v35**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v36**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **258/258 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **264/264 test backend xanh** (`pytest`).
 - **✅ Ảnh minh họa câu hỏi — GĐ1 (v33) + GĐ2 (v34) HOÀN THÀNH:** mỗi câu tối đa 1 ảnh
   (`problems.hinh_anh`).
   - **GĐ1 (v33):** module `app/core/uploads.py` (validate magic bytes PNG/JPG/WebP ≤ 3MB), endpoint
@@ -36,12 +36,23 @@
   - ⚠️ Bug đã sửa lúc code: `Symbol("x", real=True)` ≠ `Symbol("x")` mà `sympify()` tạo ra (SymPy
     coi 2 symbol khác nhau dù cùng tên) → mọi hàm hợp lệ bị báo nhầm "chứa tham số". Sửa bỏ
     `real=True` để khớp đúng loại symbol parser thực sự tạo ra.
-  - **Chưa làm:** GĐ3B (bảng biến thiên — tái dùng `phan_tich_ham_so()`, không cần sampling).
-  - ⚠️ **Chưa tự kiểm chứng bằng trình duyệt thật** (không có Playwright/browser automation trong
-    session) — luồng SVG→canvas→PNG (nơi rủi ro nhất: Image load từ Blob URL, canvas taint) mới
-    chỉ được xác nhận qua test backend (toán CAS) + build frontend (compile), CHƯA xác nhận bằng
-    mắt. User cần tự bấm thử "Vẽ đồ thị" → "Dùng hình này" trên trình duyệt trước khi tin tưởng.
-  ⚠️ Bài học tái diễn: uvicorn `--reload` trên Windows để lại tiến trình con `multiprocessing.spawn`
+- **✅ GĐ3B — Vẽ bảng biến thiên từ hàm số (CAS, v36):** cùng ý tưởng GĐ3A — GV chỉ nhập f(x).
+  - `phan_tich_ham_so()` (GĐ3A) mở rộng thêm `gia_tri_bien`: giá trị hàm tại 2 đầu ±∞ và tại từng
+    mốc — mốc là cực trị → 1 giá trị đúng tại đó; mốc là điểm gián đoạn (tiệm cận đứng) → giới hạn
+    TRÁI/PHẢI tách riêng (`limit(expr, X, x0, "-"/"+" )`) vì hàm không xác định đúng tại đó.
+  - Endpoint `POST /api/problems/ve-bbt` (GV/Admin) — gọi thẳng `phan_tich_ham_so()`, KHÔNG lấy
+    điểm mẫu (khác `/ve-do-thi`) vì bảng biến thiên không cần sampling.
+  - Frontend `VeBBTDialog.jsx`: dựng SVG bảng 3 hàng (x / y′ / y) kiểu SGK — cột cách đều (KHÔNG
+    scale theo giá trị x thực, khác đồ thị). Thuật toán `xepMuc()`: mỗi mốc được xếp mức "trên"/
+    "dưới" — giá trị ±∞ biết ngay; giá trị hữu hạn suy qua DẤU khoảng liền kề (hàm tăng vào 1 điểm
+    → điểm đó cao hơn khoảng đó, và ngược lại). Đã đối chiếu tay 2 ca (đa thức bậc 3, phân thức có
+    tiệm cận đứng) — mọi đoạn nối khớp 100% với hướng mũi tên dấu y′. Điểm gián đoạn: 2 giá trị
+    trái/phải KHÔNG nối với nhau (vạch đứt nét), đúng quy ước SGK.
+  - `frontend/src/utils/svgSangPng.js`: tách hàm SVG→canvas→PNG dùng chung cho cả 2 dialog
+    (trước đó trùng lặp trong `VeDoThiDialog.jsx`).
+  - ⚠️ **Chưa tự kiểm chứng bằng trình duyệt thật** (như GĐ3A) — luồng SVG→canvas→PNG mới qua
+    compile-check + test toán CAS, CHƯA xác nhận bằng mắt trong trình duyệt.
+- ⚠️ Bài học tái diễn: uvicorn `--reload` trên Windows để lại tiến trình con `multiprocessing.spawn`
   giữ port khi kill parent → phải kill cả tiến trình con; và đổi `vite.config.js` phải RESTART Vite.
 - **Thay đổi trong v32 (đã push):**
   1. **Tên chuyên đề luôn LIVE:** API `problems.py` + `sessions.py` suy tên chuyên đề qua
@@ -56,8 +67,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v35` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v36**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v36` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v37**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

@@ -6,7 +6,6 @@ from app.auth.security import hash_password
 from app.core.ve_hinh import du_lieu_do_thi, phan_tich_ham_so
 from app.models.user import User, VaiTro
 
-
 # ---------- Core: phan_tich_ham_so (đối chiếu tính tay) ----------
 
 def test_da_thuc_bac_3_2_cuc_tri():
@@ -48,6 +47,39 @@ def test_ham_khong_tiem_can_dung_van_co_cuc_tri():
     assert tt["tiem_can_dung"] == []
     assert tt["tiem_can_ngang"] == 0.0
     assert tt["cuc_tri"] == [{"x": 0.0, "y": 1.0, "loai": "cuc_dai"}]
+
+
+# ---------- Core: gia_tri_bien (hàng "y" bảng biến thiên — GĐ3B) ----------
+
+def test_gia_tri_bien_da_thuc_bac_3():
+    tt = phan_tich_ham_so("x**3 - 3*x + 1")
+    gtb = tt["gia_tri_bien"]
+    assert gtb[0] == {"vi_tri": "-oo", "gia_tri": {"loai": "vo_cuc_am", "gia_tri": None}}
+    assert gtb[1] == {"vi_tri": -1.0, "gia_tri": {"loai": "so", "gia_tri": 3.0}}
+    assert gtb[2] == {"vi_tri": 1.0, "gia_tri": {"loai": "so", "gia_tri": -1.0}}
+    assert gtb[3] == {"vi_tri": "+oo", "gia_tri": {"loai": "vo_cuc_duong", "gia_tri": None}}
+
+
+def test_gia_tri_bien_gian_doan_tai_tiem_can_dung():
+    """Tại tiệm cận đứng: giới hạn TRÁI và PHẢI phải tách riêng (hàm không xác định đúng tại đó)."""
+    tt = phan_tich_ham_so("(2*x - 1)/(x + 1)")
+    gtb = tt["gia_tri_bien"]
+    assert gtb[0] == {"vi_tri": "-oo", "gia_tri": {"loai": "so", "gia_tri": 2.0}}
+    diem_gian_doan = gtb[1]
+    assert diem_gian_doan["vi_tri"] == -1.0
+    assert diem_gian_doan["trai"] == {"loai": "vo_cuc_duong", "gia_tri": None}
+    assert diem_gian_doan["phai"] == {"loai": "vo_cuc_am", "gia_tri": None}
+    assert gtb[2] == {"vi_tri": "+oo", "gia_tri": {"loai": "so", "gia_tri": 2.0}}
+
+
+def test_gia_tri_bien_tiem_can_xien():
+    tt = phan_tich_ham_so("(x**2 - 2*x + 3)/(x - 1)")
+    gtb = tt["gia_tri_bien"]
+    assert gtb[0]["gia_tri"]["loai"] == "vo_cuc_am"
+    assert gtb[-1]["gia_tri"]["loai"] == "vo_cuc_duong"
+    diem_gian_doan = next(g for g in gtb if g.get("vi_tri") == 1.0)
+    assert diem_gian_doan["trai"]["loai"] == "vo_cuc_am"
+    assert diem_gian_doan["phai"]["loai"] == "vo_cuc_duong"
 
 
 @pytest.mark.parametrize("bieu_thuc", [
@@ -163,4 +195,31 @@ def test_api_ve_do_thi_x_window_khong_hop_le(client, db):
         json={"bieu_thuc": "x", "x_min": 5, "x_max": 1},
         headers=h,
     )
+    assert r.status_code == 400
+
+
+# ---------- API /api/problems/ve-bbt (GĐ3B) ----------
+
+def test_api_ve_bbt_gv_ok(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_vh")
+    r = client.post("/api/problems/ve-bbt", json={"bieu_thuc": "x**3 - 3*x + 1"}, headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["cuc_tri"]) == 2
+    assert len(data["gia_tri_bien"]) == 4  # -oo, 2 mốc, +oo
+    assert "cac_doan" not in data  # /ve-bbt không lấy điểm mẫu (khác /ve-do-thi)
+
+
+def test_api_ve_bbt_hs_bi_cam(client, db):
+    _seed_users(db)
+    h = _tok(client, "hs_vh")
+    r = client.post("/api/problems/ve-bbt", json={"bieu_thuc": "x**2"}, headers=h)
+    assert r.status_code == 403
+
+
+def test_api_ve_bbt_ham_ngoai_pham_vi_tra_400(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_vh")
+    r = client.post("/api/problems/ve-bbt", json={"bieu_thuc": "log(x)"}, headers=h)
     assert r.status_code == 400

@@ -4,6 +4,7 @@ import { Badge, Button, Card, CardBody, Input, Select, Table, useConfirm } from 
 import Formula from '../../components/Formula'
 import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
 import VeDoThiDialog from '../../components/gv/VeDoThiDialog'
+import VeBBTDialog from '../../components/gv/VeBBTDialog'
 import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
@@ -331,11 +332,13 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
     return () => document.removeEventListener('paste', danAnh)
   }, [taiLenFile])
 
-  // Vẽ đồ thị từ hàm số (GĐ3A) — CAS tự phân tích, GV chỉ nhập f(x).
+  // Vẽ đồ thị (GĐ3A) / bảng biến thiên (GĐ3B) từ hàm số — CAS tự phân tích, GV chỉ nhập f(x).
   const [veDoThiMo, setVeDoThiMo] = useState(false)
+  const [veBBTMo, setVeBBTMo] = useState(false)
   function xongVeHinh(url, spec) {
     setBai((b) => ({ ...b, hinh_anh: url, meta: { ...b.meta, hinh_spec: spec } }))
     setVeDoThiMo(false)
+    setVeBBTMo(false)
   }
 
   function doiLoai(loai) {
@@ -472,6 +475,11 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
                           📈 Vẽ lại
                         </Button>
                       )}
+                      {bai.meta?.hinh_spec?.loai === 'bang_bien_thien' && (
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setVeBBTMo(true)}>
+                          📋 Vẽ lại
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -491,9 +499,12 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
                         hoặc chụp màn hình rồi <b>Ctrl&nbsp;+&nbsp;V</b> để dán
                       </span>
                     </div>
-                    <div>
+                    <div className="flex flex-wrap gap-2">
                       <Button type="button" size="sm" variant="secondary" onClick={() => setVeDoThiMo(true)}>
                         📈 Vẽ đồ thị từ hàm số
+                      </Button>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => setVeBBTMo(true)}>
+                        📋 Vẽ bảng biến thiên
                       </Button>
                     </div>
                   </div>
@@ -503,6 +514,13 @@ function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, 
                   <VeDoThiDialog
                     initialSpec={bai.meta?.hinh_spec?.loai === 'do_thi' ? bai.meta.hinh_spec : null}
                     onDong={() => setVeDoThiMo(false)}
+                    onXongHinh={xongVeHinh}
+                  />
+                )}
+                {veBBTMo && (
+                  <VeBBTDialog
+                    initialSpec={bai.meta?.hinh_spec?.loai === 'bang_bien_thien' ? bai.meta.hinh_spec : null}
+                    onDong={() => setVeBBTMo(false)}
                     onXongHinh={xongVeHinh}
                   />
                 )}

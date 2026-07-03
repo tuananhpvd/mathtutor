@@ -47,6 +47,12 @@ class VeDoThiRequest(BaseModel):
     x_max: float | None = None
 
 
+class VeBBTRequest(BaseModel):
+    """GĐ3B: GV chỉ nhập hàm số — CAS (SymPy) tự phân tích để dựng bảng biến thiên."""
+
+    bieu_thuc: str = Field(..., min_length=1, max_length=200)
+
+
 class ProblemUpdate(BaseModel):
     """Cập nhật câu hỏi (GV/Admin). Mọi trường tùy chọn; chỉ áp dụng trường được gửi.
 

@@ -69,6 +69,7 @@ export const api = {
     return data // { url }
   },
   veDoThi: (body) => post('/problems/ve-do-thi', body),
+  veBBT: (body) => post('/problems/ve-bbt', body),
   createProblem: (body) => post('/problems', body),
   updateProblem: (id, body) =>
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

@@ -5,13 +5,19 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, co_toan_quyen, require_role
 from app.core.uploads import luu_hinh
-from app.core.ve_hinh import du_lieu_do_thi
+from app.core.ve_hinh import du_lieu_do_thi, phan_tich_ham_so
 from app.db.session import get_db
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
 from app.models.thong_bao import LoaiThongBao
 from app.models.user import User, VaiTro
-from app.schemas.problem import ImportBatchRequest, ProblemCreate, ProblemUpdate, VeDoThiRequest
+from app.schemas.problem import (
+    ImportBatchRequest,
+    ProblemCreate,
+    ProblemUpdate,
+    VeBBTRequest,
+    VeDoThiRequest,
+)
 from app.services import thong_bao_service
 from app.services.problem_service import (
     anh_huong_xoa_vinh_vien,
@@ -249,6 +255,19 @@ def ve_do_thi(body: VeDoThiRequest):
         cua_so = (body.x_min, body.x_max)
     try:
         return du_lieu_do_thi(body.bieu_thuc, cua_so)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/ve-bbt", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def ve_bbt(body: VeBBTRequest):
+    """GĐ3B: GV chỉ nhập f(x) — CAS (SymPy) tự phân tích để dựng bảng biến thiên.
+
+    Dùng chung phan_tich_ham_so() với /ve-do-thi (GĐ3A) — không cần lấy điểm mẫu vì bảng biến
+    thiên chỉ cần TXĐ/tiệm cận/cực trị/khoảng dấu/giá trị biên tại từng mốc.
+    """
+    try:
+        return phan_tich_ham_so(body.bieu_thuc)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
