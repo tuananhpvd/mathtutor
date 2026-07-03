@@ -4,7 +4,7 @@ Streak: đếm ngày liên tiếp có hoạt động học (bat tu hom nay hoac 
 Cột mốc: ngưỡng số bài hoàn thành hoặc chuỗi ngày đủ → trao mốc + báo HS.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -83,7 +83,9 @@ def tinh_chuoi_ngay(db: Session, hs_id: int) -> int:
         if dt is not None:
             ngay_hoc.add(dt.date() if hasattr(dt, "date") else dt)
 
-    hom_nay = date.today()
+    # Tính "hôm nay" theo UTC cho khớp cách lưu cap_nhat_luc (datetime.now(timezone.utc)).
+    # Nếu dùng date.today() (giờ địa phương) sẽ lệch múi giờ vào rạng sáng → streak sai.
+    hom_nay = datetime.now(timezone.utc).date()
     hom_qua = hom_nay - timedelta(days=1)
 
     if hom_nay in ngay_hoc:

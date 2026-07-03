@@ -4,10 +4,20 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-02, phiên bản **v31**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v31** + 2 fix chưa push)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **227/227 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **228/228 test backend xanh** (`pytest`).
+- **Thay đổi sau v31 (chưa commit/push):**
+  1. **Tên chuyên đề luôn LIVE:** API `problems.py` + `sessions.py` suy tên chuyên đề qua
+     `_lay_dang_cd_map(db)` (raw SQL JOIN `dang→chuyen_de`) thay vì đọc cột denormalized
+     `problems.chuyen_de`. Cộng cascade trong `danh_muc_service.sua_chuyen_de` (đổi tên chuyên đề →
+     UPDATE cột text ở mọi câu hỏi). Đã đồng bộ toàn bộ dữ liệu `dev.db` cho khớp.
+     ⚠️ Bug gốc từng gặp: **backend chạy KHÔNG `--reload`** nên các bản sửa không có hiệu lực → giờ
+     luôn chạy uvicorn `--reload` ở chế độ dev.
+  2. **Streak (`chuoi_ngay_service`) fix múi giờ:** `hom_nay` tính theo `datetime.now(timezone.utc)`
+     cho khớp `cap_nhat_luc` (UTC); trước dùng `date.today()` (giờ địa phương) → streak sai vào
+     rạng sáng.
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.

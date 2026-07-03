@@ -2,6 +2,7 @@
 
 from app.auth.security import hash_password
 from app.models.lop import Lop
+from app.models.problem import CheDoSoKhopEnum, DoKho, LoaiCau, Problem
 from app.models.user import User, VaiTro
 
 
@@ -65,6 +66,27 @@ def test_xoa_chuyen_de_con_dang_bi_chan(client, db):
     r = client.delete(f"/api/danh-muc/chuyen-de/{cd['id']}", headers=h)
     assert r.status_code == 400
     assert "dạng" in r.json()["detail"]
+
+
+def test_sua_ten_chuyen_de_cascade_problems(client, db):
+    """Đổi tên chuyên đề phải cập nhật chuyen_de denormalized trên tất cả câu hỏi thuộc dạng đó."""
+    gv, hs, admin = _seed_users(db)
+    h = _tok(client, "gv_dm")
+    cd = client.post("/api/danh-muc/chuyen-de", json={"ten": "Đại số", "thu_tu": 1}, headers=h).json()
+    dang = client.post("/api/danh-muc/dang", json={"chuyen_de_id": cd["id"], "ten": "Phương trình", "thu_tu": 1}, headers=h).json()
+    # Tạo câu hỏi thuộc dạng này để ghi chuyen_de = "Đại số"
+    p = Problem(
+        loai_cau=LoaiCau.TLN, do_kho=DoKho.de, de_bai="Tìm x",
+        loai_dap_an_nhap="so", che_do_so_khop=CheDoSoKhopEnum.tuong_duong,
+        dang_id=dang["id"], chuyen_de="Đại số", nguoi_tao_id=gv.id,
+    )
+    db.add(p); db.commit(); db.refresh(p)
+    assert p.chuyen_de == "Đại số"
+    # Đổi tên chuyên đề
+    r = client.patch(f"/api/danh-muc/chuyen-de/{cd['id']}", json={"ten": "Đại số - Giải tích"}, headers=h)
+    assert r.status_code == 200
+    db.refresh(p)
+    assert p.chuyen_de == "Đại số - Giải tích"
 
 
 def test_lay_danh_muc(client, db):

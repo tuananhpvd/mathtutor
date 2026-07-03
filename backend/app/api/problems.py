@@ -1,5 +1,6 @@
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text as sql_text
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, co_toan_quyen, require_role
@@ -52,6 +53,21 @@ def _quyen_tren_bai(current_user: User, p: Problem) -> bool:
     return co_toan_quyen(current_user) or p.nguoi_tao_id == current_user.id
 
 
+def _lay_dang_cd_map(db: Session) -> dict[int, str]:
+    """Lookup dict: dang_id → tên chuyên đề LIVE từ DB (raw SQL, không qua ORM cache)."""
+    rows = db.execute(sql_text(
+        "SELECT d.id, cd.ten FROM dang d JOIN chuyen_de cd ON cd.id = d.chuyen_de_id"
+    )).fetchall()
+    return {r[0]: r[1] for r in rows}
+
+
+def _chuyen_de_ten(p: Problem, dang_cd: dict[int, str]) -> str:
+    """Trả tên chuyên đề LIVE. Fallback về cột text nếu dang_id không có trong map."""
+    if p.dang_id and p.dang_id in dang_cd:
+        return dang_cd[p.dang_id]
+    return p.chuyen_de
+
+
 def _steps_full(p: Problem) -> list[dict]:
     return [
         {
@@ -65,11 +81,11 @@ def _steps_full(p: Problem) -> list[dict]:
     ]
 
 
-def _problem_full(p: Problem) -> dict:
+def _problem_full(p: Problem, dang_cd: dict[int, str]) -> dict:
     """Dữ liệu đầy đủ cho GV xem & sửa (gồm đáp án + các bước)."""
     return {
         "id": p.id,
-        "chuyen_de": p.chuyen_de,
+        "chuyen_de": _chuyen_de_ten(p, dang_cd),
         "dang_id": p.dang_id,
         "dang_ten": p.dang.ten if p.dang else None,
         "loai_cau": p.loai_cau.value,
@@ -95,7 +111,7 @@ def _meta_cho_gv(p: Problem) -> dict:
     return {}
 
 
-def _strip_answers(p: Problem) -> dict:
+def _strip_answers(p: Problem, dang_cd: dict[int, str]) -> dict:
     """Trả dữ liệu bài cho HS — lọc bỏ mọi trường đáp án."""
     meta_safe: dict = {}
     if p.loai_cau.value == "TN4PA":
@@ -108,7 +124,7 @@ def _strip_answers(p: Problem) -> dict:
     # TLN: không trả gì trong meta
     return {
         "id": p.id,
-        "chuyen_de": p.chuyen_de,
+        "chuyen_de": _chuyen_de_ten(p, dang_cd),
         "dang_id": p.dang_id,
         "dang_ten": p.dang.ten if p.dang else None,
         "loai_cau": p.loai_cau.value,
@@ -123,6 +139,7 @@ def _strip_answers(p: Problem) -> dict:
 def danh_sach_bai(
     current_user: CurrentUser, gv_id: int | None = None, db: Session = Depends(get_db)
 ):
+    dang_cd = _lay_dang_cd_map(db)
     q = db.query(Problem)
     if current_user.vai_tro == VaiTro.hs:
         # HS tự luyện: chỉ bài đã duyệt, chưa ẩn, của GV chủ nhiệm lớp mình.
@@ -134,7 +151,7 @@ def danh_sach_bai(
             Problem.nguoi_tao_id == gv_lop,
             Problem.bi_an == False,  # noqa: E712
         )
-        return [_strip_answers(p) for p in q.all()]
+        return [_strip_answers(p, dang_cd) for p in q.all()]
 
     # GV thường: chỉ bài của mình. Quản lý/Admin: theo gv_id (nếu có), mặc định tất cả.
     if co_toan_quyen(current_user):
@@ -149,7 +166,7 @@ def danh_sach_bai(
         reverse=True,
     )
     return [
-        {"id": p.id, "chuyen_de": p.chuyen_de, "dang_id": p.dang_id,
+        {"id": p.id, "chuyen_de": _chuyen_de_ten(p, dang_cd), "dang_id": p.dang_id,
          "dang_ten": p.dang.ten if p.dang else None,
          "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
          "de_bai": p.de_bai,
@@ -186,11 +203,13 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
             )
             if not assigned:
                 raise HTTPException(status_code=404, detail="Không tìm thấy bài")
-        return _strip_answers(p)
+        dang_cd = _lay_dang_cd_map(db)
+        return _strip_answers(p, dang_cd)
     # GV thường chỉ xem bài của mình; Quản lý/Admin xem mọi bài.
     if not _quyen_tren_bai(current_user, p):
         raise HTTPException(status_code=403, detail="Bạn không có quyền xem câu hỏi này")
-    return _problem_full(p)
+    dang_cd = _lay_dang_cd_map(db)
+    return _problem_full(p, dang_cd)
 
 
 @router.post("/import-batch", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -207,7 +226,7 @@ def tao_bai(body: ProblemCreate, current_user: CurrentUser, db: Session = Depend
         p = tao_problem(db, du_lieu, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return _problem_full(p)
+    return _problem_full(p, _lay_dang_cd_map(db))
 
 
 @router.patch("/{problem_id}", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -230,7 +249,7 @@ def cap_nhat_bai(problem_id: int, body: ProblemUpdate, current_user: CurrentUser
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     _bao_quan_ly(db, current_user, owner_id, "đã sửa câu hỏi", ten_bai)
-    return _problem_full(p)
+    return _problem_full(p, _lay_dang_cd_map(db))
 
 
 @router.delete("/{problem_id}", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])

@@ -24,6 +24,10 @@ dev-frontend.err
 logs/
 *_backend.txt
 *_frontend.txt
+backend_out.txt
+backend_err.txt
+frontend_out.txt
+frontend_err.txt
 backup_data.json
 luong_chay
 upload_dulieu

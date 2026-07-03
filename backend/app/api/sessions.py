@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.problems import _strip_answers
+from app.api.problems import _chuyen_de_ten, _lay_dang_cd_map, _strip_answers
 from app.auth.deps import CurrentUser, require_role
 from app.core.guard.safety import kiem_tra_an_toan
 from app.db.session import get_db
@@ -121,6 +121,7 @@ def phien_dang_do(current_user: CurrentUser, db: Session = Depends(get_db)):
         .order_by(SessionModel.cap_nhat_luc.desc())
         .all()
     )
+    dang_cd = _lay_dang_cd_map(db)
     ket_qua = []
     for s in rows:
         p = db.get(Problem, s.problem_id)
@@ -130,7 +131,7 @@ def phien_dang_do(current_user: CurrentUser, db: Session = Depends(get_db)):
             session_id=s.id,
             problem_id=s.problem_id,
             loai_cau=p.loai_cau.value,
-            chuyen_de=p.chuyen_de,
+            chuyen_de=_chuyen_de_ten(p, dang_cd),
             dang_ten=(p.dang.ten if p.dang else None),
             de_bai=p.de_bai,
             buoc_hien_tai=s.buoc_hien_tai,
@@ -173,13 +174,14 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
     if session is None or session.hoc_sinh_id != current_user.id:
         raise HTTPException(status_code=404, detail="Phiên không tồn tại")
     problem = db.get(Problem, session.problem_id)
-    meta_safe = _strip_answers(problem)["meta"] if problem else {}
+    dang_cd = _lay_dang_cd_map(db)
+    meta_safe = _strip_answers(problem, dang_cd)["meta"] if problem else {}
     turns = db.query(Turn).filter(Turn.session_id == session_id).order_by(Turn.id).all()
     return ChiTietPhienResponse(
         session_id=session.id,
         problem_id=session.problem_id,
         loai_cau=problem.loai_cau.value if problem else "",
-        chuyen_de=problem.chuyen_de if problem else "",
+        chuyen_de=_chuyen_de_ten(problem, dang_cd) if problem else "",
         dang_ten=(problem.dang.ten if problem and problem.dang else None),
         de_bai=problem.de_bai if problem else "",
         meta=meta_safe,

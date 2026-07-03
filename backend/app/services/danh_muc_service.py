@@ -1,5 +1,6 @@
 """CRUD danh mục ChuyenDe / Dang. GV và Admin có quyền thêm/sửa/xóa."""
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.models.danh_muc import ChuyenDe, Dang
@@ -32,15 +33,24 @@ def sua_chuyen_de(db: Session, cd_id: int, du_lieu: dict) -> ChuyenDe:
     cd = db.get(ChuyenDe, cd_id)
     if cd is None:
         raise ValueError("Không tìm thấy chuyên đề")
-    if "ten" in du_lieu and du_lieu["ten"] != cd.ten:
+    ten_moi = du_lieu.get("ten")
+    doi_ten = ten_moi and ten_moi != cd.ten
+    if doi_ten:
         trung = db.query(ChuyenDe).filter(
-            ChuyenDe.ten == du_lieu["ten"], ChuyenDe.nguoi_tao_id == cd.nguoi_tao_id
+            ChuyenDe.ten == ten_moi, ChuyenDe.nguoi_tao_id == cd.nguoi_tao_id
         ).first()
         if trung:
-            raise ValueError(f"Chuyên đề '{du_lieu['ten']}' đã tồn tại")
+            raise ValueError(f"Chuyên đề '{ten_moi}' đã tồn tại")
     for k, v in du_lieu.items():
         if v is not None:
             setattr(cd, k, v)
+    if doi_ten:
+        # Cascade: đồng bộ tên denormalized trên tất cả câu hỏi thuộc chuyên đề này.
+        db.execute(
+            text("UPDATE problems SET chuyen_de = :ten WHERE dang_id IN "
+                 "(SELECT id FROM dang WHERE chuyen_de_id = :cd_id)"),
+            {"ten": ten_moi, "cd_id": cd_id},
+        )
     db.commit()
     db.refresh(cd)
     return cd
