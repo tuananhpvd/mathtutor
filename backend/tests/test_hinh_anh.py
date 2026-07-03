@@ -118,6 +118,33 @@ def test_sua_go_hinh(client, db):
     assert r.json()["hinh_anh"] is None
 
 
+def test_sua_truong_khac_giu_nguyen_hinh_anh(client, db):
+    """Sửa câu hỏi mà KHÔNG gửi hinh_anh (vd chỉ đổi độ khó) phải giữ nguyên ảnh cũ —
+    phân biệt "không gửi trường" (giữ nguyên) với "gửi null" (gỡ ảnh, xem test_sua_go_hinh)."""
+    _seed_users(db)
+    h = _tok(client, "gv_h")
+    pid = _tao_bai_tln(client, h, hinh_anh="/uploads/abc.png").json()["id"]
+    r = client.patch(f"/api/problems/{pid}", json={"do_kho": "kho"}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["hinh_anh"] == "/uploads/abc.png"
+    assert r.json()["do_kho"] == "kho"
+
+
+def test_danh_sach_gv_co_hinh_anh(client, db):
+    """Danh sách câu hỏi của GV phải có hinh_anh để hiện chỉ báo 🖼️ — trước đây thiếu trường này."""
+    _seed_users(db)
+    h = _tok(client, "gv_h")
+    _tao_bai_tln(client, h, hinh_anh="/uploads/abc.png")
+    _tao_bai_tln(client, h)
+    r = client.get("/api/problems", headers=h)
+    assert r.status_code == 200
+    rows = r.json()
+    co_hinh = [row for row in rows if row["hinh_anh"]]
+    khong_hinh = [row for row in rows if not row["hinh_anh"]]
+    assert len(co_hinh) == 1 and co_hinh[0]["hinh_anh"] == "/uploads/abc.png"
+    assert len(khong_hinh) == 1
+
+
 # ---------- Import hàng loạt có ảnh (GĐ2) ----------
 
 def test_import_batch_co_hinh(client, db):

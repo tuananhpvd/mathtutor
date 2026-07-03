@@ -180,6 +180,7 @@ def danh_sach_bai(
          "dang_ten": p.dang.ten if p.dang else None,
          "loai_cau": p.loai_cau.value, "do_kho": p.do_kho.value,
          "de_bai": p.de_bai,
+         "hinh_anh": p.hinh_anh,
          "meta": _meta_cho_gv(p),
          "trang_thai_duyet": p.trang_thai_duyet.value,
          "nguoi_tao_id": p.nguoi_tao_id,

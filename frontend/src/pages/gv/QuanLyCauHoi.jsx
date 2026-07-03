@@ -981,6 +981,7 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
                     <span>
                       {r.chuyen_de}
                       {r.dang_ten && <span className="text-muted"> › {r.dang_ten}</span>}
+                      {r.hinh_anh && <span title="Có hình minh họa" className="ml-1">🖼️</span>}
                     </span>
                   ),
                 },

@@ -29,6 +29,7 @@ HS gắn `lop_id` (FK) để GV theo dõi. Quan hệ HS–lớp–GV phục vụ
 | loai_cau | enum | `TN4PA` / `TNDS` / `TLN` |
 | do_kho | enum | `de` / `tb` / `kho` |
 | de_bai | text (LaTeX) | đề / ngữ cảnh chung |
+| hinh_anh | str, null được | URL `/uploads/<file>` — ảnh minh họa (tùy chọn, tối đa 1/câu). GV upload/dán clipboard, hoặc tự vẽ (đồ thị/BBT bằng CAS — xem `app/core/ve_hinh.py`) rồi xuất PNG. HS xem ở cột phải màn làm bài. |
 | loai_dap_an_nhap | enum | `chon_phuong_an` / `dung_sai_4y` / `gia_tri` |
 | che_do_so_khop | enum | `tuong_duong` (chấp nhận mọi dạng) / `dung_dang` (yêu cầu đúng dạng) |
 | trang_thai_duyet | enum | `cho_duyet` / `da_duyet` / `loai` |
@@ -40,6 +41,8 @@ Trường riêng trong `meta`:
 - **TN4PA**: `{"phuong_an":{"A":"...","B":"...","C":"...","D":"..."}, "dap_an_dung":"B"}`
 - **TNDS**: `{"y":[{"ky_hieu":"a","noi_dung_y":"...","dap_an":"Dung","loi_giai_y":"..."}, ...4 ý]}`
 - **TLN**: `{"dap_an_cuoi":"20","quy_tac_lam_tron":null,"don_vi":null}`
+- **hinh_spec** (mọi loại câu, tùy chọn): `{"loai":"do_thi"|"bang_bien_thien","bieu_thuc":"x^3-3*x+1","x_min":..,"x_max":..}`
+  — lưu lại hàm số đã dùng để tự vẽ `hinh_anh`, để GV mở "Vẽ lại" sửa tiếp mà không cần nhập lại.
 
 ## 4. `solution_steps` (gợi ý linh hoạt dạng Ý CHÍNH)
 | Cột | Kiểu | Ghi chú |

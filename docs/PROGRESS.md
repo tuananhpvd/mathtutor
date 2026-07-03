@@ -4,10 +4,20 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v36**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v36** + hoàn thiện chưa push)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **264/264 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **266/266 test backend xanh** (`pytest`).
+- **🔧 Hoàn thiện sau GĐ3B (rà soát toàn tính năng ảnh, chưa push):**
+  1. **GV list thiếu `hinh_anh`:** endpoint `danh_sach_bai` (vai GV) dùng dict riêng, không qua
+     `_problem_full` như màn sửa → thiếu trường `hinh_anh`. Đã thêm; frontend hiện icon 🖼️ cạnh
+     tên chuyên đề trong bảng câu hỏi để GV biết ngay câu nào đã có ảnh.
+  2. **Test khóa hành vi:** sửa câu hỏi mà KHÔNG gửi `hinh_anh` (vd chỉ đổi độ khó) phải GIỮ
+     NGUYÊN ảnh cũ (khác gửi `null` = gỡ ảnh) — logic đã đúng từ trước nhưng chưa có test chốt.
+  3. `docs/DATA_MODEL.md` cập nhật cột `hinh_anh` + `meta.hinh_spec` cho khớp code.
+  - Đã rà soát `monitor.py`/`nhiem_vu_service.py` (list HS/cờ/nhiệm vụ) — CHỦ Ý không thêm ảnh vào
+    đó vì đây là màn danh sách/dashboard tổng quan (monitor còn không hiện `de_bai`), không phải
+    màn "làm bài" — nằm ngoài phạm vi yêu cầu ban đầu (chỉ áp dụng `PhongHoc.jsx`).
 - **✅ Ảnh minh họa câu hỏi — GĐ1 (v33) + GĐ2 (v34) HOÀN THÀNH:** mỗi câu tối đa 1 ảnh
   (`problems.hinh_anh`).
   - **GĐ1 (v33):** module `app/core/uploads.py` (validate magic bytes PNG/JPG/WebP ≤ 3MB), endpoint
