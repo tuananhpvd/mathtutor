@@ -51,6 +51,10 @@ function xepMuc(giaTriBien, khoangDau) {
   })
 }
 
+const Y_TOP_BANG = 20 // mép trên khung bảng
+const Y_BOT_BANG = CAO - 20 // mép dưới khung bảng
+const X_NHAN = LE - 14 // đường kẻ dọc ngăn cột nhãn "x/y'/y" khỏi vùng dữ liệu
+
 function BangBienThienSVG({ ketQua, svgRef }) {
   const { moc, khoang_dau: khoangDau, gia_tri_bien: giaTriBienGoc } = ketQua
   const N = moc.length
@@ -64,19 +68,36 @@ function BangBienThienSVG({ ketQua, svgRef }) {
       width={RONG}
       height={CAO}
       viewBox={`0 0 ${RONG} ${CAO}`}
-      className="rounded-md border border-border bg-white"
-      style={{ maxWidth: '100%', height: 'auto' }}
+      style={{ maxWidth: '100%', height: 'auto', background: '#fff' }}
     >
-      <text x={12} y={Y_HANG_X + 4} fontSize="13" fontStyle="italic" fill="#374151">x</text>
-      <text x={12} y={Y_HANG_DAU + 4} fontSize="13" fill="#374151">y&apos;</text>
-      <text x={12} y={(Y_TREN + Y_DUOI) / 2 + 4} fontSize="13" fontStyle="italic" fill="#374151">y</text>
+      <defs>
+        <marker id="muiTenBBT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#000" />
+        </marker>
+      </defs>
 
-      <line x1={0} y1={52} x2={RONG} y2={52} stroke="#d1d5db" strokeWidth="1" />
-      <line x1={0} y1={98} x2={RONG} y2={98} stroke="#d1d5db" strokeWidth="1" />
+      {/* Khung bảng: viền ngoài + kẻ ngang 3 hàng + kẻ dọc cột nhãn — tạo ô bảng thật như SGK */}
+      <rect x={0} y={Y_TOP_BANG} width={RONG} height={Y_BOT_BANG - Y_TOP_BANG} fill="none" stroke="#000" strokeWidth="1.2" />
+      <line x1={0} y1={52} x2={RONG} y2={52} stroke="#000" strokeWidth="1" />
+      <line x1={0} y1={98} x2={RONG} y2={98} stroke="#000" strokeWidth="1" />
+      <line x1={X_NHAN} y1={Y_TOP_BANG} x2={X_NHAN} y2={Y_BOT_BANG} stroke="#000" strokeWidth="1" />
+      {/* Kẻ dọc hàng x tại từng cột (toàn chiều cao hàng x) */}
+      {giaTriBien.map((_e, i) => (
+        <line key={`vx${i}`} x1={colX(i)} y1={Y_TOP_BANG} x2={colX(i)} y2={52} stroke="#000" strokeWidth="0.75" />
+      ))}
+      {/* Kẻ dọc hàng y' chỉ tại mốc giữa (không kẻ ở 2 đầu vô cực) */}
+      {giaTriBien.slice(1, -1).map((_e, idx) => (
+        <line key={`vd${idx}`} x1={colX(idx + 1)} y1={52} x2={colX(idx + 1)} y2={98} stroke="#000" strokeWidth="0.75" />
+      ))}
+
+      {/* Nhãn hàng bên trái, trong ô riêng */}
+      <text x={X_NHAN / 2} y={Y_HANG_X + 4} fontSize="13" fontStyle="italic" textAnchor="middle">x</text>
+      <text x={X_NHAN / 2} y={Y_HANG_DAU + 4} fontSize="13" textAnchor="middle">y&apos;</text>
+      <text x={X_NHAN / 2} y={(Y_TREN + Y_DUOI) / 2 + 4} fontSize="13" fontStyle="italic" textAnchor="middle">y</text>
 
       {/* Hàng x: nhãn mốc, cách đều */}
       {giaTriBien.map((_e, i) => (
-        <text key={`x${i}`} x={colX(i)} y={Y_HANG_X + 4} fontSize="13" textAnchor="middle" fill="#111827">
+        <text key={`x${i}`} x={colX(i)} y={Y_HANG_X + 4} fontSize="13" textAnchor="middle">
           {i === 0 ? '-∞' : i === N + 1 ? '+∞' : dinhDangSo(moc[i - 1])}
         </text>
       ))}
@@ -84,29 +105,26 @@ function BangBienThienSVG({ ketQua, svgRef }) {
       {/* Hàng y': dấu +/− giữa mỗi khoảng */}
       {khoangDau.map((k, j) => {
         const xGiua = (colX(j) + colX(j + 1)) / 2
-        const tang = k.dau === 'duong'
-        const giam = k.dau === 'am'
         return (
-          <text key={`d${j}`} x={xGiua} y={Y_HANG_DAU + 5} fontSize="15" fontWeight="bold" textAnchor="middle"
-            fill={tang ? '#16a34a' : giam ? '#dc2626' : '#6b7280'}>
-            {tang ? '+' : giam ? '−' : '?'}
+          <text key={`d${j}`} x={xGiua} y={Y_HANG_DAU + 5} fontSize="15" fontWeight="bold" textAnchor="middle">
+            {k.dau === 'duong' ? '+' : k.dau === 'am' ? '−' : '?'}
           </text>
         )
       })}
       {/* Hàng y': "0" tại mốc cực trị, "∥" tại mốc gián đoạn (điểm ngoài TXĐ) */}
       {giaTriBien.slice(1, -1).map((e, idx) => (
-        <text key={`m${idx + 1}`} x={colX(idx + 1)} y={Y_HANG_DAU + 5} fontSize="13" textAnchor="middle" fill="#111827">
+        <text key={`m${idx + 1}`} x={colX(idx + 1)} y={Y_HANG_DAU + 5} fontSize="13" textAnchor="middle">
           {'gia_tri' in e ? '0' : '∥'}
         </text>
       ))}
 
-      {/* Hàng y: đường nối giữa các cột liên tiếp trong cùng 1 khoảng — hướng theo dấu y' */}
+      {/* Hàng y: đường nối có mũi tên giữa các cột liên tiếp trong cùng 1 khoảng — hướng theo dấu y' */}
       {khoangDau.map((_k, j) => {
         const xuatPhat = 'gia_tri' in giaTriBien[j] ? giaTriBien[j].muc : giaTriBien[j].mucPhai
         const denNoi = 'gia_tri' in giaTriBien[j + 1] ? giaTriBien[j + 1].muc : giaTriBien[j + 1].mucTrai
         return (
           <line key={`l${j}`} x1={colX(j)} y1={yCua(xuatPhat)} x2={colX(j + 1)} y2={yCua(denNoi)}
-            stroke="#2563eb" strokeWidth="2" />
+            stroke="#000" strokeWidth="1.5" markerEnd="url(#muiTenBBT)" />
         )
       })}
 
@@ -114,26 +132,24 @@ function BangBienThienSVG({ ketQua, svgRef }) {
       {giaTriBien.map((e, i) =>
         'gia_tri' in e ? (
           <text key={`v${i}`} x={colX(i)} y={yCua(e.muc) + (e.muc === 'top' ? -8 : 18)}
-            fontSize="13" fontWeight="600" textAnchor="middle" fill="#111827">
+            fontSize="13" fontWeight="600" textAnchor="middle">
             {textGiaTri(e.gia_tri)}
           </text>
         ) : (
           <g key={`v${i}`}>
             <text x={colX(i)} y={yCua(e.mucTrai) + (e.mucTrai === 'top' ? -8 : 18)}
-              fontSize="13" fontWeight="600" textAnchor="middle" fill="#111827">
+              fontSize="13" fontWeight="600" textAnchor="middle">
               {textGiaTri(e.trai)}
             </text>
             <text x={colX(i)} y={yCua(e.mucPhai) + (e.mucPhai === 'top' ? -8 : 18)}
-              fontSize="13" fontWeight="600" textAnchor="middle" fill="#111827">
+              fontSize="13" fontWeight="600" textAnchor="middle">
               {textGiaTri(e.phai)}
             </text>
             <line x1={colX(i)} y1={Y_TREN - 14} x2={colX(i)} y2={Y_DUOI + 14}
-              stroke="#9ca3af" strokeWidth="1" strokeDasharray="3,3" />
+              stroke="#000" strokeWidth="1" strokeDasharray="3,3" />
           </g>
         )
       )}
-
-      <rect x={0} y={20} width={RONG} height={CAO - 30} fill="none" stroke="#d1d5db" />
     </svg>
   )
 }

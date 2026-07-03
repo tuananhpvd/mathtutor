@@ -15,35 +15,17 @@ function dinhDangSo(v) {
   return String(Math.round(v * 1000) / 1000)
 }
 
-// Chọn bước lưới "đẹp" (1/2/5 × 10^n) theo độ rộng khoảng — thuật toán chuẩn cho trục biểu đồ.
-function buocDep(phamVi) {
-  if (!(phamVi > 0)) return 1
-  const tho = phamVi / 8
-  const luyThua = Math.pow(10, Math.floor(Math.log10(tho)))
-  const chuan = tho / luyThua
-  const buoc = chuan < 1.5 ? 1 : chuan < 3 ? 2 : chuan < 7 ? 5 : 10
-  return buoc * luyThua
-}
-
-function taoTick(min, max) {
-  const buoc = buocDep(max - min)
-  const ds = []
-  const batDau = Math.ceil(min / buoc) * buoc
-  for (let v = batDau; v <= max + 1e-9; v += buoc) {
-    ds.push(Math.abs(v) < buoc / 1e6 ? 0 : Math.round(v * 1e6) / 1e6)
-  }
-  return ds
-}
-
 function DoThiSVG({ ketQua, svgRef }) {
   const { cua_so: cs, cac_doan, tiem_can_dung, tiem_can_ngang, tiem_can_xien, cuc_tri } = ketQua
   const sx = (x) => LE + ((x - cs.x_min) / (cs.x_max - cs.x_min)) * (RONG - 2 * LE)
   const sy = (y) => CAO - LE - ((y - cs.y_min) / (cs.y_max - cs.y_min)) * (CAO - 2 * LE)
+  const coTrucX = cs.y_min <= 0 && 0 <= cs.y_max // Ox nằm trong khung nhìn
+  const coTrucY = cs.x_min <= 0 && 0 <= cs.x_max // Oy nằm trong khung nhìn
 
-  const ticksX = taoTick(cs.x_min, cs.x_max).filter((v) => v !== 0)
-  const ticksY = taoTick(cs.y_min, cs.y_max).filter((v) => v !== 0)
-  const coTrucX = cs.y_min <= 0 && 0 <= cs.y_max
-  const coTrucY = cs.x_min <= 0 && 0 <= cs.x_max
+  // Điểm đáng chú ý để chiếu nét đứt xuống Ox / sang Oy — KHÔNG dùng lưới chia đều chung
+  // chung, đúng quy ước SGK: chỉ ghi số tại chỗ có ý nghĩa (cực trị, tiệm cận).
+  const diemXDangChu = [...cuc_tri.map((c) => c.x), ...tiem_can_dung]
+  const diemYDangChu = [...cuc_tri.map((c) => c.y), ...(tiem_can_ngang != null ? [tiem_can_ngang] : [])]
 
   return (
     <svg
@@ -51,76 +33,73 @@ function DoThiSVG({ ketQua, svgRef }) {
       width={RONG}
       height={CAO}
       viewBox={`0 0 ${RONG} ${CAO}`}
-      className="rounded-md border border-border bg-white"
-      style={{ maxWidth: '100%', height: 'auto' }}
+      style={{ maxWidth: '100%', height: 'auto', background: '#fff' }}
     >
       <defs>
+        <marker id="muiTenDoThi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 Z" fill="#000" />
+        </marker>
         <clipPath id="vungVeDoThi">
           <rect x={LE} y={LE} width={RONG - 2 * LE} height={CAO - 2 * LE} />
         </clipPath>
       </defs>
 
-      {/* Lưới mờ */}
-      {ticksX.map((v) => (
-        <line key={`gx${v}`} x1={sx(v)} y1={LE} x2={sx(v)} y2={CAO - LE} stroke="#e5e7eb" strokeWidth="1" />
-      ))}
-      {ticksY.map((v) => (
-        <line key={`gy${v}`} x1={LE} y1={sy(v)} x2={RONG - LE} y2={sy(v)} stroke="#e5e7eb" strokeWidth="1" />
-      ))}
-
-      {/* Trục Ox/Oy */}
-      {coTrucX && <line x1={LE} y1={sy(0)} x2={RONG - LE} y2={sy(0)} stroke="#374151" strokeWidth="1.5" />}
-      {coTrucY && <line x1={sx(0)} y1={LE} x2={sx(0)} y2={CAO - LE} stroke="#374151" strokeWidth="1.5" />}
-
-      {/* Nhãn số trên trục */}
-      {coTrucX && ticksX.map((v) => (
-        <text key={`lx${v}`} x={sx(v)} y={sy(0) + 14} fontSize="10" textAnchor="middle" fill="#6b7280">
-          {dinhDangSo(v)}
-        </text>
-      ))}
-      {coTrucY && ticksY.map((v) => (
-        <text key={`ly${v}`} x={sx(0) - 6} y={sy(v) + 3} fontSize="10" textAnchor="end" fill="#6b7280">
-          {dinhDangSo(v)}
-        </text>
-      ))}
+      {/* Trục Ox/Oy — mũi tên ở đầu dương, nhãn O tại gốc (đúng quy ước SGK, không khung bao) */}
+      {coTrucX && (
+        <line x1={LE - 6} y1={sy(0)} x2={RONG - LE + 10} y2={sy(0)} stroke="#000" strokeWidth="1.5" markerEnd="url(#muiTenDoThi)" />
+      )}
+      {coTrucY && (
+        <line x1={sx(0)} y1={CAO - LE + 6} x2={sx(0)} y2={LE - 10} stroke="#000" strokeWidth="1.5" markerEnd="url(#muiTenDoThi)" />
+      )}
+      {coTrucX && <text x={RONG - LE + 12} y={sy(0) - 5} fontSize="12" fontStyle="italic">x</text>}
+      {coTrucY && <text x={sx(0) + 6} y={LE - 12} fontSize="12" fontStyle="italic">y</text>}
+      {coTrucX && coTrucY && <text x={sx(0) - 10} y={sy(0) + 14} fontSize="11">O</text>}
 
       {/* Tiệm cận + đường cong — cắt trong vùng vẽ để không lấn nhãn trục */}
       <g clipPath="url(#vungVeDoThi)">
         {tiem_can_dung.map((xa, i) => (
-          <line key={`tcd${i}`} x1={sx(xa)} y1={0} x2={sx(xa)} y2={CAO} stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5,4" />
+          <line key={`tcd${i}`} x1={sx(xa)} y1={0} x2={sx(xa)} y2={CAO} stroke="#000" strokeWidth="1" strokeDasharray="4,3" />
         ))}
         {tiem_can_ngang != null && (
-          <line x1={0} y1={sy(tiem_can_ngang)} x2={RONG} y2={sy(tiem_can_ngang)} stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5,4" />
+          <line x1={0} y1={sy(tiem_can_ngang)} x2={RONG} y2={sy(tiem_can_ngang)} stroke="#000" strokeWidth="1" strokeDasharray="4,3" />
         )}
         {tiem_can_xien && (
           <line
             x1={0} y1={sy(tiem_can_xien.a * cs.x_min + tiem_can_xien.b)}
             x2={RONG} y2={sy(tiem_can_xien.a * cs.x_max + tiem_can_xien.b)}
-            stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5,4"
+            stroke="#000" strokeWidth="1" strokeDasharray="4,3"
           />
         )}
+        {/* Nét đứt chiếu cực trị xuống Ox / sang Oy — đúng quy ước "chiếu điểm" trong SGK */}
+        {cuc_tri.map((c, i) => (
+          <g key={`chieu${i}`}>
+            {coTrucX && <line x1={sx(c.x)} y1={sy(c.y)} x2={sx(c.x)} y2={sy(0)} stroke="#000" strokeWidth="0.75" strokeDasharray="3,2" />}
+            {coTrucY && <line x1={sx(c.x)} y1={sy(c.y)} x2={sx(0)} y2={sy(c.y)} stroke="#000" strokeWidth="0.75" strokeDasharray="3,2" />}
+          </g>
+        ))}
         {cac_doan.map((doan, i) => (
           <path
             key={i}
             d={doan.map((p, j) => `${j === 0 ? 'M' : 'L'} ${sx(p[0])},${sy(p[1])}`).join(' ')}
             fill="none"
-            stroke="#2563eb"
-            strokeWidth="2.5"
+            stroke="#000"
+            strokeWidth="2"
           />
         ))}
       </g>
 
-      {/* Cực trị */}
-      {cuc_tri.map((c, i) => (
-        <g key={i}>
-          <circle cx={sx(c.x)} cy={sy(c.y)} r="4" fill="#dc2626" />
-          <text x={sx(c.x) + 6} y={sy(c.y) - 6} fontSize="10" fill="#dc2626">
-            {c.loai === 'cuc_dai' ? 'CĐ' : 'CT'}({dinhDangSo(c.x)}; {dinhDangSo(c.y)})
-          </text>
-        </g>
+      {/* Nhãn số tại chân đường chiếu trên 2 trục (điểm đặc biệt, không phải lưới chia đều) */}
+      {coTrucX && diemXDangChu.map((x0, i) => (
+        <text key={`lx${i}`} x={sx(x0)} y={sy(0) + 16} fontSize="11" textAnchor="middle">{dinhDangSo(x0)}</text>
+      ))}
+      {coTrucY && diemYDangChu.map((y0, i) => (
+        <text key={`ly${i}`} x={sx(0) - 8} y={sy(y0) + 4} fontSize="11" textAnchor="end">{dinhDangSo(y0)}</text>
       ))}
 
-      <rect x={LE} y={LE} width={RONG - 2 * LE} height={CAO - 2 * LE} fill="none" stroke="#d1d5db" />
+      {/* Cực trị: chấm nhỏ tại điểm, không ghi chữ "CĐ/CT" nổi trên hình (đã có số ở chân chiếu) */}
+      {cuc_tri.map((c, i) => (
+        <circle key={`cham${i}`} cx={sx(c.x)} cy={sy(c.y)} r="2.5" fill="#000" />
+      ))}
     </svg>
   )
 }

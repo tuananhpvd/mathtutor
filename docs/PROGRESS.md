@@ -4,11 +4,25 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v36** + hoàn thiện chưa push)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v37** + style SGK chưa push)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **266/266 test backend xanh** (`pytest`).
-- **🔧 Hoàn thiện sau GĐ3B (rà soát toàn tính năng ảnh, chưa push):**
+- **🆕 Đồ thị/BBT vẽ lại theo style SGK Việt Nam, đen trắng thuần (chưa push):** sau khi so sánh
+  với ảnh SGK thật, nhận thấy hình CAS vẽ đúng nhưng chưa quen mắt HS. Đã quyết định KHÔNG dùng
+  TikZ/LaTeX (phân tích chi phí hạ tầng — cần cài LaTeX engine + sandbox riêng, không đáng so với
+  giá trị) — vẫn dùng SVG thuần, chỉ sửa lớp vẽ (`VeDoThiDialog.jsx`/`VeBBTDialog.jsx`), **không
+  đụng `ve_hinh.py`** (CAS/dữ liệu không đổi).
+  - **Đồ thị:** bỏ lưới đầy + khung bao ngoài; thêm trục Ox/Oy có **mũi tên** (SVG `<marker>`) cắt
+    tại gốc + nhãn "O"; thêm **đường nét đứt chiếu** từ mỗi điểm cực trị xuống Ox và sang Oy (đúng
+    quy ước SGK) kèm nhãn số tại chân chiếu — thay cho lưới chia đều chung chung trước đó.
+  - **BBT:** thêm khung bảng thật (viền ngoài + kẻ dọc từng cột) thay vì chỉ 2 đường kẻ ngang;
+    đường nối hàng y có **mũi tên** (trước là `<line>` trơn không đầu mũi tên).
+  - **Màu sắc:** theo yêu cầu — toàn bộ nét/chữ màu đen (`#000`), nền trắng thuần; bỏ hết mã màu
+    xanh dương (đường cong), đỏ (cực trị/dấu −), vàng cam (tiệm cận), xám (lưới/nhãn) trước đó.
+  - ⚠️ Chỉ kiểm chứng bằng **truy vết tọa độ tay** (đối chiếu hình học không tràn/chồng lấn), vẫn
+    CHƯA xem được ảnh render thật (Read tool không rasterize `.svg`, không có Playwright/rsvg).
+- **🔧 Hoàn thiện sau GĐ3B (v37, đã push):**
   1. **GV list thiếu `hinh_anh`:** endpoint `danh_sach_bai` (vai GV) dùng dict riêng, không qua
      `_problem_full` như màn sửa → thiếu trường `hinh_anh`. Đã thêm; frontend hiện icon 🖼️ cạnh
      tên chuyên đề trong bảng câu hỏi để GV biết ngay câu nào đã có ảnh.
@@ -77,8 +91,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v36` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v37**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v37` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v38**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 
