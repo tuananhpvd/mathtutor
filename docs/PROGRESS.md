@@ -4,17 +4,21 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v33**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v34**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **235/235 test backend xanh** (`pytest`).
-- **Ảnh minh họa câu hỏi — Giai đoạn 1 (v33):** mỗi câu tối đa 1 ảnh (`problems.hinh_anh`).
-  Backend: module `app/core/uploads.py` (validate magic bytes PNG/JPG/WebP ≤ 3MB), endpoint
-  `POST /api/problems/upload-hinh` (GV/Admin), mount `/uploads` (StaticFiles), `hinh_anh` chảy qua
-  `_problem_full`/`_strip_answers`/`ChiTietPhienResponse` (HS xem được, không lộ đáp án). Frontend:
-  ô upload + **dán clipboard (Ctrl+V)** ở form GV (`ThanCauHoiForm`), HS xem **2 cột** khi có ảnh
-  (`PhongHoc`, bấm phóng to), proxy Vite `/uploads`. Đã `ALTER TABLE problems ADD COLUMN hinh_anh`.
-  **Còn Giai đoạn 2:** import hàng loạt có ảnh (cột "Hình" = tên file + upload nhiều ảnh).
+  Tailwind) chạy end-to-end. **236/236 test backend xanh** (`pytest`).
+- **✅ Ảnh minh họa câu hỏi — HOÀN THÀNH (GĐ1 v33 + GĐ2 v34):** mỗi câu tối đa 1 ảnh
+  (`problems.hinh_anh`). *Bỏ GĐ3 (tiện ích tạo hình bảng biến thiên/đồ thị) — làm sau nếu cần.*
+  - **GĐ1 (v33):** module `app/core/uploads.py` (validate magic bytes PNG/JPG/WebP ≤ 3MB), endpoint
+    `POST /api/problems/upload-hinh` (GV/Admin), mount `/uploads` (StaticFiles); `hinh_anh` qua
+    `_problem_full`/`_strip_answers`/`ChiTietPhienResponse` (HS xem, không lộ đáp án). Frontend: ô
+    upload + **dán clipboard Ctrl+V** ở form GV (`ThanCauHoiForm`), HS xem **2 cột** khi có ảnh
+    (`PhongHoc`, bấm phóng to), proxy Vite `/uploads`. Đã `ALTER TABLE problems ADD COLUMN hinh_anh`.
+  - **GĐ2 (v34):** import hàng loạt có ảnh (`ImportCauHoiDialog`): cột **"Hình" = tên file** trong
+    mẫu Excel; GV **upload nhiều ảnh** trước → map `{tên file → URL}`; parser đọc `hinh_ten`, preview
+    có cột Hình (✓ khớp / ⚠ chưa upload), khi xác nhận khớp tên→URL rồi gửi `hinh_anh`. Backend
+    `ImportCauHoiItem.hinh_anh` + `import_batch` gán ảnh.
   ⚠️ Bài học tái diễn: uvicorn `--reload` trên Windows để lại tiến trình con `multiprocessing.spawn`
   giữ port khi kill parent → phải kill cả tiến trình con; và đổi `vite.config.js` phải RESTART Vite.
 - **Thay đổi trong v32 (đã push):**
@@ -30,8 +34,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v33` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v34**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v34` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v35**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

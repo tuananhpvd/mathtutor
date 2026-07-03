@@ -116,3 +116,29 @@ def test_sua_go_hinh(client, db):
     r = client.patch(f"/api/problems/{pid}", json={"hinh_anh": None}, headers=h)
     assert r.status_code == 200
     assert r.json()["hinh_anh"] is None
+
+
+# ---------- Import hàng loạt có ảnh (GĐ2) ----------
+
+def test_import_batch_co_hinh(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_h")
+    items = [
+        {
+            "loai_cau": "TLN", "chuyen_de": "Tích phân", "do_kho": "de",
+            "de_bai": "Tính $\\int_0^1 x\\,dx$.", "hinh_anh": "/uploads/bbt.png",
+            "meta": {"dap_an_cuoi": "0,5"},
+        },
+        {  # câu không ảnh vẫn import bình thường
+            "loai_cau": "TLN", "chuyen_de": "Tích phân", "do_kho": "de",
+            "de_bai": "Tính $\\int_0^2 x\\,dx$.", "meta": {"dap_an_cuoi": "2"},
+        },
+    ]
+    r = client.post("/api/problems/import-batch", json={"items": items}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["da_tao"] == 2
+    ids = r.json()["ids"]
+    ct0 = client.get(f"/api/problems/{ids[0]}", headers=h).json()
+    ct1 = client.get(f"/api/problems/{ids[1]}", headers=h).json()
+    assert ct0["hinh_anh"] == "/uploads/bbt.png"
+    assert ct1["hinh_anh"] is None

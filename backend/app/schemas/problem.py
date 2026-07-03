@@ -30,6 +30,7 @@ class ImportCauHoiItem(BaseModel):
     dang_ten: str | None = None
     do_kho: str = "tb"
     de_bai: str = ""
+    hinh_anh: str | None = None  # URL ảnh đã upload (GĐ2: khớp từ cột "Hình" = tên file)
     meta: dict = Field(default_factory=dict)
 
 

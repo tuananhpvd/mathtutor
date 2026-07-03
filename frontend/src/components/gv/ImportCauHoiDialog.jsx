@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { api } from '../../api'
 import { Button } from '../ui'
 
 const TABS = [
@@ -36,6 +37,13 @@ function findCol(header, ...keywords) {
 
 function s(val) { return String(val ?? '').trim() }
 
+// Trạng thái khớp ảnh cho 1 dòng: '' → không có; có trong map → khớp; còn lại → chưa upload.
+function trangThaiHinh(ten, anhMap) {
+  if (!ten) return { text: '—', cls: 'text-muted' }
+  if (anhMap[ten]) return { text: `✓ ${ten}`, cls: 'text-green-600' }
+  return { text: `⚠ ${ten}`, cls: 'text-amber-600' }
+}
+
 // -------- Template generators --------
 
 function xuatMauTN4PA() {
@@ -43,15 +51,15 @@ function xuatMauTN4PA() {
   const ws = XLSX.utils.aoa_to_sheet([
     ['Chuyên đề', 'Dạng (tùy chọn)', 'Độ khó', 'Đề bài',
       'Phương án A', 'Phương án B', 'Phương án C', 'Phương án D',
-      'Đáp án đúng (A/B/C/D)', 'Bắt buộc suy luận (Có/Không)'],
+      'Đáp án đúng (A/B/C/D)', 'Bắt buộc suy luận (Có/Không)', 'Hình (tên file, tùy chọn)'],
     ['Khảo sát hàm số', 'Tính đơn điệu', 'tb',
       'Hàm số $y=x^3-3x$ đồng biến trên khoảng nào?',
       '$(1;+\\infty)$', '$(-1;1)$', '$(-\\infty;-1)$', '$(-1;+\\infty)$',
-      'A', 'Không'],
+      'A', 'Không', ''],
     ['Tích phân', '', 'de',
       'Tính $\\int_0^1 x\\,dx$.',
       '$\\dfrac{1}{2}$', '$1$', '$2$', '$\\dfrac{1}{4}$',
-      'A', 'Không'],
+      'A', 'Không', ''],
   ])
   ws['!cols'] = [
     { wch: 22 }, { wch: 18 }, { wch: 10 }, { wch: 36 },
@@ -69,13 +77,13 @@ function xuatMauTNDS() {
       'Nội dung ý a', 'Đáp án ý a (Đ/S)',
       'Nội dung ý b', 'Đáp án ý b (Đ/S)',
       'Nội dung ý c', 'Đáp án ý c (Đ/S)',
-      'Nội dung ý d', 'Đáp án ý d (Đ/S)'],
+      'Nội dung ý d', 'Đáp án ý d (Đ/S)', 'Hình (tên file, tùy chọn)'],
     ['Khảo sát hàm số', 'Cực trị', 'kho',
       'Cho hàm số $y=x^3-3x+2$. Xét tính đúng sai của các mệnh đề sau:',
       'Hàm số có cực đại tại $x=-1$', 'Đ',
       'Giá trị cực đại bằng $4$', 'Đ',
       'Hàm số có cực tiểu tại $x=1$', 'Đ',
-      'Giá trị cực tiểu bằng $2$', 'S'],
+      'Giá trị cực tiểu bằng $2$', 'S', ''],
   ])
   ws['!cols'] = [
     { wch: 22 }, { wch: 18 }, { wch: 10 }, { wch: 36 },
@@ -89,13 +97,13 @@ function xuatMauTNDS() {
 function xuatMauTLN() {
   const wb = XLSX.utils.book_new()
   const ws = XLSX.utils.aoa_to_sheet([
-    ['Chuyên đề', 'Dạng (tùy chọn)', 'Độ khó', 'Đề bài', 'Đáp án cuối'],
+    ['Chuyên đề', 'Dạng (tùy chọn)', 'Độ khó', 'Đề bài', 'Đáp án cuối', 'Hình (tên file, tùy chọn)'],
     ['Tích phân', 'Tính tích phân', 'tb',
       'Tính $\\int_0^2 (x^2+1)\\,dx$. Kết quả là $m$. Tìm $m$.',
-      '14/3'],
+      '14/3', ''],
     ['Khảo sát hàm số', '', 'de',
       'Hàm số $y=x^2-2x+3$ đạt giá trị nhỏ nhất bằng bao nhiêu?',
-      '2'],
+      '2', ''],
   ])
   ws['!cols'] = [
     { wch: 22 }, { wch: 18 }, { wch: 10 }, { wch: 40 }, { wch: 16 },
@@ -118,6 +126,7 @@ function parseTN4PA(data) {
   const iD = findCol(header, 'phương án d', 'phuong an d')
   const iDA = findCol(header, 'đáp án đúng', 'dap an dung')
   const iBBSL = findCol(header, 'bắt buộc', 'bat buoc')
+  const iHinh = findCol(header, 'hình', 'hinh')
 
   if ([iCD, iDe, iA, iB, iC, iD, iDA].some((i) => i === -1))
     throw new Error('Thiếu cột bắt buộc. Hãy dùng file mẫu TN4PA.')
@@ -143,6 +152,7 @@ function parseTN4PA(data) {
       dang_ten: iDang !== -1 ? s(r[iDang]) : '',
       do_kho: chuanHoaDoKho(iKho !== -1 ? r[iKho] : 'tb'),
       de_bai,
+      hinh_ten: iHinh !== -1 ? s(r[iHinh]) : '',
       meta: {
         phuong_an: { A: pA, B: pB, C: pC, D: pD },
         dap_an_dung: da,
@@ -167,6 +177,7 @@ function parseTNDS(data) {
   const iDc = findCol(header, 'đáp án ý c', 'dap an y c')
   const iNd = findCol(header, 'nội dung ý d', 'noi dung y d', 'ý d', 'y d')
   const iDd = findCol(header, 'đáp án ý d', 'dap an y d')
+  const iHinh = findCol(header, 'hình', 'hinh')
 
   if ([iCD, iDe, iNa, iDa, iNb, iDb, iNc, iDc, iNd, iDd].some((i) => i === -1))
     throw new Error('Thiếu cột bắt buộc. Hãy dùng file mẫu TNDS.')
@@ -198,6 +209,7 @@ function parseTNDS(data) {
       dang_ten: iDang !== -1 ? s(r[iDang]) : '',
       do_kho: chuanHoaDoKho(iKho !== -1 ? r[iKho] : 'tb'),
       de_bai,
+      hinh_ten: iHinh !== -1 ? s(r[iHinh]) : '',
       meta: {
         y: [
           { ky_hieu: 'a', noi_dung_y: s(r[iNa]), dap_an: dAs[0] ?? 'Dung' },
@@ -218,6 +230,7 @@ function parseTLN(data) {
   const iKho = findCol(header, 'độ khó', 'do kho')
   const iDe = findCol(header, 'đề bài', 'de bai')
   const iDA = findCol(header, 'đáp án cuối', 'dap an cuoi', 'đáp án', 'dap an')
+  const iHinh = findCol(header, 'hình', 'hinh')
 
   if ([iCD, iDe, iDA].some((i) => i === -1))
     throw new Error('Thiếu cột bắt buộc. Hãy dùng file mẫu TLN.')
@@ -238,6 +251,7 @@ function parseTLN(data) {
       dang_ten: iDang !== -1 ? s(r[iDang]) : '',
       do_kho: chuanHoaDoKho(iKho !== -1 ? r[iKho] : 'tb'),
       de_bai,
+      hinh_ten: iHinh !== -1 ? s(r[iHinh]) : '',
       meta: { dap_an_cuoi },
       ly_do,
     }
@@ -249,12 +263,12 @@ const XUAT_MAU = { TN4PA: xuatMauTN4PA, TNDS: xuatMauTNDS, TLN: xuatMauTLN }
 
 // -------- Preview columns --------
 
-function PreviewTN4PA({ rows }) {
+function PreviewTN4PA({ rows, anhMap }) {
   return (
     <table className="w-full text-xs">
       <thead>
         <tr className="bg-surface border-b border-border">
-          {['Dòng', 'Chuyên đề', 'Đề bài', 'Đáp án', 'Khó', 'Trạng thái'].map((h) => (
+          {['Dòng', 'Chuyên đề', 'Đề bài', 'Đáp án', 'Khó', 'Hình', 'Trạng thái'].map((h) => (
             <th key={h} className="text-left px-2 py-1.5 font-medium text-muted whitespace-nowrap">{h}</th>
           ))}
         </tr>
@@ -267,6 +281,9 @@ function PreviewTN4PA({ rows }) {
             <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
             <td className="px-2 py-1.5 text-ink">{r.meta?.dap_an_dung || '—'}</td>
             <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
+            <td className={`px-2 py-1.5 whitespace-nowrap ${trangThaiHinh(r.hinh_ten, anhMap).cls}`}>
+              {trangThaiHinh(r.hinh_ten, anhMap).text}
+            </td>
             <td className="px-2 py-1.5">
               {r.ly_do
                 ? <span className="text-red-600">{r.ly_do}</span>
@@ -279,12 +296,12 @@ function PreviewTN4PA({ rows }) {
   )
 }
 
-function PreviewTNDS({ rows }) {
+function PreviewTNDS({ rows, anhMap }) {
   return (
     <table className="w-full text-xs">
       <thead>
         <tr className="bg-surface border-b border-border">
-          {['Dòng', 'Chuyên đề', 'Đề bài', 'Ý a', 'Ý b', 'Ý c', 'Ý d', 'Khó', 'Trạng thái'].map((h) => (
+          {['Dòng', 'Chuyên đề', 'Đề bài', 'Ý a', 'Ý b', 'Ý c', 'Ý d', 'Khó', 'Hình', 'Trạng thái'].map((h) => (
             <th key={h} className="text-left px-2 py-1.5 font-medium text-muted whitespace-nowrap">{h}</th>
           ))}
         </tr>
@@ -303,6 +320,9 @@ function PreviewTNDS({ rows }) {
                 </td>
               ))}
               <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
+              <td className={`px-2 py-1.5 whitespace-nowrap ${trangThaiHinh(r.hinh_ten, anhMap).cls}`}>
+                {trangThaiHinh(r.hinh_ten, anhMap).text}
+              </td>
               <td className="px-2 py-1.5">
                 {r.ly_do
                   ? <span className="text-red-600">{r.ly_do}</span>
@@ -316,12 +336,12 @@ function PreviewTNDS({ rows }) {
   )
 }
 
-function PreviewTLN({ rows }) {
+function PreviewTLN({ rows, anhMap }) {
   return (
     <table className="w-full text-xs">
       <thead>
         <tr className="bg-surface border-b border-border">
-          {['Dòng', 'Chuyên đề', 'Đề bài', 'Đáp án cuối', 'Khó', 'Trạng thái'].map((h) => (
+          {['Dòng', 'Chuyên đề', 'Đề bài', 'Đáp án cuối', 'Khó', 'Hình', 'Trạng thái'].map((h) => (
             <th key={h} className="text-left px-2 py-1.5 font-medium text-muted whitespace-nowrap">{h}</th>
           ))}
         </tr>
@@ -334,6 +354,9 @@ function PreviewTLN({ rows }) {
             <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
             <td className="px-2 py-1.5 text-ink font-mono">{r.meta?.dap_an_cuoi || '—'}</td>
             <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
+            <td className={`px-2 py-1.5 whitespace-nowrap ${trangThaiHinh(r.hinh_ten, anhMap).cls}`}>
+              {trangThaiHinh(r.hinh_ten, anhMap).text}
+            </td>
             <td className="px-2 py-1.5">
               {r.ly_do
                 ? <span className="text-red-600">{r.ly_do}</span>
@@ -355,7 +378,29 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
   const [rows, setRows] = useState(null)
   const [dangXuLy, setDangXuLy] = useState(false)
   const [loi, setLoi] = useState('')
+  const [anhMap, setAnhMap] = useState({})   // tên file gốc -> URL đã upload
+  const [dangUpAnh, setDangUpAnh] = useState(false)
   const fileRef = useRef(null)
+  const anhRef = useRef(null)
+
+  async function onChonAnh(e) {
+    const files = [...(e.target.files || [])]
+    e.target.value = ''
+    if (!files.length) return
+    setDangUpAnh(true)
+    setLoi('')
+    const ketQua = {}
+    for (const f of files) {
+      try {
+        const { url } = await api.uploadHinh(f)
+        ketQua[f.name] = url
+      } catch (err) {
+        setLoi(`Ảnh "${f.name}": ${err.message}`)
+      }
+    }
+    setAnhMap((m) => ({ ...m, ...ketQua }))
+    setDangUpAnh(false)
+  }
 
   function doiTab(key) {
     setTab(key)
@@ -388,12 +433,16 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
 
   async function xacNhan() {
     if (!rows) return
-    const valid = rows.filter((r) => !r.ly_do).map(({ dong, ly_do, ...rest }) => rest)
+    const valid = rows
+      .filter((r) => !r.ly_do)
+      .map(({ dong, ly_do, hinh_ten, ...rest }) => ({
+        ...rest,
+        hinh_anh: hinh_ten ? (anhMap[hinh_ten] || null) : null,
+      }))
     if (valid.length === 0) return
     setDangXuLy(true)
     setLoi('')
     try {
-      const { api } = await import('../../api')
       const res = await api.importCauHoiBatch(valid)
       onSaved(`Đã import ${res.da_tao} câu hỏi (trạng thái: chờ duyệt).${res.loi?.length ? ` ${res.loi.length} dòng lỗi bị bỏ qua.` : ''}`)
     } catch (err) {
@@ -471,6 +520,38 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
               <>Cột bắt buộc: <strong>Chuyên đề, Đề bài, Đáp án cuối</strong>.
               Cột tùy chọn: Dạng, Độ khó.</>
             )}
+            <div className="mt-1">
+              Cột <strong>Hình</strong> (tùy chọn): ghi <b>tên file</b> ảnh (đã upload bên dưới) để gắn ảnh minh họa cho câu.
+            </div>
+          </div>
+
+          {/* Upload ảnh minh họa (tùy chọn) — khớp cột "Hình" theo tên file */}
+          <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5 flex flex-col gap-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Button variant="secondary" onClick={() => anhRef.current?.click()} disabled={dangUpAnh}>
+                {dangUpAnh ? 'Đang tải ảnh...' : 'Upload ảnh minh họa (chọn nhiều)'}
+              </Button>
+              <input
+                ref={anhRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                className="hidden"
+                onChange={onChonAnh}
+              />
+              <span className="text-xs text-muted">
+                Upload trước, rồi ghi tên file vào cột "Hình" trong Excel. PNG/JPG/WebP ≤ 3MB.
+              </span>
+            </div>
+            {Object.keys(anhMap).length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {Object.keys(anhMap).map((ten) => (
+                  <span key={ten} className="text-[11px] bg-green-50 text-green-700 rounded px-1.5 py-0.5">
+                    ✓ {ten}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {loi && (
@@ -488,7 +569,7 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
                 )}
               </p>
               <div className="rounded-lg border border-border overflow-x-auto">
-                <PreviewComp rows={rows} />
+                <PreviewComp rows={rows} anhMap={anhMap} />
               </div>
             </div>
           )}

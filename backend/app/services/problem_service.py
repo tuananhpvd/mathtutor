@@ -143,6 +143,7 @@ def import_batch(db: Session, items: list, nguoi_tao_id: int | None) -> dict:
                     loai_cau=loai,
                     do_kho=do_kho,
                     de_bai=de_bai,
+                    hinh_anh=item.hinh_anh,
                     loai_dap_an_nhap=LOAI_DAP_AN_THEO_LOAI[loai.value],
                     trang_thai_duyet=TrangThaiDuyet.cho_duyet,
                     nguon=Nguon.gv_nhap,
