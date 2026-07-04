@@ -18,12 +18,27 @@ class KetQuaSoKhop(str, Enum):
 
 _FORBIDDEN = ("__import__", "eval", "exec", "open", "os", "sys", "subprocess")
 
+# Chuẩn hóa ký hiệu tổ hợp/chỉnh hợp quen dùng (SGK VN + tên hàm LLM hay bịa) về hàm
+# SymPy thật: C(n,k)/comb/combinations → binomial; A(n,k)/perm/permutations → ff
+# (falling factorial, đúng bằng chỉnh hợp n!/(n-k)!). Chỉ khớp dạng GỌI HÀM `tên(`
+# có ranh giới từ — không đụng vào tên biến khác.
+_ALIAS_TO_HOP = [
+    (re.compile(r"\b(?:combinations?|comb|nCr|C)\s*\("), "binomial("),
+    (re.compile(r"\b(?:permutations?|perm|nPr|A)\s*\("), "ff("),
+]
+
+
+def _chuan_hoa_to_hop(s: str) -> str:
+    for mau, thay in _ALIAS_TO_HOP:
+        s = mau.sub(thay, s)
+    return s
+
 
 def _safe_sympify(expr_str: str):
     if any(w in expr_str for w in _FORBIDDEN):
         raise ValueError(f"Biểu thức không an toàn: {expr_str!r}")
     try:
-        return sympify(expr_str, evaluate=True)
+        return sympify(_chuan_hoa_to_hop(expr_str), evaluate=True)
     except (SympifyError, SyntaxError, TypeError, ValueError) as e:
         raise ValueError(str(e)) from e
 
@@ -53,7 +68,7 @@ def _parse_an_toan(expr_str: str):
     if any(w in expr_str for w in _FORBIDDEN):
         raise ValueError(f"Biểu thức không an toàn: {expr_str!r}")
     try:
-        return sympify(expr_str, evaluate=True)
+        return sympify(_chuan_hoa_to_hop(expr_str), evaluate=True)
     except (SympifyError, SyntaxError, TypeError, ValueError):
         pass
     if not _co_dau_hieu_latex(expr_str):

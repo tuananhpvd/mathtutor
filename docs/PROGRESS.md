@@ -4,10 +4,27 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v46**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v47**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **296/296 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **303/303 test backend xanh** (`pytest`).
+- **✅ 3 fix lỗi AI sinh câu hỏi (v47), phát hiện qua GV dùng thật:**
+  1. **CAS không hiểu ký hiệu tổ hợp/chỉnh hợp** (`cas.py`): AI viết `combinations(5,3)` (không
+     phải hàm SymPy thật, hàm đúng là `binomial`) → bước lời giải báo "SymPy không parse được".
+     Thêm chuẩn hóa alias trước khi parse: `combinations/comb/nCr/C(n,k)` → `binomial(n,k)`;
+     `permutations/perm/nPr/A(n,k)` → `ff(n,k)` (falling factorial = chỉnh hợp). Lợi ích kép:
+     câu cũ trong hàng chờ tự parse được, HS gõ `C(5,3)` kiểu SGK khi làm bài cũng chấm đúng.
+  2. **Đáp án TLN do AI sinh không đúng định dạng thi thật** (`question_gen.py`): thêm
+     `dap_an_tln_hop_le()` — bắt buộc số thập phân, TỐI ĐA 4 ký tự tính cả dấu `-`/`.` (đúng
+     quy chế THPT phần III). Hợp lệ: "125", "-125", "3.12", "-3.1"; sai: "-3.124" (6 ký tự).
+  3. **Biểu thức kết quả để dạng hàm chưa tính** (vd `binomial(15, 3)` thay vì `455`): tuy CAS
+     vẫn chấm đúng (sympify tự eager-evaluate), nhưng hiển thị ở "Xem lại bài" (`XemLaiBai.jsx`
+     render thẳng qua KaTeX) ra chữ thô xấu vì không phải LaTeX hợp lệ. Thêm
+     `bieu_thuc_trung_gian_chua_tinh()`: cảnh báo kèm giá trị đã tính sẵn khi biểu thức KHÔNG
+     còn biến tự do mà vẫn còn `binomial/factorial/ff/combinations/permutations/comb/perm(...)`
+     — biểu thức còn biến (đạo hàm theo x) thì không bị cảnh báo.
+  - Cả 3 fix đều cập nhật `prompts.py` để giảm tái diễn từ nguồn (chỉ thị tường minh cho AI).
+    6 test mới, tổng backend 303/303.
 - **✅ C1-GĐ2 — Trộn đề tự động theo ma trận (v46):** service `tron_de()` — ma trận (số câu/
   phần + tỉ lệ % Dễ/TB/Khó mặc định 30/40/30 + giới hạn chuyên đề) → bốc ngẫu nhiên từ ngân
   hàng ĐÃ DUYỆT của GV, đúng loại theo phần, RẢI ĐỀU chuyên đề (round-robin trên danh sách
@@ -175,8 +192,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v46` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v47**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v47` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v48**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

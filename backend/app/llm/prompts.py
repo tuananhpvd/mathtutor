@@ -80,10 +80,16 @@ Hãy viết nhận xét & định hướng theo đúng quy tắc, trả về JSO
 
 SYSTEM_SINH_CAU_HOI = """
 Bạn là trợ lý soạn đề Toán lớp 12. Sinh câu hỏi luyện tập theo ĐÚNG định dạng JSON được yêu cầu,
-bằng tiếng Việt. Mỗi câu phải kèm lời giải từng bước với "bieu_thuc_ket_qua"
-viết bằng cú pháp SymPy (ví dụ 3*x**2-3, sqrt(2), pi/6) và một danh sách gợi ý "danh_sach_goi_y"
-dạng Ý CHÍNH ngắn (không phải lời thoại, không chứa kết quả). SỐ GỢI Ý theo độ khó câu: de→2,
-tb→3, kho→4 (sắp xếp tăng dần mức trợ giúp, gợi ý cuối mạnh nhất nhưng không lộ kết quả).
+bằng tiếng Việt. Mỗi câu phải kèm lời giải từng bước với "bieu_thuc_ket_qua" viết bằng cú pháp
+SymPy (ví dụ 3*x**2-3, sqrt(2), pi/6; tổ hợp C(n,k) viết binomial(n,k), chỉnh hợp A(n,k) viết
+ff(n,k), giai thừa n! viết factorial(n) — TUYỆT ĐỐI không dùng tên hàm tự bịa như combinations,
+nCr, permutations) và một danh sách gợi ý "danh_sach_goi_y" dạng Ý CHÍNH ngắn (không phải lời
+thoại, không chứa kết quả). NẾU "bieu_thuc_ket_qua" không còn chứa biến (là một số cụ thể,
+không phải hàm theo x) thì PHẢI TÍNH RA GIÁ TRỊ CUỐI CÙNG, KHÔNG để dạng hàm chưa tính — ví dụ
+viết "455" chứ KHÔNG viết "binomial(15, 3)", viết "20" chứ KHÔNG viết "factorial(5)/6". Chỉ giữ
+dạng hàm/biểu thức khi kết quả bước đó còn phụ thuộc biến (vd đạo hàm theo x). SỐ GỢI Ý theo độ
+khó câu: de→2, tb→3, kho→4 (sắp xếp tăng dần mức trợ giúp, gợi ý cuối mạnh nhất nhưng không lộ
+kết quả).
 
 ĐỊNH DẠNG CÔNG THỨC (bắt buộc): mọi công thức/biểu thức toán trong văn bản hiển thị cho HS —
 gồm "de_bai", các phương án A–D, nội dung từng ý TNDS, và các câu trong "danh_sach_goi_y" —
@@ -149,6 +155,17 @@ _MAU_TLN = """{
      "danh_sach_goi_y": ["<gợi ý 1>", "<gợi ý 2>"]}
   ]
 }"""
+# Ràng buộc "dap_an_cuoi" TLN: số thập phân, TỐI ĐA 4 ký tự tính cả dấu '-' và dấu '.'
+# (ví dụ hợp lệ: "125", "-125", "3.12", "-3.1"; "-3.124" SAI vì 6 ký tự). Ra đề sao cho
+# kết quả tính toán tự nhiên rơi vào khoảng này (làm tròn đến hàng phần chục/trăm nếu cần).
+_RANG_BUOC_TLN = (
+    'RIÊNG TLN: "dap_an_cuoi" PHẢI là số thập phân viết GỌN, TỐI ĐA 4 ký tự (tính cả dấu '
+    '"-" và dấu "." nếu có). Ví dụ hợp lệ: "125", "-125", "3.12", "-3.1". Ví dụ KHÔNG hợp '
+    'lệ: "-3.124" (6 ký tự), "1234.5" (6 ký tự). Nếu kết quả có phần thập phân dài, làm '
+    'tròn đến hàng phần chục hoặc phần trăm cho vừa đủ 4 ký tự (khai báo trong '
+    '"quy_tac_lam_tron" nếu cần); nếu vẫn không rút gọn được, đổi số liệu đề bài để ra '
+    "kết quả gọn hơn."
+)
 
 _MAU_THEO_LOAI = {"TN4PA": _MAU_TN4PA, "TNDS": _MAU_TNDS, "TLN": _MAU_TLN}
 
@@ -169,8 +186,9 @@ def user_prompt_sinh_cau_hoi(
         if dang else ""
     )
     mau = _MAU_THEO_LOAI.get(loai_cau, _MAU_TLN)
+    dong_rang_buoc_tln = f"{_RANG_BUOC_TLN}\n" if loai_cau == "TLN" else ""
     return f"""Sinh {so_luong} câu loại {loai_cau}, chuyên đề "{chuyen_de}", độ khó {do_kho}.
-{dong_dang}{dong_tai_lieu}Mỗi câu phải KHÁC NHAU về số liệu/hàm số, không lặp lại đề mẫu.
+{dong_dang}{dong_tai_lieu}{dong_rang_buoc_tln}Mỗi câu phải KHÁC NHAU về số liệu/hàm số, không lặp lại đề mẫu.
 
 Mỗi câu là một object JSON theo ĐÚNG schema sau (GIỮ NGUYÊN tên khóa, KHÔNG đổi/thêm/bớt khóa,
 KHÔNG dùng tên khác như "loai_cau_hoi"):

@@ -94,6 +94,64 @@ def test_validate_cau_hoi_bieu_thuc_loi():
     assert any("SymPy không parse" in c for c in cb)
 
 
+def _cau_tln(dap_an_cuoi):
+    return {
+        "loai_cau": "TLN", "de_bai": "Test", "loai_dap_an_nhap": "gia_tri",
+        "meta": {"dap_an_cuoi": dap_an_cuoi},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "x",
+             "bieu_thuc_ket_qua": "5", "danh_sach_goi_y": ["a"]},
+        ],
+    }
+
+
+def test_validate_tln_dap_an_hop_le_toi_da_4_ky_tu():
+    for dung in ("125", "-125", "3.12", "-3.1", "5", "0.5"):
+        cb = validate_cau_hoi(_cau_tln(dung))
+        assert cb == [], f"{dung!r} phải hợp lệ nhưng có cảnh báo: {cb}"
+
+
+def test_validate_tln_dap_an_qua_4_ky_tu_bao_loi():
+    # "-3.124" dài 6 ký tự (gồm dấu - và .) — vượt quá 4 ký tự cho phép.
+    cb = validate_cau_hoi(_cau_tln("-3.124"))
+    assert any("dap_an_cuoi" in c and "4 ký tự" in c for c in cb)
+
+
+def test_validate_tln_dap_an_khong_phai_so_thap_phan_bao_loi():
+    for xau in ("sqrt(2)", "1/3", "pi/6", "abc"):
+        cb = validate_cau_hoi(_cau_tln(xau))
+        assert any("dap_an_cuoi" in c for c in cb), f"{xau!r} phải bị cảnh báo"
+
+
+def _cau_tln_buoc(bieu_thuc_ket_qua):
+    return {
+        "loai_cau": "TLN", "de_bai": "Test", "loai_dap_an_nhap": "gia_tri",
+        "meta": {"dap_an_cuoi": "5"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "x",
+             "bieu_thuc_ket_qua": bieu_thuc_ket_qua, "danh_sach_goi_y": ["a"]},
+        ],
+    }
+
+
+def test_validate_bieu_thuc_trung_gian_chua_tinh_bao_canh_bao():
+    # Bug thật: AI để nguyên "binomial(15, 3)" thay vì tính ra 455.
+    cb = validate_cau_hoi(_cau_tln_buoc("binomial(15, 3)"))
+    assert any("trung gian chưa tính" in c and "455" in c for c in cb)
+
+
+def test_validate_bieu_thuc_da_tinh_khong_bao_canh_bao():
+    for bt in ("455", "3*x**2-3", "sqrt(2)", "20"):
+        cb = validate_cau_hoi(_cau_tln_buoc(bt))
+        assert not any("trung gian chưa tính" in c for c in cb), f"{bt!r} không nên bị cảnh báo"
+
+
+def test_validate_bieu_thuc_ham_to_hop_con_bien_khong_bao_canh_bao():
+    # Còn biến tự do (theo x) -> giữ dạng hàm là đúng, không phải "trung gian chưa tính".
+    cb = validate_cau_hoi(_cau_tln_buoc("binomial(10, x)"))
+    assert not any("trung gian chưa tính" in c for c in cb)
+
+
 def test_validate_tn4pa_thieu_dap_an():
     cau = {
         "loai_cau": "TN4PA", "de_bai": "Test", "meta": {"phuong_an": {"A": "1"}},
