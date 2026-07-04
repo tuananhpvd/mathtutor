@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.llm.client import get_llm_client
 from app.models.user import VaiTro
 from app.services.admin_service import lay_cau_hinh
+from app.services.hieu_qua_service import csv_hieu_qua_lop, hieu_qua_hs, hieu_qua_lop
 from app.services.llm_quota_service import LOAI_PHAN_TICH, LOI_HET_QUOTA, ap_quota_tac_vu
 from app.services.phan_tich_service import (
     cap_nhat_phan_tich,
@@ -57,6 +58,36 @@ def tien_do_hoc_sinh(current_user: CurrentUser, db: Session = Depends(get_db)):
 @router.get("/lop/tong-hop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
 def tong_hop_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
     return tong_hop_lop_gv(db, current_user.id)
+
+
+@router.get("/hieu-qua/lop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def hieu_qua_phuong_phap_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """C2 — số liệu chứng minh hiệu quả phương pháp gợi mở, cấp lớp (tất định, không LLM)."""
+    return hieu_qua_lop(db, current_user.id)
+
+
+@router.get("/hieu-qua/lop/csv", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def hieu_qua_phuong_phap_lop_csv(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Xuất CSV bảng hiệu quả từng HS (kèm BOM UTF-8 để Excel mở đúng tiếng Việt)."""
+    from fastapi.responses import Response
+
+    noi_dung = "﻿" + csv_hieu_qua_lop(db, current_user.id)
+    return Response(
+        content=noi_dung,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="hieu-qua-phuong-phap.csv"'},
+    )
+
+
+@router.get("/students/{hoc_sinh_id}/hieu-qua",
+            dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def hieu_qua_phuong_phap_hs(hoc_sinh_id: int, current_user: CurrentUser,
+                            db: Session = Depends(get_db)):
+    if current_user.vai_tro == VaiTro.gv and not hoc_sinh_thuoc_gv(
+        db, current_user.id, hoc_sinh_id
+    ):
+        raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
+    return hieu_qua_hs(db, hoc_sinh_id)
 
 
 @router.get("/students/{hoc_sinh_id}/thong-ke",

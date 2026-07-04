@@ -6,6 +6,7 @@ import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
+import HieuQuaPhuongPhap from '../../components/gv/HieuQuaPhuongPhap'
 import MucTieuPanel from '../../components/MucTieuPanel'
 
 /* ── Tính thống kê lớp từ danh sách HS ───────────────────────────── */
@@ -367,6 +368,8 @@ export default function TheoDoiTienBo() {
 
   return (
     <div className="flex flex-col gap-4">
+      <HieuQuaPhuongPhap />
+
       {tongHop && (tongHop.dang_yeu_chung.length > 0 || tongHop.hoc_sinh_can_chu_y.length > 0) && (
         <Card>
           <CardHeader title="Tổng hợp lớp"

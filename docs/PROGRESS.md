@@ -4,10 +4,20 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v42**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v43**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **283/283 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **288/288 test backend xanh** (`pytest`).
+- **✅ C2 — Số liệu chứng minh hiệu quả phương pháp (v43):** `hieu_qua_service.py` tất định
+  (không LLM, tính ngược được dữ liệu cũ): phân bố mức gợi ý khi hoàn thành (mức 0 = tự làm /
+  1 / 2 / 3+, tỉ lệ tự làm + tối đa mức 1), xu hướng phụ thuộc gợi ý từng HS (TB 5 bài đầu vs
+  5 gần nhất, ≥10 bài; giảm = tiến bộ), chuỗi 8 tuần (bài/điểm TB/gợi ý TB). Loại phiên đang
+  làm + bi_an. 3 endpoint: `/progress/hieu-qua/lop`, `.../lop/csv` (BOM UTF-8 cho Excel),
+  `/progress/students/{id}/hieu-qua` (chặn GV khác lớp). Panel GV `HieuQuaPhuongPhap.jsx` đầu
+  trang Theo dõi tiến bộ: 3 stat tile + thanh phân bố sequential tím (palette đã validate
+  CVD-safe qua dataviz validator, khe trắng 2px + nhãn trực tiếp + bảng kèm) + bảng xu hướng
+  từng HS (icon+nhãn) + mini cột tuần + nút Xuất CSV. Ghi chú trung thực "thống kê mô tả".
+  5 test mới.
 - **✅ B3 — Xem lại bài sau hoàn thành (v42):** endpoint `GET /api/sessions/{id}/xem-lai` — trả
   đáp án chuẩn theo loại câu (TN4PA/TNDS/TLN), lời giải chuẩn từng bước, hành trình hội thoại
   (mức gợi ý từng lượt, đáp án nhập, thời điểm), thống kê (điểm, gợi ý max, số lượt, thời gian).
@@ -130,8 +140,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v42` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v43**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v43` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v44**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

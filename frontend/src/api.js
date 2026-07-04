@@ -153,6 +153,23 @@ export const api = {
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
   adminLLMSuDung: () => request('/admin/llm-su-dung'),
+  getHieuQuaLop: () => request('/progress/hieu-qua/lop'),
+  getHieuQuaHocSinh: (id) => request(`/progress/students/${id}/hieu-qua`),
+  taiCsvHieuQua: async () => {
+    // Tải file CSV (không phải JSON) — dùng fetch thô kèm token rồi kích hoạt tải về.
+    const token = sessionStorage.getItem('token')
+    const res = await fetch(BASE + '/progress/hieu-qua/lop/csv', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`Lỗi ${res.status}`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'hieu-qua-phuong-phap.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  },
   adminKiemTraHS: (lop_id, dang_nhaps) => post(`/admin/lop/${lop_id}/kiem-tra-hs`, { dang_nhaps }),
   adminImportHSBatch: (lop_id, hoc_sinhs) => post(`/admin/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),
   adminKiemTraDangNhap: (dang_nhaps) => post('/admin/users/kiem-tra-dang-nhap', { dang_nhaps }),
