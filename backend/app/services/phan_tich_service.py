@@ -151,6 +151,65 @@ def ho_so_nang_luc(db: Session, hoc_sinh_id: int) -> dict:
     }
 
 
+CAC_DO_KHO = ("de", "tb", "kho")
+
+
+def ban_do_nang_luc(db: Session, hoc_sinh_ids: list[int]) -> dict:
+    """C3 — Bản đồ năng lực (heatmap): ô = (chuyên đề × độ khó), giá trị = điểm
+    thành thạo 0–100 (cùng công thức `_diem_thanh_thao` với hồ sơ năng lực).
+
+    Nhận danh sách HS: 1 phần tử = bản đồ cá nhân; nhiều = bản đồ gộp cả lớp
+    (dồn chung phiên của mọi HS vào từng ô rồi tính, không lấy trung bình của
+    trung bình). Ô không có phiên hoàn thành → diem_thanh_thao = None
+    ("chưa đủ dữ liệu" — khác với ô yếu).
+    """
+    if not hoc_sinh_ids:
+        return {"cot": list(CAC_DO_KHO), "hang": []}
+    sessions = (
+        db.query(SessionModel).filter(
+            SessionModel.hoc_sinh_id.in_(hoc_sinh_ids),
+            SessionModel.bi_an == False,  # noqa: E712
+        ).all()
+    )
+    p_ids = {s.problem_id for s in sessions}
+    problems = (
+        {p.id: p for p in db.query(Problem).filter(Problem.id.in_(p_ids)).all()}
+        if p_ids else {}
+    )
+
+    o_gom: dict[tuple[str, str], dict] = {}
+    for s in sessions:
+        p = problems.get(s.problem_id)
+        if p is None:
+            continue
+        cd = p.chuyen_de or "(Chưa phân loại)"
+        khoa = (cd, p.do_kho.value)
+        g = o_gom.setdefault(khoa, _gom())
+        g["so_phien"] += 1
+        if s.trang_thai == TrangThaiSession.hoan_thanh:
+            g["so_hoan_thanh"] += 1
+            g["_diem"].append(s.diem if s.diem is not None else 1.0)
+            g["_goi_y"].append(s.cap_goi_y_hien_tai or 0)
+
+    hang = []
+    for cd in sorted({k[0] for k in o_gom}):
+        o_theo_dk = {}
+        for dk in CAC_DO_KHO:
+            g = o_gom.get((cd, dk))
+            if g is None:
+                o_theo_dk[dk] = None
+                continue
+            ket = _ket_nhom(cd, g)
+            o_theo_dk[dk] = {
+                "so_phien": ket["so_phien"],
+                "so_hoan_thanh": ket["so_hoan_thanh"],
+                "diem_thanh_thao": ket["diem_thanh_thao"],
+                "nhan": ket["nhan"],
+            }
+        hang.append({"chuyen_de": cd, "o": o_theo_dk})
+    return {"cot": list(CAC_DO_KHO), "hang": hang}
+
+
 def tong_hop_lop_gv(db: Session, gv_id: int) -> dict:
     """Tổng hợp điểm yếu chung của lớp + danh sách HS cần chú ý (cho GV)."""
     from app.models.lop import Lop

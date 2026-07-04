@@ -4,10 +4,21 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v43**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v44**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **288/288 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **291/291 test backend xanh** (`pytest`).
+- **✅ C3 — Bản đồ năng lực heatmap (v44):** `ban_do_nang_luc()` trong phan_tich_service — ô =
+  chuyên đề × độ khó, giá trị = điểm thành thạo 0–100 (cùng công thức `_diem_thanh_thao`);
+  1 HS = bản đồ cá nhân, nhiều HS = bản đồ lớp DỒN CHUNG phiên (không TB của TB). Phân biệt
+  3 trạng thái ô: điểm / "chưa đủ dữ liệu" (xám viền đứt) / chưa làm. 3 endpoint:
+  `/progress/me/ban-do`, `/progress/ban-do/lop`, `/progress/students/{id}/ban-do`. Component
+  `BanDoNangLuc.jsx` dùng chung (5 bậc tím, số trong ô, prop `khoa` tránh vòng refetch) gắn
+  3 nơi: Tiến độ HS, Theo dõi tiến bộ GV (lớp + HS đang chọn). 3 test mới.
+- **✅ C5 — Kế hoạch thực nghiệm (v44):** `docs/THUC_NGHIEM.md` — thiết kế trước–sau 3–4 tuần,
+  lịch từng tuần, checklist kỹ thuật (bật gemini/phanh B4/ngân hàng câu/backup dev.db), bảng
+  chỉ số (đa số tự động từ C2/C3), phiếu khảo sát 10 Likert + 2 mở, mẫu xin phép BGH/PH, quy
+  tắc ẩn danh + danh mục minh chứng. Phần thực hiện thuộc về GV (user).
 - **✅ C2 — Số liệu chứng minh hiệu quả phương pháp (v43):** `hieu_qua_service.py` tất định
   (không LLM, tính ngược được dữ liệu cũ): phân bố mức gợi ý khi hoàn thành (mức 0 = tự làm /
   1 / 2 / 3+, tỉ lệ tự làm + tối đa mức 1), xu hướng phụ thuộc gợi ý từng HS (TB 5 bài đầu vs
@@ -140,8 +151,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v43` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v44**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v44` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v45**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

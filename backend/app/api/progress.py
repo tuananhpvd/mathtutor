@@ -11,6 +11,7 @@ from app.services.admin_service import lay_cau_hinh
 from app.services.hieu_qua_service import csv_hieu_qua_lop, hieu_qua_hs, hieu_qua_lop
 from app.services.llm_quota_service import LOAI_PHAN_TICH, LOI_HET_QUOTA, ap_quota_tac_vu
 from app.services.phan_tich_service import (
+    ban_do_nang_luc,
     cap_nhat_phan_tich,
     lay_phan_tich,
     tong_hop_lop_gv,
@@ -58,6 +59,37 @@ def tien_do_hoc_sinh(current_user: CurrentUser, db: Session = Depends(get_db)):
 @router.get("/lop/tong-hop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
 def tong_hop_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
     return tong_hop_lop_gv(db, current_user.id)
+
+
+@router.get("/me/ban-do", dependencies=[require_role(VaiTro.hs)])
+def ban_do_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """C3 — bản đồ năng lực cá nhân (heatmap chuyên đề × độ khó)."""
+    return ban_do_nang_luc(db, [current_user.id])
+
+
+@router.get("/ban-do/lop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def ban_do_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """C3 — bản đồ năng lực gộp cả lớp (dồn chung phiên của mọi HS thuộc GV)."""
+    from app.models.lop import Lop
+    from app.models.user import User
+
+    lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == current_user.id).all()]
+    hs_ids = (
+        [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
+        if lop_ids else []
+    )
+    return ban_do_nang_luc(db, hs_ids)
+
+
+@router.get("/students/{hoc_sinh_id}/ban-do",
+            dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def ban_do_hoc_sinh(hoc_sinh_id: int, current_user: CurrentUser,
+                    db: Session = Depends(get_db)):
+    if current_user.vai_tro == VaiTro.gv and not hoc_sinh_thuoc_gv(
+        db, current_user.id, hoc_sinh_id
+    ):
+        raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
+    return ban_do_nang_luc(db, [hoc_sinh_id])
 
 
 @router.get("/hieu-qua/lop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])

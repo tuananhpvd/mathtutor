@@ -153,6 +153,9 @@ export const api = {
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
   adminLLMSuDung: () => request('/admin/llm-su-dung'),
+  getBanDoCuaToi: () => request('/progress/me/ban-do'),
+  getBanDoLop: () => request('/progress/ban-do/lop'),
+  getBanDoHocSinh: (id) => request(`/progress/students/${id}/ban-do`),
   getHieuQuaLop: () => request('/progress/hieu-qua/lop'),
   getHieuQuaHocSinh: (id) => request(`/progress/students/${id}/hieu-qua`),
   taiCsvHieuQua: async () => {

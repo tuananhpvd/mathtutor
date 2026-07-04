@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
+import BanDoNangLuc from '../../components/BanDoNangLuc'
 
 export default function TienDo({ onLuyenDang }) {
   const [tk, setTk] = useState(null)
@@ -29,6 +30,7 @@ export default function TienDo({ onLuyenDang }) {
       <h2 className="text-2xl font-bold text-black">Tiến độ học tập</h2>
       <PhanTichNangLuc pt={pt} vaiTro="hs" onCapNhat={capNhatAi} dangCapNhat={dangCapNhat}
         onLuyen={onLuyenDang} />
+      <BanDoNangLuc taiDuLieu={api.getBanDoCuaToi} tieu_de="Bản đồ năng lực của em" />
       <ThongKeTienDo tk={tk} />
     </div>
   )

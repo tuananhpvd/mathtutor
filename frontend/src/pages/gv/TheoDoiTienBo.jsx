@@ -6,6 +6,7 @@ import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
+import BanDoNangLuc from '../../components/BanDoNangLuc'
 import HieuQuaPhuongPhap from '../../components/gv/HieuQuaPhuongPhap'
 import MucTieuPanel from '../../components/MucTieuPanel'
 
@@ -370,6 +371,9 @@ export default function TheoDoiTienBo() {
     <div className="flex flex-col gap-4">
       <HieuQuaPhuongPhap />
 
+      <BanDoNangLuc taiDuLieu={api.getBanDoLop} tieu_de="Bản đồ năng lực lớp"
+        subtitle="Gộp phiên của mọi học sinh — nhìn 1 lần biết lớp vững/yếu ở chuyên đề × độ khó nào; ô xám = chưa đủ dữ liệu." />
+
       {tongHop && (tongHop.dang_yeu_chung.length > 0 || tongHop.hoc_sinh_can_chu_y.length > 0) && (
         <Card>
           <CardHeader title="Tổng hợp lớp"
@@ -550,6 +554,8 @@ export default function TheoDoiTienBo() {
             <>
               <PhanTichNangLuc pt={ptChon} vaiTro="gv"
                 onCapNhat={capNhatAi} dangCapNhat={dangCapNhatAi} />
+              <BanDoNangLuc khoa={chon} taiDuLieu={() => api.getBanDoHocSinh(chon)}
+                tieu_de={`Bản đồ năng lực: ${hsChon.ho_ten}`} />
               <MucTieuPanel
                 key={chon}
                 tieuDe="🎯 Mục tiêu của học sinh"
