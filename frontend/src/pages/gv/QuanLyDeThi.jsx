@@ -36,6 +36,14 @@ function TaoDeForm({ onDong, onXong }) {
   const [dangLuu, setDangLuu] = useState(false)
   const [phanMo, setPhanMo] = useState('I')
 
+  // Trộn tự động (GĐ2)
+  const [tronMo, setTronMo] = useState(false)
+  const [soCau, setSoCau] = useState({ I: 12, II: 4, III: 6 })
+  const [tyLe, setTyLe] = useState({ de: 30, tb: 40, kho: 30 })
+  const [cdChon, setCdChon] = useState([]) // [] = mọi chuyên đề
+  const [dangTron, setDangTron] = useState(false)
+  const [canhBao, setCanhBao] = useState([])
+
   useEffect(() => {
     api.listProblems().then((ds) =>
       setNganHang(ds.filter((b) => b.trang_thai_duyet === 'da_duyet'))
@@ -47,6 +55,27 @@ function TaoDeForm({ onDong, onXong }) {
     nganHang.forEach((b) => m[b.loai_cau]?.push(b))
     return m
   }, [nganHang])
+
+  const dsChuyenDe = useMemo(
+    () => [...new Set(nganHang.map((b) => b.chuyen_de).filter(Boolean))].sort(),
+    [nganHang]
+  )
+
+  async function tron() {
+    setError('')
+    setCanhBao([])
+    setDangTron(true)
+    try {
+      const kq = await api.deThiTron({
+        so_cau: { I: Number(soCau.I) || 0, II: Number(soCau.II) || 0, III: Number(soCau.III) || 0 },
+        chuyen_de: cdChon,
+        ty_le_kho: { de: Number(tyLe.de) || 0, tb: Number(tyLe.tb) || 0, kho: Number(tyLe.kho) || 0 },
+      })
+      setChon(kq.cau_theo_phan)
+      setCanhBao(kq.canh_bao || [])
+    } catch (e) { setError(e.message) }
+    finally { setDangTron(false) }
+  }
 
   function doiChon(phan, id) {
     setChon((c) => {
@@ -78,6 +107,70 @@ function TaoDeForm({ onDong, onXong }) {
             placeholder="VD: Đề thi thử số 1 — Khảo sát hàm số" />
           <Input label="Thời gian (phút)" type="number" min={10} max={180}
             value={phut} onChange={(e) => setPhut(e.target.value)} className="max-w-40" />
+        </div>
+
+        {/* Trộn tự động theo ma trận (GĐ2) */}
+        <div className="rounded-lg border border-border bg-surface-2/60 px-4 py-3 flex flex-col gap-3">
+          <button className="flex items-center justify-between text-left"
+            onClick={() => setTronMo((m) => !m)}>
+            <span className="text-sm font-semibold text-ink">
+              🎲 Trộn đề tự động theo ma trận
+            </span>
+            <span className="text-muted text-sm">{tronMo ? '▲ Thu gọn' : '▼ Mở'}</span>
+          </button>
+          {tronMo && (
+            <>
+              <div className="flex gap-3 items-end flex-wrap">
+                {PHAN.map((p) => (
+                  <Input key={p.ma} type="number" min={0} className="w-24"
+                    label={`Phần ${p.ma} (${p.loai})`}
+                    value={soCau[p.ma]}
+                    onChange={(e) => setSoCau((s) => ({ ...s, [p.ma]: e.target.value }))} />
+                ))}
+                <span className="text-xs text-muted pb-2">chuẩn 2025: 12 + 4 + 6</span>
+              </div>
+              <div className="flex gap-3 items-end flex-wrap">
+                {[['de', 'Dễ'], ['tb', 'TB'], ['kho', 'Khó']].map(([k, nhan]) => (
+                  <Input key={k} type="number" min={0} max={100} className="w-24"
+                    label={`% ${nhan}`}
+                    value={tyLe[k]}
+                    onChange={(e) => setTyLe((t) => ({ ...t, [k]: e.target.value }))} />
+                ))}
+                <span className="text-xs text-muted pb-2">tỉ lệ độ khó (tương đối)</span>
+              </div>
+              {dsChuyenDe.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-muted">
+                    Giới hạn chuyên đề (không chọn gì = lấy mọi chuyên đề):
+                  </p>
+                  <div className="flex gap-x-4 gap-y-1 flex-wrap">
+                    {dsChuyenDe.map((cd) => (
+                      <label key={cd} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="checkbox" className="accent-primary"
+                          checked={cdChon.includes(cd)}
+                          onChange={() => setCdChon((c) =>
+                            c.includes(cd) ? c.filter((x) => x !== cd) : [...c, cd])} />
+                        {cd}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <Button size="sm" onClick={tron} disabled={dangTron}>
+                  {dangTron ? 'Đang trộn...' : '🎲 Trộn ngay'}
+                </Button>
+                <span className="text-xs text-muted">
+                  Kết quả đổ vào 3 phần bên dưới — thầy/cô xem lại, chỉnh tay từng câu rồi mới Tạo đề.
+                </span>
+              </div>
+              {canhBao.length > 0 && (
+                <div className="text-xs text-warning bg-warning-soft rounded-md px-3 py-2 flex flex-col gap-0.5">
+                  {canhBao.map((c, i) => <span key={i}>⚠ {c}</span>)}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Tab 3 phần */}

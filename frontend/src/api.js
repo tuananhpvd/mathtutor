@@ -156,6 +156,7 @@ export const api = {
   // Đề ôn thi THPT (C1)
   deThiDs: () => request('/de-thi'),
   deThiTao: (body) => post('/de-thi', body),
+  deThiTron: (body) => post('/de-thi/tron', body),
   deThiChiTietGV: (id) => request(`/de-thi/${id}/chi-tiet-gv`),
   deThiPhatHanh: (id, phat_hanh) =>
     request(`/de-thi/${id}/phat-hanh`, { method: 'PATCH', body: JSON.stringify({ phat_hanh }) }),

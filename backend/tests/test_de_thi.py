@@ -166,6 +166,64 @@ def test_het_gio_tu_nop(db, client):
     assert kq["diem"] == 0.25  # đáp án đã autosave trước hạn vẫn được tính
 
 
+def test_tron_de_theo_ma_tran(db, client):
+    """GĐ2 — trộn tự động: đúng số câu/loại theo phần, lọc chuyên đề, cảnh báo khi thiếu."""
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    # Thêm ngân hàng: 4 TN4PA (2 chuyên đề × 2 mức khó), 2 TLN
+    for i, (cd, dk) in enumerate([("Đạo hàm", "de"), ("Đạo hàm", "kho"),
+                                  ("Tích phân", "de"), ("Tích phân", "tb")]):
+        db.add(Problem(chuyen_de=cd, loai_cau="TN4PA", do_kho=dk, de_bai=f"TN {i}?",
+                       loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                       nguoi_tao_id=gv.id,
+                       meta={"phuong_an": {"A": "1", "B": "2", "C": "3", "D": "4"},
+                             "dap_an_dung": "A"}))
+    db.add(Problem(chuyen_de="Đạo hàm", loai_cau="TLN", do_kho="tb", de_bai="TLN 2?",
+                   loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                   nguoi_tao_id=gv.id, meta={"dap_an_cuoi": "9"}))
+    # Câu CHƯA DUYỆT không được trộn vào
+    db.add(Problem(chuyen_de="Đạo hàm", loai_cau="TN4PA", do_kho="de", de_bai="Chờ duyệt?",
+                   loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.cho_duyet,
+                   nguoi_tao_id=gv.id, meta={"dap_an_dung": "A"}))
+    db.commit()
+
+    h_gv = _h(_login(client, "gv_de"))
+    r = client.post("/api/de-thi/tron", headers=h_gv,
+                    json={"so_cau": {"I": 3, "II": 1, "III": 2}})
+    assert r.status_code == 200
+    kq = r.json()
+    assert len(kq["cau_theo_phan"]["I"]) == 3
+    assert len(kq["cau_theo_phan"]["II"]) == 1
+    assert len(kq["cau_theo_phan"]["III"]) == 2
+    # Không trùng câu giữa các phần / trong phần
+    tat_ca = sum(kq["cau_theo_phan"].values(), [])
+    assert len(set(tat_ca)) == len(tat_ca)
+
+    # Kết quả trộn dùng tạo đề được ngay (round-trip)
+    r = client.post("/api/de-thi", headers=h_gv,
+                    json={"ten": "Đề trộn", "thoi_gian_phut": 90,
+                          "cau_theo_phan": kq["cau_theo_phan"]})
+    assert r.status_code == 200
+
+    # Yêu cầu quá pool → vẫn 200, lấy tối đa + cảnh báo
+    r = client.post("/api/de-thi/tron", headers=h_gv,
+                    json={"so_cau": {"I": 12, "II": 4, "III": 6}})
+    kq = r.json()
+    assert len(kq["cau_theo_phan"]["I"]) == 5  # 4 mới + 1 seed (câu chờ duyệt bị loại)
+    assert any("Phần I" in c for c in kq["canh_bao"])
+
+    # Lọc chuyên đề: chỉ Tích phân → phần I tối đa 2 câu
+    r = client.post("/api/de-thi/tron", headers=h_gv,
+                    json={"so_cau": {"I": 3, "II": 0, "III": 0},
+                          "chuyen_de": ["Tích phân"]})
+    kq = r.json()
+    assert len(kq["cau_theo_phan"]["I"]) == 2
+
+    # so_cau = 0 toàn bộ → 400
+    r = client.post("/api/de-thi/tron", headers=h_gv,
+                    json={"so_cau": {"I": 0, "II": 0, "III": 0}})
+    assert r.status_code == 400
+
+
 def test_quyen_bai_thi(db, client):
     gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
     h_gv = _h(_login(client, "gv_de"))

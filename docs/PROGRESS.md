@@ -4,10 +4,19 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v45**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v46**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **295/295 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **296/296 test backend xanh** (`pytest`).
+- **✅ C1-GĐ2 — Trộn đề tự động theo ma trận (v46):** service `tron_de()` — ma trận (số câu/
+  phần + tỉ lệ % Dễ/TB/Khó mặc định 30/40/30 + giới hạn chuyên đề) → bốc ngẫu nhiên từ ngân
+  hàng ĐÃ DUYỆT của GV, đúng loại theo phần, RẢI ĐỀU chuyên đề (round-robin trên danh sách
+  xáo trộn từng chuyên đề). Không chặn GV: thiếu mức khó → bù mức khác, thiếu tổng → lấy tối
+  đa, mọi trường hợp kèm cảnh báo rõ. `POST /de-thi/tron` chỉ trả ĐỀ XUẤT (không lưu) — UI
+  khối gập/mở "🎲 Trộn đề tự động" trong form Tạo đề đổ kết quả vào 3 tab chọn câu để GV
+  chỉnh tay rồi mới tạo. 1 test tổng hợp (round-trip trộn → tạo đề).
+  → **HOÀN TẤT toàn bộ lộ trình code dự thi B4→B3→C2→C3→C1**; còn C5 (user thực nghiệm theo
+  docs/THUC_NGHIEM.md) và B2 mobile (cân nhắc sau nếu còn thời gian).
 - **✅ C1-GĐ1 — Chế độ đề ôn thi THPT (v45):** 3 bảng mới `de_thi`/`de_thi_cau`/`bai_thi`
   (create_all tự tạo, không cần migration tay). Chấm đúng quy chế 2025 tái dùng nguyên vẹn
   `core/matching.so_khop`: Phần I TN4PA 0,25đ/câu · Phần II TNDS bậc thang 0,1/0,25/0,5/1,0 ·
@@ -166,8 +175,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v45` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v46**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v46` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v47**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

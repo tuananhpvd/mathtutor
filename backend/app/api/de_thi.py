@@ -32,6 +32,12 @@ class PhatHanhRequest(BaseModel):
     phat_hanh: bool
 
 
+class TronDeRequest(BaseModel):
+    so_cau: dict[str, int] = Field(default_factory=lambda: {"I": 12, "II": 4, "III": 6})
+    chuyen_de: list[str] = Field(default_factory=list)  # [] = mọi chuyên đề
+    ty_le_kho: dict[str, int] | None = None  # {"de": %, "tb": %, "kho": %}
+
+
 class BaiLamRequest(BaseModel):
     bai_lam: dict
 
@@ -58,6 +64,18 @@ def danh_sach_de(current_user: CurrentUser, db: Session = Depends(get_db)):
         hs = db.get(User, current_user.id)
         return svc.ds_de_hs(db, hs)
     return svc.ds_de_gv(db, current_user.id)
+
+
+@router.post("/tron", dependencies=_GV)
+def tron_de(body: TronDeRequest, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """GĐ2 — trộn đề tự động theo ma trận (số câu/phần + tỉ lệ Dễ-TB-Khó + chuyên đề).
+    Chỉ trả ĐỀ XUẤT danh sách câu — GV xem/chỉnh trong form rồi mới tạo đề."""
+    tong = sum(max(0, v) for v in body.so_cau.values())
+    if tong == 0:
+        raise HTTPException(status_code=400, detail="Số câu phải lớn hơn 0")
+    if tong > 100:
+        raise HTTPException(status_code=400, detail="Tối đa 100 câu mỗi đề")
+    return svc.tron_de(db, current_user.id, body.so_cau, body.chuyen_de, body.ty_le_kho)
 
 
 @router.get("/{de_id}/chi-tiet-gv", dependencies=_GV)
