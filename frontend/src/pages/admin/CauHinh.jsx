@@ -39,7 +39,14 @@ export default function CauHinh() {
   const [goiY, setGoiY] = useState(null)
   const [msgGoiY, setMsgGoiY] = useState('')
 
+  // Giới hạn lượt AI mỗi ngày (phanh chi phí)
+  const [gioiHanHS, setGioiHanHS] = useState('')
+  const [gioiHanHeThong, setGioiHanHeThong] = useState('')
+  const [suDung, setSuDung] = useState(null)
+  const [msgQuota, setMsgQuota] = useState('')
+
   function nap() {
+    api.adminLLMSuDung().then(setSuDung).catch(() => setSuDung(null))
     api.adminGetConfig().then((c) => {
       setCfg(c)
       setNguong(c.nguong_co_khong_hieu)
@@ -54,6 +61,8 @@ export default function CauHinh() {
       setTuDong(c.tu_dong_phan_tich !== false)
       setChuKy(c.chu_ky_phut_phan_tich ?? 360)
       setGoiY(c.so_goi_y_mac_dinh ? { ...c.so_goi_y_mac_dinh } : { de: 2, tb: 3, kho: 4 })
+      setGioiHanHS(c.gioi_han_llm_hs_ngay ?? 30)
+      setGioiHanHeThong(c.gioi_han_llm_he_thong_ngay ?? 500)
     })
   }
   useEffect(nap, [])
@@ -80,6 +89,16 @@ export default function CauHinh() {
     } finally {
       setDangQuet(false)
     }
+  }
+
+  async function luuQuota() {
+    setMsgQuota(''); setError('')
+    try {
+      await api.adminSetConfig('gioi_han_llm_hs_ngay', Math.max(0, Number(gioiHanHS) || 0))
+      await api.adminSetConfig('gioi_han_llm_he_thong_ngay', Math.max(0, Number(gioiHanHeThong) || 0))
+      nap()
+      setMsgQuota('Đã lưu giới hạn.')
+    } catch (e) { setError(e.message) }
   }
 
   async function luuGoiY() {
@@ -260,6 +279,44 @@ export default function CauHinh() {
             yêu cầu). Lấy khóa: Gemini tại Google AI Studio, Claude tại console.anthropic.com,
             OpenAI tại platform.openai.com.
           </p>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Giới hạn lượt AI mỗi ngày (phanh chi phí)"
+          subtitle="Vượt ngưỡng: hội thoại chuyển sang lời gợi ý mẫu (học sinh vẫn học bình thường); sinh câu hỏi/phân tích tạm dừng đến ngày mai. 0 = không giới hạn." />
+        <CardBody className="flex flex-col gap-4">
+          {suDung && (() => {
+            const gh = suDung.gioi_han_he_thong_ngay
+            const canhBao = gh > 0 && suDung.tong >= gh * 0.8
+            return (
+              <div className={`rounded-lg px-4 py-3 text-sm ${canhBao ? 'bg-warning-soft' : 'bg-surface-2'}`}>
+                <p className="font-semibold text-ink">
+                  Hôm nay đã dùng: {suDung.tong}{gh > 0 ? ` / ${gh}` : ''} lượt AI thật
+                  {canhBao && <Badge tone="warning" className="ml-2">Sắp chạm giới hạn</Badge>}
+                </p>
+                <p className="text-muted mt-1">
+                  Hội thoại gia sư: {suDung.theo_loai.hoi_thoai} · Sinh câu hỏi:{' '}
+                  {suDung.theo_loai.sinh_cau_hoi} · Phân tích năng lực: {suDung.theo_loai.phan_tich}
+                  {' '}(tính theo ngày UTC; lượt dùng mẫu cố định không tính)
+                </p>
+              </div>
+            )
+          })()}
+          <div className="flex gap-4 items-end flex-wrap">
+            <Input
+              type="number" label="Lượt hội thoại / học sinh / ngày" value={gioiHanHS}
+              min={0} className="w-56"
+              onChange={(e) => setGioiHanHS(e.target.value)}
+            />
+            <Input
+              type="number" label="Tổng lượt toàn hệ thống / ngày" value={gioiHanHeThong}
+              min={0} className="w-56"
+              onChange={(e) => setGioiHanHeThong(e.target.value)}
+            />
+            <Button onClick={luuQuota}>Lưu</Button>
+            {msgQuota && <span className="text-sm text-success">{msgQuota}</span>}
+          </div>
         </CardBody>
       </Card>
 

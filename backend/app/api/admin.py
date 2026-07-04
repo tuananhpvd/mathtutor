@@ -201,11 +201,34 @@ def admin_import_hs_batch(lop_id: int, body: ImportHSBatchRequest,
     return result
 
 
+@router.get("/llm-su-dung", dependencies=_ADMIN)
+def llm_su_dung_hom_nay(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Số lượt gọi LLM thật hôm nay + các giới hạn đang đặt (phanh chi phí)."""
+    from app.services.admin_service import lay_cau_hinh
+    from app.services.llm_quota_service import thong_ke_su_dung
+
+    return thong_ke_su_dung(db, lay_cau_hinh(db))
+
+
 @router.post("/phan-tich/quet", dependencies=_ADMIN)
 def quet_phan_tich_ngay(current_user: CurrentUser, db: Session = Depends(get_db)):
     """Chạy quét tái sinh phân tích AI ngay (không chờ lịch nền)."""
-    from app.llm.client import get_llm_client
+    from app.llm.client import StubLLMClient, get_llm_client
     from app.services.admin_service import lay_cau_hinh
+    from app.services.llm_quota_service import (
+        LOAI_PHAN_TICH,
+        LOI_HET_QUOTA,
+        ghi_luot,
+        vuot_nguong_he_thong,
+    )
     from app.services.phan_tich_service import quet_tai_sinh
 
-    return quet_tai_sinh(db, get_llm_client(lay_cau_hinh(db)))
+    cau_hinh = lay_cau_hinh(db)
+    llm = get_llm_client(cau_hinh)
+    dung_llm_that = not isinstance(llm, StubLLMClient)
+    if dung_llm_that and vuot_nguong_he_thong(db, cau_hinh):
+        raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
+    ket = quet_tai_sinh(db, llm)
+    if dung_llm_that:
+        ghi_luot(db, None, LOAI_PHAN_TICH, so=ket.get("da_quet", 0))
+    return ket

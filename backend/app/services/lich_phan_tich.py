@@ -11,8 +11,9 @@ import logging
 import os
 
 from app.db.base import SessionLocal
-from app.llm.client import get_llm_client
+from app.llm.client import StubLLMClient, get_llm_client
 from app.services.admin_service import lay_cau_hinh
+from app.services.llm_quota_service import LOAI_PHAN_TICH, ghi_luot, vuot_nguong_he_thong
 from app.services.phan_tich_service import quet_tai_sinh
 
 logger = logging.getLogger("mathtutor.lich_phan_tich")
@@ -27,8 +28,15 @@ def _chay_mot_lan() -> dict:
     """Một lần quét (đồng bộ — gọi trong thread). Tự mở/đóng DB session riêng."""
     db = SessionLocal()
     try:
-        llm = get_llm_client(lay_cau_hinh(db))
+        cau_hinh = lay_cau_hinh(db)
+        llm = get_llm_client(cau_hinh)
+        dung_llm_that = not isinstance(llm, StubLLMClient)
+        if dung_llm_that and vuot_nguong_he_thong(db, cau_hinh):
+            logger.info("Phân tích AI nền: bỏ qua vòng này — đã chạm giới hạn lượt LLM hôm nay")
+            return {"da_quet": 0, "da_cap_nhat": 0, "loi": 0, "bo_qua_quota": True}
         ket = quet_tai_sinh(db, llm)
+        if dung_llm_that:
+            ghi_luot(db, None, LOAI_PHAN_TICH, so=ket.get("da_quet", 0))
         if ket["da_cap_nhat"] or ket["loi"]:
             logger.info(
                 "Phân tích AI nền: quét %d, cập nhật %d, lỗi %d",

@@ -4,10 +4,22 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-03, phiên bản **v40**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v41**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **266/266 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **279/279 test backend xanh** (`pytest`).
+- **🎯 LỘ TRÌNH CẢI TIẾN DỰ THI (chốt 2026-07-04):** B4 phanh chi phí LLM → B3 xem lại bài sau
+  hoàn thành → C2 số liệu chứng minh phương pháp → C5 thực nghiệm lớp thật → C3 heatmap năng lực
+  → C1 chế độ đề ôn thi THPT. (B2 mobile để cân nhắc sau; B1 deploy/B5 bảo mật/C4 PDF/C6 demo
+  user tự lo.) Chi tiết phân tích từng mục nằm trong hội thoại 2026-07-04 — tóm tắt: C5 cần bắt
+  đầu sớm nhất vì cần thời gian thật; C1 lớn nhất (3 model mới) chia 2 giai đoạn.
+- **✅ B4 — Phanh chi phí LLM (v41):** bảng `llm_su_dung` đếm lượt gọi LLM THẬT theo (ngày UTC,
+  user, loại: hoi_thoai/sinh_cau_hoi/phan_tich); 2 khóa cấu hình Admin `gioi_han_llm_hs_ngay`
+  (mặc định 30) + `gioi_han_llm_he_thong_ngay` (mặc định 500), 0 = không giới hạn. Hội thoại
+  vượt ngưỡng → tự rơi về lời diễn đạt mẫu (StubLLMClient), HS học bình thường vì CAS/orchestrator
+  không phụ thuộc LLM; sinh câu hỏi/phân tích thủ công vượt ngưỡng → 429 tiếng Việt rõ; quét nền
+  tự bỏ qua vòng khi chạm ngưỡng. UI Admin→Cấu hình hiện "Hôm nay đã dùng X/Y" + cảnh báo ≥80%.
+  Service: `llm_quota_service.py` (`ap_quota_hoi_thoai`/`ap_quota_tac_vu`). 13 test mới.
 - **✅ Thương hiệu (v40):** gắn 3 ảnh do user cung cấp vào `frontend/public/`: `logomt.png` (logo
   trang login), `icon.png` (icon sidebar góc trên-trái, thay ô chữ "M" cũ), `favicon.png` (tab
   trình duyệt, thay `favicon.svg`). Lưu ý: 2 file đầu user gửi ban đầu không có kênh alpha (PNG
@@ -110,8 +122,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v40` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v41**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v41` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v42**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

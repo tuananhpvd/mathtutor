@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.llm.client import get_llm_client
 from app.models.user import VaiTro
 from app.services.admin_service import lay_cau_hinh
+from app.services.llm_quota_service import LOAI_PHAN_TICH, LOI_HET_QUOTA, ap_quota_tac_vu
 from app.services.phan_tich_service import (
     cap_nhat_phan_tich,
     lay_phan_tich,
@@ -40,7 +41,12 @@ def phan_tich_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
 
 @router.post("/me/phan-tich/cap-nhat", dependencies=[require_role(VaiTro.hs)])
 def cap_nhat_phan_tich_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
-    return cap_nhat_phan_tich(db, current_user.id, get_llm_client(lay_cau_hinh(db)))
+    cau_hinh = lay_cau_hinh(db)
+    llm = ap_quota_tac_vu(db, cau_hinh, current_user.id, get_llm_client(cau_hinh),
+                          LOAI_PHAN_TICH)
+    if llm is None:
+        raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
+    return cap_nhat_phan_tich(db, current_user.id, llm)
 
 
 @router.get("/students", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -84,4 +90,8 @@ def cap_nhat_phan_tich_hoc_sinh(hoc_sinh_id: int, current_user: CurrentUser,
         db, current_user.id, hoc_sinh_id
     ):
         raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
-    return cap_nhat_phan_tich(db, hoc_sinh_id, get_llm_client(lay_cau_hinh(db)))
+    cau_hinh = lay_cau_hinh(db)
+    llm = ap_quota_tac_vu(db, cau_hinh, hoc_sinh_id, get_llm_client(cau_hinh), LOAI_PHAN_TICH)
+    if llm is None:
+        raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
+    return cap_nhat_phan_tich(db, hoc_sinh_id, llm)

@@ -151,6 +151,7 @@ export const api = {
   adminSetConfig: (khoa, gia_tri) =>
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
+  adminLLMSuDung: () => request('/admin/llm-su-dung'),
   adminKiemTraHS: (lop_id, dang_nhaps) => post(`/admin/lop/${lop_id}/kiem-tra-hs`, { dang_nhaps }),
   adminImportHSBatch: (lop_id, hoc_sinhs) => post(`/admin/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),
   adminKiemTraDangNhap: (dang_nhaps) => post('/admin/users/kiem-tra-dang-nhap', { dang_nhaps }),

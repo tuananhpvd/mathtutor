@@ -40,6 +40,10 @@ CAU_HINH_MAC_DINH: dict = {
     # Tự động (tái) sinh phân tích năng lực AI theo lịch nền (không cần bấm tay).
     "tu_dong_phan_tich": True,
     "chu_ky_phut_phan_tich": 360,  # quét mỗi N phút (tối thiểu 5)
+    # Phanh chi phí LLM: giới hạn lượt gọi LLM THẬT mỗi ngày (0 = không giới hạn).
+    # Hội thoại vượt ngưỡng chỉ chuyển sang lời diễn đạt mẫu, KHÔNG chặn HS học.
+    "gioi_han_llm_hs_ngay": 30,        # lượt hội thoại / học sinh / ngày
+    "gioi_han_llm_he_thong_ngay": 500,  # tổng lượt toàn hệ thống / ngày
 }
 
 # Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).

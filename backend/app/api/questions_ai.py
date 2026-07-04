@@ -12,6 +12,7 @@ from app.models.user import VaiTro
 from app.schemas.question_gen import CauHoiNhapResponse, DuyetRequest, SinhCauHoiRequest
 from app.services import thong_bao_service
 from app.services.admin_service import lay_cau_hinh
+from app.services.llm_quota_service import LOAI_SINH_CAU_HOI, LOI_HET_QUOTA, ap_quota_tac_vu
 from app.services.question_gen_service import duyet_cau, sinh_va_luu
 
 router = APIRouter(prefix="/api/questions-ai", tags=["questions-ai"])
@@ -26,7 +27,11 @@ def sinh_cau_hoi(
 ):
     if body.loai_cau not in {"TN4PA", "TNDS", "TLN"}:
         raise HTTPException(status_code=400, detail="loai_cau không hợp lệ")
-    llm = get_llm_client(lay_cau_hinh(db))
+    cau_hinh = lay_cau_hinh(db)
+    llm = ap_quota_tac_vu(db, cau_hinh, current_user.id, get_llm_client(cau_hinh),
+                          LOAI_SINH_CAU_HOI)
+    if llm is None:
+        raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
     try:
         ket_qua = sinh_va_luu(db, body.model_dump(), current_user.id, llm)
     except Exception as e:  # KHÔNG để lộ 500 — báo lỗi rõ ràng để GV thử lại

@@ -7,6 +7,7 @@ import app.models.cauhinh  # noqa: F401
 import app.models.cot_moc  # noqa: F401
 import app.models.danh_muc  # noqa: F401
 import app.models.flag  # noqa: F401
+import app.models.llm_su_dung  # noqa: F401
 import app.models.lop  # noqa: F401
 import app.models.muc_tieu  # noqa: F401
 import app.models.nhiem_vu  # noqa: F401
