@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
+import XemLaiBai from '../../components/XemLaiBai'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
@@ -21,6 +22,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   const [trangThaiBai, setTrangThaiBai] = useState({}) // {problem_id: {session_id, trang_thai}}
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [xemLaiSid, setXemLaiSid] = useState(null) // session_id đang mở xem lại
 
   // Bộ lọc
   const [fChuyenDeId, setFChuyenDeId] = useState('')
@@ -190,9 +192,15 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
                     Làm tiếp
                   </Button>
                 ) : daXong ? (
-                  <Button className="w-full mt-1" variant="success" onClick={() => onChon(b.id)}>
-                    Làm lại
-                  </Button>
+                  <div className="flex gap-2 mt-1">
+                    <Button className="flex-1" variant="success" onClick={() => onChon(b.id)}>
+                      Làm lại
+                    </Button>
+                    <Button className="flex-1" variant="secondary"
+                      onClick={() => setXemLaiSid(tt.session_id)}>
+                      📖 Xem lại
+                    </Button>
+                  </div>
                 ) : (
                   <Button className="w-full mt-1" variant="primary" onClick={() => onChon(b.id)}>
                     Bắt đầu
@@ -203,6 +211,8 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
           )
         })}
       </div>
+
+      {xemLaiSid && <XemLaiBai sessionId={xemLaiSid} onDong={() => setXemLaiSid(null)} />}
     </div>
   )
 }

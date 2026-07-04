@@ -4,10 +4,18 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v41**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v42**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **279/279 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **283/283 test backend xanh** (`pytest`).
+- **✅ B3 — Xem lại bài sau hoàn thành (v42):** endpoint `GET /api/sessions/{id}/xem-lai` — trả
+  đáp án chuẩn theo loại câu (TN4PA/TNDS/TLN), lời giải chuẩn từng bước, hành trình hội thoại
+  (mức gợi ý từng lượt, đáp án nhập, thời điểm), thống kê (điểm, gợi ý max, số lượt, thời gian).
+  Chốt chặn TẠI BACKEND: phiên chưa hoàn thành → 403 (test khóa "đáp án không lộ lúc đang học");
+  HS khác → 404; GV chỉ xem HS lớp mình. Nguyên tắc "không lộ đáp án" chỉ áp dụng LÚC ĐANG HỌC
+  (tiền lệ `_dap_an_y_neu_xong` có sẵn). Frontend: `XemLaiBai.jsx` overlay (đề + đáp án + lời
+  giải + hành trình dạng chat có nhãn gợi ý mức N + huy hiệu "tự làm không cần gợi ý"); 2 lối
+  vào: nút Xem lại ở ChonBai (bài xong) + banner hoàn thành PhongHoc. 4 test mới.
 - **🎯 LỘ TRÌNH CẢI TIẾN DỰ THI (chốt 2026-07-04):** B4 phanh chi phí LLM → B3 xem lại bài sau
   hoàn thành → C2 số liệu chứng minh phương pháp → C5 thực nghiệm lớp thật → C3 heatmap năng lực
   → C1 chế độ đề ôn thi THPT. (B2 mobile để cân nhắc sau; B1 deploy/B5 bảo mật/C4 PDF/C6 demo
@@ -122,8 +130,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v41` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v42**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v42` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v43**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

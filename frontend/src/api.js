@@ -35,6 +35,7 @@ export const api = {
   getDangDo: () => request('/sessions/dang-do'),
   getPhienCuaToi: () => request('/sessions/cua-toi'),
   sendMessage: (sessionId, body) => post(`/sessions/${sessionId}/message`, body),
+  xemLaiPhien: (sessionId) => request(`/sessions/${sessionId}/xem-lai`),
 
   // Học sinh — tiến độ
   getProgressMe: () => request('/progress/me'),

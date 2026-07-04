@@ -213,6 +213,77 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
     )
 
 
+@router.get("/{session_id}/xem-lai",
+            dependencies=[require_role(VaiTro.hs, VaiTro.gv, VaiTro.admin)])
+def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Xem lại bài SAU KHI HOÀN THÀNH: lời giải chuẩn + hành trình hội thoại + thống kê.
+
+    Nguyên tắc "không lộ đáp án" chỉ áp dụng LÚC ĐANG HỌC — sau khi hoàn thành, đối chiếu
+    với lời giải chuẩn chính là lúc học sâu nhất. Chốt chặn tại backend: phiên chưa
+    hoàn thành → 403 (không phụ thuộc việc frontend ẩn nút).
+    """
+    from app.services.progress_service import hoc_sinh_thuoc_gv
+
+    session = db.get(SessionModel, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Phiên không tồn tại")
+    if current_user.vai_tro == VaiTro.hs and session.hoc_sinh_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Phiên không tồn tại")
+    if current_user.vai_tro == VaiTro.gv and not hoc_sinh_thuoc_gv(
+        db, current_user.id, session.hoc_sinh_id
+    ):
+        raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
+    if session.trang_thai != TrangThaiSession.hoan_thanh:
+        raise HTTPException(
+            status_code=403,
+            detail="Chỉ xem lại được bài đã hoàn thành. Em hãy hoàn thành bài trước nhé.",
+        )
+
+    problem = db.get(Problem, session.problem_id)
+    if problem is None:
+        raise HTTPException(status_code=404, detail="Bài không còn tồn tại")
+    dang_cd = _lay_dang_cd_map(db)
+    meta = problem.meta or {}
+
+    # Đáp án chuẩn theo loại câu — CHỈ tới được đây khi phiên đã hoàn thành.
+    if problem.loai_cau.value == "TN4PA":
+        dap_an = {"dap_an_dung": meta.get("dap_an_dung")}
+    elif problem.loai_cau.value == "TNDS":
+        dap_an = {"dap_an_y": {y["ky_hieu"]: y["dap_an"] for y in meta.get("y", [])}}
+    else:  # TLN
+        dap_an = {"dap_an_cuoi": str(meta.get("dap_an_cuoi", "")),
+                  "don_vi": meta.get("don_vi")}
+
+    steps = sorted(problem.solution_steps, key=lambda s: s.thu_tu)
+    turns = db.query(Turn).filter(Turn.session_id == session_id).order_by(Turn.id).all()
+    cap_goi_y_max = max((t.cap_goi_y for t in turns), default=0)
+
+    return {
+        "session_id": session.id,
+        "problem": _strip_answers(problem, dang_cd),
+        "dap_an": dap_an,
+        "loi_giai": [
+            {"thu_tu": s.thu_tu, "pham_vi": s.pham_vi, "mo_ta": s.mo_ta,
+             "bieu_thuc_ket_qua": s.bieu_thuc_ket_qua}
+            for s in steps
+        ],
+        "hanh_trinh": [
+            {"vai_tro": t.vai_tro.value, "noi_dung": t.noi_dung,
+             "dap_an_nhap": t.dap_an_nhap, "cap_goi_y": t.cap_goi_y,
+             "thoi_diem": t.thoi_diem.isoformat() if t.thoi_diem else None}
+            for t in turns
+        ],
+        "thong_ke": {
+            "diem": session.diem,
+            "cap_goi_y_max": cap_goi_y_max,
+            "so_lan_khong_hieu": session.so_lan_khong_hieu,
+            "so_luot_hs": sum(1 for t in turns if t.vai_tro.value == "hoc_sinh"),
+            "thoi_gian_hoat_dong_giay": session.thoi_gian_hoat_dong_giay,
+            "thoi_gian_y": session.thoi_gian_y,
+        },
+    }
+
+
 @router.post("/{session_id}/message", response_model=PhanHoiResponse,
              dependencies=[require_role(VaiTro.hs)])
 def gui_tin(

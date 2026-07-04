@@ -3,6 +3,7 @@ import { api } from '../../api'
 import { Button, Card, CardBody, ChatBubble, TypingBubble } from '../../components/ui'
 import Formula from '../../components/Formula'
 import MixedChatInput from '../../components/MixedChatInput'
+import XemLaiBai from '../../components/XemLaiBai'
 import AnswerInputTN4PA from '../../components/answer/AnswerInputTN4PA'
 import AnswerInputTNDS from '../../components/answer/AnswerInputTNDS'
 import AnswerInputTLN from '../../components/answer/AnswerInputTLN'
@@ -24,7 +25,7 @@ function trangThaiYBanDau(meta) {
   return tt
 }
 
-function BangHoanThanh({ loai, thoi_gian, thoi_gian_y, dap_an_y, onChonBai, onTrangChu }) {
+function BangHoanThanh({ loai, thoi_gian, thoi_gian_y, dap_an_y, onChonBai, onTrangChu, onXemLai }) {
   return (
     <div className="rounded-lg border-2 border-success bg-success-soft p-4 text-center flex flex-col items-center gap-2">
       <div className="h-12 w-12 rounded-full bg-success text-white grid place-items-center text-2xl">
@@ -67,8 +68,9 @@ function BangHoanThanh({ loai, thoi_gian, thoi_gian_y, dap_an_y, onChonBai, onTr
           </tbody>
         </table>
       )}
-      <div className="flex gap-2 mt-2">
-        <Button onClick={onChonBai}>Chọn bài khác</Button>
+      <div className="flex gap-2 mt-2 flex-wrap justify-center">
+        <Button onClick={onXemLai}>📖 Xem lại bài</Button>
+        <Button variant="secondary" onClick={onChonBai}>Chọn bài khác</Button>
         <Button variant="secondary" onClick={onTrangChu}>
           Về trang chủ
         </Button>
@@ -98,6 +100,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
   const [problem, setProblem] = useState(null)
   const [sid, setSid] = useState(sessionId || null)
   const [turns, setTurns] = useState([])
+  const [xemLaiMo, setXemLaiMo] = useState(false)
   const [trangThai, setTrangThai] = useState({
     buoc_hien_tai: 1,
     y_hien_tai: null,
@@ -401,6 +404,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
                 dap_an_y={trangThai.dap_an_y}
                 onChonBai={onChonBai}
                 onTrangChu={onTrangChu}
+                onXemLai={() => setXemLaiMo(true)}
               />
             ) : (
               <>
@@ -458,6 +462,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
           </CardBody>
         </Card>
       </div>
+
+      {xemLaiMo && sid && <XemLaiBai sessionId={sid} onDong={() => setXemLaiMo(false)} />}
     </div>
   )
 }
