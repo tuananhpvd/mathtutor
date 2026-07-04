@@ -7,6 +7,7 @@ import PhongHoc from './PhongHoc'
 import TienDo from './TienDo'
 import NhiemVu from './NhiemVu'
 import MucTieu from './MucTieu'
+import ThiThu from './ThiThu'
 import TaiKhoanCaNhan from './TaiKhoanCaNhan'
 
 const NAV = [
@@ -14,6 +15,7 @@ const NAV = [
   { key: 'nhiem_vu', label: 'Nhiệm vụ' },
   { key: 'muc_tieu', label: 'Mục tiêu' },
   { key: 'chon_bai', label: 'Chọn bài' },
+  { key: 'thi_thu', label: 'Thi thử' },
   { key: 'tien_do', label: 'Tiến độ' },
   { key: 'tai_khoan', label: 'Tài khoản' },
 ]
@@ -112,6 +114,7 @@ export default function HocSinhApp({ onLogout }) {
         />
       )}
       {page === 'nhiem_vu' && <NhiemVu onChon={moBaiMoi} />}
+      {page === 'thi_thu' && <ThiThu onLuyenBai={moBaiMoi} />}
       {page === 'muc_tieu' && <MucTieu />}
       {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}
       {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}

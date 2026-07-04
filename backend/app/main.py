@@ -9,6 +9,7 @@ from app.api.auth import admin_router, gv_router, hs_router
 from app.api.auth import router as auth_router
 from app.api.danh_muc import router as danh_muc_router
 from app.api.dat_lai import gv_router as dat_lai_gv_router
+from app.api.de_thi import router as de_thi_router
 from app.api.gv import router as gv_api_router
 from app.api.hs import router as hs_api_router
 from app.api.monitor import router as monitor_router
@@ -68,6 +69,7 @@ app.include_router(thong_bao_router)
 app.include_router(tro_giup_router)
 app.include_router(nhiem_vu_router)
 app.include_router(muc_tieu_router)
+app.include_router(de_thi_router)
 
 
 @app.get("/api/health")

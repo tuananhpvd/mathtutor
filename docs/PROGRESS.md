@@ -4,10 +4,25 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v44**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v45**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **291/291 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **295/295 test backend xanh** (`pytest`).
+- **✅ C1-GĐ1 — Chế độ đề ôn thi THPT (v45):** 3 bảng mới `de_thi`/`de_thi_cau`/`bai_thi`
+  (create_all tự tạo, không cần migration tay). Chấm đúng quy chế 2025 tái dùng nguyên vẹn
+  `core/matching.so_khop`: Phần I TN4PA 0,25đ/câu · Phần II TNDS bậc thang 0,1/0,25/0,5/1,0 ·
+  Phần III TLN 0,5đ/câu (CAS so khớp). Đồng hồ SERVER làm trọng tài (hết giờ +30s grace →
+  chạm vào bài là tự chốt; đáp án autosave trước hạn vẫn tính). Chốt chặn: đang thi KHÔNG trả
+  trường đáp án nào (test khóa quét cả response text); HS chỉ thấy đề PHÁT HÀNH của GV chủ
+  nhiệm; GV chỉ ghép câu của mình + đã duyệt + đúng loại theo phần. GV: trang "Đề thi thử"
+  (tab 3 phần đếm câu so chuẩn 12/4/6, phát hành/thu hồi, kết quả lớp, chỉ xóa đề chưa ai làm).
+  HS: trang "Thi thử" (đếm ngược đỏ <5', lưới câu, autosave khi đổi đáp án + 20s/lần, hết giờ
+  tự nộp; kết quả từng câu + nút "Luyện lại với gia sư" mở phiên Socratic câu sai — khép vòng
+  thi thử → chữa bài gợi mở). 4 test mới. ⚠️ Bug đã sửa khi code: so sánh `ket_qua.value ==
+  "dung"` sai vì enum `KetQuaSoKhop.DUNG` value là "DUNG" in hoa → so sánh enum trực tiếp.
+  📌 Còn lại GĐ2: trộn đề TỰ ĐỘNG theo ma trận (chuyên đề × số câu × tỉ lệ Dễ/TB/Khó).
+- ⚠️ Phát hiện lệch tài liệu: PROGRESS từng ghi "pham_vi rieng_tu/chung (v22)" nhưng model
+  Problem hiện KHÔNG có cột này — quy tắc thật: HS thấy bài `da_duyet` của GV chủ nhiệm.
 - **✅ C3 — Bản đồ năng lực heatmap (v44):** `ban_do_nang_luc()` trong phan_tich_service — ô =
   chuyên đề × độ khó, giá trị = điểm thành thạo 0–100 (cùng công thức `_diem_thanh_thao`);
   1 HS = bản đồ cá nhân, nhiều HS = bản đồ lớp DỒN CHUNG phiên (không TB của TB). Phân biệt
@@ -151,8 +166,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v44` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v45**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v45` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v46**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

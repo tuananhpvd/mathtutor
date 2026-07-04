@@ -12,6 +12,7 @@ import QuanLyLopGV from './QuanLyLopGV'
 import QuanLyHocSinhGV from './QuanLyHocSinhGV'
 import HoTroHocSinh from './HoTroHocSinh'
 import GiaoNhiemVu from './GiaoNhiemVu'
+import QuanLyDeThi from './QuanLyDeThi'
 import QuanLyNoiDungGV from './QuanLyNoiDungGV'
 
 const NAV = [
@@ -22,6 +23,7 @@ const NAV = [
   { key: 'co', label: 'Cờ theo dõi' },
   { key: 'ho_tro', label: 'Hỗ trợ học sinh' },
   { key: 'nhiem_vu', label: 'Giao nhiệm vụ' },
+  { key: 'de_thi', label: 'Đề thi thử' },
   { key: 'tien_bo', label: 'Tiến bộ học sinh' },
   { key: 'lop', label: 'Quản lý lớp' },
   { key: 'hoc_sinh', label: 'Quản lý học sinh' },
@@ -104,6 +106,7 @@ export default function GiaoVienApp({ onLogout }) {
       {page === 'co' && <QuanLyCo />}
       {page === 'ho_tro' && <HoTroHocSinh />}
       {page === 'nhiem_vu' && <GiaoNhiemVu />}
+      {page === 'de_thi' && <QuanLyDeThi />}
       {page === 'tien_bo' && <TheoDoiTienBo />}
       {page === 'lop' && <QuanLyLopGV />}
       {page === 'hoc_sinh' && <QuanLyHocSinhGV />}

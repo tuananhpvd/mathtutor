@@ -153,6 +153,19 @@ export const api = {
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
   adminLLMSuDung: () => request('/admin/llm-su-dung'),
+  // Đề ôn thi THPT (C1)
+  deThiDs: () => request('/de-thi'),
+  deThiTao: (body) => post('/de-thi', body),
+  deThiChiTietGV: (id) => request(`/de-thi/${id}/chi-tiet-gv`),
+  deThiPhatHanh: (id, phat_hanh) =>
+    request(`/de-thi/${id}/phat-hanh`, { method: 'PATCH', body: JSON.stringify({ phat_hanh }) }),
+  deThiXoa: (id) => request(`/de-thi/${id}`, { method: 'DELETE' }),
+  deThiKetQuaLop: (id) => request(`/de-thi/${id}/ket-qua-lop`),
+  deThiBatDau: (id) => post(`/de-thi/${id}/bat-dau`),
+  deThiXemBai: (baiId) => request(`/de-thi/bai/${baiId}`),
+  deThiLuu: (baiId, bai_lam) =>
+    request(`/de-thi/bai/${baiId}/luu`, { method: 'PATCH', body: JSON.stringify({ bai_lam }) }),
+  deThiNop: (baiId, bai_lam) => post(`/de-thi/bai/${baiId}/nop`, { bai_lam }),
   getBanDoCuaToi: () => request('/progress/me/ban-do'),
   getBanDoLop: () => request('/progress/ban-do/lop'),
   getBanDoHocSinh: (id) => request(`/progress/students/${id}/ban-do`),

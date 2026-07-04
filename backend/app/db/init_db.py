@@ -6,6 +6,7 @@ import app.models.cauhinh  # noqa: F401
 # Đăng ký tất cả model với metadata
 import app.models.cot_moc  # noqa: F401
 import app.models.danh_muc  # noqa: F401
+import app.models.de_thi  # noqa: F401
 import app.models.flag  # noqa: F401
 import app.models.llm_su_dung  # noqa: F401
 import app.models.lop  # noqa: F401
