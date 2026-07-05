@@ -92,7 +92,10 @@ def thong_ke(db: Session) -> dict:
         "so_co_chua_xu_ly": db.query(Flag)
         .filter(Flag.trang_thai == TrangThaiCo.cho_xu_ly)
         .count(),
-        "llm_provider": settings.llm_provider,
+        # Provider LLM THẬT SỰ đang chạy: ưu tiên cấu hình Admin lưu trong DB (dùng bởi
+        # get_llm_client), không phải settings.llm_provider (env) — 2 nơi có thể khác
+        # nhau nếu Admin đã đổi trong Cấu hình → AI mà không đổi biến môi trường.
+        "llm_provider": lay_cau_hinh(db).get("llm_provider", settings.llm_provider),
     }
 
 

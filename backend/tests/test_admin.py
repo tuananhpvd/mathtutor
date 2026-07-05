@@ -31,6 +31,24 @@ def test_stats_admin(db, client):
     assert data["so_hoc_sinh"] == 1
 
 
+def test_stats_llm_provider_theo_cau_hinh_db_khong_phai_env(db, client):
+    """Bug đã sửa: badge Dashboard từng đọc settings.llm_provider (env, luôn 'stub'
+    trong test) thay vì cấu hình Admin đã lưu trong DB — khiến hiện sai provider
+    thật đang chạy (get_llm_client ưu tiên đọc DB, không đọc settings)."""
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+
+    # Chưa cấu hình gì trong DB → dùng mặc định CAU_HINH_MAC_DINH (gemini), không phải "stub".
+    r = client.get("/api/admin/stats", headers=h)
+    assert r.json()["llm_provider"] == "gemini"
+
+    # Admin đổi provider trong Cấu hình → Dashboard phải phản ánh đúng ngay.
+    client.patch("/api/admin/config", headers=h,
+                 json={"khoa": "llm_provider", "gia_tri": "anthropic"})
+    r = client.get("/api/admin/stats", headers=h)
+    assert r.json()["llm_provider"] == "anthropic"
+
+
 def test_gan_lop_cho_tai_khoan(db, client):
     _seed(db)
     from app.models.lop import Lop

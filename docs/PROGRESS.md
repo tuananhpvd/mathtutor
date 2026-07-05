@@ -4,10 +4,21 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-04, phiên bản **v47**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-05, phiên bản **v48**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **303/303 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **304/304 test backend xanh** (`pytest`).
+- **✅ Fix badge "Nhà cung cấp LLM" sai nguồn ở Admin Dashboard (v48):** `admin_service.thong_ke()`
+  từng đọc `settings.llm_provider` (env, mặc định "stub") thay vì cấu hình Admin lưu trong DB —
+  lệch với `get_llm_client()` (nơi thật sự quyết định provider chạy hội thoại, ưu tiên đọc DB).
+  Sửa: `lay_cau_hinh(db).get("llm_provider", settings.llm_provider)`. 1 test khóa hành vi.
+- **✅ Topbar HS chuyên nghiệp/hiện đại hơn, không cuộn ngang (v48):** gộp "Tài khoản" +
+  "Đăng xuất" vào 1 menu avatar (dropdown, mẫu SaaS hiện đại) — nhường chỗ, giảm menu chính từ
+  7 còn 6 mục; đổi thanh điều hướng sang dạng segmented-control (track bo tròn, mục chọn nổi
+  nền trắng + bóng đổ); logo topbar thu gọn 64→36px (sidebar GV/Admin giữ nguyên); khung nội
+  dung nới `max-w-5xl`→`max-w-6xl`. ⚠️ Đổi ngưỡng hiện menu ngang từ `md`(768px)→`lg`(1024px)
+  để đảm bảo không tràn/cuộn — mở rộng vùng "chưa có nav mobile/tablet" đã ghi nhận thuộc B2.
+  Đổi tên trang "Thi thử THPT" → "Thi thử theo đề hoàn chỉnh".
 - **✅ 3 fix lỗi AI sinh câu hỏi (v47), phát hiện qua GV dùng thật:**
   1. **CAS không hiểu ký hiệu tổ hợp/chỉnh hợp** (`cas.py`): AI viết `combinations(5,3)` (không
      phải hàm SymPy thật, hàm đúng là `binomial`) → bước lời giải báo "SymPy không parse được".
@@ -192,8 +203,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v47` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v48**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v48` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v49**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

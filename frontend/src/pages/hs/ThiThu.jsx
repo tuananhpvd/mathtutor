@@ -383,7 +383,7 @@ export default function ThiThu({ onLuyenBai }) {
     <div className="flex flex-col gap-4">
       {man.ten === 'ds' && (
         <>
-          <h2 className="text-2xl font-bold text-black">Thi thử THPT</h2>
+          <h2 className="text-2xl font-bold text-black">Thi thử theo đề hoàn chỉnh</h2>
           {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
           <DanhSachDe onVaoThi={vaoThi} onXemKetQua={xemKetQua} />
         </>
