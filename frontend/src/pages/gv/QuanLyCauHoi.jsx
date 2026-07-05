@@ -9,7 +9,7 @@ import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 
-function kiemTraDapAnTLN(v) {
+export function kiemTraDapAnTLN(v) {
   const val = String(v ?? '').trim()
   if (!val) return 'Đáp án cuối không được để trống'
   if (val.length > 4) return 'Đáp án cuối tối đa 4 ký tự (gồm dấu - và dấu ,)'
@@ -287,7 +287,7 @@ function templateTheoLoai(loai) {
 }
 
 // Thân form chung cho cả Sửa và Tạo câu hỏi.
-function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, dangLuu, nutLuuText }) {
+export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, dangLuu, nutLuuText }) {
   const activeInsert = useRef(null)
   const register = (fn) => { activeInsert.current = fn }
   const chen = (s, b) => activeInsert.current?.(s, b)
@@ -718,7 +718,7 @@ function KhungModal({ tieu_de, error, children, onDong }) {
 }
 
 // Tập hợp danh sách dạng → options (dùng chung).
-function dungDangOptions(danhMuc) {
+export function dungDangOptions(danhMuc) {
   return [
     { value: '', label: '— Chưa gán dạng —' },
     ...danhMuc.flatMap((cd) =>
@@ -728,7 +728,7 @@ function dungDangOptions(danhMuc) {
 }
 
 // Chuẩn hóa payload các bước.
-function chuanHoaSteps(steps) {
+export function chuanHoaSteps(steps) {
   return steps.map((s) => ({
     thu_tu: s.thu_tu,
     pham_vi: s.pham_vi || 'ca_bai',

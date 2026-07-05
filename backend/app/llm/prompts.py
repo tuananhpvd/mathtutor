@@ -198,3 +198,87 @@ Bắt buộc: có đủ "solution_steps" (mỗi bước có "danh_sach_goi_y" kh
 viết cú pháp SymPy KHÔNG bọc $. Trong chuỗi JSON, dấu gạch chéo ngược của LaTeX phải viết kép
 (ví dụ "$\\\\dfrac{{1}}{{2}}$"). CHỈ trả JSON, không kèm chữ nào khác.
 Trả về: {{"cau_hoi": [ <mỗi câu một object đúng schema trên> ]}}"""
+
+
+# ---------- "AI tạo bước và gợi ý" — GV viết đề bài sẵn, AI CHỈ giải + chia bước + viết gợi ý ----------
+
+SYSTEM_TAO_BUOC_GOI_Y = """
+Bạn là trợ lý soạn lời giải Toán lớp 12. Giáo viên đã viết SẴN một đề bài hoàn chỉnh (và phương
+án/ý nếu có) — nhiệm vụ của bạn KHÔNG phải sáng tác đề mới, mà CHỈ:
+
+1. TỰ GIẢI bài toán bằng suy luận toán học chính xác của chính bạn để xác định đáp án đúng:
+   - TN4PA: xác định phương án đúng ("dap_an_dung": "A"/"B"/"C"/"D").
+   - TNDS: xác định Đúng/Sai cho TỪNG ý trong 4 ý đã cho ("dap_an": "Dung"/"Sai").
+   - TLN: tính ra giá trị đáp án cuối cùng ("dap_an_cuoi").
+2. Chia lời giải thành ĐÚNG số bước giáo viên yêu cầu (đề trong phần USER liệt kê rõ từng bước
+   cần bao nhiêu gợi ý) — KHÔNG được thêm/bớt bước. Mỗi bước có:
+   - "mo_ta": yêu cầu/nhiệm vụ NGẮN GỌN của riêng bước đó (không phải lời giải đầy đủ).
+   - "bieu_thuc_ket_qua": kết quả bước đó viết cú pháp SymPy, TÍNH RA GIÁ TRỊ CUỐI CÙNG cụ thể —
+     KHÔNG để dạng hàm chưa tính (vd viết "455" chứ KHÔNG viết "binomial(15, 3)"); tổ hợp viết
+     binomial(n,k), chỉnh hợp viết ff(n,k), giai thừa viết factorial(n) nếu vẫn cần giữ dạng hàm
+     (chỉ khi kết quả còn phụ thuộc biến).
+3. Viết ĐÚNG số gợi ý leo thang giáo viên yêu cầu cho MỖI bước, các gợi ý PHẢI BÁM SÁT đúng yêu
+   cầu của CHÍNH bước đó (không lạc sang bước khác, không phải lời thoại), sắp xếp từ gợi mở nhẹ
+   đến rõ dần theo bước, TUYỆT ĐỐI không nêu thẳng kết quả/đáp án trong bất kỳ gợi ý nào.
+
+RÀNG BUỘC BẮT BUỘC:
+- Đề bài, phương án A–D (TN4PA), 4 ý a–d (TNDS) PHẢI giữ NGUYÊN VĂN như giáo viên đã cung cấp —
+  không viết lại, không sửa chữ nào.
+- Với TNDS: LUÔN trả đúng 4 bước, "pham_vi" lần lượt là "a","b","c","d" khớp đúng 4 ý đã cho.
+- Với TN4PA/TLN: mọi bước có "pham_vi": "ca_bai".
+- Công thức trong "de_bai"/phương án/ý/gợi ý dùng LaTeX trong cặp $...$; riêng "bieu_thuc_ket_qua"
+  dùng cú pháp SymPy thuần, KHÔNG bọc $.
+- CHỈ trả JSON, không kèm chữ giải thích nào khác.
+""".strip()
+
+
+def user_prompt_tao_buoc_goi_y(yeu_cau: dict) -> str:
+    loai_cau = yeu_cau.get("loai_cau", "TLN")
+    chuyen_de = yeu_cau.get("chuyen_de", "")
+    dang = yeu_cau.get("dang")
+    do_kho = yeu_cau.get("do_kho", "tb")
+    de_bai = yeu_cau.get("de_bai", "")
+    meta_nhap = yeu_cau.get("meta_nhap") or {}
+    cau_truc = yeu_cau.get("cau_truc_buoc") or []
+
+    dong_dang = f' — dạng bài "{dang}"' if dang else ""
+
+    dong_noi_dung_cho = ""
+    if loai_cau == "TN4PA":
+        pa = meta_nhap.get("phuong_an") or {}
+        dong_noi_dung_cho = "Phương án giáo viên đã viết (giữ nguyên văn):\n" + "\n".join(
+            f"  {k}. {pa.get(k, '')}" for k in ("A", "B", "C", "D")
+        )
+    elif loai_cau == "TNDS":
+        y_list = meta_nhap.get("y") or []
+        y_map = {y.get("ky_hieu"): y.get("noi_dung_y", "") for y in y_list}
+        dong_noi_dung_cho = "4 ý giáo viên đã viết (giữ nguyên văn):\n" + "\n".join(
+            f"  {k}) {y_map.get(k, '')}" for k in ("a", "b", "c", "d")
+        )
+
+    if loai_cau == "TNDS":
+        dong_cau_truc = "Cấu trúc bước bắt buộc (đúng 4 ý a→d):\n" + "\n".join(
+            f"  - Ý {b.get('pham_vi')}: viết đúng {b.get('so_goi_y')} gợi ý leo thang"
+            for b in cau_truc
+        )
+    else:
+        dong_cau_truc = f"Cấu trúc bước bắt buộc (đúng {len(cau_truc)} bước, thứ tự 1→{len(cau_truc)}):\n" + "\n".join(
+            f"  - Bước {i + 1}: viết đúng {b.get('so_goi_y')} gợi ý leo thang"
+            for i, b in enumerate(cau_truc)
+        )
+
+    mau = _MAU_THEO_LOAI.get(loai_cau, _MAU_TLN)
+
+    return f"""Loại câu {loai_cau}, chuyên đề "{chuyen_de}"{dong_dang}, độ khó {do_kho}.
+
+Đề bài giáo viên đã viết (giữ NGUYÊN VĂN, không sửa):
+{de_bai}
+
+{dong_noi_dung_cho}
+
+{dong_cau_truc}
+
+Trả về đúng 1 câu hỏi theo schema sau (GIỮ NGUYÊN tên khóa, KHÔNG đổi/thêm/bớt khóa):
+{mau}
+
+Trả về: {{"cau_hoi": [ <1 object đúng schema trên, đề bài/phương án/ý giữ nguyên như trên> ]}}"""

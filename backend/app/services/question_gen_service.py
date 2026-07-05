@@ -5,7 +5,7 @@ Service: sinh câu hỏi AI → lưu DB ở trạng thái cho_duyet; GV duyệt/
 from sqlalchemy.orm import Session
 
 from app.llm.client import LLMClient
-from app.llm.question_gen import sinh_nhap, validate_cau_hoi
+from app.llm.question_gen import sinh_buoc_goi_y, sinh_nhap, validate_cau_hoi
 from app.models.danh_muc import Dang
 from app.models.problem import (
     CheDoSoKhopEnum,
@@ -137,6 +137,44 @@ def duyet_cau(db: Session, problem_id: int, hanh_dong: str) -> Problem:
         problem.trang_thai_duyet = TrangThaiDuyet.loai
     else:
         raise ValueError("hanh_dong phải là 'duyet' hoặc 'loai'")
+    db.commit()
+    db.refresh(problem)
+    return problem
+
+
+def _validate_cau_truc(loai_cau: str, cau_truc: list[dict]) -> None:
+    """Ràng buộc cấu trúc bước theo loại câu (khớp mô hình dữ liệu có sẵn của hệ thống)."""
+    if loai_cau == "TNDS":
+        if [b.get("pham_vi") for b in cau_truc] != ["a", "b", "c", "d"]:
+            raise ValueError("TNDS phải có đúng 4 bước theo thứ tự ý a, b, c, d")
+    else:
+        if any(b.get("pham_vi", "ca_bai") != "ca_bai" for b in cau_truc):
+            raise ValueError(f"{loai_cau} chỉ dùng pham_vi 'ca_bai' cho mọi bước")
+
+
+def tao_nhap_buoc_goi_y(db: Session, yeu_cau: dict, llm: LLMClient) -> dict:
+    """AI tạo bước và gợi ý: gắn dạng/chuyên đề, validate cấu trúc bước, gọi AI giải + chia
+    bước + viết gợi ý cho đề GV đã viết sẵn. CHƯA lưu DB — trả bản nháp {"cau", "canh_bao"}
+    để GV xem/sửa trước khi gọi luu_cau_nhap()."""
+    loai_cau = yeu_cau.get("loai_cau", "TLN")
+    _validate_cau_truc(loai_cau, yeu_cau.get("cau_truc_buoc") or [])
+
+    dang = db.get(Dang, yeu_cau.get("dang_id"))
+    if dang is None:
+        raise ValueError("Không tìm thấy dạng đã chọn")
+    yeu_cau = {
+        **yeu_cau,
+        "dang": dang.ten,
+        "chuyen_de": dang.chuyen_de.ten if dang.chuyen_de else "",
+    }
+    return sinh_buoc_goi_y(llm, yeu_cau)
+
+
+def luu_cau_nhap(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
+    """Lưu 1 câu GV đã xem/sửa bản nháp (AI tạo bước và gợi ý) — cùng cơ chế _luu_mot_cau
+    (nguon=ai_sinh, trang_thai_duyet=cho_duyet) để nội dung AI góp phần luôn qua duyệt,
+    dù chính GV là người bấm lưu."""
+    problem = _luu_mot_cau(db, cau, nguoi_tao_id)
     db.commit()
     db.refresh(problem)
     return problem

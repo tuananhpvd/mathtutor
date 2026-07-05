@@ -4,10 +4,23 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-05, phiên bản **v49**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-05, phiên bản **v50**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **305/305 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **320/320 test backend xanh** (`pytest`).
+- **✅ "AI tạo bước và gợi ý" (v50)** — GV viết đề bài (+ phương án/ý), AI CHỈ giải + chia bước
+  + viết gợi ý (không tự bịa đề — khác "Sinh hàng loạt"). `LLMClient` thêm phương thức
+  `tao_buoc_goi_y()` (interface + Stub/OpenAI/Anthropic/Gemini, cùng khuôn `sinh_cau_hoi`).
+  `prompts.py`: `SYSTEM_TAO_BUOC_GOI_Y` + `user_prompt_tao_buoc_goi_y()` — nhồi đúng nội dung
+  GV viết, liệt kê cấu trúc bước + số gợi ý bắt buộc. `question_gen.py.sinh_buoc_goi_y()`: ÉP
+  lại mọi trường GV cung cấp đè lên AI trả về (đề bài/phương án/ý không đổi dù AI viết gì), đối
+  chiếu số bước/gợi ý thực trả vs yêu cầu → cảnh báo (không chặn). `question_gen_service.py`:
+  `tao_nhap_buoc_goi_y()` (validate cấu trúc theo loại câu: TNDS bắt buộc đúng 4 bước a→d,
+  TN4PA/TLN chỉ `ca_bai`) + `luu_cau_nhap()` (nguon=ai_sinh, cho_duyet). 2 endpoint:
+  `/questions-ai/tao-buoc-goi-y` (preview, quota-gated, KHÔNG lưu DB) + `.../luu`. Frontend:
+  panel mới đầu trang "AI sinh câu hỏi" — nhập đề/phương án/ý + số bước/số gợi ý mỗi bước →
+  Tạo → xem trước tái dùng nguyên `ThanCauHoiForm` (export từ `QuanLyCauHoi.jsx`, sửa được)
+  → Lưu. 15 test mới.
 - **✅ Fix sửa chuyên đề cho phép sửa kèm mô tả (v49):** backend (model/schema/service) đã hỗ
   trợ `mo_ta` từ trước — lỗ hổng chỉ ở frontend: form sửa tên (`TenChuyenDe` trong
   `QuanLyDanhMuc.jsx`) không có ô mô tả nên không bao giờ gửi lên. Thêm textarea mô tả vào
@@ -209,8 +222,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v49` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v50**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v50` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v51**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

@@ -16,6 +16,12 @@ class LLMClient(ABC):
     def sinh_cau_hoi(self, yeu_cau: dict) -> dict:
         """Sinh câu hỏi theo mẫu, trả JSON."""
 
+    @abstractmethod
+    def tao_buoc_goi_y(self, yeu_cau: dict) -> dict:
+        """GV đã cung cấp đề bài (+ phương án/ý) hoàn chỉnh; AI CHỈ giải ra đáp án đúng,
+        chia đúng số bước GV yêu cầu, viết đúng số gợi ý leo thang mỗi bước — KHÔNG tự
+        bịa đề. Trả {"cau_hoi": [<1 object đúng schema>]} (dùng chung parser sinh_cau_hoi)."""
+
     def phan_tich(self, ho_so: dict) -> dict | None:
         """Diễn giải hồ sơ năng lực → {cho_hoc_sinh, cho_giao_vien}. None = không khả dụng
         (vd StubLLMClient) → caller dùng đề xuất theo luật."""
@@ -185,6 +191,66 @@ class StubLLMClient(LLMClient):
                 })
         return {"cau_hoi": cau_hoi}
 
+    def tao_buoc_goi_y(self, yeu_cau: dict) -> dict:
+        """Mẫu tất định (không giải toán thật — chỉ cho test/demo không cần mạng): dùng
+        ĐÚNG đề bài/phương án/ý GV cung cấp, đặt đáp án giả định cố định, đúng số bước
+        và đúng số gợi ý mỗi bước theo cau_truc_buoc GV yêu cầu."""
+        loai_cau = yeu_cau.get("loai_cau", "TLN")
+        de_bai = yeu_cau.get("de_bai", "")
+        meta_nhap = yeu_cau.get("meta_nhap") or {}
+        cau_truc = yeu_cau.get("cau_truc_buoc") or [{"pham_vi": "ca_bai", "so_goi_y": 2}]
+
+        def goi_y(n: int) -> list[str]:
+            base = [
+                "Em xác định hướng làm của bước này trước nhé.",
+                "Em thử áp dụng công thức liên quan đến bước này xem.",
+                "Em thử tính cụ thể từng phần rồi ghép lại.",
+                "Em rà lại và tự suy ra kết quả bước này nhé.",
+                "Em kiểm tra lại điều kiện đề bài trước khi kết luận.",
+                "Em thử một hướng khác nếu cách này chưa ra.",
+                "Em ghi rõ từng phép tính để không sót sai số.",
+                "Em đối chiếu lại với yêu cầu bước này để chắc chắn đúng.",
+            ]
+            return base[:max(1, min(int(n or 1), len(base)))]
+
+        if loai_cau == "TN4PA":
+            meta = {
+                "phuong_an": meta_nhap.get("phuong_an") or {"A": "", "B": "", "C": "", "D": ""},
+                "dap_an_dung": "A",
+                "bat_buoc_suy_luan": yeu_cau.get("do_kho", "tb") != "de",
+            }
+            steps = [
+                {"thu_tu": i + 1, "pham_vi": "ca_bai",
+                 "mo_ta": f"Bước {i + 1}: thực hiện phần tính toán tương ứng của bước này",
+                 "bieu_thuc_ket_qua": "0", "danh_sach_goi_y": goi_y(b.get("so_goi_y", 2))}
+                for i, b in enumerate(cau_truc)
+            ]
+        elif loai_cau == "TNDS":
+            y_nhap = {y.get("ky_hieu"): y for y in (meta_nhap.get("y") or [])}
+            meta = {"y": [
+                {"ky_hieu": k, "noi_dung_y": (y_nhap.get(k) or {}).get("noi_dung_y", ""),
+                 "dap_an": "Dung"}
+                for k in ("a", "b", "c", "d")
+            ]}
+            steps = [
+                {"thu_tu": 1, "pham_vi": k,
+                 "mo_ta": f"Xét ý {k}",
+                 "bieu_thuc_ket_qua": "0", "danh_sach_goi_y": goi_y(b.get("so_goi_y", 2))}
+                for k, b in zip(("a", "b", "c", "d"), cau_truc)
+            ]
+        else:  # TLN
+            meta = {"dap_an_cuoi": "0", "quy_tac_lam_tron": None, "don_vi": None}
+            steps = [
+                {"thu_tu": i + 1, "pham_vi": "ca_bai",
+                 "mo_ta": f"Bước {i + 1}: thực hiện phần tính toán tương ứng của bước này",
+                 "bieu_thuc_ket_qua": "0", "danh_sach_goi_y": goi_y(b.get("so_goi_y", 2))}
+                for i, b in enumerate(cau_truc)
+            ]
+
+        return {"cau_hoi": [{
+            "loai_cau": loai_cau, "de_bai": de_bai, "meta": meta, "solution_steps": steps,
+        }]}
+
     def phan_tich(self, ho_so: dict) -> dict | None:
         """Bản phân tích tất định (không cần mạng): ghép các đề xuất theo luật thành
         đoạn văn cho HS / GV. Đảm bảo nút 'Tạo phân tích' luôn có kết quả khi chưa
@@ -251,6 +317,12 @@ class OpenAILLMClient(LLMClient):
             dang=yeu_cau.get("dang"),
         )
         return _goi_va_parse(lambda s, u: self._call(s, u), SYSTEM_SINH_CAU_HOI, user)
+
+    def tao_buoc_goi_y(self, yeu_cau: dict) -> dict:
+        from app.llm.prompts import SYSTEM_TAO_BUOC_GOI_Y, user_prompt_tao_buoc_goi_y
+
+        user = user_prompt_tao_buoc_goi_y(yeu_cau)
+        return _goi_va_parse(lambda s, u: self._call(s, u), SYSTEM_TAO_BUOC_GOI_Y, user)
 
     def phan_tich(self, ho_so: dict) -> dict | None:
         return _phan_tich_qua_call(lambda s, u: self._call(s, u), ho_so)
@@ -432,6 +504,14 @@ class AnthropicLLMClient(LLMClient):
             lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
         )
 
+    def tao_buoc_goi_y(self, yeu_cau: dict) -> dict:
+        from app.llm.prompts import SYSTEM_TAO_BUOC_GOI_Y, user_prompt_tao_buoc_goi_y
+
+        user = user_prompt_tao_buoc_goi_y(yeu_cau)
+        return _goi_va_parse(
+            lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_TAO_BUOC_GOI_Y, user
+        )
+
     def phan_tich(self, ho_so: dict) -> dict | None:
         return _phan_tich_qua_call(lambda s, u: self._call(s, u, max_tokens=4096), ho_so)
 
@@ -522,6 +602,14 @@ class GeminiLLMClient(LLMClient):
         )
         return _goi_va_parse(
             lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
+        )
+
+    def tao_buoc_goi_y(self, yeu_cau: dict) -> dict:
+        from app.llm.prompts import SYSTEM_TAO_BUOC_GOI_Y, user_prompt_tao_buoc_goi_y
+
+        user = user_prompt_tao_buoc_goi_y(yeu_cau)
+        return _goi_va_parse(
+            lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_TAO_BUOC_GOI_Y, user
         )
 
     def phan_tich(self, ho_so: dict) -> dict | None:

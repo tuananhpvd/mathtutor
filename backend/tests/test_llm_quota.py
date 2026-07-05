@@ -26,6 +26,9 @@ class _LLMGia(LLMClient):
     def sinh_cau_hoi(self, yeu_cau):
         return {}
 
+    def tao_buoc_goi_y(self, yeu_cau):
+        return {"cau_hoi": [{}]}
+
     def phan_tich(self, ho_so):
         return None
 

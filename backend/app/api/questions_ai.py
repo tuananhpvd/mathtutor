@@ -9,11 +9,22 @@ from app.llm.client import get_llm_client
 from app.models.problem import Nguon, Problem, TrangThaiDuyet
 from app.models.thong_bao import LoaiThongBao
 from app.models.user import VaiTro
-from app.schemas.question_gen import CauHoiNhapResponse, DuyetRequest, SinhCauHoiRequest
+from app.schemas.question_gen import (
+    CauHoiNhapResponse,
+    DuyetRequest,
+    LuuBuocGoiYRequest,
+    SinhCauHoiRequest,
+    TaoBuocGoiYRequest,
+)
 from app.services import thong_bao_service
 from app.services.admin_service import lay_cau_hinh
 from app.services.llm_quota_service import LOAI_SINH_CAU_HOI, LOI_HET_QUOTA, ap_quota_tac_vu
-from app.services.question_gen_service import duyet_cau, sinh_va_luu
+from app.services.question_gen_service import (
+    duyet_cau,
+    luu_cau_nhap,
+    sinh_va_luu,
+    tao_nhap_buoc_goi_y,
+)
 
 router = APIRouter(prefix="/api/questions-ai", tags=["questions-ai"])
 
@@ -48,6 +59,49 @@ def sinh_cau_hoi(
                    "hoặc đổi nhà cung cấp/model trong Cấu hình.",
         )
     return ket_qua
+
+
+@router.post("/tao-buoc-goi-y", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def tao_buoc_goi_y_api(
+    body: TaoBuocGoiYRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """AI tạo bước và gợi ý: GV viết đề bài (+ phương án/ý) sẵn, AI CHỈ giải + chia bước
+    + viết gợi ý theo đúng cấu trúc GV yêu cầu. Trả bản NHÁP — chưa lưu DB."""
+    if body.loai_cau not in {"TN4PA", "TNDS", "TLN"}:
+        raise HTTPException(status_code=400, detail="loai_cau không hợp lệ")
+    cau_hinh = lay_cau_hinh(db)
+    llm = ap_quota_tac_vu(db, cau_hinh, current_user.id, get_llm_client(cau_hinh),
+                          LOAI_SINH_CAU_HOI)
+    if llm is None:
+        raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
+    try:
+        ket_qua = tao_nhap_buoc_goi_y(db, body.model_dump(), llm)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:  # KHÔNG để lộ 500 — báo lỗi rõ ràng để GV thử lại
+        raise HTTPException(
+            status_code=502,
+            detail="AI không tạo được bước/gợi ý hợp lệ (mô hình lỗi hoặc trả dữ liệu "
+                   "không đúng). Vui lòng thử lại. Chi tiết: " + str(e)[:200],
+        )
+    return ket_qua
+
+
+@router.post("/tao-buoc-goi-y/luu", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def luu_buoc_goi_y_api(
+    body: LuuBuocGoiYRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """Lưu bản nháp (đã xem/sửa) vào ngân hàng câu hỏi ở trạng thái chờ duyệt."""
+    try:
+        problem = luu_cau_nhap(db, body.cau, current_user.id)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Không lưu được câu hỏi: {str(e)[:200]}")
+    return {"id": problem.id, "trang_thai_duyet": problem.trang_thai_duyet.value}
 
 
 @router.get("/cho-duyet", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
