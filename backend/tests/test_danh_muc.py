@@ -89,6 +89,32 @@ def test_sua_ten_chuyen_de_cascade_problems(client, db):
     assert p.chuyen_de == "Đại số - Giải tích"
 
 
+def test_sua_chuyen_de_kem_mo_ta(client, db):
+    """Sửa tên chuyên đề phải cho phép sửa kèm mô tả trong cùng 1 lần gọi."""
+    gv, hs, admin = _seed_users(db)
+    h = _tok(client, "gv_dm")
+    cd = client.post("/api/danh-muc/chuyen-de",
+                     json={"ten": "Xác suất", "mo_ta": "Mô tả cũ", "thu_tu": 1}, headers=h).json()
+
+    r = client.patch(f"/api/danh-muc/chuyen-de/{cd['id']}",
+                     json={"ten": "Xác suất thống kê", "mo_ta": "Mô tả mới"}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["ten"] == "Xác suất thống kê"
+    assert r.json()["mo_ta"] == "Mô tả mới"
+
+    # Chỉ sửa mô tả, giữ nguyên tên — không báo trùng tên với chính nó.
+    r = client.patch(f"/api/danh-muc/chuyen-de/{cd['id']}",
+                     json={"ten": "Xác suất thống kê", "mo_ta": "Mô tả mới hơn"}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["mo_ta"] == "Mô tả mới hơn"
+
+    # Xóa mô tả về rỗng.
+    r = client.patch(f"/api/danh-muc/chuyen-de/{cd['id']}",
+                     json={"ten": "Xác suất thống kê", "mo_ta": ""}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["mo_ta"] == ""
+
+
 def test_lay_danh_muc(client, db):
     gv, hs, admin = _seed_users(db)
     h_gv = _tok(client, "gv_dm")

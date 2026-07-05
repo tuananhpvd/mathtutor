@@ -16,32 +16,57 @@ function FormInput({ label, value, onChange, placeholder }) {
 function TenChuyenDe({ cd, onSua }) {
   const [sua, setSua] = useState(false)
   const [ten, setTen] = useState(cd.ten)
+  const [moTa, setMoTa] = useState(cd.mo_ta || '')
+
+  function moSua() {
+    setTen(cd.ten)
+    setMoTa(cd.mo_ta || '')
+    setSua(true)
+  }
+
   async function luu() {
     const t = ten.trim()
-    if (!t || t === cd.ten) { setSua(false); return }
-    await onSua(cd, t)
+    if (!t) { setSua(false); return }
+    const m = moTa.trim()
+    if (t === cd.ten && m === (cd.mo_ta || '')) { setSua(false); return }
+    await onSua(cd, t, m)
     setSua(false)
   }
+
   if (sua) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-1.5 max-w-md">
         <input
           value={ten}
           autoFocus
           onChange={(e) => setTen(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') luu(); if (e.key === 'Escape') setSua(false) }}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSua(false) }}
           className="font-semibold rounded border border-primary bg-surface px-2 py-0.5 focus:outline-none"
         />
-        <button onClick={luu} className="text-primary text-xs hover:underline">Lưu</button>
-        <button onClick={() => { setTen(cd.ten); setSua(false) }} className="text-muted text-xs hover:underline">Hủy</button>
+        <textarea
+          value={moTa}
+          onChange={(e) => setMoTa(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSua(false) }}
+          placeholder="Mô tả (tùy chọn)"
+          rows={2}
+          className="text-sm rounded border border-border bg-surface px-2 py-1 resize-none
+            focus:outline-none focus:border-primary"
+        />
+        <div className="flex items-center gap-2">
+          <button onClick={luu} className="text-primary text-xs hover:underline">Lưu</button>
+          <button onClick={() => setSua(false)} className="text-muted text-xs hover:underline">Hủy</button>
+        </div>
       </div>
     )
   }
   return (
-    <p className="font-semibold text-ink flex items-center gap-2">
-      {cd.ten}
-      <button onClick={() => setSua(true)} className="text-primary text-xs font-normal hover:underline">Sửa</button>
-    </p>
+    <>
+      <p className="font-semibold text-ink flex items-center gap-2">
+        {cd.ten}
+        <button onClick={moSua} className="text-primary text-xs font-normal hover:underline">Sửa</button>
+      </p>
+      {cd.mo_ta && <p className="text-xs text-muted mt-0.5">{cd.mo_ta}</p>}
+    </>
   )
 }
 
@@ -137,8 +162,8 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
     catch (e) { setError(e.message) }
   }
 
-  async function suaCD(cd, ten) {
-    try { await api.capNhatChuyenDe(cd.id, { ten }); await tai() }
+  async function suaCD(cd, ten, mo_ta) {
+    try { await api.capNhatChuyenDe(cd.id, { ten, mo_ta }); await tai() }
     catch (e) { setError(e.message) }
   }
 
@@ -200,7 +225,6 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <TenChuyenDe cd={cd} onSua={suaCD} />
-                  {cd.mo_ta && <p className="text-xs text-muted mt-0.5">{cd.mo_ta}</p>}
                   <p className="text-xs text-muted mt-0.5">{cd.dang_list.length} dạng</p>
                 </div>
                 <div className="flex gap-2 shrink-0">

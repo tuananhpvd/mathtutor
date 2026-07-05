@@ -4,10 +4,16 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-05, phiên bản **v48**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-05, phiên bản **v49**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **304/304 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **305/305 test backend xanh** (`pytest`).
+- **✅ Fix sửa chuyên đề cho phép sửa kèm mô tả (v49):** backend (model/schema/service) đã hỗ
+  trợ `mo_ta` từ trước — lỗ hổng chỉ ở frontend: form sửa tên (`TenChuyenDe` trong
+  `QuanLyDanhMuc.jsx`) không có ô mô tả nên không bao giờ gửi lên. Thêm textarea mô tả vào
+  khung sửa; sửa điều kiện "không đổi thì bỏ qua" để so cả tên lẫn mô tả (trước chỉ so tên,
+  sửa mỗi mô tả bị bỏ qua không lưu); dời preview mô tả vào trong component để tự ẩn lúc đang
+  sửa. 4 test mới (sửa tên+mô tả cùng lúc, chỉ sửa mô tả giữ nguyên tên, xóa mô tả về rỗng).
 - **✅ Fix badge "Nhà cung cấp LLM" sai nguồn ở Admin Dashboard (v48):** `admin_service.thong_ke()`
   từng đọc `settings.llm_provider` (env, mặc định "stub") thay vì cấu hình Admin lưu trong DB —
   lệch với `get_llm_client()` (nơi thật sự quyết định provider chạy hội thoại, ưu tiên đọc DB).
@@ -203,8 +209,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v48` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v49**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v49` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v50**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 
