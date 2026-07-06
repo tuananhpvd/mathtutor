@@ -4,10 +4,23 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-05, phiên bản **v50**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v51**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **320/320 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **320/320 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **✅ Bảng công thức cho panel "AI tạo bước và gợi ý" (v51):** export thêm `BangCongThuc` +
+  `TexField` từ `QuanLyCauHoi.jsx`; đề bài/phương án A-D/ý a-d trong panel mới đổi sang
+  `TexField` (xem trước công thức + đăng ký làm ô đang focus), thêm cột phải hiện
+  `<BangCongThuc>` để chèn ký hiệu LaTeX — giống hệt cơ chế màn Sửa câu hỏi.
+- **✅ Fix nghiêm trọng: chèn công thức xóa mất chữ đã gõ (v51)** — lỗi ở `TexField` (dùng
+  chung Tạo/Sửa câu hỏi + panel mới), KHÔNG phải lỗi riêng panel mới. Gốc: `focusSelf` chỉ
+  đăng ký hàm chèn 1 lần lúc `onFocus`, closure "chốt cứng" `value`/`onChange` tại thời điểm
+  đó; gõ thêm chữ sau focus không đăng ký lại → bấm chèn công thức dùng giá trị CŨ (thường
+  rỗng) → ghi đè mất hết chữ vừa gõ. Sửa: `useRef` giữ giá trị mới nhất, cập nhật qua
+  `useEffect` không dependency (chạy sau mỗi lần render) — đọc tại đúng thời điểm bấm chèn.
+  Vòng đầu gán ref trực tiếp trong thân render bị chặn bởi rule mới `react-hooks/refs`
+  ("Cannot access refs during render") → chuyển vào `useEffect`. Sửa 1 chỗ tự fix cho cả 3
+  nơi dùng chung (Tạo câu hỏi, Sửa câu hỏi, panel AI tạo bước và gợi ý).
 - **✅ "AI tạo bước và gợi ý" (v50)** — GV viết đề bài (+ phương án/ý), AI CHỈ giải + chia bước
   + viết gợi ý (không tự bịa đề — khác "Sinh hàng loạt"). `LLMClient` thêm phương thức
   `tao_buoc_goi_y()` (interface + Stub/OpenAI/Anthropic/Gemini, cùng khuôn `sinh_cau_hoi`).
@@ -222,8 +235,8 @@
 - 2 lõi `core/matching` (CAS + bậc thang) và `core/orchestrator` (máy trạng thái) KHÔNG phụ thuộc
   LLM/web — đúng nguyên tắc bất biến CLAUDE.md.
 - Đủ 3 vai trò (admin/gv/hs), 3 loại câu (TN4PA/TNDS/TLN), phân cấp Chuyên đề → Dạng.
-- Versioning: tag `v1`…`v50` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
-  commit + push + tạo tag phiên bản kế tiếp (kế: **v51**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
+- Versioning: tag `v1`…`v51` trên GitHub (`github.com/tuananhpvd/mathtutor`). "Đưa lên github" =
+  commit + push + tạo tag phiên bản kế tiếp (kế: **v52**); tác giả Tuan Anh, KHÔNG thêm Co-Authored-By.
 
 ## 2. ⚙️ CHẾ ĐỘ VẬN HÀNH HIỆN TẠI = "PHÁT TRIỂN" (tiết kiệm quota Gemini)
 

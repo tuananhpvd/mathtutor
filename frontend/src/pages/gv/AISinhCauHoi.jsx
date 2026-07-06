@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
 import {
-  ThanCauHoiForm, SuaCauHoi, chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN,
+  ThanCauHoiForm, SuaCauHoi, BangCongThuc, TexField,
+  chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN,
 } from './QuanLyCauHoi'
 
 function renderTex(text) {
@@ -59,7 +60,6 @@ function NoiDungCauHoi({ c }) {
   )
 }
 
-const NHAN_LOAI_CAU = { TN4PA: 'Trắc nghiệm A–D', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 const MAC_DINH_SO_GOI_Y = { de: 2, tb: 3, kho: 4 }
 
 // "AI tạo bước và gợi ý": GV viết đề bài (+ phương án/ý) sẵn + quy định số bước/số gợi ý —
@@ -68,6 +68,11 @@ const MAC_DINH_SO_GOI_Y = { de: 2, tb: 3, kho: 4 }
 // bản nháp (tái dùng đúng khung ThanCauHoiForm của màn Sửa câu hỏi) rồi mới bấm Lưu.
 function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
   const dangOptions = useMemo(() => dungDangOptions(danhMuc), [danhMuc])
+
+  // Cơ chế chèn ký hiệu từ Bảng công thức vào đúng ô đang focus (đề bài/phương án/ý).
+  const activeInsert = useRef(null)
+  const register = (fn) => { activeInsert.current = fn }
+  const chen = (s, b) => activeInsert.current?.(s, b)
 
   const [form, setForm] = useState({
     dang_id: '', loai_cau: 'TLN', do_kho: 'tb', de_bai: '',
@@ -180,97 +185,104 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
     <Card>
       <CardHeader title="🎓 AI tạo bước và gợi ý"
         subtitle="Thầy/cô viết đề bài (và phương án/ý nếu có) — AI chỉ giải ra đáp án đúng, chia đúng số bước, viết đúng số gợi ý mỗi bước theo yêu cầu." />
-      <CardBody className="flex flex-col gap-4">
-        <div className="grid sm:grid-cols-3 gap-3">
-          <Select
-            label="Chuyên đề › Dạng"
-            value={String(form.dang_id || '')}
-            onChange={(e) => setForm((f) => ({ ...f, dang_id: e.target.value }))}
-            options={dangOptions}
-          />
-          <Select
-            label="Loại câu"
-            value={form.loai_cau}
-            onChange={(e) => doiLoaiCau(e.target.value)}
-            options={[
-              { value: 'TLN', label: 'Trả lời ngắn' },
-              { value: 'TN4PA', label: 'Trắc nghiệm A–D' },
-              { value: 'TNDS', label: 'Đúng/Sai 4 ý' },
-            ]}
-          />
-          <Select
-            label="Độ khó"
-            value={form.do_kho}
-            onChange={(e) => setForm((f) => ({ ...f, do_kho: e.target.value }))}
-            options={[
-              { value: 'de', label: 'Dễ' }, { value: 'tb', label: 'Trung bình' }, { value: 'kho', label: 'Khó' },
-            ]}
-          />
-        </div>
+      <CardBody className="grid lg:grid-cols-[1fr_18rem] gap-5">
+        {/* Cột trái: form nhập */}
+        <div className="flex flex-col gap-4">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <Select
+              label="Chuyên đề › Dạng"
+              value={String(form.dang_id || '')}
+              onChange={(e) => setForm((f) => ({ ...f, dang_id: e.target.value }))}
+              options={dangOptions}
+            />
+            <Select
+              label="Loại câu"
+              value={form.loai_cau}
+              onChange={(e) => doiLoaiCau(e.target.value)}
+              options={[
+                { value: 'TLN', label: 'Trả lời ngắn' },
+                { value: 'TN4PA', label: 'Trắc nghiệm A–D' },
+                { value: 'TNDS', label: 'Đúng/Sai 4 ý' },
+              ]}
+            />
+            <Select
+              label="Độ khó"
+              value={form.do_kho}
+              onChange={(e) => setForm((f) => ({ ...f, do_kho: e.target.value }))}
+              options={[
+                { value: 'de', label: 'Dễ' }, { value: 'tb', label: 'Trung bình' }, { value: 'kho', label: 'Khó' },
+              ]}
+            />
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm text-ink font-medium">Đề bài</label>
-          <textarea
+          <TexField
+            label="Đề bài — công thức đặt trong $...$ (bấm vào ô rồi chọn ký hiệu bên phải để chèn)"
             value={form.de_bai}
-            onChange={(e) => setForm((f) => ({ ...f, de_bai: e.target.value }))}
-            rows={3}
+            onChange={(v) => setForm((f) => ({ ...f, de_bai: v }))}
+            multiline
+            registerActive={register}
             placeholder="VD: Một hộp có 5 bi đỏ, 3 bi xanh. Lấy ngẫu nhiên 2 bi. Tính xác suất lấy được 2 bi đỏ."
-            className="text-sm rounded-md border border-border bg-surface px-3 py-2 resize-y
-              focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
-        </div>
 
-        {form.loai_cau === 'TN4PA' && (
-          <div className="grid sm:grid-cols-2 gap-3">
-            {['A', 'B', 'C', 'D'].map((k) => (
-              <Input key={k} label={`Phương án ${k}`} value={form.phuong_an[k]}
-                onChange={(e) => setForm((f) => ({ ...f, phuong_an: { ...f.phuong_an, [k]: e.target.value } }))}
-              />
-            ))}
-          </div>
-        )}
-
-        {form.loai_cau === 'TNDS' && (
-          <div className="flex flex-col gap-2">
-            {form.y.map((y, i) => (
-              <Input key={y.ky_hieu} label={`Ý ${y.ky_hieu})`} value={y.noi_dung_y}
-                onChange={(e) => setForm((f) => {
-                  const yMoi = [...f.y]
-                  yMoi[i] = { ...yMoi[i], noi_dung_y: e.target.value }
-                  return { ...f, y: yMoi }
-                })}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="rounded-lg bg-surface-2 px-4 py-3 flex flex-col gap-3">
-          <p className="text-sm font-semibold text-ink">Cấu trúc bước & số gợi ý leo thang</p>
-          {form.loai_cau !== 'TNDS' && (
-            <Input label="Số bước" type="number" min={1} max={6} className="max-w-32"
-              value={soBuoc} onChange={(e) => doiSoBuoc(e.target.value)} />
+          {form.loai_cau === 'TN4PA' && (
+            <div className="grid sm:grid-cols-2 gap-3">
+              {['A', 'B', 'C', 'D'].map((k) => (
+                <TexField key={k} label={`Phương án ${k}`} value={form.phuong_an[k]}
+                  onChange={(v) => setForm((f) => ({ ...f, phuong_an: { ...f.phuong_an, [k]: v } }))}
+                  registerActive={register}
+                />
+              ))}
+            </div>
           )}
-          <div className="flex gap-3 flex-wrap">
-            {(form.loai_cau === 'TNDS' ? ['a', 'b', 'c', 'd'] : Array.from({ length: soBuoc }, (_, i) => i + 1))
-              .map((nhan, i) => (
-                <Input key={i} type="number" min={1} max={8} className="w-28"
-                  label={form.loai_cau === 'TNDS' ? `Số gợi ý ý ${nhan}` : `Số gợi ý bước ${nhan}`}
-                  value={soGoiYList[i] ?? 2}
-                  onChange={(e) => setSoGoiYList((gy) => {
-                    const moi = [...gy]
-                    moi[i] = e.target.value
-                    return moi
+
+          {form.loai_cau === 'TNDS' && (
+            <div className="flex flex-col gap-2">
+              {form.y.map((y, i) => (
+                <TexField key={y.ky_hieu} label={`Ý ${y.ky_hieu})`} value={y.noi_dung_y}
+                  registerActive={register}
+                  onChange={(v) => setForm((f) => {
+                    const yMoi = [...f.y]
+                    yMoi[i] = { ...yMoi[i], noi_dung_y: v }
+                    return { ...f, y: yMoi }
                   })}
                 />
               ))}
+            </div>
+          )}
+
+          <div className="rounded-lg bg-surface-2 px-4 py-3 flex flex-col gap-3">
+            <p className="text-sm font-semibold text-ink">Cấu trúc bước & số gợi ý leo thang</p>
+            {form.loai_cau !== 'TNDS' && (
+              <Input label="Số bước" type="number" min={1} max={6} className="max-w-32"
+                value={soBuoc} onChange={(e) => doiSoBuoc(e.target.value)} />
+            )}
+            <div className="flex gap-3 flex-wrap">
+              {(form.loai_cau === 'TNDS' ? ['a', 'b', 'c', 'd'] : Array.from({ length: soBuoc }, (_, i) => i + 1))
+                .map((nhan, i) => (
+                  <Input key={i} type="number" min={1} max={8} className="w-28"
+                    label={form.loai_cau === 'TNDS' ? `Số gợi ý ý ${nhan}` : `Số gợi ý bước ${nhan}`}
+                    value={soGoiYList[i] ?? 2}
+                    onChange={(e) => setSoGoiYList((gy) => {
+                      const moi = [...gy]
+                      moi[i] = e.target.value
+                      return moi
+                    })}
+                  />
+                ))}
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
+          <div>
+            <Button onClick={tao} disabled={dangTao}>
+              {dangTao ? 'AI đang giải và soạn gợi ý...' : '🤖 Tạo bước và gợi ý bằng AI'}
+            </Button>
           </div>
         </div>
 
-        {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
-        <div>
-          <Button onClick={tao} disabled={dangTao}>
-            {dangTao ? 'AI đang giải và soạn gợi ý...' : '🤖 Tạo bước và gợi ý bằng AI'}
-          </Button>
+        {/* Cột phải: bảng công thức hỗ trợ nhập LaTeX */}
+        <div className="sticky top-0 self-start max-h-screen overflow-y-auto">
+          <BangCongThuc onChen={chen} />
         </div>
       </CardBody>
     </Card>
