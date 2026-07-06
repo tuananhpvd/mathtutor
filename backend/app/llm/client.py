@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 import time
 from abc import ABC, abstractmethod
+
+logger = logging.getLogger(__name__)
 
 # Số lần thử lại khi LLM lỗi tạm thời (503/429/timeout) hoặc trả JSON hỏng.
 SO_LAN_THU = 3
@@ -655,6 +658,23 @@ def get_llm_client(cau_hinh: dict | None = None) -> LLMClient:
             return AnthropicLLMClient(khoa, model, temperature, suy_nghi)
         if provider == "openai" and khoa:
             return OpenAILLMClient(khoa, model, temperature, suy_nghi)
-    except ImportError:
+    except ImportError as e:
+        logger.warning(
+            "Rơi về StubLLMClient: thiếu thư viện SDK cho provider '%s' (%s). "
+            "Cần cài đặt package tương ứng (vd `pip install -e \".[llm]\"`).",
+            provider, e,
+        )
         return StubLLMClient()
+
+    if provider == "stub":
+        logger.info("Dùng StubLLMClient theo cấu hình (provider='stub').")
+    elif not khoa:
+        logger.warning(
+            "Rơi về StubLLMClient: provider '%s' được chọn nhưng THIẾU API key.", provider,
+        )
+    else:
+        logger.warning(
+            "Rơi về StubLLMClient: provider '%s' không được hỗ trợ "
+            "(chỉ nhận gemini/anthropic/openai/stub).", provider,
+        )
     return StubLLMClient()

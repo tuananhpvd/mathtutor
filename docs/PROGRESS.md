@@ -4,10 +4,34 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v55**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v56**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **320/320 test backend xanh** (`pytest`, không đổi backend đợt này).
+  Tailwind) chạy end-to-end. **325/325 test backend xanh** (`pytest`).
+- **🐞 Phát hiện lớn — production CHƯA TỪNG gọi Gemini thật (v56):** GV báo "AI sinh câu hỏi sai
+  chuyên đề, trùng lặp" — điều tra ban đầu (v55) chẩn đoán SAI là do AI không ổn định (test bằng
+  máy local có sẵn `google-genai` nên không lộ ra lỗi thật). Nguyên nhân THẬT: `pyproject.toml`
+  khai `google-genai/anthropic/openai` ở nhóm **optional** `[project.optional-dependencies] llm`,
+  nhưng Build Command hướng dẫn lúc deploy Render chỉ là `pip install -e .` (KHÔNG cài extra này)
+  → thiếu thư viện → `get_llm_client()` bắt `ImportError` rồi ÂM THẦM rơi về `StubLLMClient`,
+  không log gì. Vì `get_llm_client` dùng CHUNG cho 5 nơi (`sessions.py` hội thoại HS,
+  `questions_ai.py` sinh câu hỏi, `progress.py` phân tích, `lich_phan_tich.py` quét nền,
+  `admin.py` dashboard) → **toàn bộ tính năng AI trên production đều chạy Stub (mẫu cố định) kể
+  từ lúc deploy**, dù Admin đã cấu hình đúng Gemini + API key. Dấu hiệu nhận biết: nội dung AI
+  sinh giống hệt nhau dù đổi input (khớp nguyên văn template cứng trong `StubLLMClient`).
+  - **Fix Render (user tự làm, KHÔNG phải code)**: đổi Build Command service `mathtutor` từ
+    `pip install -e .` → `pip install -e ".[llm,dev]"` (hoặc `.[llm]` nếu không cần dev tools).
+  - **Fix code (v56)**: `get_llm_client()` giờ **log CẢNH BÁO rõ nguyên nhân** mỗi lần rơi về
+    Stub (thiếu thư viện / thiếu API key / provider không hỗ trợ) — trước đây im lặng hoàn toàn.
+    `tests/test_llm_client.py` (5 test mới, dùng `caplog`) khóa lại đúng hành vi log này.
+  - **Bài học ghi nhớ**: khi debug lỗi có 2 môi trường (local/production), PHẢI xác minh đúng
+    môi trường user thực sự gặp lỗi (đọc DB production qua `PROD_DATABASE_URL` nếu cần), không
+    suy ra từ kết quả test ở local. Chi tiết ghi trong bộ nhớ tự động phiên `feedback-rigor-...`.
+- **✅ Fix lỗi AI sinh câu hỏi rỗng không rõ nguyên nhân (v55):** `sinh_va_luu` giờ tự thử sinh
+  lại tối đa `SO_LAN_THU`=3 lần nếu lần trước AI trả về nhưng không câu nào hợp lệ (JSON sai cấu
+  trúc/thiếu đề bài/không qua CAS) — trước đây báo lỗi ngay lần đầu, không thử lại, không log lý
+  do loại từng câu. Vẫn có ích cho trường hợp AI thật thỉnh thoảng trả JSON hỏng, dù không phải
+  nguyên nhân chính của lỗi GV gặp lần này (xem mục Stub-fallback ở trên).
 - **🚀 B1 — Deploy lên Render THÀNH CÔNG (v52-v55):** đã lên production thật, không còn "user tự
   lo" như dự kiến ban đầu. Hạ tầng: `mathtutor` (Web Service Python, Starter, có Persistent Disk
   cho `backend/uploads/`) + `mathtutor-1` (Static Site frontend, free, rewrite `/api/*` +
