@@ -546,6 +546,7 @@ class AnthropicLLMClient(LLMClient):
                     chi_thi.get("ngu_canh_hs", ""),
                 ),
                 max_tokens=512,
+                suy_nghi=False,  # diễn đạt câu ngắn — không cần suy luận sâu, tránh cắt cụt
             )
         except Exception:
             return f"Gợi ý: {chi_thi.get('y_goi_y', '')}"
@@ -574,7 +575,9 @@ class AnthropicLLMClient(LLMClient):
         )
 
     def phan_tich(self, ho_so: dict) -> dict | None:
-        return _phan_tich_qua_call(lambda s, u: self._call(s, u, max_tokens=4096), ho_so)
+        return _phan_tich_qua_call(
+            lambda s, u: self._call(s, u, max_tokens=4096, suy_nghi=False), ho_so
+        )
 
 
 class GeminiLLMClient(LLMClient):
@@ -673,6 +676,7 @@ class GeminiLLMClient(LLMClient):
                     chi_thi.get("ngu_canh_hs", ""),
                 ),
                 max_tokens=512,
+                suy_nghi=False,  # diễn đạt câu ngắn — không cần suy luận sâu, tránh cắt cụt
             )
         except Exception:
             return f"Gợi ý: {chi_thi.get('y_goi_y', '')}"

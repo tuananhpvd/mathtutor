@@ -4,10 +4,21 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v57**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v58**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **341/341 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **345/345 test backend xanh** (`pytest`).
+- **✅ Fix câu diễn đạt gửi HS bị cắt cụt giữa chừng (v58):** GV báo câu chat với HS kiểu
+  "...tính đạo" (thiếu "hàm"). Điều tra bằng gọi Gemini thật với đúng config production → xác
+  nhận nguyên nhân: Admin bật "Chế độ suy luận (thinking)" cho Gemini (`llm_thinking_gemini=True`)
+  khiến `dien_dat()` (max_tokens=512, câu ngắn) bị suy luận nội bộ ăn hết ngân sách token, chỉ
+  còn ít token cho câu trả lời thật → cắt giữa từ. Gemini's `phan_tich()` đã có sẵn cơ chế tắt
+  thinking đúng, nhưng `dien_dat()` bị bỏ sót; `AnthropicLLMClient` thiếu ở CẢ `dien_dat` VÀ
+  `phan_tich` (không nhất quán). Sửa: cả 2 phương thức ở cả 2 provider giờ LUÔN
+  `suy_nghi=False` — không phụ thuộc ô Admin (ô đó chỉ nên ảnh hưởng sinh câu hỏi/tạo bước gợi ý,
+  việc thật sự cần suy luận sâu). **Đã xác minh 2 lần bằng gọi Gemini thật** (trước sửa: tái
+  hiện đúng lỗi cắt cụt; sau sửa: gọi qua `dien_dat()` công khai dù client vẫn suy_nghi=True vẫn
+  ra câu đầy đủ). 4 test mới khóa hành vi.
 - **✅ "AI tạo bước và gợi ý từ hình ảnh" (v57):** mở rộng panel "AI tạo bước và gợi ý" (v50) —
   GV vẫn chọn chuyên đề/dạng/loại câu/độ khó/số bước/số gợi ý như cũ, nhưng có thể **dán ảnh
   chụp đề (Ctrl+V)** thay vì gõ tay. AI (chỉ Gemini, theo quyết định user) đọc ảnh, đối chiếu
