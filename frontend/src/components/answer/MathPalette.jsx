@@ -109,6 +109,24 @@ export default function MathPalette({ getMf, onInserted }) {
         { label: 'Xóa', run: clear, danger: true },
       ],
     },
+    {
+      title: 'Tổ hợp · Vectơ · Số phức',
+      cols: 6,
+      keys: [
+        { label: 'Cₙᵏ', run: () => ins('C_{\\placeholder{}}^{\\placeholder{}}') },
+        { label: 'Aₙᵏ', run: () => ins('A_{\\placeholder{}}^{\\placeholder{}}') },
+        { label: 'P(A)', run: () => ins('P(\\placeholder{})') },
+        { label: 'P(A|B)', run: () => ins('P(\\placeholder{} \\mid \\placeholder{})') },
+        { label: '∈', run: () => ins('\\in') },
+        { label: '∪', run: () => ins('\\cup') },
+        { label: '∩', run: () => ins('\\cap') },
+        { label: 'vec', run: () => ins('\\vec{\\placeholder{}}') },
+        { label: 'i', run: () => ins('i') },
+        { label: 'z̄', run: () => ins('\\overline{\\placeholder{}}') },
+        { label: '|z|', run: () => ins('\\left|\\placeholder{}\\right|') },
+        { label: '⟂', run: () => ins('\\perp') },
+      ],
+    },
   ]
 
   return (

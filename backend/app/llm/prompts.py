@@ -282,3 +282,52 @@ Trả về đúng 1 câu hỏi theo schema sau (GIỮ NGUYÊN tên khóa, KHÔNG
 {mau}
 
 Trả về: {{"cau_hoi": [ <1 object đúng schema trên, đề bài/phương án/ý giữ nguyên như trên> ]}}"""
+
+
+# ---------- "AI tạo bước và gợi ý từ hình ảnh" — đọc ảnh GV dán, nhận dạng loại câu + trích đề ----------
+
+SYSTEM_DOC_DE_TU_ANH = """
+Bạn là trợ lý đọc đề Toán lớp 12 từ ẢNH giáo viên chụp/dán (có thể là ảnh chụp sách giáo khoa,
+đề thi, hoặc đề tự đánh máy). Nhiệm vụ CHỈ là ĐỌC và TRÍCH XUẤT NGUYÊN VĂN nội dung trong ảnh —
+TUYỆT ĐỐI KHÔNG giải bài, KHÔNG tự sáng tác thêm nội dung không có trong ảnh, KHÔNG diễn giải lại.
+
+Xác định ảnh thuộc ĐÚNG 1 trong 3 loại câu:
+- TN4PA: trắc nghiệm có ĐÚNG 4 phương án A, B, C, D để chọn 1 đáp án.
+- TNDS: có 4 ý/mệnh đề (thường ký hiệu a, b, c, d) mỗi ý cần xác định Đúng/Sai.
+- TLN: câu hỏi trả lời ngắn, chỉ cần điền 1 giá trị số cuối cùng, KHÔNG có phương án/ý nào.
+
+So sánh loại thực tế đọc được trong ảnh với loại giáo viên đang kỳ vọng (nêu trong phần USER):
+- Nếu KHỚP: "khop_loai_cau": true, trích "de_bai" (+ "phuong_an" nếu TN4PA / "y" nếu TNDS vào
+  "meta_nhap"), giữ NGUYÊN VĂN chữ và công thức đọc được, không thêm/bớt.
+- Nếu KHÔNG KHỚP (hoặc ảnh mờ/không đọc được nội dung Toán): "khop_loai_cau": false,
+  "loai_cau_nhan_dang" là loại thực tế đọc được (để trống "" nếu không đọc được ảnh),
+  "ly_do_khong_khop" giải thích ngắn gọn 1 câu bằng tiếng Việt. Khi đó KHÔNG cần điền
+  "de_bai"/"meta_nhap" (để rỗng).
+
+Công thức toán trong "de_bai"/nội dung phương án/ý viết bằng LaTeX trong cặp $...$.
+CHỈ trả JSON, không kèm chữ giải thích nào khác ngoài JSON.
+""".strip()
+
+
+def user_prompt_doc_de_tu_anh(loai_cau_ky_vong: str) -> str:
+    if loai_cau_ky_vong == "TN4PA":
+        mau_meta = '{"phuong_an": {"A": "$...$", "B": "$...$", "C": "$...$", "D": "$...$"}}'
+    elif loai_cau_ky_vong == "TNDS":
+        mau_meta = (
+            '{"y": [{"ky_hieu": "a", "noi_dung_y": "$...$"}, {"ky_hieu": "b", "noi_dung_y": "$...$"}, '
+            '{"ky_hieu": "c", "noi_dung_y": "$...$"}, {"ky_hieu": "d", "noi_dung_y": "$...$"}]}'
+        )
+    else:
+        mau_meta = "{}"
+
+    return f"""Đọc kỹ nội dung ảnh đính kèm, xác định loại câu, so khớp với loại giáo viên đang
+kỳ vọng là "{loai_cau_ky_vong}".
+
+Trả JSON theo đúng schema (GIỮ NGUYÊN tên khóa):
+{{
+  "khop_loai_cau": true hoặc false,
+  "loai_cau_nhan_dang": "TN4PA" hoặc "TNDS" hoặc "TLN" (loại THỰC TẾ đọc được từ ảnh),
+  "de_bai": "<đề đọc nguyên văn từ ảnh, để rỗng nếu khop_loai_cau=false>",
+  "meta_nhap": {mau_meta} (để {{}} nếu khop_loai_cau=false),
+  "ly_do_khong_khop": null nếu khớp, hoặc "<lý do ngắn>" nếu không khớp
+}}"""

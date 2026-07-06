@@ -2,6 +2,7 @@
 Service: sinh câu hỏi AI → lưu DB ở trạng thái cho_duyet; GV duyệt/loại.
 """
 
+import base64
 import logging
 
 from sqlalchemy.orm import Session
@@ -208,3 +209,32 @@ def luu_cau_nhap(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
     db.commit()
     db.refresh(problem)
     return problem
+
+
+_MIME_ANH_HO_TRO = {"image/png", "image/jpeg", "image/webp"}
+_ANH_TOI_DA_BYTES = 5 * 1024 * 1024  # 5MB — tránh phí AI cao bất thường với ảnh quá nặng
+
+
+def doc_de_tu_anh(llm: LLMClient, anh_base64: str, mime_type: str, loai_cau_ky_vong: str) -> dict:
+    """Giải mã + kiểm tra ảnh GV dán, nhờ AI đọc — nhận dạng loại câu + trích đề bài/phương án/ý.
+
+    Không tự sinh nếu ảnh không khớp loại câu GV đang chọn (llm.doc_de_tu_anh tự trả
+    khop_loai_cau=False kèm lý do, KHÔNG raise — caller/API tự quyết định hiển thị thế nào)."""
+    if loai_cau_ky_vong not in {"TN4PA", "TNDS", "TLN"}:
+        raise ValueError("loai_cau_ky_vong không hợp lệ")
+    if mime_type not in _MIME_ANH_HO_TRO:
+        raise ValueError(f"Định dạng ảnh '{mime_type}' không được hỗ trợ (chỉ PNG/JPEG/WEBP)")
+
+    du_lieu = anh_base64.split(",", 1)[-1] if anh_base64.startswith("data:") else anh_base64
+    try:
+        anh_bytes = base64.b64decode(du_lieu, validate=True)
+    except Exception as e:
+        raise ValueError(f"Dữ liệu ảnh không hợp lệ: {e}") from e
+    if not anh_bytes:
+        raise ValueError("Dữ liệu ảnh rỗng")
+    if len(anh_bytes) > _ANH_TOI_DA_BYTES:
+        raise ValueError(
+            f"Ảnh quá lớn ({len(anh_bytes) / 1024 / 1024:.1f}MB) — tối đa "
+            f"{_ANH_TOI_DA_BYTES // 1024 // 1024}MB"
+        )
+    return llm.doc_de_tu_anh(anh_bytes, mime_type, loai_cau_ky_vong)

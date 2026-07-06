@@ -10,6 +10,10 @@ logger = logging.getLogger(__name__)
 SO_LAN_THU = 3
 
 
+class KhongHoTroDocAnhError(RuntimeError):
+    """Provider hiện tại không có khả năng đọc ảnh (multimodal)."""
+
+
 class LLMClient(ABC):
     @abstractmethod
     def dien_dat(self, chi_thi: dict) -> str:
@@ -29,6 +33,17 @@ class LLMClient(ABC):
         """Diễn giải hồ sơ năng lực → {cho_hoc_sinh, cho_giao_vien}. None = không khả dụng
         (vd StubLLMClient) → caller dùng đề xuất theo luật."""
         return None
+
+    def doc_de_tu_anh(self, anh_bytes: bytes, mime_type: str, loai_cau_ky_vong: str) -> dict:
+        """Đọc ảnh đề GV dán, nhận dạng loại câu + trích xuất đề bài/phương án/ý.
+
+        Trả {"khop_loai_cau": bool, "loai_cau_nhan_dang": str, "de_bai": str,
+        "meta_nhap": dict, "ly_do_khong_khop": str|None}.
+        Mặc định: provider không hỗ trợ đọc ảnh (chỉ Gemini override thật)."""
+        raise KhongHoTroDocAnhError(
+            f"{self.__class__.__name__} chưa hỗ trợ đọc ảnh đề bài. "
+            "Đổi provider sang Gemini trong Cấu hình, hoặc gõ đề bài thủ công."
+        )
 
 
 class StubLLMClient(LLMClient):
@@ -444,6 +459,49 @@ def _goi_va_parse(call_fn, system: str, user: str) -> dict:
     raise RuntimeError(f"Sinh câu hỏi thất bại sau {SO_LAN_THU} lần: {loi}")
 
 
+def _parse_json_doc_de_tu_anh(raw: str) -> dict:
+    """Parse JSON {khop_loai_cau, loai_cau_nhan_dang, de_bai, meta_nhap, ly_do_khong_khop}."""
+    text = _trich_json(raw or "")
+    data = None
+    last_err = None
+    for bien_the in (text, _va_escape_json(text), _bo_dau_phay_thua(text),
+                     _bo_dau_phay_thua(_va_escape_json(text))):
+        try:
+            data = json.loads(bien_the)
+            break
+        except json.JSONDecodeError as e:
+            last_err = e
+    if not isinstance(data, dict) or "khop_loai_cau" not in data:
+        raise ValueError(f"LLM trả JSON không hợp lệ hoặc thiếu 'khop_loai_cau': {last_err}")
+    return {
+        "khop_loai_cau": bool(data.get("khop_loai_cau")),
+        "loai_cau_nhan_dang": str(data.get("loai_cau_nhan_dang") or ""),
+        "de_bai": str(data.get("de_bai") or ""),
+        "meta_nhap": data.get("meta_nhap") if isinstance(data.get("meta_nhap"), dict) else {},
+        "ly_do_khong_khop": data.get("ly_do_khong_khop"),
+    }
+
+
+def _doc_de_tu_anh_qua_call(call_fn) -> dict:
+    """Gọi LLM đọc ảnh rồi parse JSON, tự thử lại khi lỗi tạm thời/JSON hỏng.
+
+    call_fn() -> str (đã đóng gói sẵn system/user/ảnh). Ném RuntimeError nếu hết số lần vẫn lỗi.
+    """
+    loi = None
+    for lan in range(SO_LAN_THU):
+        try:
+            raw = call_fn()
+            data = _parse_json_doc_de_tu_anh(raw)
+            if data["khop_loai_cau"] and not data["de_bai"].strip():
+                raise ValueError("LLM báo khớp loại câu nhưng không trích được đề bài")
+            return data
+        except Exception as e:  # lỗi mạng/API hoặc JSON → thử lại
+            loi = e
+            if lan < SO_LAN_THU - 1:
+                time.sleep(1.5 * (lan + 1))
+    raise RuntimeError(f"Đọc ảnh đề bài thất bại sau {SO_LAN_THU} lần: {loi}")
+
+
 class AnthropicLLMClient(LLMClient):
     """Gọi Claude (Anthropic) để sinh câu hỏi & diễn đạt gợi ý."""
 
@@ -576,6 +634,33 @@ class GeminiLLMClient(LLMClient):
         # Hết model dự phòng vẫn lỗi → ném để lớp trên thử lại/đổi sang 502.
         raise loi if loi else RuntimeError("Gemini không phản hồi")
 
+    def _call_voi_anh(self, system: str, user: str, anh_bytes: bytes, mime_type: str,
+                       max_tokens: int = 4096) -> str:
+        """Giống _call nhưng kèm 1 ảnh trong nội dung gửi (multimodal)."""
+        from google.genai import errors as genai_errors  # type: ignore
+        from google.genai import types  # type: ignore
+
+        cfg = types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=self._temperature,
+            max_output_tokens=max_tokens,
+        )
+        contents = [types.Part.from_bytes(data=anh_bytes, mime_type=mime_type), user]
+        loi = None
+        for m in self._models:
+            try:
+                resp = self._client.models.generate_content(model=m, contents=contents, config=cfg)
+                return (resp.text or "").strip()
+            except genai_errors.ServerError as e:
+                loi = e
+                continue
+            except genai_errors.ClientError as e:
+                loi = e
+                if getattr(e, "code", None) == 429:
+                    continue
+                raise
+        raise loi if loi else RuntimeError("Gemini không phản hồi")
+
     def dien_dat(self, chi_thi: dict) -> str:
         from app.llm.prompts import SYSTEM_DIEN_DAT, user_prompt_dien_dat
 
@@ -618,6 +703,16 @@ class GeminiLLMClient(LLMClient):
     def phan_tich(self, ho_so: dict) -> dict | None:
         return _phan_tich_qua_call(
             lambda s, u: self._call(s, u, max_tokens=4096, suy_nghi=False), ho_so
+        )
+
+    def doc_de_tu_anh(self, anh_bytes: bytes, mime_type: str, loai_cau_ky_vong: str) -> dict:
+        from app.llm.prompts import SYSTEM_DOC_DE_TU_ANH, user_prompt_doc_de_tu_anh
+
+        user = user_prompt_doc_de_tu_anh(loai_cau_ky_vong)
+        return _doc_de_tu_anh_qua_call(
+            lambda: self._call_voi_anh(
+                SYSTEM_DOC_DE_TU_ANH, user, anh_bytes, mime_type, max_tokens=4096
+            )
         )
 
 

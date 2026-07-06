@@ -5,12 +5,14 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, co_toan_quyen, require_role
 from app.db.session import get_db
-from app.llm.client import get_llm_client
+from app.llm.client import KhongHoTroDocAnhError, get_llm_client
 from app.models.problem import Nguon, Problem, TrangThaiDuyet
 from app.models.thong_bao import LoaiThongBao
 from app.models.user import VaiTro
 from app.schemas.question_gen import (
     CauHoiNhapResponse,
+    DocDeTuAnhRequest,
+    DocDeTuAnhResponse,
     DuyetRequest,
     LuuBuocGoiYRequest,
     SinhCauHoiRequest,
@@ -20,6 +22,7 @@ from app.services import thong_bao_service
 from app.services.admin_service import lay_cau_hinh
 from app.services.llm_quota_service import LOAI_SINH_CAU_HOI, LOI_HET_QUOTA, ap_quota_tac_vu
 from app.services.question_gen_service import (
+    doc_de_tu_anh,
     duyet_cau,
     luu_cau_nhap,
     sinh_va_luu,
@@ -85,6 +88,38 @@ def tao_buoc_goi_y_api(
             status_code=502,
             detail="AI không tạo được bước/gợi ý hợp lệ (mô hình lỗi hoặc trả dữ liệu "
                    "không đúng). Vui lòng thử lại. Chi tiết: " + str(e)[:200],
+        )
+    return ket_qua
+
+
+@router.post("/doc-de-tu-anh", response_model=DocDeTuAnhResponse,
+             dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def doc_de_tu_anh_api(
+    body: DocDeTuAnhRequest,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+):
+    """AI đọc ảnh GV dán, nhận dạng loại câu + trích đề bài/phương án/ý để điền vào form —
+    CHƯA giải, CHƯA lưu. GV xem chữ AI đọc được, sửa nếu cần, rồi mới bấm "Tạo" như luồng thủ
+    công. Nếu ảnh không khớp loai_cau_ky_vong, trả khop_loai_cau=False kèm lý do (không lỗi)."""
+    if body.loai_cau_ky_vong not in {"TN4PA", "TNDS", "TLN"}:
+        raise HTTPException(status_code=400, detail="loai_cau_ky_vong không hợp lệ")
+    cau_hinh = lay_cau_hinh(db)
+    llm = ap_quota_tac_vu(db, cau_hinh, current_user.id, get_llm_client(cau_hinh),
+                          LOAI_SINH_CAU_HOI)
+    if llm is None:
+        raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
+    try:
+        ket_qua = doc_de_tu_anh(llm, body.anh_base64, body.mime_type, body.loai_cau_ky_vong)
+    except KhongHoTroDocAnhError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:  # KHÔNG để lộ 500 — báo lỗi rõ ràng để GV thử lại
+        raise HTTPException(
+            status_code=502,
+            detail="AI không đọc được ảnh (mô hình lỗi hoặc trả dữ liệu không đúng). "
+                   "Vui lòng thử lại. Chi tiết: " + str(e)[:200],
         )
     return ket_qua
 

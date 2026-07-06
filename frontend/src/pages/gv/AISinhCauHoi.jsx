@@ -61,6 +61,54 @@ function NoiDungCauHoi({ c }) {
 }
 
 const MAC_DINH_SO_GOI_Y = { de: 2, tb: 3, kho: 4 }
+const NHAN_LOAI_CAU = { TN4PA: 'Trắc nghiệm A–D', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
+
+// Ô dán ảnh đề từ clipboard (Ctrl+V) — đọc file ảnh, xem trước, gọi AI nhận dạng.
+function ODanAnh({ anhDan, onDanAnh, onXoaAnh, onNhanDang, dangDoc, loaiCau }) {
+  function xuLyPaste(e) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (!file) continue
+        const reader = new FileReader()
+        reader.onload = () => onDanAnh({ dataUrl: reader.result, mimeType: file.type })
+        reader.readAsDataURL(file)
+        e.preventDefault()
+        return
+      }
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-surface-2 px-4 py-3 flex flex-col gap-2">
+      <p className="text-sm font-semibold text-ink">Dán ảnh đề bài (tùy chọn)</p>
+      <p className="text-xs text-muted">
+        Chụp/copy ảnh đề rồi bấm vào ô dưới và dán (Ctrl+V) — AI sẽ đọc ảnh và tự điền đề bài{loaiCau === 'TN4PA' ? '/phương án' : loaiCau === 'TNDS' ? '/4 ý' : ''} bên dưới để anh/chị kiểm tra lại trước khi tạo. Ảnh chỉ dùng để đọc, không được lưu lại.
+      </p>
+      {anhDan ? (
+        <div className="flex items-start gap-3">
+          <img src={anhDan.dataUrl} alt="Ảnh đề đã dán" className="max-h-40 rounded-md border border-border" />
+          <div className="flex flex-col gap-2">
+            <Button onClick={onNhanDang} disabled={dangDoc}>
+              {dangDoc ? 'AI đang đọc ảnh...' : '🔎 Nhận dạng từ ảnh'}
+            </Button>
+            <Button variant="secondary" onClick={onXoaAnh} disabled={dangDoc}>Xóa ảnh</Button>
+          </div>
+        </div>
+      ) : (
+        <div
+          tabIndex={0}
+          onPaste={xuLyPaste}
+          className="rounded-md border border-border bg-surface px-3 py-6 text-center text-sm text-muted cursor-text focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          Bấm vào đây rồi dán ảnh (Ctrl+V)
+        </div>
+      )}
+    </div>
+  )
+}
 
 // "AI tạo bước và gợi ý": GV viết đề bài (+ phương án/ý) sẵn + quy định số bước/số gợi ý —
 // AI CHỈ giải ra đáp án đúng, chia đúng số bước, viết đúng số gợi ý mỗi bước. Khác luồng
@@ -85,6 +133,41 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
   const [error, setError] = useState('')
   const [nhap, setNhap] = useState(null) // {cau, canh_bao} bản nháp — CHƯA lưu DB
   const [dangLuu, setDangLuu] = useState(false)
+  const [anhDan, setAnhDan] = useState(null) // { dataUrl, mimeType } — chỉ dùng để AI đọc, không lưu
+  const [dangDocAnh, setDangDocAnh] = useState(false)
+
+  async function nhanDangTuAnh() {
+    if (!anhDan) return
+    setError('')
+    setDangDocAnh(true)
+    try {
+      const ket = await api.docDeTuAnh({
+        anh_base64: anhDan.dataUrl, mime_type: anhDan.mimeType, loai_cau_ky_vong: form.loai_cau,
+      })
+      if (!ket.khop_loai_cau) {
+        const nhanNhanDang = NHAN_LOAI_CAU[ket.loai_cau_nhan_dang] || ket.loai_cau_nhan_dang || 'không rõ'
+        setError(
+          `Ảnh có vẻ là dạng "${nhanNhanDang}" nhưng ô "Loại câu" đang chọn là "${NHAN_LOAI_CAU[form.loai_cau]}".` +
+          (ket.ly_do_khong_khop ? ` ${ket.ly_do_khong_khop}` : '') +
+          ' Vui lòng đổi lại ô Loại câu hoặc dán đúng ảnh.'
+        )
+        return
+      }
+      setForm((f) => ({
+        ...f,
+        de_bai: ket.de_bai || f.de_bai,
+        phuong_an: f.loai_cau === 'TN4PA' && ket.meta_nhap?.phuong_an
+          ? { ...f.phuong_an, ...ket.meta_nhap.phuong_an } : f.phuong_an,
+        y: f.loai_cau === 'TNDS' && Array.isArray(ket.meta_nhap?.y) ? ket.meta_nhap.y : f.y,
+      }))
+      // Giữ ảnh lại để GV đối chiếu chữ AI đọc được với ảnh gốc — chỉ mất khi bấm
+      // "Xóa ảnh" hoặc bấm "Tạo bước và gợi ý" (xem hàm tao()).
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDangDocAnh(false)
+    }
+  }
 
   function doiLoaiCau(loai) {
     setForm((f) => ({ ...f, loai_cau: loai }))
@@ -116,6 +199,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
     if (form.loai_cau === 'TNDS' && form.y.some((y) => !y.noi_dung_y.trim())) {
       setError('Vui lòng nhập đủ nội dung 4 ý a–d.'); return
     }
+    setAnhDan(null) // đã dùng ảnh xong (nếu có) — không lưu ảnh vào dữ liệu
     setDangTao(true)
     try {
       const body = {
@@ -214,6 +298,15 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
               ]}
             />
           </div>
+
+          <ODanAnh
+            anhDan={anhDan}
+            onDanAnh={setAnhDan}
+            onXoaAnh={() => setAnhDan(null)}
+            onNhanDang={nhanDangTuAnh}
+            dangDoc={dangDocAnh}
+            loaiCau={form.loai_cau}
+          />
 
           <TexField
             label="Đề bài — công thức đặt trong $...$ (bấm vào ô rồi chọn ký hiệu bên phải để chèn)"

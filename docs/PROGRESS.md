@@ -4,10 +4,34 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v56**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v57**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **325/325 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **341/341 test backend xanh** (`pytest`).
+- **✅ "AI tạo bước và gợi ý từ hình ảnh" (v57):** mở rộng panel "AI tạo bước và gợi ý" (v50) —
+  GV vẫn chọn chuyên đề/dạng/loại câu/độ khó/số bước/số gợi ý như cũ, nhưng có thể **dán ảnh
+  chụp đề (Ctrl+V)** thay vì gõ tay. AI (chỉ Gemini, theo quyết định user) đọc ảnh, đối chiếu
+  với "Loại câu" GV đã chọn: khớp → tự điền đề bài/phương án/ý vào đúng ô chữ để GV kiểm tra lại
+  trước khi bấm "Tạo" như luồng cũ; KHÔNG khớp → báo lỗi rõ, KHÔNG tự sinh bừa. Ảnh CHỈ dùng để
+  đọc, không lưu vào DB — giữ nguyên hiển thị cho GV đối chiếu tới khi bấm "Xóa ảnh" hoặc bấm
+  "Tạo bước và gợi ý" (theo yêu cầu UX của user, sửa sau khi code xong bản đầu).
+  - Backend: `LLMClient.doc_de_tu_anh()` (mặc định báo lỗi rõ "chưa hỗ trợ", chỉ
+    `GeminiLLMClient` override thật qua `_call_voi_anh` — gọi Gemini multimodal thật). Endpoint
+    `POST /questions-ai/doc-de-tu-anh`. Giới hạn ảnh 5MB, chỉ PNG/JPEG/WEBP. 16 test mới
+    (`test_doc_de_tu_anh.py`) — **đã xác minh THẬT bằng cách gọi qua HTTP thật tới Gemini thật**
+    (không chỉ mock), theo đúng bài học rút ra từ sự cố Stub-fallback (v56): luôn kiểm tra đúng
+    môi trường/luồng thật trước khi báo đã xong.
+  - Frontend: `AISinhCauHoi.jsx` thêm `ODanAnh` (ô dán ảnh clipboard).
+- **✅ Bổ sung ký hiệu Bảng công thức toán (v57):** cả 2 phía —
+  - GV (`QuanLyCauHoi.jsx` → `NHOM_CONG_THUC`, dùng chung Tạo/Sửa câu hỏi + panel AI): thêm nhóm
+    "Hàm sơ cấp" (sin/cos/tan/cot/ln/log_a/eˣ/|x|), "Tập hợp - Logic" (∈∉⊂∅∩∪∀∃), "Tổ hợp - Xác
+    suất" (C_n^k/A_n^k/n!/P(A)/|/Σ). **Phát hiện + fix thêm 6 nút CŨ bị sai vị trí con trỏ**
+    (x^n, dfrac, int_a^b, f'(x), f''(x), F(x) — bấm xong con trỏ nằm lệch ra ngoài dấu ngoặc
+    thay vì nằm gọn bên trong) — lỗi có từ trước, phát hiện khi rà cơ chế `back` offset lúc thêm
+    nút mới; đã mô phỏng xác minh lại toàn bộ ~30 nút trước khi báo xong.
+  - HS (`components/answer/MathPalette.jsx`, dùng MathLive `\placeholder{}` nên không có rủi ro
+    lệch con trỏ như bên GV): thêm nhóm "Tổ hợp · Vectơ · Số phức" (C_n^k, A_n^k, P(A), P(A|B),
+    ∈∪∩, vectơ, số ảo i, liên hợp z̄, |z|, ⟂).
 - **🐞 Phát hiện lớn — production CHƯA TỪNG gọi Gemini thật (v56):** GV báo "AI sinh câu hỏi sai
   chuyên đề, trùng lặp" — điều tra ban đầu (v55) chẩn đoán SAI là do AI không ổn định (test bằng
   máy local có sẵn `google-genai` nên không lộ ra lỗi thật). Nguyên nhân THẬT: `pyproject.toml`

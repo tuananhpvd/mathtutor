@@ -56,6 +56,7 @@ export const api = {
   genQuestions: (body) => post('/questions-ai/generate', body),
   taoBuocGoiY: (body) => post('/questions-ai/tao-buoc-goi-y', body),
   luuBuocGoiY: (cau) => post('/questions-ai/tao-buoc-goi-y/luu', { cau }),
+  docDeTuAnh: (body) => post('/questions-ai/doc-de-tu-anh', body),
   listChoDuyet: () => request('/questions-ai/cho-duyet'),
   duyetCau: (id, hanh_dong) => post(`/questions-ai/${id}/duyet`, { hanh_dong }),
   uploadHinh: async (file) => {

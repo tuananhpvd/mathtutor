@@ -44,3 +44,18 @@ class CauHoiNhapResponse(BaseModel):
 
 class DuyetRequest(BaseModel):
     hanh_dong: str = Field("duyet", description="duyet | loai")
+
+
+class DocDeTuAnhRequest(BaseModel):
+    """AI đọc ảnh GV dán, nhận dạng loại câu + trích xuất đề bài/phương án/ý."""
+    anh_base64: str = Field(..., min_length=1)
+    mime_type: str = Field(..., description="image/png | image/jpeg | image/webp")
+    loai_cau_ky_vong: str = Field(..., description="TN4PA | TNDS | TLN — loại GV đang chọn")
+
+
+class DocDeTuAnhResponse(BaseModel):
+    khop_loai_cau: bool
+    loai_cau_nhan_dang: str = ""
+    de_bai: str = ""
+    meta_nhap: dict = {}
+    ly_do_khong_khop: str | None = None
