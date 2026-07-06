@@ -21,6 +21,7 @@ from app.api.questions_ai import router as questions_ai_router
 from app.api.sessions import router as sessions_router
 from app.api.thong_bao import router as thong_bao_router
 from app.api.tro_giup import router as tro_giup_router
+from app.config import settings
 from app.core.uploads import UPLOADS_DIR
 
 
@@ -39,9 +40,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MathTutor API", version="0.1.0", lifespan=lifespan)
 
+_cors_origins = ["http://localhost:5173", "http://localhost:3000"]
+_cors_origins += [o.strip() for o in settings.cors_extra_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

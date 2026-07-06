@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_temperature: float = 0.2
 
+    cors_extra_origins: str = ""
+
 
 settings = Settings()
 
