@@ -2,9 +2,11 @@
 Service: sinh câu hỏi AI → lưu DB ở trạng thái cho_duyet; GV duyệt/loại.
 """
 
+import logging
+
 from sqlalchemy.orm import Session
 
-from app.llm.client import LLMClient
+from app.llm.client import SO_LAN_THU, LLMClient
 from app.llm.question_gen import sinh_buoc_goi_y, sinh_nhap, validate_cau_hoi
 from app.models.danh_muc import Dang
 from app.models.problem import (
@@ -16,6 +18,8 @@ from app.models.problem import (
     TrangThaiDuyet,
 )
 from app.models.solution_step import SolutionStep
+
+logger = logging.getLogger(__name__)
 
 _LOAI_DAP_AN = {"TN4PA": "chon_phuong_an", "TNDS": "dung_sai_4y", "TLN": "gia_tri"}
 
@@ -69,28 +73,18 @@ def _luu_mot_cau(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
     return problem
 
 
-def sinh_va_luu(
+def _loc_va_luu_nhap(
     db: Session,
+    nhap: list[dict],
     yeu_cau: dict,
+    dang,
     nguoi_tao_id: int | None,
-    llm: LLMClient,
 ) -> list[dict]:
-    """Sinh nháp, lưu mỗi câu (kèm cảnh báo) ở cho_duyet. Trả list mô tả.
-
-    Gắn câu sinh ra vào dạng được chọn (dang_id) và đồng bộ tên chuyên đề theo dạng;
-    đồng thời truyền tên dạng cho LLM để sinh đúng dạng bài.
-    """
-    dang_id = yeu_cau.get("dang_id")
-    dang = db.get(Dang, dang_id) if dang_id else None
-    if dang is not None:
-        yeu_cau = {**yeu_cau, "dang": dang.ten}
-        if dang.chuyen_de is not None:
-            yeu_cau["chuyen_de"] = dang.chuyen_de.ten
-
-    nhap = sinh_nhap(llm, yeu_cau)
+    """Lọc từng câu AI sinh ra (bỏ câu hỏng), lưu câu hợp lệ ở cho_duyet. Trả list mô tả."""
     ket_qua = []
     for item in nhap:
         if not isinstance(item.get("cau"), dict):
+            logger.warning("Bỏ câu AI sinh: 'cau' không phải dict (%r)", type(item.get("cau")))
             continue
         cau = dict(item["cau"])
         # Ép các trường ĐÃ BIẾT từ yêu cầu GV (tránh phụ thuộc LLM trả đúng tên khóa).
@@ -101,6 +95,7 @@ def sinh_va_luu(
             cau["chuyen_de"] = yeu_cau.get("chuyen_de", cau.get("chuyen_de", ""))
         # Bỏ qua câu rỗng/không có đề (không lưu rác).
         if not str(cau.get("de_bai") or "").strip():
+            logger.warning("Bỏ câu AI sinh: đề bài rỗng")
             continue
         # Savepoint cho từng câu: một câu hỏng chỉ hủy chính nó, không sập cả mẻ.
         sp = db.begin_nested()
@@ -109,8 +104,9 @@ def sinh_va_luu(
             problem = _luu_mot_cau(db, cau, nguoi_tao_id)
             db.flush()
             sp.commit()
-        except Exception:
+        except Exception as e:
             sp.rollback()
+            logger.warning("Bỏ câu AI sinh: lỗi validate/lưu — %s: %s", type(e).__name__, e)
             continue
         ket_qua.append({
             "id": problem.id,
@@ -122,6 +118,40 @@ def sinh_va_luu(
             "trang_thai_duyet": problem.trang_thai_duyet.value,
             "canh_bao": canh_bao,
         })
+    return ket_qua
+
+
+def sinh_va_luu(
+    db: Session,
+    yeu_cau: dict,
+    nguoi_tao_id: int | None,
+    llm: LLMClient,
+) -> list[dict]:
+    """Sinh nháp, lưu mỗi câu (kèm cảnh báo) ở cho_duyet. Trả list mô tả.
+
+    Gắn câu sinh ra vào dạng được chọn (dang_id) và đồng bộ tên chuyên đề theo dạng;
+    đồng thời truyền tên dạng cho LLM để sinh đúng dạng bài.
+
+    Vì nhiệt độ sinh > 0 khiến thỉnh thoảng AI trả nội dung không hợp lệ (bị lọc bỏ hết),
+    tự thử sinh lại tối đa SO_LAN_THU lần trước khi trả rỗng cho GV.
+    """
+    dang_id = yeu_cau.get("dang_id")
+    dang = db.get(Dang, dang_id) if dang_id else None
+    if dang is not None:
+        yeu_cau = {**yeu_cau, "dang": dang.ten}
+        if dang.chuyen_de is not None:
+            yeu_cau["chuyen_de"] = dang.chuyen_de.ten
+
+    ket_qua: list[dict] = []
+    for lan in range(SO_LAN_THU):
+        nhap = sinh_nhap(llm, yeu_cau)
+        ket_qua = _loc_va_luu_nhap(db, nhap, yeu_cau, dang, nguoi_tao_id)
+        if ket_qua:
+            break
+        logger.warning(
+            "Lần %d/%d: AI sinh %d câu nhưng không câu nào hợp lệ, thử lại.",
+            lan + 1, SO_LAN_THU, len(nhap),
+        )
     db.commit()
     return ket_qua
 

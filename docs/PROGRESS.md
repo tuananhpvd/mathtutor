@@ -4,10 +4,56 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v51**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v55**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **320/320 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **🚀 B1 — Deploy lên Render THÀNH CÔNG (v52-v55):** đã lên production thật, không còn "user tự
+  lo" như dự kiến ban đầu. Hạ tầng: `mathtutor` (Web Service Python, Starter, có Persistent Disk
+  cho `backend/uploads/`) + `mathtutor-1` (Static Site frontend, free, rewrite `/api/*` +
+  `/uploads/*` → backend để tránh CORS) + `mathtutor-db` (Postgres, Basic). Workspace Hobby
+  (free), chi phí ước tính ~$14-15/tháng (Web Service + Postgres trả phí, Static Site luôn free).
+  - **v52 fix:** thiếu driver `psycopg2-binary` (chỉ test SQLite trước giờ) + setuptools tưởng
+    `uploads/` là package thứ 2 (local có ảnh test, không nằm trong Git) → thêm
+    `[tool.setuptools.packages.find] include = ["app*"]`.
+  - **v53 fix:** CORS hardcode localhost → thêm `CORS_EXTRA_ORIGINS` (env, danh sách phẩy) đọc
+    từ `config.py`, giữ localhost mặc định cho dev.
+  - **v54 fix quan trọng — đã KIỂM CHỨNG TRỰC TIẾP trên Postgres production (bảng tạm)**:
+    `_migrate_them_cot` dùng cú pháp SQLite `BOOLEAN DEFAULT 0/1` → Postgres báo lỗi thật
+    (`DatatypeMismatch`) khi thêm cột boolean mới. Sửa toàn bộ sang `DEFAULT false/true` (hợp lệ
+    cả 2 CSDL). ⚠️ Cột hiện có không sao (đã tạo đúng kiểu từ model lúc `create_all`), NHƯNG mọi
+    cột boolean thêm SAU NÀY phải qua đúng cú pháp mới này, không thì vỡ deploy trên production
+    thật (có dữ liệu GV/HS thật, không còn là dev.db bỏ được).
+  - **Di chuyển dữ liệu local → production (1 lần, `backend/scripts/migrate_local_to_prod.py`)**:
+    TRUNCATE rồi nạp lại 7 bảng (`users, lop, chuyen_de, dang, problems, solution_steps,
+    thong_bao`) theo đúng thứ tự phụ thuộc khóa ngoại (users↔lop có phụ thuộc vòng → chèn
+    users với `lop_id=NULL` trước, cập nhật sau). ⚠️ **KHÔNG chạy lại theo chiều này nữa** — từ
+    khi GV/HS bắt đầu dùng thật trên Render, production là nơi giữ dữ liệu thật DUY NHẤT, chạy
+    lại sẽ xóa sạch dữ liệu thật. Muốn đồng bộ ngược (prod→local) cần script khác (chưa viết).
+  - **Quy trình vận hành đã thống nhất với user:** (1) GV/HS dùng thật trên Render để thêm dữ
+    liệu; (2) code tiếp tục sửa ở local → push GitHub → Render tự deploy (auto-deploy). Lưu ý:
+    có gắn Persistent Disk nên **mỗi lần deploy có gián đoạn ngắn** (không zero-downtime) — nên
+    deploy ngoài giờ HS/GV đang dùng. Luôn chạy build-test-fix xanh trước khi push (giờ ảnh
+    hưởng người dùng thật, không chỉ dev.db).
+  - **Dọn lịch sử Git**: xóa 2 tác giả thừa trên GitHub Contributors (`tailieuvipabc` — email cũ
+    của chính user, và `claude` — từ dòng `Co-Authored-By` sót lại ở 2 commit rất cũ) bằng
+    `git filter-repo` (mailmap chuẩn hoá email + message-callback xoá dòng Co-Authored-By), rewrite
+    toàn bộ 54 tag để vẫn `git checkout v23` được như cũ (chỉ đổi hash ẩn, không đổi nội dung).
+    Có backup bundle trước khi rewrite. Xác nhận sau cùng: lịch sử ĐÃ SẠCH từ trước (rewrite lần
+    này no-op) — cái GitHub hiện "3 Contributors" chỉ là cache hiển thị, dữ liệu thật đã đúng.
+  - **✅ Fix lỗi AI sinh câu hỏi không ổn định (v55):** GV báo lỗi "Mô hình AI không tạo được câu
+    hỏi hợp lệ" trên production. Điều tra bằng cách gọi TRỰC TIẾP đúng API key/model Gemini thật
+    lưu trên Postgres production (đọc-only, dọn dữ liệu test ngay sau) → xác nhận key/model/kết
+    nối đều ổn, KHÔNG phải lỗi Render hay cấu hình — mà do nhiệt độ sinh > 0 khiến AI thỉnh
+    thoảng (đo được ~1/10 lần) trả nội dung không đúng cấu trúc, bị lọc âm thầm không log, không
+    thử lại (khác cơ chế thử-lại-3-lần đã có cho lỗi mạng/JSON ở `_goi_va_parse`). Sửa
+    `question_gen_service.sinh_va_luu`: tách lọc+lưu ra `_loc_va_luu_nhap` (có log lý do loại mỗi
+    câu), bọc trong vòng lặp tự thử sinh lại tối đa `SO_LAN_THU` (=3) lần nếu lần trước không có
+    câu nào hợp lệ.
+  - **Quy tắc làm việc mới user yêu cầu (2026-07-06)**: mọi yêu cầu code/fix phải phân tích +
+    **đánh giá rủi ro cụ thể** + đề xuất + chờ xác nhận trước khi code (đặc biệt liên quan
+    DB/production); sau khi test xanh → tóm tắt + nhắc đưa GitHub (không tự push). Cú pháp
+    `đưa lên github, ghi chú "..."` → dùng NGUYÊN VĂN phần ngoặc kép làm commit message.
 - **✅ Bảng công thức cho panel "AI tạo bước và gợi ý" (v51):** export thêm `BangCongThuc` +
   `TexField` từ `QuanLyCauHoi.jsx`; đề bài/phương án A-D/ý a-d trong panel mới đổi sang
   `TexField` (xem trước công thức + đăng ký làm ô đang focus), thêm cột phải hiện
