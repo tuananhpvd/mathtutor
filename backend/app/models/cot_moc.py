@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class CotMoc(Base):
@@ -15,5 +16,5 @@ class CotMoc(Base):
     tieu_de: Mapped[str] = mapped_column(String(200), nullable=False)
     mo_ta: Mapped[str | None] = mapped_column(String(500), nullable=True)
     dat_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )

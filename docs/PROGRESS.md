@@ -4,10 +4,29 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v65**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-07, phiên bản **v66**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`, không đổi backend đợt này).
+  Tailwind) chạy end-to-end. **353/353 test backend xanh** (`pytest`).
+- **✅ Fix lệch múi giờ 7 tiếng toàn hệ thống (v66):** xác nhận qua gọi API thật — mọi mốc thời
+  gian gửi cho frontend thiếu hậu tố múi giờ (vd `"2026-07-07T16:25:54"` thay vì cần
+  `"...+00:00"`). Giá trị lưu trong DB đúng là UTC (code đã dùng
+  `datetime.now(timezone.utc)` nhất quán từ trước), nhưng cột `DateTime` trơn (không
+  `timezone=True`) làm SQLAlchemy/SQLite/Postgres bỏ mất tzinfo khi đọc lại → JSON thiếu hậu
+  tố → frontend (`new Date(...)`) hiểu nhầm thành giờ local trình duyệt → hiển thị lệch đúng 7
+  tiếng ở VN. Phát hiện thêm: có 1 chỗ (`QuanLyDeThi.jsx` cột "Nộp lúc") từng tự vá bằng nối
+  thêm `'Z'`, chỉ đúng 1 nơi, hàng chục nơi khác (thông báo, mục tiêu, phân tích, nhiệm vụ,
+  trang chủ HS...) vẫn lệch.
+  - **Sửa tận gốc, không vá từng chỗ**: kiểu cột dùng chung `UTCDateTime`
+    (`backend/app/db/types.py`) — tự gắn lại tzinfo=UTC khi đọc từ DB. Áp dụng cho **toàn bộ 14
+    model** có mốc thời gian (đã quét xác nhận không sót). Gỡ chỗ vá `+ 'Z'` cũ ở
+    `QuanLyDeThi.jsx` (nếu để nguyên sẽ hóa "Invalid Date" vì backend giờ đã tự thêm hậu tố,
+    nối thêm sẽ thành chuỗi kép).
+  - **⚠️ KHÔNG cần chạy migration DB, KHÔNG đổi dữ liệu đã lưu trên production** — chỉ đổi cách
+    Python đọc dữ liệu (giá trị lưu vốn đã đúng UTC từ trước). An toàn tuyệt đối với dữ liệu
+    GV/HS thật đã có trên Render (theo đúng yêu cầu user: chỉ đưa code, không ảnh hưởng dữ
+    liệu).
+  - 4 test mới khóa hành vi (`test_utc_datetime.py`).
 - **✅ Fix ảnh câu hỏi không hiện ở phòng học HS (v65):** HS báo câu hỏi có hình không thấy ảnh
   khi làm bài. Điều tra xác nhận backend KHÔNG lỗi — cả `GET /sessions/{id}` (làm tiếp bài dở,
   `ChiTietPhienResponse`) lẫn `GET /problems/{id}` (bắt đầu bài mới, `_strip_answers`) đều đã

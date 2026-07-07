@@ -1,10 +1,11 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 def _now() -> datetime:
@@ -32,7 +33,7 @@ class DeThi(Base):
     thoi_gian_phut: Mapped[int] = mapped_column(Integer, default=90, nullable=False)
     # Chỉ đề đã phát hành mới hiện với HS; thu hồi = ẩn với HS (bài đã nộp giữ nguyên).
     phat_hanh: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    tao_luc: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    tao_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=False)
 
     cau_list: Mapped[list["DeThiCau"]] = relationship(
         "DeThiCau", back_populates="de_thi", order_by="DeThiCau.thu_tu",
@@ -65,8 +66,8 @@ class BaiThi(Base):
     trang_thai: Mapped[TrangThaiBaiThi] = mapped_column(
         Enum(TrangThaiBaiThi), default=TrangThaiBaiThi.dang_thi, nullable=False
     )
-    bat_dau_luc: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
-    nop_luc: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    bat_dau_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=False)
+    nop_luc: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     # {de_thi_cau_id (str): đáp án nhập} — TN4PA: "A"; TNDS: {"a":"Dung",...}; TLN: "5".
     bai_lam: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     diem: Mapped[float | None] = mapped_column(Float, nullable=True)

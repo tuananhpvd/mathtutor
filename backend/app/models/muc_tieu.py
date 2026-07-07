@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class MucTieu(Base):
@@ -28,10 +29,10 @@ class MucTieu(Base):
     chuyen_de: Mapped[str | None] = mapped_column(String(200), nullable=True)
     chi_tieu_so: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     moc_bat_dau: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
-    han: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    han: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     da_huy: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     tao_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )

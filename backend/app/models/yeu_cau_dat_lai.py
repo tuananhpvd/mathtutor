@@ -1,10 +1,11 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text
+from sqlalchemy import Enum, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class TrangThaiYeuCau(str, enum.Enum):
@@ -24,8 +25,8 @@ class YeuCauDatLai(Base):
         Enum(TrangThaiYeuCau), default=TrangThaiYeuCau.cho_duyet, nullable=False
     )
     tao_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     xu_ly_boi_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    xu_ly_luc: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    xu_ly_luc: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     ghi_chu_admin: Mapped[str | None] = mapped_column(Text, nullable=True)

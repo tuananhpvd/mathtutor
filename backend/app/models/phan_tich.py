@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class PhanTich(Base):
@@ -20,5 +21,5 @@ class PhanTich(Base):
     # Nguồn nội dung: "ai" (LLM diễn giải) | "luat" (đề xuất theo luật khi LLM không khả dụng).
     nguon: Mapped[str] = mapped_column(String(16), default="ai", nullable=False)
     tao_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )

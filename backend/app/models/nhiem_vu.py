@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class NhiemVu(Base):
@@ -15,9 +16,9 @@ class NhiemVu(Base):
     gv_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     tieu_de: Mapped[str] = mapped_column(String(200), nullable=False)
     mo_ta: Mapped[str | None] = mapped_column(Text, nullable=True)
-    han_chot: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    han_chot: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     tao_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
 

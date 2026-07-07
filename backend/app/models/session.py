@@ -1,10 +1,11 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class TrangThaiSession(str, enum.Enum):
@@ -35,14 +36,14 @@ class Session(Base):
     thoi_gian_y: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     diem: Mapped[float | None] = mapped_column(Float, nullable=True)
     bat_dau_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     # Thời gian HOẠT ĐỘNG tích lũy (giây) — cộng dồn mỗi lượt, đã chặn khoảng nghỉ dài.
     thoi_gian_hoat_dong_giay: Mapped[int | None] = mapped_column(Integer, default=0, nullable=True)
     # Thời gian làm bài cuối cùng (giây) khi hoàn thành = thoi_gian_hoat_dong_giay.
     thoi_gian_giay: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cap_nhat_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     # Soft-reset: True khi GV yêu cầu đặt lại tiến độ HS và admin đã duyệt.
     bi_an: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

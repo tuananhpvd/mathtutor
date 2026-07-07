@@ -6,10 +6,11 @@ giữ lại (denormalized) để tương thích với progress/sessions/scope đ
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 def _now() -> datetime:
@@ -26,7 +27,7 @@ class ChuyenDe(Base):
     mo_ta: Mapped[str | None] = mapped_column(Text, nullable=True)
     thu_tu: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     nguoi_tao_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    tao_luc: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    tao_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=False)
 
     dang_list: Mapped[list["Dang"]] = relationship(
         "Dang",
@@ -48,7 +49,7 @@ class Dang(Base):
     mo_ta: Mapped[str | None] = mapped_column(Text, nullable=True)
     thu_tu: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     nguoi_tao_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
-    tao_luc: Mapped[datetime] = mapped_column(DateTime, default=_now, nullable=False)
+    tao_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=False)
 
     chuyen_de: Mapped["ChuyenDe"] = relationship("ChuyenDe", back_populates="dang_list")
     problems: Mapped[list["Problem"]] = relationship(  # noqa: F821

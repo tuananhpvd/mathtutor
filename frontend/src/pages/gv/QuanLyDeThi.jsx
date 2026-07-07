@@ -266,7 +266,7 @@ function KetQuaLop({ deId, ten, onDong }) {
                     {r.diem}/{r.diem_toi_da}
                   </td>
                   <td className="py-2 text-right text-muted">
-                    {r.nop_luc ? new Date(r.nop_luc + 'Z').toLocaleString('vi-VN') : '—'}
+                    {r.nop_luc ? new Date(r.nop_luc).toLocaleString('vi-VN') : '—'}
                   </td>
                 </tr>
               ))}

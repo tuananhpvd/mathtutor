@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class Progress(Base):
@@ -18,5 +19,5 @@ class Progress(Base):
     ty_le_dung_trung_binh: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     tong_thoi_gian_giay: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cap_nhat_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )

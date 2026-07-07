@@ -1,10 +1,11 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, Text
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class VaiTroTurn(str, enum.Enum):
@@ -25,7 +26,7 @@ class Turn(Base):
     cap_goi_y: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     co_bi_chot_chan: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     thoi_diem: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     session: Mapped["Session"] = relationship("Session", back_populates="turns")  # noqa: F821

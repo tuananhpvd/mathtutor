@@ -1,10 +1,11 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class LoaiCo(str, enum.Enum):
@@ -34,6 +35,6 @@ class Flag(Base):
     )
     ghi_chu: Mapped[str | None] = mapped_column(Text, nullable=True)
     tao_luc: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
     xu_ly_boi: Mapped[str | None] = mapped_column(String(100), nullable=True)
