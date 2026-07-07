@@ -299,7 +299,9 @@ export function TexField({ value, onChange, label, multiline, registerActive, pl
       {label && <p className="text-xs text-muted mb-1">{label}</p>}
       {multiline ? <textarea rows={2} {...common} /> : <input {...common} />}
       {value && /\$[^$]+\$/.test(value) && (
-        <p className="text-[13px] text-ink/80 mt-1 px-1">{renderTex(value)}</p>
+        <p className="text-[13px] text-ink/80 mt-1 px-2 py-1 rounded-md bg-surface-2 border border-border">
+          {renderTex(value)}
+        </p>
       )}
     </div>
   )
