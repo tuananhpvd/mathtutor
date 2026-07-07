@@ -580,11 +580,21 @@ class AnthropicLLMClient(LLMClient):
         )
 
 
+# Mã lỗi ClientError (4xx) nên thử model dự phòng thay vì bỏ cuộc ngay: 429 (hết quota —
+# model khác có quota riêng), 404 (model bị khai tử/đổi tên — model khác có thể còn tồn tại).
+# Các mã 4xx khác (400 sai định dạng, 401/403 khóa API sai) KHÔNG đổi model vì sẽ lỗi y hệt.
+_MA_LOI_THU_MODEL_KHAC = (429, 404)
+
+
 class GeminiLLMClient(LLMClient):
     """Gọi Google Gemini để sinh câu hỏi & diễn đạt gợi ý."""
 
-    # Model dự phòng khi model chính bị 503 (quá tải) — thử lần lượt.
-    _DU_PHONG = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
+    # Model dự phòng khi model chính bị 503 (quá tải)/404 (model bị khai tử) — thử lần lượt.
+    # "gemini-2.0-flash" ĐÃ bị Google khai tử (404 NOT_FOUND) dù vẫn còn liệt kê ở
+    # models.list() — xác nhận bằng gọi generate_content thật, không suy đoán từ danh sách.
+    # "gemini-flash-latest" là alias Google luôn trỏ tới flash model hiện hành, giảm rủi ro
+    # lặp lại sự cố tên model cứng bị lỗi thời trong tương lai.
+    _DU_PHONG = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
 
     def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
@@ -629,9 +639,9 @@ class GeminiLLMClient(LLMClient):
             except genai_errors.ServerError as e:  # 5xx/quá tải → thử model kế
                 loi = e
                 continue
-            except genai_errors.ClientError as e:  # 429 hết quota → thử model khác (quota riêng)
+            except genai_errors.ClientError as e:  # 429 hết quota / 404 model bị khai tử → thử model khác
                 loi = e
-                if getattr(e, "code", None) == 429:
+                if getattr(e, "code", None) in _MA_LOI_THU_MODEL_KHAC:
                     continue
                 raise
         # Hết model dự phòng vẫn lỗi → ném để lớp trên thử lại/đổi sang 502.
@@ -659,7 +669,7 @@ class GeminiLLMClient(LLMClient):
                 continue
             except genai_errors.ClientError as e:
                 loi = e
-                if getattr(e, "code", None) == 429:
+                if getattr(e, "code", None) in _MA_LOI_THU_MODEL_KHAC:
                     continue
                 raise
         raise loi if loi else RuntimeError("Gemini không phản hồi")

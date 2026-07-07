@@ -119,3 +119,80 @@ def test_anthropic_phan_tich_luon_tat_thinking(monkeypatch):
     monkeypatch.setattr(llm, "_call", _fake_call)
     llm.phan_tich({})
     assert goi_lai["suy_nghi"] is False
+
+
+# ---------- Gemini: model bị khai tử (404)/hết quota (429) phải chuyển model dự phòng ----------
+#
+# Bối cảnh: "gemini-2.0-flash" (từng nằm trong _DU_PHONG) bị Google khai tử — gọi thật trả 404
+# NOT_FOUND, nhưng code cũ chỉ coi 429 là "thử model khác", các mã 4xx khác (gồm 404) bị raise
+# ngay không thử model dự phòng — khiến cả 3 lần thử lại đều lỗi y hệt. Test khóa hành vi mới:
+# cả 404 và 429 đều chuyển sang model kế tiếp trong self._models.
+
+def _gia_client_error(code):
+    from google.genai import errors
+    return errors.ClientError(code, {"error": {"code": code, "message": "gia lap"}})
+
+
+def test_gemini_404_chuyen_sang_model_du_phong(monkeypatch):
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    llm._models = ["model-bi-khai-tu", "model-du-phong"]
+    goi_lai = []
+
+    class _FakeModels:
+        def generate_content(self, model, contents, config):
+            goi_lai.append(model)
+            if model == "model-bi-khai-tu":
+                raise _gia_client_error(404)
+            return type("R", (), {"text": "cau tra loi tu model du phong"})()
+
+    llm._client = type("C", (), {"models": _FakeModels()})()
+    ket = llm._call("system", "user")
+    assert ket == "cau tra loi tu model du phong"
+    assert goi_lai == ["model-bi-khai-tu", "model-du-phong"]
+
+
+def test_gemini_429_van_chuyen_sang_model_du_phong(monkeypatch):
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    llm._models = ["model-het-quota", "model-du-phong"]
+    goi_lai = []
+
+    class _FakeModels:
+        def generate_content(self, model, contents, config):
+            goi_lai.append(model)
+            if model == "model-het-quota":
+                raise _gia_client_error(429)
+            return type("R", (), {"text": "ok"})()
+
+    llm._client = type("C", (), {"models": _FakeModels()})()
+    llm._call("system", "user")
+    assert goi_lai == ["model-het-quota", "model-du-phong"]
+
+
+def test_gemini_400_khong_thu_model_khac():
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    llm._models = ["model-a", "model-b"]
+    goi_lai = []
+
+    class _FakeModels:
+        def generate_content(self, model, contents, config):
+            goi_lai.append(model)
+            raise _gia_client_error(400)
+
+    llm._client = type("C", (), {"models": _FakeModels()})()
+    try:
+        llm._call("system", "user")
+        raised = False
+    except Exception:
+        raised = True
+    assert raised
+    assert goi_lai == ["model-a"]  # KHÔNG thử model-b vì 400 không liên quan tới model
+
+
+def test_gemini_khong_con_model_khai_tu_trong_danh_sach_du_phong():
+    assert "gemini-2.0-flash" not in GeminiLLMClient._DU_PHONG

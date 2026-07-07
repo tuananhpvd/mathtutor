@@ -4,10 +4,25 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v58**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v59**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **345/345 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`).
+- **✅ Fix model dự phòng Gemini bị hỏng (v59):** GV báo lỗi đọc ảnh "404 NOT_FOUND ...
+  gemini-2.0-flash is no longer available". Xác nhận bằng gọi API thật: Google ĐÃ khai tử model
+  `gemini-2.0-flash` (dù vẫn còn hiện trong `models.list()` — không tin danh sách, phải gọi thật
+  mới biết chắc), model này nằm trong `_DU_PHONG` (danh sách dự phòng khi model chính lỗi).
+  2 lỗi cộng dồn: (1) danh sách dự phòng có model đã chết, (2) code cũ chỉ coi mã lỗi **429**
+  (hết quota) là lý do thử model kế tiếp — **404** (model không tồn tại) bị `raise` ngay, không
+  thử các model dự phòng còn lại dù chúng vẫn hoạt động tốt. Sửa: bỏ `gemini-2.0-flash` khỏi
+  `_DU_PHONG`, thay bằng `gemini-flash-latest` (alias Google luôn trỏ model flash hiện hành);
+  coi 404 giống 429 (đều thử model kế tiếp), 400/401/403 vẫn dừng ngay (không liên quan tới việc
+  đổi model). Thứ tự gọi hiện tại (Admin để trống ô Model): `gemini-2.5-flash` →
+  `gemini-2.5-flash-lite` → `gemini-flash-latest`. **Đã xác minh 2 lần bằng gọi Gemini thật**:
+  ép model chính = model đã chết → xác nhận tự chuyển sang model dự phòng thành công, kiểm tra
+  cả đường `_call` (hội thoại) lẫn `_call_voi_anh` (đọc ảnh — đúng nơi lỗi xảy ra ban đầu). 4
+  test mới khóa hành vi (404/429 đều chuyển model, 400 dừng ngay, không còn model chết trong
+  danh sách).
 - **✅ Fix câu diễn đạt gửi HS bị cắt cụt giữa chừng (v58):** GV báo câu chat với HS kiểu
   "...tính đạo" (thiếu "hàm"). Điều tra bằng gọi Gemini thật với đúng config production → xác
   nhận nguyên nhân: Admin bật "Chế độ suy luận (thinking)" cho Gemini (`llm_thinking_gemini=True`)
