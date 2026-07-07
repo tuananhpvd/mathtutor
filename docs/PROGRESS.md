@@ -4,10 +4,18 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v64**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v65**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **✅ Fix ảnh câu hỏi không hiện ở phòng học HS (v65):** HS báo câu hỏi có hình không thấy ảnh
+  khi làm bài. Điều tra xác nhận backend KHÔNG lỗi — cả `GET /sessions/{id}` (làm tiếp bài dở,
+  `ChiTietPhienResponse`) lẫn `GET /problems/{id}` (bắt đầu bài mới, `_strip_answers`) đều đã
+  trả đúng `hinh_anh` (xác minh trực tiếp bằng gọi hàm thật với dữ liệu thật, không chỉ đọc
+  code). Lỗi nằm ở `frontend/src/pages/hs/PhongHoc.jsx`: khi nhận dữ liệu về, code liệt kê tay
+  từng trường để lưu vào state `problem` nhưng bỏ sót `hinh_anh` ở CẢ 2 nhánh (bắt đầu bài mới
+  dòng ~180, làm tiếp bài dở dòng ~158) — dữ liệu server gửi đúng nhưng bị rơi mất trước khi
+  render. Thêm `hinh_anh` vào cả 2 object literal.
 - **✅ Thống kê ngân hàng câu hỏi cho GV (v64):** trang "Quản lý câu hỏi" (GV), phía trên "Lọc
   trạng thái duyệt" — thêm panel `ThongKeChuyenDe` (`QuanLyCauHoi.jsx`), qua vài vòng chỉnh theo
   ảnh mẫu user gửi:

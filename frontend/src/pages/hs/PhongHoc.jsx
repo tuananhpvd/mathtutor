@@ -155,7 +155,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
         if (sessionId) {
           const ct = await api.getSession(sessionId)
           if (huy) return
-          setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, meta: ct.meta, chuyen_de: ct.chuyen_de, dang_ten: ct.dang_ten })
+          setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, hinh_anh: ct.hinh_anh, meta: ct.meta, chuyen_de: ct.chuyen_de, dang_ten: ct.dang_ten })
           setSid(ct.session_id)
           setTurns(ct.turns.map((t) => ({ vai_tro: t.vai_tro, noi_dung: t.noi_dung })))
           setTrangThai({
@@ -177,7 +177,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
           const p = await api.getProblem(problemId)
           const phien = await api.createSession(problemId)
           if (huy) return
-          setProblem({ loai_cau: p.loai_cau, de_bai: p.de_bai, meta: p.meta, chuyen_de: p.chuyen_de, dang_ten: p.dang_ten })
+          setProblem({ loai_cau: p.loai_cau, de_bai: p.de_bai, hinh_anh: p.hinh_anh, meta: p.meta, chuyen_de: p.chuyen_de, dang_ten: p.dang_ten })
           setSid(phien.session_id)
           setTurns([{ vai_tro: 'gia_su', noi_dung: phien.van_ban }])
           setTrangThai({
