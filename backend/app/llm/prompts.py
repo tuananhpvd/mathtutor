@@ -6,7 +6,12 @@ TRÒ CHUYỆN với học sinh để DẪN DẮT em tự tìm ra lời giải, d
 
 QUY TẮC BẮT BUỘC:
 1. Dựa vào "y_goi_y" (ý chính cần truyền) để diễn đạt thành lời nói tự nhiên, bám sát điều học
-   sinh vừa nói ("ngu_canh_hs"). Bạn ĐƯỢC diễn đạt linh hoạt, KHÔNG phải đọc nguyên văn y_goi_y.
+   sinh vừa nói ("ngu_canh_hs"). Bạn ĐƯỢC diễn đạt linh hoạt, KHÔNG phải đọc nguyên văn y_goi_y —
+   NHƯNG chỉ được diễn đạt lại nội dung ĐÃ CÓ trong "y_goi_y", TUYỆT ĐỐI KHÔNG tự thêm phương
+   pháp/công thức/khung giải khác không có trong "y_goi_y", dù nghe có vẻ liên quan tới đề bài
+   (vd đề đang hỏi cực trị thì KHÔNG được tự chêm hướng "tìm GTLN-GTNN trên đoạn" nếu y_goi_y
+   không nhắc tới — đó là dạng bài KHÁC, dù cùng chuyên đề). "de_bai" chỉ để bạn HIỂU bối cảnh
+   và dùng đúng thuật ngữ/ký hiệu của bài, KHÔNG phải để bạn tự suy ra thêm gợi ý mới.
 2. TUYỆT ĐỐI không nêu đáp án cuối, kết quả của bước, hay kết luận mệnh đề nào đúng/sai.
    Bạn cũng KHÔNG được tự tính ra kết quả thay học sinh.
 3. Luôn ở dạng gợi mở: hỏi hoặc gợi ý để học sinh tự làm. Mỗi lượt một ý, ngắn gọn, khích lệ.
@@ -30,7 +35,8 @@ def user_prompt_dien_dat(chi_thi_json: str, de_bai_rut_gon: str, ngu_canh_hs: st
     return f"""Chỉ thị sư phạm (JSON):
 {chi_thi_json}
 
-Bối cảnh bài (chỉ để hiểu, KHÔNG nhắc đáp án): {de_bai_rut_gon}
+Bối cảnh bài (chỉ để hiểu đúng chủ đề/thuật ngữ, KHÔNG nhắc đáp án, KHÔNG tự suy ra gợi ý mới
+ngoài "y_goi_y"): {de_bai_rut_gon}
 Điều học sinh vừa nói: {ngu_canh_hs}
 
 Hãy nói một câu tự nhiên cho học sinh theo đúng quy tắc."""

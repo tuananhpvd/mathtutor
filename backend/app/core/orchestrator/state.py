@@ -18,6 +18,9 @@ class TrangThaiPhien:
 
     # danh sách bước (list[SolutionStep-like dict])
     steps: list = field(default_factory=list)
+    # Đề bài (rút gọn) — CHỈ để làm ngữ cảnh cho LLM diễn đạt bám đúng chủ đề, orchestrator
+    # KHÔNG dùng để quyết định logic chuyển trạng thái.
+    de_bai: str = ""
 
     def buoc_data(self) -> dict | None:
         """Lấy step dict phù hợp với buoc_hien_tai và y_hien_tai."""

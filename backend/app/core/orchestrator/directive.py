@@ -12,6 +12,7 @@ class ChiThi:
     cap_goi_y: int
     y_goi_y: str  # Ý CHÍNH cho LLM làm la bàn (không phải lời thoại)
     ngu_canh_hs: str  # điều HS vừa nói
+    de_bai: str = ""  # đề bài (rút gọn) — ngữ cảnh giúp LLM bám đúng chủ đề, tránh bịa lạc đề
     rang_buoc: str = field(
         default="khong_duoc_neu_ket_qua_dap_an_dung_sai"
     )
@@ -25,5 +26,6 @@ class ChiThi:
             "cap_goi_y": self.cap_goi_y,
             "y_goi_y": self.y_goi_y,
             "ngu_canh_hs": self.ngu_canh_hs,
+            "de_bai": self.de_bai,
             "rang_buoc": self.rang_buoc,
         }

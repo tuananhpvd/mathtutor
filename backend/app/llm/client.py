@@ -316,7 +316,7 @@ class OpenAILLMClient(LLMClient):
                 SYSTEM_DIEN_DAT,
                 user_prompt_dien_dat(
                     json.dumps(chi_thi, ensure_ascii=False),
-                    chi_thi.get("ngu_canh_hs", ""),
+                    chi_thi.get("de_bai", ""),
                     chi_thi.get("ngu_canh_hs", ""),
                 ),
             )
@@ -542,7 +542,7 @@ class AnthropicLLMClient(LLMClient):
                 SYSTEM_DIEN_DAT,
                 user_prompt_dien_dat(
                     json.dumps(chi_thi, ensure_ascii=False),
-                    chi_thi.get("ngu_canh_hs", ""),
+                    chi_thi.get("de_bai", ""),
                     chi_thi.get("ngu_canh_hs", ""),
                 ),
                 max_tokens=512,
@@ -682,7 +682,7 @@ class GeminiLLMClient(LLMClient):
                 SYSTEM_DIEN_DAT,
                 user_prompt_dien_dat(
                     json.dumps(chi_thi, ensure_ascii=False),
-                    chi_thi.get("ngu_canh_hs", ""),
+                    chi_thi.get("de_bai", ""),
                     chi_thi.get("ngu_canh_hs", ""),
                 ),
                 max_tokens=512,

@@ -4,10 +4,23 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-07, phiên bản **v66**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v67**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **353/353 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **359/359 test backend xanh** (`pytest`).
+- **✅ Fix lỗi AI tự bịa gợi ý lạc đề (v67):** GV báo AI diễn đạt gợi ý cho câu hỏi cực trị lại
+  tự chêm "tìm giá trị lớn nhất/nhỏ nhất trên đoạn" — nội dung KHÔNG có trong
+  `danh_sach_goi_y` đã lưu. Điều tra bằng dữ liệu production thật (Problem 35): xác nhận gợi ý
+  lưu trong DB hoàn toàn đúng chủ đề, lỗi hoàn toàn ở khâu AI diễn đạt. 2 nguyên nhân cộng dồn:
+  (1) `ChiThi` gửi cho AI **chưa từng có đề bài** — orchestrator/state.py không mang `de_bai`;
+  (2) lỗi truyền sai tham số ở CẢ 3 client thật (`client.py`): `user_prompt_dien_dat()` bị gán
+  nhầm `ngu_canh_hs` vào đúng chỗ đáng lẽ là đề bài, khiến AI hoàn toàn không biết ngữ cảnh câu
+  hỏi, chỉ có mỗi gợi ý cụt → tự bịa khung quen thuộc (dễ lẫn dạng bài liền kề cùng chuyên đề).
+  Sửa: thêm `de_bai` xuyên suốt `TrangThaiPhien` → `ChiThi` → LLM (lõi `core/orchestrator` vẫn
+  KHÔNG import LLM/web — đã quét xác nhận, giữ đúng nguyên tắc bất biến #4); sửa tham số sai ở
+  cả 3 client; siết `SYSTEM_DIEN_DAT` cấm AI tự chêm phương pháp/khung giải ngoài "y_goi_y".
+  **Đã xác minh thật**: gọi Gemini thật 5/5 lần với đúng dữ liệu câu hỏi gây lỗi — không còn
+  lần nào lạc đề. 6 test mới (`test_de_bai_ngu_canh.py`).
 - **✅ Fix lệch múi giờ 7 tiếng toàn hệ thống (v66):** xác nhận qua gọi API thật — mọi mốc thời
   gian gửi cho frontend thiếu hậu tố múi giờ (vd `"2026-07-07T16:25:54"` thay vì cần
   `"...+00:00"`). Giá trị lưu trong DB đúng là UTC (code đã dùng

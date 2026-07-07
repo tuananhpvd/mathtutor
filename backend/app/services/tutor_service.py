@@ -161,6 +161,7 @@ def _restore_state(session: SessionModel, problem: Problem) -> TrangThaiPhien:
         so_y_dung=session.so_y_dung,
         da_suy_luan=session.da_suy_luan,
         steps=_steps_to_list(problem),
+        de_bai=problem.de_bai,
     )
 
 
@@ -229,6 +230,7 @@ def tao_phien(
     trang_thai = TrangThaiPhien(
         loai_cau=problem.loai_cau.value,
         steps=_steps_to_list(problem),
+        de_bai=problem.de_bai,
     )
     chi_thi, trang_thai_moi = _dispatch(
         trang_thai, None, "", False, None, problem.loai_cau.value, problem.meta

@@ -46,6 +46,7 @@ def _chi_thi(trang_thai, y_dinh, y_goi_y, ngu_canh_hs, y_dang_xet=None) -> ChiTh
         cap_goi_y=trang_thai.cap_goi_y_hien_tai,
         y_goi_y=y_goi_y,
         ngu_canh_hs=ngu_canh_hs,
+        de_bai=trang_thai.de_bai,
     )
 
 
