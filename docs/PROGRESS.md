@@ -4,10 +4,29 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v63**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v64**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **✅ Thống kê ngân hàng câu hỏi cho GV (v64):** trang "Quản lý câu hỏi" (GV), phía trên "Lọc
+  trạng thái duyệt" — thêm panel `ThongKeChuyenDe` (`QuanLyCauHoi.jsx`), qua vài vòng chỉnh theo
+  ảnh mẫu user gửi:
+  - Đầu panel: `TomTatTongQuan` — tổng câu hỏi + tổng theo Dễ/TB/Khó toàn bộ chuyên đề, luôn hiện.
+  - Mỗi chuyên đề (accordion, bấm mới mở): `TongQuanChuyenDe` (4 thẻ tổng+mức độ kèm % trong
+    chuyên đề đó, rồi 3 thẻ theo loại câu TN4PA/TNDS/TLN kèm số Dễ/TB/Khó) → sau đó lưới 2 cột
+    `TheDangChiTiet` theo từng dạng, mỗi thẻ có bảng chéo loại câu × mức độ (`BangChiTietChuyenDe`)
+    + thanh tỉ lệ mức độ.
+  - Màu: tái dùng đúng token màu trạng thái sẵn có của app (`success/warning/danger` cho Dễ/TB/
+    Khó, nhất quán với `ThongKeTienDo.jsx`) — không tự bịa hex mới, theo đúng quy tắc
+    `styles/README.md` mục "Nguyên tắc khi dựng trang mới".
+  - Đếm TẤT CẢ trạng thái duyệt, không phụ thuộc bộ lọc "Lọc trạng thái duyệt" bên dưới.
+  - Phân trang 20 câu/trang ở bảng danh sách bên dưới **đã có sẵn từ trước** (`MOI_TRANG_CH`),
+    không cần thêm việc gì.
+  - ⚠️ **5 lỗi lint có sẵn từ trước** trong `QuanLyCauHoi.jsx` (không phải do đợt sửa này gây
+    ra, đã xác nhận qua `git stash`): 3 hàm tiện ích export chung file component
+    (`kiemTraDapAnTLN`/`dungDangOptions`/`chuanHoaSteps` — bị `AISinhCauHoi.jsx` import dùng
+    chung, muốn sửa cần tách file riêng), 1 hàm chết `dinhDangNgay` không nơi nào gọi, 1
+    `setState` gọi trực tiếp trong `useEffect`. Chưa sửa — đang chờ user quyết định.
 - **✅ Ô xem trước hiện cả khi không có công thức toán (v63):** `TexField` (`QuanLyCauHoi.jsx`)
   — trước đây chỉ hiện ô xem trước khi nội dung có chứa `$...$`, khiến GV thấy không đồng bộ
   (ô có công thức thì có khung xem trước, ô toàn chữ thì không). Bỏ điều kiện bắt buộc có
