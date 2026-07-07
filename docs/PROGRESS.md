@@ -4,10 +4,22 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v59**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v60**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **✅ Fix lỗi thêm câu hỏi bị trùng ID (v60):** GV báo lỗi lưu câu hỏi mới:
+  `UniqueViolation ... solution_steps_pkey ... Key (id)=(44) already exists`. Nguyên nhân: hậu
+  quả sót lại từ lần migrate dữ liệu local→production (v54) — script chèn thẳng "id" có sẵn từ
+  SQLite (không qua `nextval()`), khiến sequence tự tăng của Postgres KHÔNG biết mà cập nhật
+  theo, bị kẹt ở giá trị thấp trong khi dữ liệu thật đã có ID cao hơn nhiều. Kiểm tra xác nhận
+  **6/7 bảng migrate lần đó đều bị lệch** (`users, lop, chuyen_de, dang, solution_steps,
+  thong_bao` — riêng `problems` tình cờ đã tự đồng bộ nhờ các lần tôi tạo/xóa câu hỏi test khi
+  điều tra lỗi AI trước đó). **Đã sửa NGAY trên production** (chạy `setval()` đồng bộ lại cả 7
+  sequence về đúng `MAX(id)` — không cần chờ deploy) + xác minh thật bằng tạo 1 câu hỏi qua đúng
+  luồng ORM (id cấp đúng, không trùng) rồi xóa dữ liệu test. **Sửa gốc trong code**:
+  `backend/scripts/migrate_local_to_prod.py` thêm bước tự động `setval()` sau khi chèn dữ liệu —
+  nếu sau này dùng lại script này (môi trường khác) sẽ không lặp lại lỗi này.
 - **✅ Fix model dự phòng Gemini bị hỏng (v59):** GV báo lỗi đọc ảnh "404 NOT_FOUND ...
   gemini-2.0-flash is no longer available". Xác nhận bằng gọi API thật: Google ĐÃ khai tử model
   `gemini-2.0-flash` (dù vẫn còn hiện trong `models.list()` — không tin danh sách, phải gọi thật

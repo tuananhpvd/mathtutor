@@ -68,6 +68,17 @@ def main() -> None:
                     {"lop_id": lop_id, "user_id": user_id},
                 )
 
+        # BẮT BUỘC: chèn thẳng "id" có sẵn (không qua nextval()) khiến sequence tự tăng của
+        # Postgres KHÔNG biết mà cập nhật theo — nếu bỏ qua bước này, lần đầu app tự thêm dòng
+        # mới (qua ORM, không chỉ định id) sẽ dùng lại đúng id đã tồn tại → UniqueViolation.
+        print("Dang dong bo lai sequence...", flush=True)
+        for name in TABLES_IN_ORDER:
+            tgt_conn.execute(text(
+                f"SELECT setval(pg_get_serial_sequence('{name}', 'id'), "
+                f"(SELECT GREATEST(MAX(id), 1) FROM \"{name}\"))"
+            ))
+        print("Da dong bo sequence.", flush=True)
+
     print("Xong.")
 
 
