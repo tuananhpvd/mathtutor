@@ -4,15 +4,17 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v61**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v62**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`, không đổi backend đợt này).
-- **✅ Tô màu nền ô xem trước công thức (v61):** `TexField` (`QuanLyCauHoi.jsx`) — ô xem trước
-  render KaTeX bên dưới mỗi input giờ có nền `bg-surface-2` + viền + bo góc thay vì chỉ chữ
-  trơn, giúp GV phân biệt rõ ô nhập vs ô xem trước. Sửa 1 chỗ dùng chung cho toàn bộ đề bài/
-  phương án A–D/ý a–d/mô tả bước/gợi ý, ở cả 3 nơi: Tạo câu hỏi, Sửa câu hỏi, panel "AI tạo bước
-  và gợi ý" (kể cả nhánh từ ảnh).
+- **✅ Tô màu nền ô xem trước công thức (v61-v62):** `TexField` (`QuanLyCauHoi.jsx`) — ô xem
+  trước render KaTeX bên dưới mỗi input giờ có nền + viền + bo góc thay vì chỉ chữ trơn, giúp GV
+  phân biệt rõ ô nhập vs ô xem trước. Sửa 1 chỗ dùng chung cho toàn bộ đề bài/phương án A–D/ý
+  a–d/mô tả bước/gợi ý, ở cả 3 nơi: Tạo câu hỏi, Sửa câu hỏi, panel "AI tạo bước và gợi ý" (kể
+  cả nhánh từ ảnh). v62: theo mẫu ảnh user gửi, đổi từ nền xám trung tính (`bg-surface-2` +
+  viền xám) sang nền xanh dương nhạt theo màu chủ đạo hệ thống (`bg-primary-soft` + viền
+  `border-primary/30`, bo góc lớn hơn `rounded-lg`) — rõ ràng/dễ phân biệt hơn.
 - **✅ Fix lỗi thêm câu hỏi bị trùng ID (v60):** GV báo lỗi lưu câu hỏi mới:
   `UniqueViolation ... solution_steps_pkey ... Key (id)=(44) already exists`. Nguyên nhân: hậu
   quả sót lại từ lần migrate dữ liệu local→production (v54) — script chèn thẳng "id" có sẵn từ
