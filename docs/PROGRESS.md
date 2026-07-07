@@ -4,10 +4,16 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v62**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-06, phiên bản **v63**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **349/349 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **✅ Ô xem trước hiện cả khi không có công thức toán (v63):** `TexField` (`QuanLyCauHoi.jsx`)
+  — trước đây chỉ hiện ô xem trước khi nội dung có chứa `$...$`, khiến GV thấy không đồng bộ
+  (ô có công thức thì có khung xem trước, ô toàn chữ thì không). Bỏ điều kiện bắt buộc có
+  `$...$`, giờ chỉ cần có giá trị là hiện khung xem trước — `renderTex` không đổi nên vẫn nhận
+  diện đúng công thức khi có, chữ thường thì hiện y nguyên. Đồng bộ với v61-v62 (tô màu nền
+  xanh cho khung này).
 - **✅ Tô màu nền ô xem trước công thức (v61-v62):** `TexField` (`QuanLyCauHoi.jsx`) — ô xem
   trước render KaTeX bên dưới mỗi input giờ có nền + viền + bo góc thay vì chỉ chữ trơn, giúp GV
   phân biệt rõ ô nhập vs ô xem trước. Sửa 1 chỗ dùng chung cho toàn bộ đề bài/phương án A–D/ý
