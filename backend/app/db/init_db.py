@@ -121,7 +121,7 @@ def _migrate_them_cot(engine) -> None:
         cot = {c["name"] for c in insp.get_columns("problems")}
         if "tao_luc" not in cot:
             with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc DATETIME"))
+                conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc TIMESTAMP"))
         if "bi_an" not in cot:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE problems ADD COLUMN bi_an BOOLEAN DEFAULT false NOT NULL"))
@@ -161,10 +161,10 @@ def _migrate_them_cot(engine) -> None:
                 ))
         if "phat_hanh_luc" not in cot_dt:
             with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE de_thi ADD COLUMN phat_hanh_luc DATETIME"))
+                conn.execute(text("ALTER TABLE de_thi ADD COLUMN phat_hanh_luc TIMESTAMP"))
         if "thu_hoi_luc" not in cot_dt:
             with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE de_thi ADD COLUMN thu_hoi_luc DATETIME"))
+                conn.execute(text("ALTER TABLE de_thi ADD COLUMN thu_hoi_luc TIMESTAMP"))
     if "de_thi_cau" in ten_bang:
         cot_dtc = {c["name"] for c in insp.get_columns("de_thi_cau")}
         if "diem_cau" not in cot_dtc:

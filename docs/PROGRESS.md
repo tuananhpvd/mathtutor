@@ -4,10 +4,23 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v71**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v72**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **363/363 test backend xanh** (`pytest`).
+- **🔥 HOTFIX production sập lúc deploy (v72):** v71 thêm migration `ALTER TABLE de_thi ADD
+  COLUMN ... DATETIME` — `DATETIME` là kiểu riêng của SQLite, PostgreSQL không hiểu (lỗi
+  `psycopg2.errors.UndefinedObject: type "datetime" does not exist`) → `init_db()` raise ngay
+  lúc khởi động → toàn bộ app crash-loop trên Render (`Application startup failed. Exiting`).
+  Sửa: đổi cả 3 chỗ dùng `DATETIME` trong `_migrate_them_cot()` (`init_db.py`) sang `TIMESTAMP`
+  (kiểu ANSI chuẩn, cả SQLite lẫn Postgres đều hiểu đúng — đã test tay cả 2 phía trước khi
+  push). 1 trong 3 chỗ (`problems.tao_luc`) là lỗi CŨ có từ trước, chỉ chưa lộ ra vì cột đó đã
+  tồn tại sẵn trên production nên nhánh `if ... not in cot` chưa từng chạy tới — nay sửa luôn
+  cho chắc, dù không ảnh hưởng hành vi hiện tại (branch vẫn không chạy vì cột đã có).
+  **Bài học**: mọi câu lệnh `ALTER TABLE` raw SQL thêm cột kiểu ngày giờ PHẢI dùng `TIMESTAMP`,
+  KHÔNG dùng `DATETIME` — pattern chuẩn từ nay cho `_migrate_them_cot()`.
+  - Chủ động đẩy fix ngay (không chờ user yêu cầu "đưa lên github") vì production đang crash-loop
+    thật — mức độ khẩn cấp cao hơn quy trình chờ xác nhận thông thường; đã báo rõ với user.
 - **✅ GV xem chi tiết kết quả thi của HS + gợi ý giao nhiệm vụ luyện tập (v71):**
   - Mỗi thẻ đề (trang GV) hiện thêm **ngày tạo/phát hành/thu hồi**. `DeThi` thêm 2 cột nullable
     `phat_hanh_luc`/`thu_hoi_luc` — lưu MỐC GẦN NHẤT (không lưu lịch sử nhiều lần bấm), cập nhật
