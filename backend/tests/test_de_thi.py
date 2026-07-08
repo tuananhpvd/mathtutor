@@ -105,6 +105,9 @@ def test_luong_thi_day_du_va_cham_diem(db, client):
     assert r.status_code == 200
     bai = r.json()
     assert bai["trang_thai"] == "dang_thi" and bai["con_lai_giay"] > 0
+    # Đề 90 phút → giờ hiển thị KHÔNG được cộng thêm 30s gia hạn (gia hạn chỉ dùng phía
+    # server để chấp nhận thao tác trễ, không phải giờ HS nhìn thấy trên đồng hồ đếm ngược).
+    assert bai["con_lai_giay"] <= 90 * 60
     assert "dap_an_dung" not in r.text and "dap_an_cuoi" not in r.text
     assert '"dap_an":' not in r.text  # đáp án từng ý TNDS
 
@@ -222,6 +225,49 @@ def test_tron_de_theo_ma_tran(db, client):
     r = client.post("/api/de-thi/tron", headers=h_gv,
                     json={"so_cau": {"I": 0, "II": 0, "III": 0}})
     assert r.status_code == 400
+
+
+def test_phat_hanh_tuy_chon_doi_tuong(db, client):
+    """GV có 2 lớp — phát hành tuỳ chọn chỉ 1 lớp thì lớp còn lại không thấy/không thi được."""
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    lop2 = Lop(ten="12DE-B", gv_id=gv.id)
+    db.add(lop2)
+    db.flush()
+    hs2 = User(vai_tro=VaiTro.hs, ho_ten="HS Đề 2", dang_nhap="hs_de2",
+               mat_khau_hash=hash_password("pass"), lop_id=lop2.id)
+    db.add(hs2)
+    db.commit()
+
+    h_gv = _h(_login(client, "gv_de"))
+    h_hs = _h(_login(client, "hs_de"))
+    h_hs2 = _h(_login(client, "hs_de2"))
+    de_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln).json()["id"]
+
+    # Phát hành tùy chọn — chỉ giao cho hs (không giao hs2)
+    r = client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv,
+                     json={"phat_hanh": True, "pham_vi": "tuy_chon", "hoc_sinh_ids": [hs.id]})
+    assert r.status_code == 200 and r.json()["pham_vi"] == "tuy_chon"
+
+    assert len(client.get("/api/de-thi", headers=h_hs).json()) == 1
+    assert client.get("/api/de-thi", headers=h_hs2).json() == []
+    assert client.post(f"/api/de-thi/{de_id}/bat-dau", headers=h_hs).status_code == 200
+    assert client.post(f"/api/de-thi/{de_id}/bat-dau", headers=h_hs2).status_code == 400
+
+    # Không có quyền với HS không thuộc lớp mình
+    gv3 = User(vai_tro=VaiTro.gv, ho_ten="GV 3", dang_nhap="gv3_de",
+               mat_khau_hash=hash_password("pass"))
+    db.add(gv3)
+    db.commit()
+    de3_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln, ten="Đề 3").json()["id"]
+    r = client.patch(f"/api/de-thi/{de3_id}/phat-hanh", headers=h_gv,
+                     json={"phat_hanh": True, "pham_vi": "tuy_chon", "hoc_sinh_ids": [hs2.id + 999]})
+    assert r.status_code == 400
+
+    # Đổi lại sang "tất cả" sau khi đã tùy chọn → cả 2 lớp đều thấy
+    r = client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv,
+                     json={"phat_hanh": True, "pham_vi": "tat_ca"})
+    assert r.status_code == 200 and r.json()["pham_vi"] == "tat_ca"
+    assert len(client.get("/api/de-thi", headers=h_hs2).json()) == 1
 
 
 def test_quyen_bai_thi(db, client):

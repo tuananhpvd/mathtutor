@@ -17,10 +17,11 @@ from sqlalchemy.orm import Session
 
 from app.core.matching.cas import KetQuaSoKhop
 from app.core.matching.matcher import so_khop
-from app.models.de_thi import BaiThi, DeThi, DeThiCau, TrangThaiBaiThi
+from app.models.de_thi import BaiThi, DeThi, DeThiCau, DeThiHocSinh, PhamViDeThi, TrangThaiBaiThi
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
-from app.models.user import User
+from app.models.user import User, VaiTro
+from app.services.gv_service import _so_huu_hs, _so_huu_lop
 
 PHAN_LOAI = {"I": "TN4PA", "II": "TNDS", "III": "TLN"}
 DIEM_CAU = {"I": 0.25, "II": 1.0, "III": 0.5}
@@ -91,9 +92,46 @@ def _de_cua_gv(db: Session, gv_id: int, de_id: int) -> DeThi:
     return de
 
 
-def dat_phat_hanh(db: Session, gv_id: int, de_id: int, phat_hanh: bool) -> DeThi:
+def dat_phat_hanh(
+    db: Session, gv_id: int, de_id: int, phat_hanh: bool,
+    pham_vi: str | None = None,
+    lop_ids: list[int] | None = None,
+    hoc_sinh_ids: list[int] | None = None,
+) -> DeThi:
+    """Phát hành/thu hồi đề. Khi phát hành với pham_vi="tuy_chon", giới hạn đề chỉ
+    hiện với HS trong lop_ids + hoc_sinh_ids (gộp, mirror logic của tao_nhiem_vu).
+
+    Validate TRƯỚC khi mutate — nếu raise giữa chừng sau khi đã gán de.phat_hanh,
+    autoflush của các query bên dưới sẽ đẩy thay đổi dở dang xuống DB (dù chưa
+    commit), khiến các đọc khác trong CÙNG transaction thấy trạng thái sai."""
     de = _de_cua_gv(db, gv_id, de_id)
+
+    # pham_vi=None → chỉ đổi cờ phát hành, GIỮ NGUYÊN phạm vi đã cấu hình trước đó
+    # (vd. GV thu hồi rồi phát hành lại nhanh không mở lại hộp thoại chọn đối tượng).
+    hs_set: set[int] | None = None
+    if phat_hanh and pham_vi == PhamViDeThi.tuy_chon.value:
+        hs_set = set(hoc_sinh_ids or [])
+        for lid in (lop_ids or []):
+            if not _so_huu_lop(db, gv_id, lid):
+                raise ValueError("Không có quyền với lớp đã chọn")
+            for u in db.query(User).filter(User.lop_id == lid, User.vai_tro == VaiTro.hs).all():
+                hs_set.add(u.id)
+        if not hs_set:
+            raise ValueError("Cần chọn ít nhất 1 học sinh hoặc 1 lớp")
+        for hid in hs_set:
+            if not _so_huu_hs(db, gv_id, hid):
+                raise ValueError("Có học sinh không thuộc lớp của bạn")
+
     de.phat_hanh = bool(phat_hanh)
+    if hs_set is not None:
+        de.pham_vi = PhamViDeThi.tuy_chon.value
+        db.query(DeThiHocSinh).filter(DeThiHocSinh.de_thi_id == de.id).delete()
+        for hid in hs_set:
+            db.add(DeThiHocSinh(de_thi_id=de.id, hoc_sinh_id=hid))
+    elif phat_hanh and pham_vi == PhamViDeThi.tat_ca.value:
+        de.pham_vi = PhamViDeThi.tat_ca.value
+        db.query(DeThiHocSinh).filter(DeThiHocSinh.de_thi_id == de.id).delete()
+
     db.commit()
     db.refresh(de)
     return de
@@ -124,6 +162,11 @@ def ds_de_gv(db: Session, gv_id: int) -> list[dict]:
             "phat_hanh": de.phat_hanh, "so_cau": len(de.cau_list),
             "diem_toi_da": diem_toi_da_cua(de), "so_bai_nop": so_nop,
             "tao_luc": de.tao_luc.isoformat(),
+            "pham_vi": de.pham_vi,
+            "hoc_sinh_duoc_giao_ids": (
+                [d.hoc_sinh_id for d in de.hoc_sinh_duoc_giao]
+                if de.pham_vi == PhamViDeThi.tuy_chon else None
+            ),
         })
     return ket
 
@@ -252,6 +295,10 @@ def ds_de_hs(db: Session, hs: User) -> list[dict]:
     )
     ket = []
     for de in des:
+        if de.pham_vi == PhamViDeThi.tuy_chon and not any(
+            d.hoc_sinh_id == hs.id for d in de.hoc_sinh_duoc_giao
+        ):
+            continue
         bai = (
             db.query(BaiThi)
             .filter(BaiThi.de_thi_id == de.id, BaiThi.hoc_sinh_id == hs.id)
@@ -264,15 +311,29 @@ def ds_de_hs(db: Session, hs: User) -> list[dict]:
             "bai_gan_nhat": None if bai is None else {
                 "bai_thi_id": bai.id, "trang_thai": bai.trang_thai.value,
                 "diem": bai.diem, "diem_toi_da": bai.diem_toi_da,
+                "nop_luc": bai.nop_luc.isoformat() if bai.nop_luc else None,
+                "lam_trong_giay": (
+                    int((bai.nop_luc - bai.bat_dau_luc).total_seconds())
+                    if bai.nop_luc and bai.bat_dau_luc else None
+                ),
             },
         })
     return ket
 
 
 def _het_han_luc(bai: BaiThi, de: DeThi) -> datetime:
+    """Hạn CHẤP NHẬN thao tác (làm tiếp/autosave/nộp) — có cộng gia hạn nhân nhượng trễ
+    mạng. DÙNG PHÍA SERVER để quyết định, KHÔNG dùng để tính giờ hiển thị cho HS (xem
+    _han_hien_thi) — nếu không đồng hồ đếm ngược sẽ hiện dư 30 giây ngay từ lúc bắt đầu."""
     return _naive(bai.bat_dau_luc) + timedelta(
         minutes=de.thoi_gian_phut, seconds=GIA_HAN_GIAY
     )
+
+
+def _han_hien_thi(bai: BaiThi, de: DeThi) -> datetime:
+    """Hạn DANH NGHĨA (đúng số phút GV đặt, KHÔNG cộng gia hạn) — dùng để tính
+    "con_lai_giay" hiển thị đồng hồ đếm ngược cho HS."""
+    return _naive(bai.bat_dau_luc) + timedelta(minutes=de.thoi_gian_phut)
 
 
 def bat_dau_thi(db: Session, hs: User, de_id: int) -> BaiThi:
@@ -282,6 +343,10 @@ def bat_dau_thi(db: Session, hs: User, de_id: int) -> BaiThi:
         raise ValueError("Đề không tồn tại hoặc chưa phát hành")
     if not de.cau_list:
         raise ValueError("Đề chưa có câu hỏi")
+    if de.pham_vi == PhamViDeThi.tuy_chon and not any(
+        d.hoc_sinh_id == hs.id for d in de.hoc_sinh_duoc_giao
+    ):
+        raise ValueError("Đề không tồn tại hoặc chưa phát hành")
 
     bai_dang = (
         db.query(BaiThi)

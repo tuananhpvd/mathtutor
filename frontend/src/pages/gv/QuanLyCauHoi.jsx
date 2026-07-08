@@ -954,16 +954,25 @@ function ThanhMucDo({ kho, tong }) {
 // TOÀN BỘ chuyên đề, không phụ thuộc chuyên đề nào đang mở.
 function TomTatTongQuan({ rows }) {
   const { kho, tong } = demTheoMuc(rows)
+  const pct = (n) => (tong > 0 ? Math.round((n / tong) * 100) : 0)
   return (
-    <div className="flex items-center gap-6 sm:gap-10 flex-wrap px-4 py-3 rounded-lg bg-surface-2 border border-border">
-      <div>
-        <p className="text-2xl font-bold text-ink">{tong.toLocaleString('vi-VN')}</p>
-        <p className="text-xs text-muted">Tổng câu hỏi</p>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="rounded-lg border border-primary/30 bg-primary-soft px-3 py-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted">Tổng câu hỏi</span>
+          <span className="text-primary text-sm font-bold">#</span>
+        </div>
+        <p className="text-xl font-bold text-primary">{tong.toLocaleString('vi-VN')}</p>
+        <p className="text-[11px] text-muted">100% tổng chuyên đề</p>
       </div>
       {MUC_DO_CFG.map((m) => (
-        <div key={m.key}>
-          <p className={`text-2xl font-bold ${m.text}`}>{kho[m.key].toLocaleString('vi-VN')}</p>
-          <p className="text-xs text-muted">{m.nhanDay}</p>
+        <div key={m.key} className={`rounded-lg border px-3 py-2.5 ${m.border} ${m.soft}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted">{m.nhanDay}</span>
+            <span className={`h-2.5 w-2.5 rounded-full inline-block ${m.dot}`} />
+          </div>
+          <p className={`text-xl font-bold ${m.text}`}>{kho[m.key].toLocaleString('vi-VN')}</p>
+          <p className="text-[11px] text-muted">{pct(kho[m.key])}% tổng chuyên đề</p>
         </div>
       ))}
     </div>

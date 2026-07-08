@@ -10,6 +10,117 @@ import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input } from '../../components/ui'
 import Formula from '../../components/Formula'
 
+/* ─────────────── Chọn đối tượng phát hành (Tất cả / Tùy chọn lớp+HS) ─────────────── */
+
+function ChonDoiTuongPhatHanh({ de, onDong, onXong }) {
+  const [hocSinhs, setHocSinhs] = useState([])
+  const [lops, setLops] = useState([])
+  const [phamVi, setPhamVi] = useState(de.pham_vi || 'tat_ca')
+  const [chonHs, setChonHs] = useState(() => new Set(de.hoc_sinh_duoc_giao_ids || []))
+  const [fLop, setFLop] = useState('')
+  const [error, setError] = useState('')
+  const [dangLuu, setDangLuu] = useState(false)
+
+  useEffect(() => {
+    api.gvHocSinh().then(setHocSinhs).catch(() => {})
+    api.gvLop().then(setLops).catch(() => {})
+  }, [])
+
+  const lopOptions = useMemo(
+    () => [{ value: '', label: 'Tất cả lớp' }, ...lops.map((l) => ({ value: String(l.id), label: l.ten }))],
+    [lops]
+  )
+  const hsLoc = useMemo(
+    () => (fLop ? hocSinhs.filter((h) => String(h.lop_id) === fLop) : hocSinhs),
+    [hocSinhs, fLop]
+  )
+
+  function toggleHs(id) {
+    setChonHs((s) => {
+      const next = new Set(s)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  function chonCaLop() {
+    setChonHs((s) => {
+      const next = new Set(s)
+      hsLoc.forEach((h) => next.add(h.id))
+      return next
+    })
+  }
+
+  async function luu() {
+    setError('')
+    if (phamVi === 'tuy_chon' && chonHs.size === 0) {
+      setError('Cần chọn ít nhất 1 học sinh hoặc 1 lớp')
+      return
+    }
+    setDangLuu(true)
+    try {
+      await api.deThiPhatHanh(de.id, true, phamVi, [], phamVi === 'tuy_chon' ? [...chonHs] : [])
+      onXong()
+    } catch (e) { setError(e.message) }
+    finally { setDangLuu(false) }
+  }
+
+  return (
+    <Card>
+      <CardHeader title={`Phát hành: ${de.ten}`}
+        subtitle="Chọn đối tượng nhận đề — mặc định phát hành cho tất cả học sinh thầy/cô chủ nhiệm."
+        action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+      <CardBody className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          {[['tat_ca', 'Tất cả học sinh'], ['tuy_chon', 'Tùy chọn lớp / học sinh']].map(([v, nhan]) => (
+            <button key={v} onClick={() => setPhamVi(v)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium border ${
+                phamVi === v
+                  ? 'border-primary bg-primary-soft text-primary'
+                  : 'border-border text-muted hover:bg-surface-2'
+              }`}>
+              {nhan}
+            </button>
+          ))}
+        </div>
+
+        {phamVi === 'tuy_chon' && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-ink">Chọn học sinh ({chonHs.size})</p>
+              <div className="flex items-center gap-2">
+                <select value={fLop} onChange={(e) => setFLop(e.target.value)}
+                  className="rounded-md border border-border px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/40">
+                  {lopOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <Button size="sm" variant="secondary" onClick={chonCaLop}>Chọn cả lớp</Button>
+              </div>
+            </div>
+            <div className="overflow-y-auto max-h-64 rounded-lg border border-border divide-y divide-border">
+              {hsLoc.length === 0 ? (
+                <p className="text-sm text-muted px-3 py-4">Không có học sinh.</p>
+              ) : hsLoc.map((h) => (
+                <label key={h.id}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-surface-2 cursor-pointer">
+                  <input type="checkbox" checked={chonHs.has(h.id)} onChange={() => toggleHs(h.id)} />
+                  <span className="text-sm text-ink flex-1">{h.ho_ten}</span>
+                  {h.trang_thai === 'khoa' && <Badge tone="danger">Khóa</Badge>}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
+        <div>
+          <Button onClick={luu} disabled={dangLuu}>
+            {dangLuu ? 'Đang phát hành...' : 'Phát hành'}
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
+  )
+}
+
 const PHAN = [
   { ma: 'I', loai: 'TN4PA', ten: 'Phần I — Trắc nghiệm ABCD', chuan: 12, diem: '0,25đ/câu' },
   { ma: 'II', loai: 'TNDS', ten: 'Phần II — Đúng/Sai 4 ý', chuan: 4, diem: 'bậc thang, tối đa 1đ/câu' },
@@ -284,6 +395,7 @@ export default function QuanLyDeThi() {
   const [ds, setDs] = useState(null)
   const [taoMo, setTaoMo] = useState(false)
   const [ketQua, setKetQua] = useState(null) // {id, ten}
+  const [chonDoiTuong, setChonDoiTuong] = useState(null) // đề đang chọn đối tượng phát hành
   const [error, setError] = useState('')
   const [thongBao, setThongBao] = useState('')
 
@@ -292,10 +404,10 @@ export default function QuanLyDeThi() {
   }
   useEffect(tai, [])
 
-  async function doiPhatHanh(de) {
+  async function thuHoi(de) {
     setError('')
     try {
-      await api.deThiPhatHanh(de.id, !de.phat_hanh)
+      await api.deThiPhatHanh(de.id, false)
       tai()
     } catch (e) { setError(e.message) }
   }
@@ -326,6 +438,16 @@ export default function QuanLyDeThi() {
 
       {ketQua && <KetQuaLop deId={ketQua.id} ten={ketQua.ten} onDong={() => setKetQua(null)} />}
 
+      {chonDoiTuong && (
+        <ChonDoiTuongPhatHanh de={chonDoiTuong} onDong={() => setChonDoiTuong(null)}
+          onXong={() => {
+            setChonDoiTuong(null)
+            setThongBao('Đã phát hành đề.')
+            setTimeout(() => setThongBao(''), 3000)
+            tai()
+          }} />
+      )}
+
       {!ds && <p className="text-sm text-muted">Đang tải...</p>}
       {ds && ds.length === 0 && !taoMo && (
         <Card>
@@ -352,12 +474,20 @@ export default function QuanLyDeThi() {
                   <Badge tone={de.so_bai_nop > 0 ? 'warning' : 'neutral'}>
                     {de.so_bai_nop} bài nộp
                   </Badge>
+                  {de.phat_hanh && de.pham_vi === 'tuy_chon' && (
+                    <Badge tone="primary">
+                      {(de.hoc_sinh_duoc_giao_ids || []).length} học sinh được giao
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  <Button size="sm" variant={de.phat_hanh ? 'warning' : 'success'}
-                    onClick={() => doiPhatHanh(de)}>
-                    {de.phat_hanh ? 'Thu hồi' : 'Phát hành'}
-                  </Button>
+                  {de.phat_hanh ? (
+                    <Button size="sm" variant="warning" onClick={() => thuHoi(de)}>Thu hồi</Button>
+                  ) : (
+                    <Button size="sm" variant="success" onClick={() => setChonDoiTuong(de)}>
+                      Phát hành
+                    </Button>
+                  )}
                   <Button size="sm" variant="secondary"
                     onClick={() => setKetQua({ id: de.id, ten: de.ten })}>
                     Kết quả ({de.so_bai_nop})

@@ -161,8 +161,11 @@ export const api = {
   deThiTao: (body) => post('/de-thi', body),
   deThiTron: (body) => post('/de-thi/tron', body),
   deThiChiTietGV: (id) => request(`/de-thi/${id}/chi-tiet-gv`),
-  deThiPhatHanh: (id, phat_hanh) =>
-    request(`/de-thi/${id}/phat-hanh`, { method: 'PATCH', body: JSON.stringify({ phat_hanh }) }),
+  deThiPhatHanh: (id, phat_hanh, pham_vi, lop_ids, hoc_sinh_ids) =>
+    request(`/de-thi/${id}/phat-hanh`, {
+      method: 'PATCH',
+      body: JSON.stringify({ phat_hanh, pham_vi, lop_ids: lop_ids || [], hoc_sinh_ids: hoc_sinh_ids || [] }),
+    }),
   deThiXoa: (id) => request(`/de-thi/${id}`, { method: 'DELETE' }),
   deThiKetQuaLop: (id) => request(`/de-thi/${id}/ket-qua-lop`),
   deThiBatDau: (id) => post(`/de-thi/${id}/bat-dau`),

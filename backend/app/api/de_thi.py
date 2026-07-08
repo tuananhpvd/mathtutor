@@ -30,6 +30,10 @@ class TaoDeRequest(BaseModel):
 
 class PhatHanhRequest(BaseModel):
     phat_hanh: bool
+    # None = giữ nguyên phạm vi đã cấu hình; chỉ cần khi phat_hanh=True và GV muốn đổi.
+    pham_vi: str | None = None  # "tat_ca" | "tuy_chon"
+    lop_ids: list[int] = Field(default_factory=list)
+    hoc_sinh_ids: list[int] = Field(default_factory=list)
 
 
 class TronDeRequest(BaseModel):
@@ -101,10 +105,13 @@ def chi_tiet_de_gv(de_id: int, current_user: CurrentUser, db: Session = Depends(
 def phat_hanh(de_id: int, body: PhatHanhRequest, current_user: CurrentUser,
               db: Session = Depends(get_db)):
     try:
-        de = svc.dat_phat_hanh(db, current_user.id, de_id, body.phat_hanh)
+        de = svc.dat_phat_hanh(
+            db, current_user.id, de_id, body.phat_hanh,
+            pham_vi=body.pham_vi, lop_ids=body.lop_ids, hoc_sinh_ids=body.hoc_sinh_ids,
+        )
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    return {"id": de.id, "phat_hanh": de.phat_hanh}
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"id": de.id, "phat_hanh": de.phat_hanh, "pham_vi": de.pham_vi}
 
 
 @router.delete("/{de_id}", dependencies=_GV)
@@ -185,7 +192,7 @@ def _trang_thai_bai(db: Session, bai_id: int, hs_id: int) -> dict:
     }
 
     if bai.trang_thai == TrangThaiBaiThi.dang_thi:
-        con_giay = int((svc._het_han_luc(bai, de) - svc._now()).total_seconds())
+        con_giay = int((svc._han_hien_thi(bai, de) - svc._now()).total_seconds())
         return {
             **goc,
             "con_lai_giay": max(0, con_giay),

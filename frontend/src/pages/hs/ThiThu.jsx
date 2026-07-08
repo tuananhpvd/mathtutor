@@ -59,13 +59,17 @@ function DanhSachDe({ onVaoThi, onXemKetQua }) {
             <CardBody className="pt-4 flex flex-col gap-2">
               <p className="font-bold text-ink">{de.ten}</p>
               <div className="flex gap-2 flex-wrap items-center text-sm text-muted">
-                <Badge tone="primary">{de.so_cau} câu</Badge>
                 <Badge tone="neutral">{de.thoi_gian_phut} phút</Badge>
-                <Badge tone="neutral">Tối đa {de.diem_toi_da} điểm</Badge>
               </div>
               {bai?.trang_thai === 'da_nop' && (
                 <p className="text-sm text-ink">
                   Lần gần nhất: <b className="text-primary">{bai.diem}/{bai.diem_toi_da} điểm</b>
+                  {bai.lam_trong_giay != null && (
+                    <> · Làm trong <b>{dinhDangThoiGian(bai.lam_trong_giay)}</b></>
+                  )}
+                  {bai.nop_luc && (
+                    <> · Ngày <b>{new Date(bai.nop_luc).toLocaleDateString('vi-VN')}</b></>
+                  )}
                 </p>
               )}
               <div className="flex gap-2 mt-1">
@@ -383,7 +387,7 @@ export default function ThiThu({ onLuyenBai }) {
     <div className="flex flex-col gap-4">
       {man.ten === 'ds' && (
         <>
-          <h2 className="text-2xl font-bold text-black">Thi thử theo đề hoàn chỉnh</h2>
+          <h2 className="text-2xl font-bold text-black">Thi thử</h2>
           {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
           <DanhSachDe onVaoThi={vaoThi} onXemKetQua={xemKetQua} />
         </>

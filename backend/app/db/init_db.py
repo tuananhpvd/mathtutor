@@ -151,6 +151,14 @@ def _migrate_them_cot(engine) -> None:
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN la_quan_ly BOOLEAN DEFAULT false NOT NULL"
                 ))
+    if "de_thi" in ten_bang:
+        cot_dt = {c["name"] for c in insp.get_columns("de_thi")}
+        if "pham_vi" not in cot_dt:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE de_thi ADD COLUMN pham_vi VARCHAR(16) "
+                    "DEFAULT 'tat_ca' NOT NULL"
+                ))
 
 
 def init_db() -> None:

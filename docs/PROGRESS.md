@@ -4,10 +4,44 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v68**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v69**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **359/359 test backend xanh** (`pytest`, không đổi backend đợt này).
+  Tailwind) chạy end-to-end. **360/360 test backend xanh** (`pytest`).
+- **✅ 4 sửa/thêm ở Thi thử (v69):**
+  1. **Fix lỗi đếm giờ sai** — đề 90 phút hiện đếm ngược từ "90 phút mấy giây" thay vì đúng
+     90:00. Nguyên nhân: `_het_han_luc()` (hạn CHẤP NHẬN thao tác trễ, có cộng gia hạn
+     `GIA_HAN_GIAY=30`) bị dùng luôn để tính `con_lai_giay` hiển thị cho HS. Tách riêng
+     `_han_hien_thi()` (không cộng gia hạn) chỉ dùng cho hiển thị đồng hồ đếm ngược
+     (`de_thi.py` dòng tính `con_giay`); 4 chỗ dùng `_het_han_luc` còn lại (autosave/nộp/tự
+     chốt quá hạn) giữ nguyên vì đúng là cần nhân nhượng phía server.
+  2. Đổi chữ "Thi thử theo đề hoàn chỉnh" → "Thi thử" (`ThiThu.jsx`).
+  3. Danh sách đề của HS: bỏ badge số câu + điểm tối đa; dòng "Lần gần nhất" thêm "Làm trong"
+     (giây giữa `bat_dau_luc`/`nop_luc`) và "Ngày" (ngày nộp) — backend `ds_de_hs()` trả thêm
+     `lam_trong_giay`/`nop_luc` trong `bai_gan_nhat`.
+  4. **Chức năng mới — chọn đối tượng khi phát hành đề thi thử:** GV giờ chọn "Tất cả học
+     sinh" hoặc "Tùy chọn lớp/học sinh" khi phát hành (thay vì luôn phát cho mọi HS chủ
+     nhiệm) — thực tế xác nhận trên production: 1 GV có thể chủ nhiệm nhiều lớp (`gv12a1`
+     quản cả 12A1 + 12D4), trước đây không có cách giới hạn. Mirror đúng pattern có sẵn của
+     "Giao nhiệm vụ" (`NhiemVu`/`NhiemVuHocSinh` + `_so_huu_lop`/`_so_huu_hs`):
+     - Model mới: `DeThi.pham_vi` (`"tat_ca"` | `"tuy_chon"`, cột `String(16)` — **cố ý KHÔNG
+       dùng Postgres native ENUM** để có thể thêm cột bằng `ALTER TABLE ADD COLUMN` đơn giản
+       trên production, theo đúng pattern `_migrate_them_cot` đã có sẵn); bảng mới
+       `de_thi_hoc_sinh` (junction, chỉ dùng khi `pham_vi="tuy_chon"`).
+     - `dat_phat_hanh()` nhận thêm `pham_vi`/`lop_ids`/`hoc_sinh_ids`; validate quyền sở hữu
+       lớp/HS TRƯỚC khi mutate bất kỳ gì (tránh lỗi tìm thấy qua test: nếu mutate rồi mới
+       validate, autoflush của các câu query xác thực sẽ đẩy `phat_hanh=True` dở dang xuống DB
+       dù request sau đó bị từ chối). `pham_vi=None` (chỉ đổi cờ phát hành) → giữ nguyên phạm
+       vi đã cấu hình trước đó.
+     - Enforce ở 3 nơi: `ds_de_hs` (danh sách hiện cho HS), `bat_dau_thi` (chặn bắt đầu nếu
+       không nằm trong danh sách được giao), và tất nhiên `dat_phat_hanh` khi ghi.
+     - Frontend: `QuanLyDeThi.jsx` thêm `ChonDoiTuongPhatHanh` — bấm "Phát hành" (đề đang
+       nháp) mở panel chọn "Tất cả"/"Tùy chọn" + picker lớp/học sinh (tái dùng UI pattern từ
+       `GiaoNhiemVu.jsx`); "Thu hồi" vẫn là nút tắt nhanh không mở panel.
+     - **An toàn production**: cột mới có `DEFAULT 'tat_ca' NOT NULL` (hành vi cũ = phát hành
+       cho tất cả, không đổi behavior các đề đã phát hành trước đây); bảng mới tự tạo qua
+       `Base.metadata.create_all` lúc khởi động — cả hai đều KHÔNG đụng dữ liệu đã có.
+  - Test mới: `test_de_thi.py` (giờ hiển thị đúng + `test_phat_hanh_tuy_chon_doi_tuong`).
 - **✅ Dialog hỏi Duyệt ngay sau khi GV lưu câu hỏi (v68):** trước đây GV Sửa xong bấm Lưu thì
   quay thẳng về danh sách, phải tự tìm lại để duyệt — bất tiện. `SuaCauHoi` (`QuanLyCauHoi.jsx`)
   giờ sau khi lưu thành công, nếu câu hỏi **chưa** ở trạng thái "Đã duyệt" → hiện dialog hỏi

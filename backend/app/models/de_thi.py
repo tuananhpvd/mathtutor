@@ -17,6 +17,11 @@ class TrangThaiBaiThi(str, enum.Enum):
     da_nop = "da_nop"
 
 
+class PhamViDeThi(str, enum.Enum):
+    tat_ca = "tat_ca"      # mọi HS của GV chủ nhiệm (mặc định — đúng hành vi trước đây)
+    tuy_chon = "tuy_chon"  # chỉ HS có mặt trong bảng de_thi_hoc_sinh
+
+
 class DeThi(Base):
     """Đề ôn thi THPT (C1): GV ghép câu từ ngân hàng theo cấu trúc 3 phần.
 
@@ -33,11 +38,20 @@ class DeThi(Base):
     thoi_gian_phut: Mapped[int] = mapped_column(Integer, default=90, nullable=False)
     # Chỉ đề đã phát hành mới hiện với HS; thu hồi = ẩn với HS (bài đã nộp giữ nguyên).
     phat_hanh: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # tat_ca (mặc định) = mọi HS của GV; tuy_chon = chỉ HS trong de_thi_hoc_sinh.
+    # String thường (không Enum native) để thêm cột bằng ALTER TABLE đơn giản trên
+    # Postgres production — xem _migrate_them_cot trong app/db/init_db.py.
+    pham_vi: Mapped[str] = mapped_column(
+        String(16), default=PhamViDeThi.tat_ca.value, nullable=False
+    )
     tao_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=False)
 
     cau_list: Mapped[list["DeThiCau"]] = relationship(
         "DeThiCau", back_populates="de_thi", order_by="DeThiCau.thu_tu",
         cascade="all, delete-orphan",
+    )
+    hoc_sinh_duoc_giao: Mapped[list["DeThiHocSinh"]] = relationship(
+        "DeThiHocSinh", cascade="all, delete-orphan",
     )
 
 
@@ -75,3 +89,13 @@ class BaiThi(Base):
     # Chi tiết chấm từng câu (CHỈ ghi khi đã nộp): [{de_thi_cau_id, problem_id, phan,
     # thu_tu, dung, diem, diem_toi_da}] — đáp án đúng trả qua API riêng sau nộp.
     chi_tiet: Mapped[list | None] = mapped_column(JSON, nullable=True)
+
+
+class DeThiHocSinh(Base):
+    """HS được giao đề khi pham_vi = tuy_chon (bỏ qua khi pham_vi = tat_ca)."""
+
+    __tablename__ = "de_thi_hoc_sinh"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    de_thi_id: Mapped[int] = mapped_column(Integer, ForeignKey("de_thi.id"), nullable=False, index=True)
+    hoc_sinh_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
