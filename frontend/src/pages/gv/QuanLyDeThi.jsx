@@ -565,7 +565,8 @@ function GoiYNhiemVu({ hocSinhId, dangId, dangTen }) {
               <label key={b.problem_id} className="flex items-start gap-2 text-xs cursor-pointer">
                 <input type="checkbox" className="mt-0.5 accent-primary"
                   checked={chon.has(b.problem_id)} onChange={() => toggle(b.problem_id)} />
-                <span className="text-ink line-clamp-1">{b.de_bai}</span>
+                <Badge tone="primary">{b.loai_cau}</Badge>
+                <span className="text-ink line-clamp-1">{renderDe(b.de_bai)}</span>
               </label>
             ))}
           </div>
@@ -624,6 +625,29 @@ function ChiTietBaiGV({ baiId, onDong }) {
                         </Badge>}
                   </div>
                   <div className="text-sm text-ink">{renderDe(c.problem.de_bai)}</div>
+                  {c.problem.hinh_anh && (
+                    <img src={c.problem.hinh_anh} alt="Hình minh họa"
+                      className="max-w-full sm:max-w-md rounded-md border border-border" />
+                  )}
+                  {c.phan === 'I' && c.problem.meta?.phuong_an && (
+                    <div className="flex flex-col gap-1">
+                      {Object.entries(c.problem.meta.phuong_an).map(([k, v]) => (
+                        <span key={k} className="text-sm text-ink">
+                          <span className="font-semibold text-primary">{k}.</span> {renderDe(v)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {c.phan === 'II' && c.problem.meta?.y && (
+                    <div className="flex flex-col gap-1">
+                      {c.problem.meta.y.map((item) => (
+                        <span key={item.ky_hieu} className="text-sm text-ink">
+                          <span className="font-semibold text-primary">{item.ky_hieu})</span>{' '}
+                          {renderDe(item.noi_dung_y)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="text-sm flex flex-col sm:flex-row gap-x-6 gap-y-1">
                     <span className="text-muted">HS trả lời: <b className="text-ink">{textDapAnNhapGV(c)}</b></span>
                     <span className="text-muted">Đáp án đúng: <b className="text-success">{textDapAnDungGV(c)}</b></span>

@@ -4,10 +4,25 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v72**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v73**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **363/363 test backend xanh** (`pytest`).
+- **✅ Chi tiết trang kết quả thi thử (v73):**
+  - **Fix "ô trống" ở gợi ý giao nhiệm vụ (v71 gây ra):** `_bai_dict()` (`nhiem_vu_service.py`,
+    dùng chung cho "gợi ý theo điểm yếu" + "gợi ý theo dạng") thiếu trường `de_bai` — trước giờ
+    không lộ vì gợi ý theo điểm yếu chỉ dùng `problem_id` để gộp vào danh sách đã tải sẵn cục
+    bộ, còn "gợi ý theo dạng" (mới ở v71) render trực tiếp từ response nên hiện trống. Thêm
+    `de_bai` vào `_bai_dict()`; test mới khóa lại (assert `de_bai` không rỗng), tiện sửa luôn
+    chỗ frontend quên bọc `renderDe()` (câu có công thức toán sẽ hiện `$...$` thô nếu không bọc).
+  - **Trang xem kết quả (cả HS `ThiThu.jsx` và GV `ChiTietBaiGV`)** giờ hiện ĐỦ nội dung câu hỏi:
+    thêm hình minh họa (nếu có) và 4 phương án A/B/C/D (TN4PA) / 4 ý a/b/c/d (TNDS) — dữ liệu
+    này backend đã trả sẵn từ trước qua `_strip_answers()` (`meta.phuong_an`/`meta.y`), chỉ là
+    2 nơi hiển thị kết quả đều chưa render ra, không phải thiếu API.
+  - **Danh sách gợi ý bài giao nhiệm vụ** (`GoiYNhiemVu` trong `QuanLyDeThi.jsx`) mỗi câu thêm
+    badge ghi rõ loại (TN4PA/TNDS/TLN) — vì 1 "dạng" (dang_id) có thể gồm nhiều loại câu khác
+    nhau, cần phân biệt trước khi GV chọn giao.
+  - Không đổi schema DB, không cần migration — thuần sửa logic/hiển thị.
 - **🔥 HOTFIX production sập lúc deploy (v72):** v71 thêm migration `ALTER TABLE de_thi ADD
   COLUMN ... DATETIME` — `DATETIME` là kiểu riêng của SQLite, PostgreSQL không hiểu (lỗi
   `psycopg2.errors.UndefinedObject: type "datetime" does not exist`) → `init_db()` raise ngay

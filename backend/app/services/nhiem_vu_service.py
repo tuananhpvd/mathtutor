@@ -43,6 +43,7 @@ def _bai_dict(p: Problem) -> dict:
         "dang_ten": p.dang.ten if p.dang else None,
         "loai_cau": p.loai_cau.value,
         "do_kho": p.do_kho.value,
+        "de_bai": p.de_bai,
     }
 
 

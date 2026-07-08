@@ -340,6 +340,29 @@ function ManKetQua({ kq, onQuayLai, onLuyenBai }) {
                   : <Badge tone="danger">{c.da_tra_loi ? `✗ Sai · ${c.diem > 0 ? `+${c.diem}đ` : '0đ'}` : 'Bỏ trống · 0đ'}</Badge>}
               </div>
               <div className="text-sm text-ink">{renderVanBan(c.problem.de_bai)}</div>
+              {c.problem.hinh_anh && (
+                <img src={c.problem.hinh_anh} alt="Hình minh họa"
+                  className="max-w-full sm:max-w-md rounded-md border border-border" />
+              )}
+              {c.phan === 'I' && c.problem.meta?.phuong_an && (
+                <div className="flex flex-col gap-1">
+                  {Object.entries(c.problem.meta.phuong_an).map(([k, v]) => (
+                    <span key={k} className="text-sm text-ink">
+                      <span className="font-semibold text-primary">{k}.</span> {renderVanBan(v)}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {c.phan === 'II' && c.problem.meta?.y && (
+                <div className="flex flex-col gap-1">
+                  {c.problem.meta.y.map((item) => (
+                    <span key={item.ky_hieu} className="text-sm text-ink">
+                      <span className="font-semibold text-primary">{item.ky_hieu})</span>{' '}
+                      {renderVanBan(item.noi_dung_y)}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="text-sm flex flex-col sm:flex-row gap-x-6 gap-y-1">
                 <span className="text-muted">Em trả lời: <b className="text-ink">{textDapAnNhap(c)}</b></span>
                 <span className="text-muted">Đáp án đúng: <b className="text-success">{textDapAnDung(c)}</b></span>

@@ -362,8 +362,13 @@ def test_chi_tiet_bai_gv_va_goi_y_nhiem_vu(db, client):
     r = client.get("/api/nhiem-vu/de-xuat-dang", headers=h_gv,
                    params={"hoc_sinh_id": hs.id, "dang_id": dang.id})
     assert r.status_code == 200
-    ids = [b["problem_id"] for b in r.json()]
+    goi_y = r.json()
+    ids = [b["problem_id"] for b in goi_y]
     assert p_cung_dang.id in ids
+    # GV cần thấy NỘI DUNG câu hỏi để chọn, không chỉ id (regression: từng thiếu de_bai
+    # khiến GV bấm "Giao nhiệm vụ" ra danh sách trống không đọc được câu nào).
+    cau_goi_y = next(b for b in goi_y if b["problem_id"] == p_cung_dang.id)
+    assert cau_goi_y["de_bai"] == "Câu cùng dạng?"
 
     hs2 = User(vai_tro=VaiTro.hs, ho_ten="HS Ngoài Lớp", dang_nhap="hs_ngoai",
                mat_khau_hash=hash_password("pass"))
