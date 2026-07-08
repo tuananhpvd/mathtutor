@@ -4,10 +4,31 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v70**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v71**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **361/361 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **363/363 test backend xanh** (`pytest`).
+- **✅ GV xem chi tiết kết quả thi của HS + gợi ý giao nhiệm vụ luyện tập (v71):**
+  - Mỗi thẻ đề (trang GV) hiện thêm **ngày tạo/phát hành/thu hồi**. `DeThi` thêm 2 cột nullable
+    `phat_hanh_luc`/`thu_hoi_luc` — lưu MỐC GẦN NHẤT (không lưu lịch sử nhiều lần bấm), cập nhật
+    mỗi khi GV bấm Phát hành/Thu hồi; `thu_hoi_luc` KHÔNG bị xóa khi phát hành lại và ngược lại.
+  - Bảng "Kết quả lớp" mỗi HS thêm nút **"Xem chi tiết"** → mở panel hiện đúng thông tin HS tự
+    xem sau khi thi (điểm, từng câu, đúng/sai, HS trả lời gì, đáp án đúng). Endpoint mới
+    `GET /de-thi/bai/{bai_id}/chi-tiet-gv` — refactor phần build "kết quả đã nộp" ra hàm dùng
+    chung `_ket_qua_bai_da_nop()` giữa HS tự xem (`_trang_thai_bai`) và GV xem (endpoint mới),
+    tránh lặp code lẫn lệch dữ liệu giữa 2 nơi; kiểm quyền theo GV sở hữu ĐỀ (không phải HS sở
+    hữu bài) + chặn xem khi bài chưa nộp (400).
+  - **Gợi ý giao nhiệm vụ ngay tại câu sai** (đã hỏi & xác nhận với user: chọn phương án "tạo
+    nhanh tại chỗ", không điều hướng sang trang khác): mỗi câu sai có gắn `dạng` hiện nút
+    "🎯 Giao nhiệm vụ luyện lại dạng ..." → hiện danh sách bài CÙNG DẠNG, đã duyệt, HS CHƯA làm
+    để GV tick chọn rồi giao ngay tại chỗ (gọi thẳng `POST /nhiem-vu` có sẵn). Hàm mới
+    `de_xuat_theo_dang()` (`nhiem_vu_service.py`) — mirror `de_xuat_theo_diem_yeu()` nhưng khoanh
+    đúng 1 `dang_id` do GV chỉ định thay vì quét toàn bộ hồ sơ năng lực; endpoint mới
+    `GET /nhiem-vu/de-xuat-dang?hoc_sinh_id=&dang_id=`.
+  - **An toàn production**: 2 cột mới trên `de_thi` đều nullable, thêm qua `ALTER TABLE` tự động
+    lúc khởi động (giống pattern `pham_vi`/`diem_cau` các v trước) — không đụng dữ liệu cũ.
+  - Test mới: `test_ngay_tao_phat_hanh_thu_hoi`, `test_chi_tiet_bai_gv_va_goi_y_nhiem_vu` (kiểm
+    cả quyền sở hữu đề/HS và trường hợp bài chưa nộp).
 - **✅ Chế độ "Tự do" khi GV tạo đề thi thử (v70):** ngoài chế độ "Chuẩn 2025" hiện có (điểm/câu
   cố định 0,25/1,0/0,5), thêm chế độ Tự do — GV tự bật/tắt từng phần (I/II/III), tự đặt TỔNG
   ĐIỂM mỗi phần đã bật (không bắt buộc theo cấu trúc chuẩn), tổng toàn đề không vượt quá 10

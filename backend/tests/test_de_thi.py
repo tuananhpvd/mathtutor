@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta, timezone
 
 from app.auth.security import hash_password
+from app.models.danh_muc import ChuyenDe, Dang
 from app.models.de_thi import BaiThi
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
@@ -287,6 +288,90 @@ def test_tao_de_tu_do(db, client):
         "diem_phan": {"I": 0},
     })
     assert r.status_code == 400 and "chưa nhập điểm hợp lệ" in r.json()["detail"]
+
+
+def test_ngay_tao_phat_hanh_thu_hoi(db, client):
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    h_gv = _h(_login(client, "gv_de"))
+    de_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln).json()["id"]
+
+    ds = client.get("/api/de-thi", headers=h_gv).json()
+    de = ds[0]
+    assert de["tao_luc"] is not None
+    assert de["phat_hanh_luc"] is None and de["thu_hoi_luc"] is None
+
+    client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv, json={"phat_hanh": True})
+    de = client.get("/api/de-thi", headers=h_gv).json()[0]
+    assert de["phat_hanh_luc"] is not None and de["thu_hoi_luc"] is None
+
+    client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv, json={"phat_hanh": False})
+    de = client.get("/api/de-thi", headers=h_gv).json()[0]
+    # Thu hồi có mốc mới, NHƯNG mốc phát hành trước đó vẫn giữ nguyên (không reset).
+    assert de["phat_hanh_luc"] is not None and de["thu_hoi_luc"] is not None
+
+
+def test_chi_tiet_bai_gv_va_goi_y_nhiem_vu(db, client):
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    cd = ChuyenDe(ten="Khảo sát hàm số", thu_tu=1)
+    db.add(cd)
+    db.flush()
+    dang = Dang(chuyen_de_id=cd.id, ten="Cực trị", thu_tu=1)
+    db.add(dang)
+    db.flush()
+    p_tn.dang_id = dang.id
+    # Câu khác cùng dạng, đã duyệt, HS chưa làm — ứng viên gợi ý giao nhiệm vụ.
+    p_cung_dang = Problem(chuyen_de="Ôn thi", loai_cau="TN4PA", do_kho="tb", de_bai="Câu cùng dạng?",
+                          loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                          nguoi_tao_id=gv.id, dang_id=dang.id,
+                          meta={"phuong_an": {"A": "1", "B": "2", "C": "3", "D": "4"}, "dap_an_dung": "A"})
+    db.add(p_cung_dang)
+    db.commit()
+
+    h_gv = _h(_login(client, "gv_de"))
+    h_hs = _h(_login(client, "hs_de"))
+    de_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln).json()["id"]
+    client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv, json={"phat_hanh": True})
+
+    bai = client.post(f"/api/de-thi/{de_id}/bat-dau", headers=h_hs).json()
+    cau = {c["phan"]: c for c in bai["cau_list"]}
+    r = client.post(f"/api/de-thi/bai/{bai['bai_thi_id']}/nop", headers=h_hs, json={"bai_lam": {
+        str(cau["I"]["de_thi_cau_id"]): "A",  # sai (đúng là B)
+    }})
+    assert r.status_code == 200
+
+    # Bài đang thi (chưa nộp) → 400 khi GV xem chi tiết
+    bai2 = client.post(f"/api/de-thi/{de_id}/bat-dau", headers=_h(_login(client, "hs_de"))).json()
+    # (đã nộp ở trên nên bat-dau tạo lượt thi mới)
+    r_chua_nop = client.get(f"/api/de-thi/bai/{bai2['bai_thi_id']}/chi-tiet-gv", headers=h_gv)
+    assert r_chua_nop.status_code == 400
+
+    # GV xem chi tiết bài ĐÃ NỘP — đúng dữ liệu, kèm dang_id/dang_ten cho câu sai
+    r = client.get(f"/api/de-thi/bai/{bai['bai_thi_id']}/chi-tiet-gv", headers=h_gv)
+    assert r.status_code == 200
+    kq = r.json()
+    assert kq["ho_ten"] == "HS Đề" and kq["hoc_sinh_id"] == hs.id
+    cau_i = next(c for c in kq["cau_list"] if c["phan"] == "I")
+    assert cau_i["dung"] is False and cau_i["dang_id"] == dang.id and cau_i["dang_ten"] == "Cực trị"
+
+    # GV khác không xem được (không sở hữu đề)
+    r = client.get(f"/api/de-thi/bai/{bai['bai_thi_id']}/chi-tiet-gv",
+                   headers=_h(_login(client, "gv2_de")))
+    assert r.status_code == 404
+
+    # Gợi ý giao nhiệm vụ cùng dạng: thấy câu cùng dạng chưa làm, KHÔNG có quyền với HS khác
+    r = client.get("/api/nhiem-vu/de-xuat-dang", headers=h_gv,
+                   params={"hoc_sinh_id": hs.id, "dang_id": dang.id})
+    assert r.status_code == 200
+    ids = [b["problem_id"] for b in r.json()]
+    assert p_cung_dang.id in ids
+
+    hs2 = User(vai_tro=VaiTro.hs, ho_ten="HS Ngoài Lớp", dang_nhap="hs_ngoai",
+               mat_khau_hash=hash_password("pass"))
+    db.add(hs2)
+    db.commit()
+    r = client.get("/api/nhiem-vu/de-xuat-dang", headers=h_gv,
+                   params={"hoc_sinh_id": hs2.id, "dang_id": dang.id})
+    assert r.status_code == 400
 
 
 def test_phat_hanh_tuy_chon_doi_tuong(db, client):

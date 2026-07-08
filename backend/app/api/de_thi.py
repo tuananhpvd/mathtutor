@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.api.problems import _lay_dang_cd_map, _strip_answers
 from app.auth.deps import CurrentUser, require_role
 from app.db.session import get_db
-from app.models.de_thi import DeThi, TrangThaiBaiThi
+from app.models.de_thi import BaiThi, DeThi, TrangThaiBaiThi
 from app.models.problem import Problem
 from app.models.user import User, VaiTro
 from app.services import de_thi_service as svc
@@ -210,6 +210,13 @@ def _trang_thai_bai(db: Session, bai_id: int, hs_id: int) -> dict:
         }
 
     # Đã nộp: kết quả + đáp án đúng (cùng triết lý "xem lại sau hoàn thành").
+    return {**goc, **_ket_qua_bai_da_nop(db, bai, de, problems, dang_cd)}
+
+
+def _ket_qua_bai_da_nop(db: Session, bai, de: DeThi, problems: dict, dang_cd: dict) -> dict:
+    """Kết quả đầy đủ 1 bài ĐÃ NỘP — dùng chung cho HS tự xem (`_trang_thai_bai`) và GV
+    xem chi tiết bài của HS (`chi_tiet_bai_gv`). Mỗi câu kèm dang_id/dang_ten để GV gợi
+    ý giao nhiệm vụ luyện lại đúng dạng cho câu sai."""
     ct_map = {ct["de_thi_cau_id"]: ct for ct in (bai.chi_tiet or [])}
     cau_kq = []
     for c in de.cau_list:
@@ -228,11 +235,37 @@ def _trang_thai_bai(db: Session, bai_id: int, hs_id: int) -> dict:
             "problem": _strip_answers(p, dang_cd),
             "dap_an_nhap": (bai.bai_lam or {}).get(str(c.id)),
             "dap_an_dung": dap_an,
+            "dang_id": p.dang_id, "dang_ten": p.dang.ten if p.dang else None,
             **{k: ct_map.get(c.id, {}).get(k) for k in ("dung", "diem", "diem_toi_da", "da_tra_loi")},
         })
     return {
-        **goc,
         "diem": bai.diem,
         "nop_luc": bai.nop_luc.isoformat() if bai.nop_luc else None,
         "cau_list": cau_kq,
+    }
+
+
+@router.get("/bai/{bai_id}/chi-tiet-gv", dependencies=_GV)
+def chi_tiet_bai_gv(bai_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """GV xem chi tiết 1 bài thi ĐÃ NỘP của HS (từ màn Kết quả lớp) — cùng dữ liệu HS tự
+    xem sau khi thi, kèm dang_id/dang_ten mỗi câu để gợi ý giao nhiệm vụ luyện lại."""
+    bai = db.get(BaiThi, bai_id)
+    if bai is None:
+        raise HTTPException(status_code=404, detail="Bài thi không tồn tại")
+    try:
+        de = svc._de_cua_gv(db, current_user.id, bai.de_thi_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    if bai.trang_thai != TrangThaiBaiThi.da_nop:
+        raise HTTPException(status_code=400, detail="Bài chưa nộp")
+
+    hs = db.get(User, bai.hoc_sinh_id)
+    dang_cd = _lay_dang_cd_map(db)
+    problems = {p.id: p for p in db.query(Problem).filter(
+        Problem.id.in_([c.problem_id for c in de.cau_list])).all()}
+    return {
+        "bai_thi_id": bai.id, "de_thi_id": de.id, "ten_de": de.ten,
+        "hoc_sinh_id": bai.hoc_sinh_id, "ho_ten": hs.ho_ten if hs else "",
+        "diem_toi_da": svc.diem_toi_da_cua(de),
+        **_ket_qua_bai_da_nop(db, bai, de, problems, dang_cd),
     }

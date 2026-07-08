@@ -442,43 +442,209 @@ function TaoDeForm({ onDong, onXong }) {
 function KetQuaLop({ deId, ten, onDong }) {
   const [ds, setDs] = useState(null)
   const [error, setError] = useState('')
+  const [chiTietBaiId, setChiTietBaiId] = useState(null)
 
   useEffect(() => {
     api.deThiKetQuaLop(deId).then(setDs).catch((e) => setError(e.message))
   }, [deId])
 
   return (
-    <Card>
-      <CardHeader title={`Kết quả: ${ten}`}
-        action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
-      <CardBody>
-        {error && <p className="text-sm text-danger">{error}</p>}
-        {ds && ds.length === 0 && <p className="text-sm text-muted">Chưa có học sinh nào nộp bài.</p>}
-        {ds && ds.length > 0 && (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-muted text-xs border-b border-border">
-                <th className="py-2 pr-3 text-left font-medium">#</th>
-                <th className="py-2 pr-3 text-left font-medium">Học sinh</th>
-                <th className="py-2 pr-3 text-right font-medium">Điểm</th>
-                <th className="py-2 text-right font-medium">Nộp lúc</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ds.map((r, i) => (
-                <tr key={r.bai_thi_id} className="border-b border-border/60">
-                  <td className="py-2 pr-3 text-muted">{i + 1}</td>
-                  <td className="py-2 pr-3 text-ink">{r.ho_ten}</td>
-                  <td className="py-2 pr-3 text-right font-semibold text-ink">
-                    {r.diem}/{r.diem_toi_da}
-                  </td>
-                  <td className="py-2 text-right text-muted">
-                    {r.nop_luc ? new Date(r.nop_luc).toLocaleString('vi-VN') : '—'}
-                  </td>
+    <>
+      <Card>
+        <CardHeader title={`Kết quả: ${ten}`}
+          action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+        <CardBody>
+          {error && <p className="text-sm text-danger">{error}</p>}
+          {ds && ds.length === 0 && <p className="text-sm text-muted">Chưa có học sinh nào nộp bài.</p>}
+          {ds && ds.length > 0 && (
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="text-muted text-xs border-b border-border">
+                  <th className="py-2 pr-3 text-left font-medium">#</th>
+                  <th className="py-2 pr-3 text-left font-medium">Học sinh</th>
+                  <th className="py-2 pr-3 text-right font-medium">Điểm</th>
+                  <th className="py-2 pr-3 text-right font-medium">Nộp lúc</th>
+                  <th className="py-2 text-right font-medium"></th>
                 </tr>
+              </thead>
+              <tbody>
+                {ds.map((r, i) => (
+                  <tr key={r.bai_thi_id} className="border-b border-border/60">
+                    <td className="py-2 pr-3 text-muted">{i + 1}</td>
+                    <td className="py-2 pr-3 text-ink">{r.ho_ten}</td>
+                    <td className="py-2 pr-3 text-right font-semibold text-ink">
+                      {r.diem}/{r.diem_toi_da}
+                    </td>
+                    <td className="py-2 pr-3 text-right text-muted">
+                      {r.nop_luc ? new Date(r.nop_luc).toLocaleString('vi-VN') : '—'}
+                    </td>
+                    <td className="py-2 text-right">
+                      <Button size="sm" variant="ghost" onClick={() => setChiTietBaiId(r.bai_thi_id)}>
+                        Xem chi tiết
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardBody>
+      </Card>
+
+      {chiTietBaiId && (
+        <ChiTietBaiGV baiId={chiTietBaiId} onDong={() => setChiTietBaiId(null)} />
+      )}
+    </>
+  )
+}
+
+/* ─────────────── Chi tiết bài làm của 1 HS (GV xem) ─────────────── */
+
+function textDapAnDungGV(c) {
+  const da = c.dap_an_dung || {}
+  if (c.phan === 'I') return da.dap_an_dung
+  if (c.phan === 'III') return da.dap_an_cuoi
+  return Object.entries(da.dap_an_y || {})
+    .map(([k, v]) => `${k}) ${v === 'Dung' ? 'Đ' : 'S'}`).join('  ')
+}
+function textDapAnNhapGV(c) {
+  if (c.dap_an_nhap == null || c.dap_an_nhap === '') return '(bỏ trống)'
+  if (typeof c.dap_an_nhap === 'object') {
+    return Object.entries(c.dap_an_nhap)
+      .map(([k, v]) => `${k}) ${v === 'Dung' ? 'Đ' : 'S'}`).join('  ') || '(bỏ trống)'
+  }
+  return String(c.dap_an_nhap)
+}
+
+function GoiYNhiemVu({ hocSinhId, dangId, dangTen }) {
+  const [bai, setBai] = useState(null) // null = đang tải
+  const [chon, setChon] = useState(() => new Set())
+  const [dangGiao, setDangGiao] = useState(false)
+  const [ok, setOk] = useState('')
+  const [loi, setLoi] = useState('')
+
+  useEffect(() => {
+    api.gvDeXuatTheoDang(hocSinhId, dangId).then(setBai).catch((e) => { setBai([]); setLoi(e.message) })
+  }, [hocSinhId, dangId])
+
+  function toggle(id) {
+    setChon((s) => {
+      const next = new Set(s)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function giao() {
+    setLoi('')
+    setDangGiao(true)
+    try {
+      const r = await api.gvTaoNhiemVu({
+        tieu_de: `Luyện lại: ${dangTen}`, mo_ta: null, han_chot: null,
+        problem_ids: [...chon], hoc_sinh_ids: [hocSinhId],
+      })
+      setOk(`Đã giao ${r.so_bai} bài.`)
+      setChon(new Set())
+    } catch (e) { setLoi(e.message) }
+    finally { setDangGiao(false) }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-surface-2/60 px-3 py-2.5 flex flex-col gap-2">
+      {bai === null && <p className="text-xs text-muted">Đang tải bài gợi ý cùng dạng...</p>}
+      {bai && bai.length === 0 && !loi && (
+        <p className="text-xs text-muted">Không còn bài nào cùng dạng mà HS chưa làm để gợi ý.</p>
+      )}
+      {bai && bai.length > 0 && (
+        <>
+          <p className="text-xs font-semibold text-ink">
+            Chọn bài luyện lại dạng "{dangTen}" ({chon.size} đã chọn):
+          </p>
+          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+            {bai.map((b) => (
+              <label key={b.problem_id} className="flex items-start gap-2 text-xs cursor-pointer">
+                <input type="checkbox" className="mt-0.5 accent-primary"
+                  checked={chon.has(b.problem_id)} onChange={() => toggle(b.problem_id)} />
+                <span className="text-ink line-clamp-1">{b.de_bai}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" onClick={giao} disabled={chon.size === 0 || dangGiao}>
+              {dangGiao ? 'Đang giao...' : `Giao ${chon.size} bài`}
+            </Button>
+            {ok && <span className="text-xs text-success">✓ {ok}</span>}
+          </div>
+        </>
+      )}
+      {loi && <p className="text-xs text-danger">{loi}</p>}
+    </div>
+  )
+}
+
+function ChiTietBaiGV({ baiId, onDong }) {
+  const [kq, setKq] = useState(null)
+  const [error, setError] = useState('')
+  const [goiYMo, setGoiYMo] = useState(null) // dang_id đang mở gợi ý
+
+  useEffect(() => {
+    api.deThiChiTietBaiGV(baiId).then(setKq).catch((e) => setError(e.message))
+  }, [baiId])
+
+  return (
+    <Card>
+      <CardHeader title={kq ? `Chi tiết bài làm: ${kq.ho_ten}` : 'Chi tiết bài làm'}
+        subtitle={kq ? kq.ten_de : ''}
+        action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+      <CardBody className="flex flex-col gap-3">
+        {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
+        {!kq && !error && <p className="text-sm text-muted">Đang tải...</p>}
+        {kq && (
+          <>
+            <div className="flex items-center gap-4 flex-wrap">
+              <p className="text-3xl font-bold text-primary">
+                {kq.diem}<span className="text-lg text-muted">/{kq.diem_toi_da}</span>
+              </p>
+              {kq.nop_luc && (
+                <span className="text-xs text-muted">
+                  Nộp lúc {new Date(kq.nop_luc).toLocaleString('vi-VN')}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              {kq.cau_list.map((c) => (
+                <div key={c.de_thi_cau_id} className="rounded-lg border border-border px-4 py-3 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-ink">Câu {c.thu_tu}</span>
+                    <Badge tone="neutral">Phần {c.phan}</Badge>
+                    {c.dung
+                      ? <Badge tone="success">✓ Đúng · +{c.diem}đ</Badge>
+                      : <Badge tone="danger">
+                          {c.da_tra_loi ? `✗ Sai · ${c.diem > 0 ? `+${c.diem}đ` : '0đ'}` : 'Bỏ trống · 0đ'}
+                        </Badge>}
+                  </div>
+                  <div className="text-sm text-ink">{renderDe(c.problem.de_bai)}</div>
+                  <div className="text-sm flex flex-col sm:flex-row gap-x-6 gap-y-1">
+                    <span className="text-muted">HS trả lời: <b className="text-ink">{textDapAnNhapGV(c)}</b></span>
+                    <span className="text-muted">Đáp án đúng: <b className="text-success">{textDapAnDungGV(c)}</b></span>
+                  </div>
+                  {!c.dung && c.dang_id && (
+                    <div className="flex flex-col gap-2">
+                      <div>
+                        <Button size="sm" variant="ghost"
+                          onClick={() => setGoiYMo(goiYMo === c.dang_id ? null : c.dang_id)}>
+                          🎯 Giao nhiệm vụ luyện lại dạng "{c.dang_ten}"
+                        </Button>
+                      </div>
+                      {goiYMo === c.dang_id && (
+                        <GoiYNhiemVu hocSinhId={kq.hoc_sinh_id} dangId={c.dang_id} dangTen={c.dang_ten} />
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </CardBody>
     </Card>
@@ -582,6 +748,15 @@ export default function QuanLyDeThi() {
                     </Badge>
                   )}
                 </div>
+                <p className="text-xs text-muted">
+                  Tạo: {new Date(de.tao_luc).toLocaleDateString('vi-VN')}
+                  {de.phat_hanh_luc && (
+                    <> · Phát hành: {new Date(de.phat_hanh_luc).toLocaleDateString('vi-VN')}</>
+                  )}
+                  {de.thu_hoi_luc && (
+                    <> · Thu hồi: {new Date(de.thu_hoi_luc).toLocaleDateString('vi-VN')}</>
+                  )}
+                </p>
                 <div className="flex gap-2 mt-1 flex-wrap">
                   {de.phat_hanh ? (
                     <Button size="sm" variant="warning" onClick={() => thuHoi(de)}>Thu hồi</Button>

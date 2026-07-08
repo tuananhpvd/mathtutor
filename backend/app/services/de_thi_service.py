@@ -155,6 +155,10 @@ def dat_phat_hanh(
                 raise ValueError("Có học sinh không thuộc lớp của bạn")
 
     de.phat_hanh = bool(phat_hanh)
+    if phat_hanh:
+        de.phat_hanh_luc = _now()
+    else:
+        de.thu_hoi_luc = _now()
     if hs_set is not None:
         de.pham_vi = PhamViDeThi.tuy_chon.value
         db.query(DeThiHocSinh).filter(DeThiHocSinh.de_thi_id == de.id).delete()
@@ -200,6 +204,8 @@ def ds_de_gv(db: Session, gv_id: int) -> list[dict]:
             "phat_hanh": de.phat_hanh, "so_cau": len(de.cau_list),
             "diem_toi_da": diem_toi_da_cua(de), "so_bai_nop": so_nop,
             "tao_luc": de.tao_luc.isoformat(),
+            "phat_hanh_luc": de.phat_hanh_luc.isoformat() if de.phat_hanh_luc else None,
+            "thu_hoi_luc": de.thu_hoi_luc.isoformat() if de.thu_hoi_luc else None,
             "pham_vi": de.pham_vi,
             "hoc_sinh_duoc_giao_ids": (
                 [d.hoc_sinh_id for d in de.hoc_sinh_duoc_giao]

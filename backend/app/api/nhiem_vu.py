@@ -38,6 +38,15 @@ def de_xuat(hoc_sinh_id: int, current_user: CurrentUser, db: Session = Depends(g
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/de-xuat-dang", dependencies=_GV)
+def de_xuat_dang(hoc_sinh_id: int, dang_id: int, current_user: CurrentUser,
+                  db: Session = Depends(get_db)):
+    try:
+        return nhiem_vu_service.de_xuat_theo_dang(db, current_user.id, hoc_sinh_id, dang_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.patch("/{nv_id}", dependencies=_GV)
 def cap_nhat(nv_id: int, body: dict, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:

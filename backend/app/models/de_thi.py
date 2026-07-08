@@ -45,6 +45,10 @@ class DeThi(Base):
         String(16), default=PhamViDeThi.tat_ca.value, nullable=False
     )
     tao_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=False)
+    # Mốc PHÁT HÀNH/THU HỒI GẦN NHẤT (không lưu lịch sử nhiều lần bấm) — None nếu
+    # chưa từng phát hành/thu hồi.
+    phat_hanh_luc: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    thu_hoi_luc: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     cau_list: Mapped[list["DeThiCau"]] = relationship(
         "DeThiCau", back_populates="de_thi", order_by="DeThiCau.thu_tu",

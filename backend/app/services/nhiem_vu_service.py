@@ -137,6 +137,28 @@ def de_xuat_theo_diem_yeu(db: Session, gv_id: int, hoc_sinh_id: int, gioi_han: i
     return {"dang_yeu": [r["ten"] for r in diem_yeu], "bai": bai}
 
 
+def de_xuat_theo_dang(
+    db: Session, gv_id: int, hoc_sinh_id: int, dang_id: int, gioi_han: int = 10
+) -> list[dict]:
+    """Đề xuất bài CÙNG DẠNG (dang_id) mà HS chưa hoàn thành — dùng cho gợi ý "giao
+    nhiệm vụ luyện lại" ngay tại câu sai cụ thể trong 1 bài thi (khác de_xuat_theo_diem_yeu
+    vốn quét toàn bộ hồ sơ năng lực, hàm này chỉ khoanh đúng 1 dạng do GV chỉ định)."""
+    if not _so_huu_hs(db, gv_id, hoc_sinh_id):
+        raise ValueError("Không có quyền với học sinh này")
+    problems = (
+        db.query(Problem)
+        .filter(
+            Problem.dang_id == dang_id,
+            Problem.trang_thai_duyet == TrangThaiDuyet.da_duyet,
+            Problem.bi_an == False,  # noqa: E712
+            Problem.nguoi_tao_id == gv_id,
+        )
+        .all()
+    )
+    done = _hoan_thanh_set(db, hoc_sinh_id, [p.id for p in problems])
+    return [_bai_dict(p) for p in problems if p.id not in done][:gioi_han]
+
+
 def danh_sach_gv(db: Session, gv_id: int) -> list[dict]:
     nhiem_vus = (
         db.query(NhiemVu).filter(NhiemVu.gv_id == gv_id)

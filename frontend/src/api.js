@@ -168,6 +168,7 @@ export const api = {
     }),
   deThiXoa: (id) => request(`/de-thi/${id}`, { method: 'DELETE' }),
   deThiKetQuaLop: (id) => request(`/de-thi/${id}/ket-qua-lop`),
+  deThiChiTietBaiGV: (baiId) => request(`/de-thi/bai/${baiId}/chi-tiet-gv`),
   deThiBatDau: (id) => post(`/de-thi/${id}/bat-dau`),
   deThiXemBai: (baiId) => request(`/de-thi/bai/${baiId}`),
   deThiLuu: (baiId, bai_lam) =>
@@ -219,6 +220,8 @@ export const api = {
   gvTaoNhiemVu: (body) => post('/nhiem-vu', body),
   gvNhiemVu: () => request('/nhiem-vu/gv'),
   gvDeXuatNhiemVu: (hoc_sinh_id) => request(`/nhiem-vu/de-xuat?hoc_sinh_id=${hoc_sinh_id}`),
+  gvDeXuatTheoDang: (hoc_sinh_id, dang_id) =>
+    request(`/nhiem-vu/de-xuat-dang?hoc_sinh_id=${hoc_sinh_id}&dang_id=${dang_id}`),
   gvXoaNhiemVu: (id) => request(`/nhiem-vu/${id}`, { method: 'DELETE' }),
   gvCapNhatNhiemVu: (id, body) => request(`/nhiem-vu/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   hsNhiemVu: () => request('/nhiem-vu/hs'),

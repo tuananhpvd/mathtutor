@@ -159,6 +159,12 @@ def _migrate_them_cot(engine) -> None:
                     "ALTER TABLE de_thi ADD COLUMN pham_vi VARCHAR(16) "
                     "DEFAULT 'tat_ca' NOT NULL"
                 ))
+        if "phat_hanh_luc" not in cot_dt:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE de_thi ADD COLUMN phat_hanh_luc DATETIME"))
+        if "thu_hoi_luc" not in cot_dt:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE de_thi ADD COLUMN thu_hoi_luc DATETIME"))
     if "de_thi_cau" in ten_bang:
         cot_dtc = {c["name"] for c in insp.get_columns("de_thi_cau")}
         if "diem_cau" not in cot_dtc:
