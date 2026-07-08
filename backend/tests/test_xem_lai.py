@@ -1,6 +1,9 @@
 """Tests B3 — xem lại bài sau khi hoàn thành (lời giải chuẩn + hành trình)."""
 
 from app.auth.security import hash_password
+from app.models.session import Session as SessionModel
+from app.models.session import TrangThaiSession
+from app.models.solution_step import SolutionStep
 from app.models.user import User, VaiTro
 
 from .test_api_flow import _h, _token, seed_all
@@ -41,6 +44,29 @@ def test_xem_lai_sau_hoan_thanh_du_du_lieu(client, db):
     assert "diem" in tk and "cap_goi_y_max" in tk
     # Đề bài đi qua lớp lọc an toàn (không mang trường đáp án trong problem)
     assert "dap_an_cuoi" not in str(data["problem"])
+
+
+def test_xem_lai_bieu_thuc_ket_qua_tra_ve_latex(client, db):
+    """bieu_thuc_ket_qua lưu cú pháp SymPy (vd "3*x**2 - 3") — trang Xem lại phải nhận
+    được LaTeX thật (vd "3 x^{2} - 3") để Formula/KaTeX hiển thị đẹp, không phải chuỗi
+    SymPy thô (từng hiện lỗi kiểu "3∗x∗∗2−3" khi KaTeX cố parse cú pháp SymPy).
+
+    Chốt trạng thái hoàn thành thẳng qua DB (thay vì hội thoại) để tách biệt khỏi logic
+    orchestrator — test này chỉ quan tâm bước chuyển đổi LaTeX ở response, không phải
+    luồng hoàn thành phiên (đã có test riêng khóa hành vi đó)."""
+    hs, gv, admin, p = seed_all(db)
+    step = db.query(SolutionStep).filter(SolutionStep.problem_id == p.id).first()
+    step.bieu_thuc_ket_qua = "3*x**2 - 3"
+    tok = _token(client, "hs_test")
+    sid = client.post("/api/sessions", json={"problem_id": p.id},
+                      headers=_h(tok)).json()["session_id"]
+    session = db.get(SessionModel, sid)
+    session.trang_thai = TrangThaiSession.hoan_thanh
+    db.commit()
+
+    data = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(tok)).json()
+    assert data["loi_giai"][0]["bieu_thuc_ket_qua"] == "3 x^{2} - 3"
+    assert "**" not in data["loi_giai"][0]["bieu_thuc_ket_qua"]
 
 
 def test_xem_lai_phien_chua_xong_bi_chan_403(client, db):

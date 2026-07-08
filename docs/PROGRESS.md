@@ -4,10 +4,22 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v73**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v74**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **363/363 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **364/364 test backend xanh** (`pytest`).
+- **✅ Sửa phần "Xem lại bài" của HS — hiện công thức toán đúng (v74):**
+  - Đổi tên "Lời giải chuẩn" → "Gợi ý các bước làm" (`XemLaiBai.jsx`).
+  - **Fix "Kết quả bước" hiện lỗi kiểu `3∗x∗∗2−3`:** `bieu_thuc_ket_qua` lưu bằng cú pháp
+    SymPy (vd `3*x**2 - 3`, dùng để CAS đối chiếu đáp án) nhưng frontend đưa thẳng vào KaTeX
+    như thể đã là LaTeX. Sửa ở backend — endpoint `GET /sessions/{id}/xem-lai` (`sessions.py`)
+    giờ chuyển `bieu_thuc_ket_qua` sang LaTeX thật bằng `sympy.latex()` (tái dùng
+    `parse_bieu_thuc_an_toan()` có sẵn ở `core/matching/cas.py`) trước khi trả về — vd
+    `3*x**2 - 3` → `3 x^{2} - 3`. Có fallback giữ nguyên chuỗi gốc nếu không parse được, không
+    làm hỏng cả trang vì 1 biểu thức lỗi. Test mới `test_xem_lai_bieu_thuc_ket_qua_tra_ve_latex`
+    khóa hành vi (chốt trạng thái hoàn thành phiên thẳng qua DB thay vì hội thoại, để tách biệt
+    khỏi logic orchestrator — test này chỉ quan tâm bước chuyển đổi LaTeX ở response).
+  - Không đổi schema DB, không cần migration.
 - **✅ Chi tiết trang kết quả thi thử (v73):**
   - **Fix "ô trống" ở gợi ý giao nhiệm vụ (v71 gây ra):** `_bai_dict()` (`nhiem_vu_service.py`,
     dùng chung cho "gợi ý theo điểm yếu" + "gợi ý theo dạng") thiếu trường `de_bai` — trước giờ

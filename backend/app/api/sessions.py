@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sympy import latex as sympy_latex
 
 from app.api.problems import _chuyen_de_ten, _lay_dang_cd_map, _strip_answers
 from app.auth.deps import CurrentUser, require_role
 from app.core.guard.safety import kiem_tra_an_toan
+from app.core.matching.cas import parse_bieu_thuc_an_toan
 from app.db.session import get_db
 from app.llm.client import get_llm_client
 from app.models.problem import Problem, TrangThaiDuyet
@@ -213,6 +215,19 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
     )
 
 
+def _bieu_thuc_latex(expr_str: str) -> str:
+    """Chuyển bieu_thuc_ket_qua (cú pháp SymPy nội bộ, dùng để CAS đối chiếu — vd
+    "3*x**2-3") sang LaTeX để hiển thị đẹp ở trang Xem lại bài (vd "3x^{2}-3"). Không
+    parse được (rỗng, hoặc dữ liệu bất thường) → giữ nguyên chuỗi gốc, không để hỏng
+    cả trang vì 1 biểu thức lỗi."""
+    if not expr_str:
+        return expr_str
+    try:
+        return sympy_latex(parse_bieu_thuc_an_toan(expr_str))
+    except Exception:
+        return expr_str
+
+
 @router.get("/{session_id}/xem-lai",
             dependencies=[require_role(VaiTro.hs, VaiTro.gv, VaiTro.admin)])
 def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
@@ -264,7 +279,7 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
         "dap_an": dap_an,
         "loi_giai": [
             {"thu_tu": s.thu_tu, "pham_vi": s.pham_vi, "mo_ta": s.mo_ta,
-             "bieu_thuc_ket_qua": s.bieu_thuc_ket_qua}
+             "bieu_thuc_ket_qua": _bieu_thuc_latex(s.bieu_thuc_ket_qua)}
             for s in steps
         ],
         "hanh_trinh": [

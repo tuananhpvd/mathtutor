@@ -120,7 +120,7 @@ export default function XemLaiBai({ sessionId, onDong }) {
 
             {/* Lời giải chuẩn từng bước */}
             <Card>
-              <CardHeader title="Lời giải chuẩn"
+              <CardHeader title="Gợi ý các bước làm"
                 subtitle="Các bước thầy/cô đã soạn — em đối chiếu với cách làm của mình nhé" />
               <CardBody className="flex flex-col gap-3">
                 {data.loi_giai.length === 0 && (
