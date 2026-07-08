@@ -26,6 +26,9 @@ class TaoDeRequest(BaseModel):
     ten: str
     thoi_gian_phut: int = Field(90, ge=10, le=180)
     cau_theo_phan: dict[str, list[int]]  # {"I": [...], "II": [...], "III": [...]}
+    # None = chế độ Chuẩn 2025 (điểm/câu cố định 0,25/1,0/0,5). Có giá trị = chế độ Tự
+    # do: tổng điểm từng phần ĐÃ CHỌN câu, GV tự đặt (tổng toàn đề ≤ 10).
+    diem_phan: dict[str, float] | None = None
 
 
 class PhatHanhRequest(BaseModel):
@@ -56,10 +59,13 @@ class NopBaiRequest(BaseModel):
 @router.post("", dependencies=_GV)
 def tao_de(body: TaoDeRequest, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:
-        de = svc.tao_de(db, current_user.id, body.ten, body.thoi_gian_phut, body.cau_theo_phan)
+        de, canh_bao = svc.tao_de(
+            db, current_user.id, body.ten, body.thoi_gian_phut, body.cau_theo_phan,
+            diem_phan=body.diem_phan,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"id": de.id, "ten": de.ten}
+    return {"id": de.id, "ten": de.ten, "canh_bao": canh_bao}
 
 
 @router.get("", dependencies=[require_role(VaiTro.gv, VaiTro.admin, VaiTro.hs)])

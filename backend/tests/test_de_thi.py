@@ -227,6 +227,68 @@ def test_tron_de_theo_ma_tran(db, client):
     assert r.status_code == 400
 
 
+def test_tao_de_tu_do(db, client):
+    """Chế độ Tự do: bỏ phần, tự đặt điểm/phần, chấm điểm dùng điểm/câu mới, cảnh báo
+    làm tròn, chặn tổng > 10."""
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    # Thêm 6 câu TN4PA nữa (tổng 7 câu phần I) để test chia không tròn.
+    tn_them = []
+    for i in range(6):
+        p = Problem(chuyen_de="Ôn thi", loai_cau="TN4PA", do_kho="tb", de_bai=f"TN thêm {i}?",
+                    loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                    nguoi_tao_id=gv.id,
+                    meta={"phuong_an": {"A": "1", "B": "2", "C": "3", "D": "4"}, "dap_an_dung": "B"})
+        db.add(p)
+        tn_them.append(p)
+    db.commit()
+    for p in tn_them:
+        db.refresh(p)
+    h_gv = _h(_login(client, "gv_de"))
+    h_hs = _h(_login(client, "hs_de"))
+
+    # Chỉ bật phần I (7 câu TN4PA), bỏ II và III, đặt 1đ cho phần I → chia không tròn.
+    ids_i = [p_tn.id] + [p.id for p in tn_them]
+    r = client.post("/api/de-thi", headers=h_gv, json={
+        "ten": "Đề tự do", "thoi_gian_phut": 45,
+        "cau_theo_phan": {"I": ids_i, "II": [], "III": []},
+        "diem_phan": {"I": 1},
+    })
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["canh_bao"]) == 1 and "không tròn" in body["canh_bao"][0]
+    de_id = body["id"]
+
+    # diem_toi_da phản ánh đúng tổng đã làm tròn (7 câu × 0.14 = 0.98), KHÔNG phải 1.0
+    client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv, json={"phat_hanh": True})
+    ds = client.get("/api/de-thi", headers=h_hs).json()
+    assert ds[0]["diem_toi_da"] == 0.98
+
+    # Chấm điểm dùng điểm/câu 0.14 (không phải 0.25 mặc định)
+    bai = client.post(f"/api/de-thi/{de_id}/bat-dau", headers=h_hs).json()
+    cau0 = bai["cau_list"][0]
+    r = client.post(f"/api/de-thi/bai/{bai['bai_thi_id']}/nop", headers=h_hs,
+                    json={"bai_lam": {str(cau0["de_thi_cau_id"]): "B"}})
+    kq = r.json()
+    assert kq["diem"] == 0.14
+    assert kq["cau_list"][0]["diem_toi_da"] == 0.14
+
+    # Tổng điểm các phần > 10 → chặn tạo đề
+    r = client.post("/api/de-thi", headers=h_gv, json={
+        "ten": "Đề vượt điểm", "thoi_gian_phut": 45,
+        "cau_theo_phan": {"I": [p_tn.id], "II": [p_ds.id], "III": [p_tln.id]},
+        "diem_phan": {"I": 6, "II": 3, "III": 2},
+    })
+    assert r.status_code == 400 and "vượt quá 10" in r.json()["detail"]
+
+    # Phần có câu nhưng thiếu điểm hợp lệ
+    r = client.post("/api/de-thi", headers=h_gv, json={
+        "ten": "Đề thiếu điểm", "thoi_gian_phut": 45,
+        "cau_theo_phan": {"I": [p_tn.id], "II": [], "III": []},
+        "diem_phan": {"I": 0},
+    })
+    assert r.status_code == 400 and "chưa nhập điểm hợp lệ" in r.json()["detail"]
+
+
 def test_phat_hanh_tuy_chon_doi_tuong(db, client):
     """GV có 2 lớp — phát hành tuỳ chọn chỉ 1 lớp thì lớp còn lại không thấy/không thi được."""
     gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)

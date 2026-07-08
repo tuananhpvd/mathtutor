@@ -147,6 +147,11 @@ function TaoDeForm({ onDong, onXong }) {
   const [dangLuu, setDangLuu] = useState(false)
   const [phanMo, setPhanMo] = useState('I')
 
+  // Chế độ Chuẩn 2025 (điểm/câu cố định) vs Tự do (GV tự bật/tắt phần + đặt điểm phần)
+  const [mode, setMode] = useState('chuan') // 'chuan' | 'tu_do'
+  const [phanBat, setPhanBat] = useState({ I: true, II: true, III: true })
+  const [diemPhan, setDiemPhan] = useState({ I: 3, II: 4, III: 3 })
+
   // Trộn tự động (GĐ2)
   const [tronMo, setTronMo] = useState(false)
   const [soCau, setSoCau] = useState({ I: 12, II: 4, III: 6 })
@@ -154,6 +159,21 @@ function TaoDeForm({ onDong, onXong }) {
   const [cdChon, setCdChon] = useState([]) // [] = mọi chuyên đề
   const [dangTron, setDangTron] = useState(false)
   const [canhBao, setCanhBao] = useState([])
+
+  const phanHienThi = mode === 'tu_do' ? PHAN.filter((p) => phanBat[p.ma]) : PHAN
+  // Nếu tab đang mở bị ẩn đi (phần vừa tắt) thì suy ra tab hiệu lực thay vì setState
+  // trong effect (tránh cascading render) — click tab vẫn cập nhật phanMo bình thường.
+  const phanMoHieuLuc = phanHienThi.some((p) => p.ma === phanMo)
+    ? phanMo : (phanHienThi[0]?.ma ?? phanMo)
+
+  function togglePhanBat(ma) {
+    setPhanBat((s) => ({ ...s, [ma]: !s[ma] }))
+    if (phanBat[ma]) setChon((c) => ({ ...c, [ma]: [] })) // tắt phần → bỏ câu đã chọn
+  }
+
+  const tongDiemTuDo = PHAN.reduce(
+    (t, p) => t + (phanBat[p.ma] && chon[p.ma].length > 0 ? Number(diemPhan[p.ma]) || 0 : 0), 0
+  )
 
   useEffect(() => {
     api.listProblems().then((ds) =>
@@ -177,8 +197,10 @@ function TaoDeForm({ onDong, onXong }) {
     setCanhBao([])
     setDangTron(true)
     try {
+      // Chế độ Tự do: phần đã TẮT luôn trộn 0 câu, dù ô nhập số câu còn giá trị cũ.
+      const soCauGui = (ma) => (mode === 'tu_do' && !phanBat[ma] ? 0 : Number(soCau[ma]) || 0)
       const kq = await api.deThiTron({
-        so_cau: { I: Number(soCau.I) || 0, II: Number(soCau.II) || 0, III: Number(soCau.III) || 0 },
+        so_cau: { I: soCauGui('I'), II: soCauGui('II'), III: soCauGui('III') },
         chuyen_de: cdChon,
         ty_le_kho: { de: Number(tyLe.de) || 0, tb: Number(tyLe.tb) || 0, kho: Number(tyLe.kho) || 0 },
       })
@@ -197,10 +219,30 @@ function TaoDeForm({ onDong, onXong }) {
 
   async function luu() {
     setError('')
+    if (mode === 'tu_do') {
+      if (!PHAN.some((p) => phanBat[p.ma] && chon[p.ma].length > 0)) {
+        setError('Chế độ Tự do: cần bật ít nhất 1 phần và chọn câu cho phần đó')
+        return
+      }
+      for (const p of PHAN) {
+        if (phanBat[p.ma] && chon[p.ma].length > 0 && !(Number(diemPhan[p.ma]) > 0)) {
+          setError(`Phần ${p.ma} đã chọn câu nhưng chưa nhập điểm hợp lệ`)
+          return
+        }
+      }
+      if (tongDiemTuDo > 10) {
+        setError(`Tổng điểm các phần (${tongDiemTuDo}đ) vượt quá 10 điểm`)
+        return
+      }
+    }
     setDangLuu(true)
     try {
-      await api.deThiTao({ ten, thoi_gian_phut: Number(phut) || 90, cau_theo_phan: chon })
-      onXong()
+      const body = { ten, thoi_gian_phut: Number(phut) || 90, cau_theo_phan: chon }
+      if (mode === 'tu_do') {
+        body.diem_phan = { I: Number(diemPhan.I) || 0, II: Number(diemPhan.II) || 0, III: Number(diemPhan.III) || 0 }
+      }
+      const r = await api.deThiTao(body)
+      onXong(r.canh_bao || [])
     } catch (e) { setError(e.message) }
     finally { setDangLuu(false) }
   }
@@ -210,15 +252,57 @@ function TaoDeForm({ onDong, onXong }) {
   return (
     <Card>
       <CardHeader title="Tạo đề mới"
-        subtitle="Chọn câu ĐÃ DUYỆT từ ngân hàng của thầy/cô cho từng phần. Chuẩn 2025: 12 + 4 + 6 câu = 10 điểm, 90 phút."
+        subtitle={mode === 'chuan'
+          ? 'Chọn câu ĐÃ DUYỆT từ ngân hàng của thầy/cô cho từng phần. Chuẩn 2025: 12 + 4 + 6 câu = 10 điểm, 90 phút.'
+          : 'Chế độ Tự do: chọn phần muốn đưa vào đề, tự đặt điểm mỗi phần (tổng tối đa 10 điểm).'}
         action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
       <CardBody className="flex flex-col gap-4">
+        <div className="flex gap-2">
+          {[['chuan', 'Chuẩn 2025'], ['tu_do', 'Tự do']].map(([v, nhan]) => (
+            <button key={v} onClick={() => setMode(v)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium border ${
+                mode === v
+                  ? 'border-primary bg-primary-soft text-primary'
+                  : 'border-border text-muted hover:bg-surface-2'
+              }`}>
+              {nhan}
+            </button>
+          ))}
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Tên đề" value={ten} onChange={(e) => setTen(e.target.value)}
             placeholder="VD: Đề thi thử số 1 — Khảo sát hàm số" />
           <Input label="Thời gian (phút)" type="number" min={10} max={180}
             value={phut} onChange={(e) => setPhut(e.target.value)} className="max-w-40" />
         </div>
+
+        {mode === 'tu_do' && (
+          <div className="rounded-lg border border-border bg-surface-2/60 px-4 py-3 flex flex-col gap-2.5">
+            <p className="text-sm font-semibold text-ink">Chọn phần & điểm mỗi phần</p>
+            {PHAN.map((p) => (
+              <div key={p.ma} className="flex items-center gap-3 flex-wrap">
+                <label className="inline-flex items-center gap-1.5 text-sm cursor-pointer w-48 shrink-0">
+                  <input type="checkbox" className="accent-primary"
+                    checked={phanBat[p.ma]} onChange={() => togglePhanBat(p.ma)} />
+                  Phần {p.ma} ({p.loai})
+                </label>
+                <Input type="number" min={0} step={0.25} className="w-28" disabled={!phanBat[p.ma]}
+                  label="Điểm phần" value={diemPhan[p.ma]}
+                  onChange={(e) => setDiemPhan((d) => ({ ...d, [p.ma]: e.target.value }))} />
+                <span className="text-xs text-muted">
+                  {phanBat[p.ma] && chon[p.ma].length > 0
+                    ? `≈ ${(Number(diemPhan[p.ma]) / chon[p.ma].length).toFixed(2)}đ/câu (${chon[p.ma].length} câu)`
+                    : phanBat[p.ma] ? 'chưa chọn câu' : 'không đưa vào đề'}
+                </span>
+              </div>
+            ))}
+            <p className={`text-xs font-semibold ${tongDiemTuDo > 10 ? 'text-danger' : 'text-muted'}`}>
+              Tổng điểm hiện tại: {tongDiemTuDo}đ / tối đa 10đ
+              {tongDiemTuDo > 10 && ' — vượt quá, cần giảm bớt!'}
+            </p>
+          </div>
+        )}
 
         {/* Trộn tự động theo ma trận (GĐ2) */}
         <div className="rounded-lg border border-border bg-surface-2/60 px-4 py-3 flex flex-col gap-3">
@@ -234,11 +318,14 @@ function TaoDeForm({ onDong, onXong }) {
               <div className="flex gap-3 items-end flex-wrap">
                 {PHAN.map((p) => (
                   <Input key={p.ma} type="number" min={0} className="w-24"
+                    disabled={mode === 'tu_do' && !phanBat[p.ma]}
                     label={`Phần ${p.ma} (${p.loai})`}
                     value={soCau[p.ma]}
                     onChange={(e) => setSoCau((s) => ({ ...s, [p.ma]: e.target.value }))} />
                 ))}
-                <span className="text-xs text-muted pb-2">chuẩn 2025: 12 + 4 + 6</span>
+                <span className="text-xs text-muted pb-2">
+                  {mode === 'tu_do' ? 'phần đã tắt sẽ trộn 0 câu' : 'chuẩn 2025: 12 + 4 + 6'}
+                </span>
               </div>
               <div className="flex gap-3 items-end flex-wrap">
                 {[['de', 'Dễ'], ['tb', 'TB'], ['kho', 'Khó']].map(([k, nhan]) => (
@@ -284,24 +371,33 @@ function TaoDeForm({ onDong, onXong }) {
           )}
         </div>
 
-        {/* Tab 3 phần */}
+        {/* Tab các phần (chế độ Tự do chỉ hiện phần đã bật) */}
+        {mode === 'tu_do' && phanHienThi.length === 0 && (
+          <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">
+            Chưa bật phần nào — tick chọn ít nhất 1 phần ở trên để chọn câu hỏi.
+          </p>
+        )}
         <div className="flex gap-2 flex-wrap">
-          {PHAN.map((p) => (
+          {phanHienThi.map((p) => (
             <button key={p.ma} onClick={() => setPhanMo(p.ma)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium border ${
-                phanMo === p.ma
+                phanMoHieuLuc === p.ma
                   ? 'border-primary bg-primary-soft text-primary'
                   : 'border-border text-muted hover:bg-surface-2'
               }`}>
-              Phần {p.ma} · {chon[p.ma].length}/{p.chuan} câu
+              Phần {p.ma} · {chon[p.ma].length}{mode === 'chuan' ? `/${p.chuan}` : ''} câu
             </button>
           ))}
         </div>
 
-        {PHAN.filter((p) => p.ma === phanMo).map((p) => (
+        {phanHienThi.filter((p) => p.ma === phanMoHieuLuc).map((p) => (
           <div key={p.ma} className="flex flex-col gap-2">
-            <p className="text-sm text-muted">{p.ten} ({p.diem}) — chuẩn {p.chuan} câu,
-              đang chọn <b className="text-ink">{chon[p.ma].length}</b></p>
+            <p className="text-sm text-muted">
+              {mode === 'chuan'
+                ? <>{p.ten} ({p.diem}) — chuẩn {p.chuan} câu, đang chọn <b className="text-ink">{chon[p.ma].length}</b></>
+                : <>{p.ten} — {diemPhan[p.ma]}đ/phần, đang chọn <b className="text-ink">{chon[p.ma].length}</b> câu
+                    {chon[p.ma].length > 0 && <> (≈ {(Number(diemPhan[p.ma]) / chon[p.ma].length).toFixed(2)}đ/câu)</>}</>}
+            </p>
             {theoLoai[p.loai].length === 0 && (
               <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">
                 Chưa có câu {p.loai} nào đã duyệt trong ngân hàng — tạo/duyệt thêm ở mục Câu hỏi.
@@ -434,7 +530,13 @@ export default function QuanLyDeThi() {
       {thongBao && <p className="text-sm text-success bg-success-soft rounded-md px-3 py-2">✓ {thongBao}</p>}
 
       {taoMo && <TaoDeForm onDong={() => setTaoMo(false)}
-        onXong={() => { setTaoMo(false); setThongBao('Đã tạo đề (đang ở trạng thái nháp).'); setTimeout(() => setThongBao(''), 4000); tai() }} />}
+        onXong={(canhBao) => {
+          setTaoMo(false)
+          const canhBaoText = (canhBao && canhBao.length > 0) ? ` ⚠ ${canhBao.join(' · ')}` : ''
+          setThongBao(`Đã tạo đề (đang ở trạng thái nháp).${canhBaoText}`)
+          setTimeout(() => setThongBao(''), canhBaoText ? 8000 : 4000)
+          tai()
+        }} />}
 
       {ketQua && <KetQuaLop deId={ketQua.id} ten={ketQua.ten} onDong={() => setKetQua(null)} />}
 

@@ -65,6 +65,9 @@ class DeThiCau(Base):
     problem_id: Mapped[int] = mapped_column(Integer, ForeignKey("problems.id"), nullable=False)
     phan: Mapped[str] = mapped_column(String(5), nullable=False)  # I | II | III
     thu_tu: Mapped[int] = mapped_column(Integer, nullable=False)
+    # None = dùng điểm/câu chuẩn 2025 cố định theo phần (DIEM_CAU); có giá trị = chế độ
+    # Tự do, GV tự đặt điểm/câu (đề cũ không set cột này, hành vi không đổi).
+    diem_cau: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     de_thi: Mapped["DeThi"] = relationship("DeThi", back_populates="cau_list")
 

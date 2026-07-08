@@ -39,9 +39,18 @@ def _naive(dt: datetime) -> datetime:
 
 # ---------- GV: ghép & quản lý đề ----------
 
-def tao_de(db: Session, gv_id: int, ten: str, thoi_gian_phut: int,
-           cau_theo_phan: dict[str, list[int]]) -> DeThi:
-    """Tạo đề từ danh sách problem_id theo phần {"I": [...], "II": [...], "III": [...]}."""
+def tao_de(
+    db: Session, gv_id: int, ten: str, thoi_gian_phut: int,
+    cau_theo_phan: dict[str, list[int]],
+    diem_phan: dict[str, float] | None = None,
+) -> tuple[DeThi, list[str]]:
+    """Tạo đề từ danh sách problem_id theo phần {"I": [...], "II": [...], "III": [...]}.
+
+    diem_phan=None → chế độ CHUẨN 2025: điểm/câu cố định theo DIEM_CAU (hành vi cũ,
+    không đổi). diem_phan={"I": x, "II": y, "III": z} → chế độ TỰ DO: GV đặt tổng điểm
+    cho từng phần ĐÃ CHỌN câu (bỏ qua phần rỗng câu); điểm/câu = tổng điểm phần chia
+    đều số câu, làm tròn 2 chữ số. Tổng các phần không được vượt quá 10 điểm. Trả kèm
+    canh_bao (vd lệch làm tròn) để GV biết, không chặn tạo đề."""
     ten = (ten or "").strip()
     if not ten:
         raise ValueError("Tên đề không được để trống")
@@ -72,6 +81,28 @@ def tao_de(db: Session, gv_id: int, ten: str, thoi_gian_phut: int,
             if p.nguoi_tao_id != gv_id:
                 raise ValueError(f"Câu #{pid} là câu của giáo viên khác")
 
+    canh_bao: list[str] = []
+    diem_cau_theo_phan: dict[str, float | None] = {"I": None, "II": None, "III": None}
+    if diem_phan is not None:
+        tong = 0.0
+        for phan in ("I", "II", "III"):
+            so_cau = len(cau_theo_phan.get(phan) or [])
+            if so_cau == 0:
+                continue
+            diem = diem_phan.get(phan)
+            if diem is None or diem <= 0:
+                raise ValueError(f"Phần {phan} có câu nhưng chưa nhập điểm hợp lệ")
+            tong += diem
+            moi_cau = round(diem / so_cau, 2)
+            diem_cau_theo_phan[phan] = moi_cau
+            if abs(round(moi_cau * so_cau, 2) - diem) > 0.01:
+                canh_bao.append(
+                    f"Phần {phan}: {diem}đ chia {so_cau} câu không tròn — mỗi câu làm tròn "
+                    f"thành {moi_cau}đ (tổng thực tế {round(moi_cau * so_cau, 2)}đ)"
+                )
+        if tong > 10 + 1e-9:
+            raise ValueError(f"Tổng điểm các phần ({round(tong, 2)}đ) vượt quá 10 điểm")
+
     de = DeThi(ten=ten, nguoi_tao_id=gv_id, thoi_gian_phut=int(thoi_gian_phut))
     db.add(de)
     db.flush()
@@ -79,10 +110,11 @@ def tao_de(db: Session, gv_id: int, ten: str, thoi_gian_phut: int,
     for phan in ("I", "II", "III"):
         for pid in cau_theo_phan.get(phan) or []:
             thu_tu += 1
-            db.add(DeThiCau(de_thi_id=de.id, problem_id=pid, phan=phan, thu_tu=thu_tu))
+            db.add(DeThiCau(de_thi_id=de.id, problem_id=pid, phan=phan, thu_tu=thu_tu,
+                            diem_cau=diem_cau_theo_phan[phan]))
     db.commit()
     db.refresh(de)
-    return de
+    return de, canh_bao
 
 
 def _de_cua_gv(db: Session, gv_id: int, de_id: int) -> DeThi:
@@ -145,8 +177,14 @@ def xoa_de(db: Session, gv_id: int, de_id: int) -> None:
     db.commit()
 
 
+def _diem_moi_cau(c: DeThiCau) -> float:
+    """Điểm tối đa của 1 câu — dùng diem_cau riêng (chế độ Tự do) nếu có, ngược lại
+    fallback DIEM_CAU chuẩn 2025 theo phần (đề cũ/chế độ Chuẩn không set diem_cau)."""
+    return c.diem_cau if c.diem_cau is not None else DIEM_CAU[c.phan]
+
+
 def diem_toi_da_cua(de: DeThi) -> float:
-    return round(sum(DIEM_CAU[c.phan] for c in de.cau_list), 2)
+    return round(sum(_diem_moi_cau(c) for c in de.cau_list), 2)
 
 
 def ds_de_gv(db: Session, gv_id: int) -> list[dict]:
@@ -413,6 +451,7 @@ def _cham_va_nop(db: Session, bai: BaiThi, de: DeThi) -> None:
     for c in de.cau_list:
         p = problems.get(c.problem_id)
         nhap = (bai.bai_lam or {}).get(str(c.id))
+        diem_toi_da_cau = _diem_moi_cau(c)
         diem_cau = 0.0
         dung = False
         if p is not None and nhap not in (None, "", {}):
@@ -421,16 +460,16 @@ def _cham_va_nop(db: Session, bai: BaiThi, de: DeThi) -> None:
                              p.che_do_so_khop.value)
                 dung = km.ket_qua == KetQuaSoKhop.DUNG
                 if c.phan == "II":
-                    diem_cau = round((km.diem or 0.0) * DIEM_CAU["II"], 2)
+                    diem_cau = round((km.diem or 0.0) * diem_toi_da_cau, 2)
                 else:
-                    diem_cau = DIEM_CAU[c.phan] if dung else 0.0
+                    diem_cau = diem_toi_da_cau if dung else 0.0
             except (ValueError, TypeError, AttributeError, KeyError):
                 dung = False  # nhập không hợp lệ → 0 điểm, không sập buổi thi
         tong += diem_cau
         chi_tiet.append({
             "de_thi_cau_id": c.id, "problem_id": c.problem_id, "phan": c.phan,
             "thu_tu": c.thu_tu, "da_tra_loi": nhap not in (None, "", {}),
-            "dung": dung, "diem": diem_cau, "diem_toi_da": DIEM_CAU[c.phan],
+            "dung": dung, "diem": diem_cau, "diem_toi_da": diem_toi_da_cau,
         })
     bai.chi_tiet = chi_tiet
     bai.diem = round(tong, 2)

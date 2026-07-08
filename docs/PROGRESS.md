@@ -4,10 +4,28 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v69**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v70**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **360/360 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **361/361 test backend xanh** (`pytest`).
+- **✅ Chế độ "Tự do" khi GV tạo đề thi thử (v70):** ngoài chế độ "Chuẩn 2025" hiện có (điểm/câu
+  cố định 0,25/1,0/0,5), thêm chế độ Tự do — GV tự bật/tắt từng phần (I/II/III), tự đặt TỔNG
+  ĐIỂM mỗi phần đã bật (không bắt buộc theo cấu trúc chuẩn), tổng toàn đề không vượt quá 10
+  điểm. Ràng buộc loại câu theo phần (I=TN4PA/II=TNDS/III=TLN) vẫn giữ nguyên (đã hỏi & xác
+  nhận với user — bậc thang TNDS chỉ có ý nghĩa đúng loại). Toggle chế độ tích hợp ngay trong
+  form "Tạo đề mới" hiện có; cả 2 cách chọn câu (thủ công / trộn ma trận) đều dùng lại được —
+  khối "Trộn đề tự động theo ma trận" xác nhận là DÙNG CHUNG cho cả 2 chế độ (chỉ lo chọn câu,
+  không biết khái niệm điểm phần; phần đã tắt tự trộn 0 câu).
+  - Backend: `DeThiCau` thêm cột `diem_cau` (nullable) — đề Chuẩn/đề cũ không set, fallback về
+    hằng số `DIEM_CAU` cũ qua helper `_diem_moi_cau()` (không ảnh hưởng đề đã có). `tao_de()`
+    nhận thêm `diem_phan`, validate ĐẦY ĐỦ trước khi tạo bản ghi nào (áp dụng bài học từ bug
+    tuần trước: validate trước, mutate sau). Điểm/câu = tổng điểm phần ÷ số câu, làm tròn 2 chữ
+    số; cảnh báo (không chặn) nếu lệch làm tròn > 0,01đ; chặn tạo đề nếu tổng phần > 10đ hoặc
+    phần có câu mà thiếu điểm hợp lệ.
+  - **An toàn production**: cột `diem_cau` mới thêm qua `ALTER TABLE` tự động lúc khởi động
+    (giống pattern `pham_vi` ở v69) — không đụng dữ liệu cũ.
+  - Test mới `test_tao_de_tu_do`: bỏ phần II/III, chia điểm không tròn có cảnh báo đúng, chấm
+    điểm dùng đúng điểm/câu mới (không phải 0,25 mặc định), chặn đúng khi tổng > 10đ.
 - **✅ 4 sửa/thêm ở Thi thử (v69):**
   1. **Fix lỗi đếm giờ sai** — đề 90 phút hiện đếm ngược từ "90 phút mấy giây" thay vì đúng
      90:00. Nguyên nhân: `_het_han_luc()` (hạn CHẤP NHẬN thao tác trễ, có cộng gia hạn
