@@ -7,10 +7,10 @@ export function ConfirmProvider({ children }) {
   const [state, setState] = useState(null)
   const resolveRef = useRef(null)
 
-  const confirm = useCallback((message, { title = 'Xác nhận' } = {}) => {
+  const confirm = useCallback((message, { title = 'Xác nhận', labelYes = 'OK', labelNo = 'Hủy' } = {}) => {
     return new Promise((resolve) => {
       resolveRef.current = resolve
-      setState({ message, title })
+      setState({ message, title, labelYes, labelNo })
     })
   }, [])
 
@@ -34,8 +34,8 @@ export function ConfirmProvider({ children }) {
             <p className="font-semibold text-ink text-base mb-2">{state.title}</p>
             <p className="text-ink-2 text-sm whitespace-pre-line mb-6">{state.message}</p>
             <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => handle(false)}>Hủy</Button>
-              <Button variant="primary" onClick={() => handle(true)}>OK</Button>
+              <Button variant="secondary" onClick={() => handle(false)}>{state.labelNo}</Button>
+              <Button variant="primary" onClick={() => handle(true)}>{state.labelYes}</Button>
             </div>
           </div>
         </div>

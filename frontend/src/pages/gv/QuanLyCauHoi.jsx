@@ -794,6 +794,7 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
   const [bai, setBai] = useState(null)
   const [error, setError] = useState('')
   const [dangLuu, setDangLuu] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     api.getProblem(id).then(setBai).catch((e) => setError(e.message))
@@ -819,6 +820,16 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
         meta: bai.meta,
         solution_steps: chuanHoaSteps(bai.solution_steps),
       })
+      // Câu chưa duyệt → hỏi ngay có duyệt luôn không, đỡ phải quay lại tìm trong danh sách.
+      if (bai.trang_thai_duyet !== 'da_duyet') {
+        const muonDuyet = await confirm(
+          'Đã lưu câu hỏi. Thầy/cô có muốn DUYỆT LUÔN để học sinh thấy được ngay không?',
+          { title: 'Lưu thành công', labelYes: 'Duyệt luôn', labelNo: 'Chỉ lưu, duyệt sau' }
+        )
+        if (muonDuyet) {
+          try { await api.duyetCau(id, 'duyet') } catch (e) { setError(e.message) }
+        }
+      }
       onLuuXong()
     } catch (e) {
       setError(e.message)

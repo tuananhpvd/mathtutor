@@ -279,9 +279,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }
         </div>
       )}
       <div>
-        <button onClick={onChonBai} className="text-sm text-muted hover:text-ink mb-2">
+        <Button onClick={onChonBai} variant="secondary" size="sm"
+          className="mb-2 bg-warning-soft border-warning/20 shadow-[var(--shadow-card)]">
           ← Chọn bài khác
-        </button>
+        </Button>
         <div className="rounded-lg border border-primary/20 bg-primary-soft px-4 py-3">
           <p className="text-base sm:text-lg font-bold text-primary mb-1.5">
             {problem.chuyen_de}

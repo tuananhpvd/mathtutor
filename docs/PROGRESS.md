@@ -4,10 +4,21 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v67**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v68**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **359/359 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **359/359 test backend xanh** (`pytest`, không đổi backend đợt này).
+- **✅ Dialog hỏi Duyệt ngay sau khi GV lưu câu hỏi (v68):** trước đây GV Sửa xong bấm Lưu thì
+  quay thẳng về danh sách, phải tự tìm lại để duyệt — bất tiện. `SuaCauHoi` (`QuanLyCauHoi.jsx`)
+  giờ sau khi lưu thành công, nếu câu hỏi **chưa** ở trạng thái "Đã duyệt" → hiện dialog hỏi
+  "Duyệt luôn" hay "Chỉ lưu, duyệt sau"; chọn Duyệt luôn thì gọi API duyệt (`api.duyetCau`)
+  ngay trước khi đóng màn sửa. Câu đã duyệt sẵn thì lưu bình thường, không hỏi thừa. Mở rộng
+  `useConfirm()` (`ConfirmDialog.jsx`) nhận thêm nhãn nút tùy chỉnh (`labelYes`/`labelNo`), mặc
+  định vẫn "OK"/"Hủy" — không ảnh hưởng các chỗ dùng cũ (xóa/khôi phục/hủy duyệt).
+- **✅ 2 UI nhỏ khác trong "Chọn bài khác" phòng học HS (v68):** đổi từ chữ mờ sang nút rõ ràng
+  (`Button variant="secondary" size="sm"`), sau đó tô nền cam nhạt (`bg-warning-soft` — màu gần
+  "cam" nhất có sẵn trong hệ thống, không bịa hex mới) + đổ bóng nhẹ (`--shadow-card`) theo yêu
+  cầu cho dễ thấy hơn. Đã kiểm tra thứ tự CSS biên dịch để đảm bảo màu ghi đè đúng.
 - **✅ Fix lỗi AI tự bịa gợi ý lạc đề (v67):** GV báo AI diễn đạt gợi ý cho câu hỏi cực trị lại
   tự chêm "tìm giá trị lớn nhất/nhỏ nhất trên đoạn" — nội dung KHÔNG có trong
   `danh_sach_goi_y` đã lưu. Điều tra bằng dữ liệu production thật (Problem 35): xác nhận gợi ý
