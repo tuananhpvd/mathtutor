@@ -112,6 +112,12 @@ RIÊNG TNDS: mỗi phần tử trong "meta.y" có thể thêm khóa "bat_buoc_su
 học sinh phải nhập đúng biểu thức kết quả của ý đó (CAS chấm) trước khi được chốt Đúng/Sai; khi
 true thì bước (solution_step) có "pham_vi" trùng ký hiệu ý PHẢI có "bieu_thuc_ket_qua" hợp lệ.
 Nên đặt true cho ý đầu (a) ở câu tb/kho. Học sinh làm lần lượt a→b→c→d, đúng ý mới qua ý sau.
+
+BẮT BUỘC thêm khóa "loi_giai_chi_tiet": VIẾT LỜI GIẢI ĐẦY ĐỦ bằng văn xuôi tiếng Việt, trình
+bày rõ ràng theo từng bước tới kết luận cuối cùng — KHÁC HẲN "danh_sach_goi_y" (đó chỉ là các ý
+gợi mở NGẮN dùng cho gia sư Socratic lúc học sinh ĐANG làm bài, không phải lời giải). Đây là bài
+giải hoàn chỉnh giáo viên xem lại/chỉnh sửa, có thể cho học sinh xem SAU KHI đã hoàn thành bài.
+Công thức dùng LaTeX trong cặp $...$ như "de_bai".
 KHÔNG trả gì ngoài JSON.
 """.strip()
 
@@ -128,7 +134,8 @@ _MAU_TN4PA = """{
   "solution_steps": [
     {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "<mô tả bước>",
      "bieu_thuc_ket_qua": "3*x**2-3", "danh_sach_goi_y": ["<gợi ý 1>", "<gợi ý 2>"]}
-  ]
+  ],
+  "loi_giai_chi_tiet": "<lời giải đầy đủ, văn xuôi, từng bước tới kết luận>"
 }"""
 
 _MAU_TNDS = """{
@@ -149,7 +156,8 @@ _MAU_TNDS = """{
      "danh_sach_goi_y": ["<gợi ý>"]},
     {"thu_tu": 1, "pham_vi": "d", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "",
      "danh_sach_goi_y": ["<gợi ý>"]}
-  ]
+  ],
+  "loi_giai_chi_tiet": "<lời giải đầy đủ cho cả 4 ý a-d, văn xuôi, từng bước tới kết luận>"
 }"""
 
 _MAU_TLN = """{
@@ -159,7 +167,8 @@ _MAU_TLN = """{
   "solution_steps": [
     {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "<mô tả>", "bieu_thuc_ket_qua": "<SymPy>",
      "danh_sach_goi_y": ["<gợi ý 1>", "<gợi ý 2>"]}
-  ]
+  ],
+  "loi_giai_chi_tiet": "<lời giải đầy đủ, văn xuôi, từng bước tới đáp án cuối>"
 }"""
 # Ràng buộc "dap_an_cuoi" TLN: số thập phân, TỐI ĐA 4 ký tự tính cả dấu '-' và dấu '.'
 # (ví dụ hợp lệ: "125", "-125", "3.12", "-3.1"; "-3.124" SAI vì 6 ký tự). Ra đề sao cho
@@ -201,7 +210,8 @@ KHÔNG dùng tên khác như "loai_cau_hoi"):
 {mau}
 
 Bắt buộc: có đủ "solution_steps" (mỗi bước có "danh_sach_goi_y" không rỗng), "bieu_thuc_ket_qua"
-viết cú pháp SymPy KHÔNG bọc $. Trong chuỗi JSON, dấu gạch chéo ngược của LaTeX phải viết kép
+viết cú pháp SymPy KHÔNG bọc $, và "loi_giai_chi_tiet" (lời giải đầy đủ, khác hẳn các gợi ý
+ngắn trong "danh_sach_goi_y"). Trong chuỗi JSON, dấu gạch chéo ngược của LaTeX phải viết kép
 (ví dụ "$\\\\dfrac{{1}}{{2}}$"). CHỈ trả JSON, không kèm chữ nào khác.
 Trả về: {{"cau_hoi": [ <mỗi câu một object đúng schema trên> ]}}"""
 
@@ -226,6 +236,10 @@ Bạn là trợ lý soạn lời giải Toán lớp 12. Giáo viên đã viết 
 3. Viết ĐÚNG số gợi ý leo thang giáo viên yêu cầu cho MỖI bước, các gợi ý PHẢI BÁM SÁT đúng yêu
    cầu của CHÍNH bước đó (không lạc sang bước khác, không phải lời thoại), sắp xếp từ gợi mở nhẹ
    đến rõ dần theo bước, TUYỆT ĐỐI không nêu thẳng kết quả/đáp án trong bất kỳ gợi ý nào.
+4. Viết thêm "loi_giai_chi_tiet": LỜI GIẢI ĐẦY ĐỦ bằng văn xuôi tiếng Việt, trình bày rõ ràng
+   theo từng bước tới kết luận/đáp án cuối cùng — KHÁC HẲN các gợi ý ở mục 3 (đó chỉ là ý gợi mở
+   NGẮN dùng lúc học sinh ĐANG làm bài). Đây là bài giải hoàn chỉnh giáo viên xem lại/chỉnh sửa,
+   có thể cho học sinh xem SAU KHI đã hoàn thành bài.
 
 RÀNG BUỘC BẮT BUỘC:
 - Đề bài, phương án A–D (TN4PA), 4 ý a–d (TNDS) PHẢI giữ NGUYÊN VĂN như giáo viên đã cung cấp —

@@ -182,6 +182,9 @@ def test_luu_cau_nhap_dung_trang_thai_va_nguon(db):
     assert problem.nguoi_tao_id == gv.id
     assert problem.dang_id == dang.id
     assert len(problem.solution_steps) == 2
+    # AI tự sinh loi_giai_chi_tiet trong bản nháp — GV sửa rồi lưu; hien mặc định vẫn False.
+    assert problem.loi_giai_chi_tiet.strip() != ""
+    assert problem.hien_loi_giai_chi_tiet is False
 
 
 # ---------- API end-to-end ----------

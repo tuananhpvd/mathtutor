@@ -73,6 +73,23 @@ def test_stub_sinh_tnds_4_y():
     assert len(cau["meta"]["y"]) == 4
 
 
+def test_stub_sinh_cau_hoi_luon_co_loi_giai_chi_tiet():
+    """AI (kể cả Stub) phải tự sinh 'loi_giai_chi_tiet' cho mọi câu — GV chỉ cần sửa,
+    không phải viết từ đầu."""
+    llm = StubLLMClient()
+    for loai in ("TN4PA", "TNDS", "TLN"):
+        r = llm.sinh_cau_hoi({"loai_cau": loai, "chuyen_de": "X", "do_kho": "tb", "so_luong": 1})
+        cau = r["cau_hoi"][0]
+        assert cau.get("loi_giai_chi_tiet", "").strip(), f"{loai} thiếu loi_giai_chi_tiet"
+
+
+def test_validate_cau_hoi_thieu_loi_giai_chi_tiet_bi_canh_bao():
+    cau = _cau_tln("5")
+    cau["loi_giai_chi_tiet"] = ""
+    cb = validate_cau_hoi(cau)
+    assert any("lời giải chi tiết" in c.lower() for c in cb)
+
+
 # ----- validate_cau_hoi -----
 
 def test_validate_cau_hoi_sach():
@@ -102,6 +119,7 @@ def _cau_tln(dap_an_cuoi):
             {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "x",
              "bieu_thuc_ket_qua": "5", "danh_sach_goi_y": ["a"]},
         ],
+        "loi_giai_chi_tiet": "Lời giải mẫu cho test.",
     }
 
 
@@ -204,6 +222,23 @@ def test_sinh_gan_dang_va_dong_bo_chuyen_de(db):
         p = db.get(Problem, d["id"])
         assert p.dang_id == dang.id
         assert p.chuyen_de == "Khảo sát hàm số"
+
+
+def test_sinh_va_luu_luu_ca_loi_giai_chi_tiet_ai_sinh(db):
+    """AI (kể cả sinh hàng loạt) tự sinh loi_giai_chi_tiet — phải lưu tới DB để GV sửa,
+    không phải để trống chờ GV viết từ đầu. hien_loi_giai_chi_tiet mặc định VẪN False
+    (an toàn — GV phải chủ động bật mới cho HS xem)."""
+    dang = _seed_danh_muc(db)
+    llm = StubLLMClient()
+    ket_qua = sinh_va_luu(
+        db,
+        {"chuyen_de": "X", "dang_id": dang.id, "loai_cau": "TLN", "do_kho": "tb", "so_luong": 1},
+        nguoi_tao_id=None,
+        llm=llm,
+    )
+    p = db.get(Problem, ket_qua[0]["id"])
+    assert p.loi_giai_chi_tiet.strip() != ""
+    assert p.hien_loi_giai_chi_tiet is False
 
 
 # ----- Parse JSON bền + retry (chống lỗi 500) -----

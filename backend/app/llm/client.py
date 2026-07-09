@@ -164,6 +164,11 @@ class StubLLMClient(LLMClient):
                         {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tính y' và xét dấu",
                          "bieu_thuc_ket_qua": "3*x**2-3", "danh_sach_goi_y": goi_y(so_goi_y)},
                     ],
+                    "loi_giai_chi_tiet": (
+                        "Ta có $y' = 3x^2 - 3$. Giải $y' = 0 \\Leftrightarrow x = \\pm1$. "
+                        "Xét dấu $y'$: $y' > 0$ trên $(1;+\\infty)$ nên hàm số đồng biến trên "
+                        "khoảng này. Vậy đáp án đúng là B."
+                    ),
                 })
             elif loai_cau == "TNDS":
                 cau_hoi.append({
@@ -191,6 +196,14 @@ class StubLLMClient(LLMClient):
                         {"thu_tu": 1, "pham_vi": "d", "mo_ta": "So GTLN với 2",
                          "bieu_thuc_ket_qua": "sqrt(3)+pi/6", "danh_sach_goi_y": goi_y(so_goi_y)},
                     ],
+                    "loi_giai_chi_tiet": (
+                        "a) $f(0) = 2\\cos 0 + 0 = 2$ — Đúng. "
+                        "b) $f'(x) = -2\\sin x + 1$ (đạo hàm từng hạng tử) — Đúng. "
+                        "c) Giải $f'(x)=0 \\Leftrightarrow \\sin x = \\tfrac12 \\Leftrightarrow "
+                        "x=\\tfrac{\\pi}{6}$ — Đúng. "
+                        "d) So sánh các giá trị trên đoạn, $GTLN = \\sqrt{3}+\\tfrac{\\pi}{6} > 2$ "
+                        "nên mệnh đề \"GTLN bằng 2\" là Sai."
+                    ),
                 })
             else:  # TLN
                 cau_hoi.append({
@@ -206,6 +219,11 @@ class StubLLMClient(LLMClient):
                         {"thu_tu": 3, "pham_vi": "ca_bai", "mo_ta": "So sánh giá trị",
                          "bieu_thuc_ket_qua": "20", "danh_sach_goi_y": goi_y(so_goi_y)},
                     ],
+                    "loi_giai_chi_tiet": (
+                        "Ta có $f'(x) = 3x^2 - 3$. Giải $f'(x) = 0$ trên $[0;3]$ được $x = 1$. "
+                        "Tính các giá trị: $f(0) = 2$, $f(1) = 0$, $f(3) = 20$. So sánh 3 giá trị "
+                        "này, $GTLN = f(3) = 20$."
+                    ),
                 })
         return {"cau_hoi": cau_hoi}
 
@@ -267,6 +285,10 @@ class StubLLMClient(LLMClient):
 
         return {"cau_hoi": [{
             "loai_cau": loai_cau, "de_bai": de_bai, "meta": meta, "solution_steps": steps,
+            "loi_giai_chi_tiet": (
+                "(Lời giải mẫu — chế độ Stub, không giải toán thật) Thực hiện lần lượt từng "
+                "bước theo mô tả ở trên để đi tới kết quả cuối cùng."
+            ),
         }]}
 
     def phan_tich(self, ho_so: dict) -> dict | None:

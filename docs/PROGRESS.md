@@ -4,10 +4,29 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v76**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v77**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **383/383 test backend xanh** (`pytest`, +3 test mới).
+  Tailwind) chạy end-to-end. **386/386 test backend xanh** (`pytest`, +3 test mới).
+- **✅ AI tự sinh "Lời giải chi tiết" cho GV sửa (v77, nối tiếp v76):** v76 mới thêm được
+  Ô/cấu hình "Lời giải chi tiết" do GV TỰ GÕ; lượt này bắt AI (cả "Sinh hàng loạt" lẫn "Tạo
+  bước và gợi ý") TỰ SINH nội dung này luôn, đổ sẵn vào ô để GV chỉ cần sửa thay vì viết từ đầu.
+  - `app/llm/prompts.py`: thêm khóa `"loi_giai_chi_tiet"` vào cả 3 schema mẫu
+    (`_MAU_TN4PA`/`_MAU_TNDS`/`_MAU_TLN`, dùng chung cho cả 2 luồng AI) + chỉ thị rõ trong
+    `SYSTEM_SINH_CAU_HOI` và `SYSTEM_TAO_BUOC_GOI_Y`: đây là **lời giải ĐẦY ĐỦ dạng văn xuôi**,
+    KHÁC HẲN `danh_sach_goi_y` (chỉ là các ý gợi mở ngắn cho gia sư Socratic lúc HS đang học).
+  - Không cần sửa `app/llm/client.py` cho 3 provider thật (Gemini/Anthropic/OpenAI) — hàm parse
+    JSON dùng chung `_parse_json_cau_hoi()` vốn đã tổng quát (giữ nguyên mọi khóa AI trả về,
+    không lọc theo whitelist), nên chỉ cần đổi prompt là đủ. Có cập nhật `StubLLMClient` (mẫu
+    tất định dùng khi test/demo không có API key) để cũng trả `loi_giai_chi_tiet` mẫu — đồng bộ
+    hành vi giữa Stub và AI thật.
+  - `app/llm/question_gen.py` — `validate_cau_hoi()` thêm cảnh báo (KHÔNG chặn lưu) nếu AI lỡ
+    thiếu trường này, đúng tinh thần cảnh báo mềm sẵn có (giống thiếu gợi ý/bieu_thuc_ket_qua).
+  - **Mặc định an toàn giữ nguyên**: `hien_loi_giai_chi_tiet` vẫn mặc định `False` dù AI đã điền
+    sẵn nội dung — GV PHẢI tự xem/sửa rồi chủ động bật mới cho HS thấy (không tự động lộ ra).
+  - Test mới: Stub sinh đủ `loi_giai_chi_tiet` cho cả 3 loại câu; thiếu trường này → có cảnh
+    báo; `sinh_va_luu`/`luu_cau_nhap` (cả 2 luồng AI) lưu đúng nội dung AI sinh vào DB.
+  - Không đổi schema DB (đã có từ v76), không cần migration thêm.
 - **✅ "Lời giải chi tiết" cho câu hỏi — GV cấu hình, HS xem sau khi hoàn thành (v76):**
   - `Problem` thêm 2 cột: `loi_giai_chi_tiet` (Text, mặc định rỗng) và `hien_loi_giai_chi_tiet`
     (Boolean, mặc định `False` — ẨN cho tới khi GV chủ động bật, an toàn theo mặc định).

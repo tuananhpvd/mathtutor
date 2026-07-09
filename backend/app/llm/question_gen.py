@@ -99,6 +99,9 @@ def validate_cau_hoi(cau: dict) -> list[str]:
         if not s.get("danh_sach_goi_y"):
             canh_bao.append(f"Bước {s.get('thu_tu')} ({s.get('pham_vi')}): thiếu gợi ý")
 
+    if not str(cau.get("loi_giai_chi_tiet") or "").strip():
+        canh_bao.append("Thiếu lời giải chi tiết — GV nên tự bổ sung trước khi cho HS xem lại")
+
     return canh_bao
 
 
