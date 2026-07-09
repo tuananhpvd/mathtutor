@@ -223,3 +223,53 @@ def test_api_ve_bbt_ham_ngoai_pham_vi_tra_400(client, db):
     h = _tok(client, "gv_vh")
     r = client.post("/api/problems/ve-bbt", json={"bieu_thuc": "log(x)"}, headers=h)
     assert r.status_code == 400
+
+
+# ---------- API /api/problems/latex-sang-sympy ----------
+
+def test_api_latex_sang_sympy_gv_ok(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_vh")
+    r = client.post("/api/problems/latex-sang-sympy", json={"latex": r"\sqrt{2}"}, headers=h)
+    assert r.status_code == 200
+    assert r.json()["sympy"] == "sqrt(2)"
+
+
+def test_api_latex_sang_sympy_cac_cong_thuc_hay_gap(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_vh")
+    truong_hop = [
+        (r"x^{2}", "x**2"),
+        (r"\frac{1}{2}", "1/2"),
+        (r"\sin(x)", "sin(x)"),
+    ]
+    for latex, sympy_ky_vong in truong_hop:
+        r = client.post("/api/problems/latex-sang-sympy", json={"latex": latex}, headers=h)
+        assert r.status_code == 200, r.text
+        assert r.json()["sympy"] == sympy_ky_vong
+
+
+def test_api_latex_sang_sympy_hs_bi_cam(client, db):
+    _seed_users(db)
+    h = _tok(client, "hs_vh")
+    r = client.post("/api/problems/latex-sang-sympy", json={"latex": "x"}, headers=h)
+    assert r.status_code == 403
+
+
+def test_api_latex_sang_sympy_khong_parse_duoc_tra_400(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_vh")
+    r = client.post("/api/problems/latex-sang-sympy", json={"latex": r"\frac{1"}, headers=h)
+    assert r.status_code == 400
+    # Thông báo phải gọn, KHÔNG lộ dump lỗi ANTLR gốc (dài, tiếng Anh, có dấu ^^^ chỉ vị trí)
+    # — GV không đọc hiểu được, từng thấy khi test tay trên UI.
+    chi_tiet = r.json()["detail"]
+    assert "^^^" not in chi_tiet
+    assert len(chi_tiet) < 100
+
+
+def test_api_latex_sang_sympy_rong_tra_422(client, db):
+    _seed_users(db)
+    h = _tok(client, "gv_vh")
+    r = client.post("/api/problems/latex-sang-sympy", json={"latex": ""}, headers=h)
+    assert r.status_code == 422

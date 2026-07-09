@@ -4,10 +4,41 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v78**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v79**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **386/386 test backend xanh** (không đổi backend đợt này).
+  Tailwind) chạy end-to-end. **391/391 test backend xanh** (`pytest`, +5 test mới).
+- **✅ Thay "Bảng cú pháp SymPy" bằng ô chuyển đổi LaTeX→SymPy tương tác (v79):** trang Xem/Sửa
+  câu hỏi (GV) — sidebar phải trước đây có bảng tra cứu TĨNH (vd "$\sqrt x$ → sqrt(x)"), GV phải
+  tự đối chiếu bằng mắt. Thay bằng công cụ chuyển đổi TRỰC TIẾP.
+  - **Backend**: hàm CAS thuần có sẵn `latex_sang_sympy()` (`core/matching/latex.py`, dùng
+    `sympy.parsing.latex.parse_latex`) — TRƯỚC ĐÓ chưa có endpoint nào expose ra ngoài. Thêm
+    `POST /api/problems/latex-sang-sympy` (chỉ GV/Admin, giống pattern `/ve-do-thi`/`/ve-bbt`).
+  - **Frontend**: component mới `ChuyenDoiLatexSympy` (thay `BangCuPhapSymPy` — đã XÓA hẳn cùng
+    `NHOM_SYMPY`, không để lại code chết) — tái dùng NGUYÊN VẸN `FormulaEditor` (MathLive
+    math-field) + `MathPalette`, đúng 2 component HS đã dùng để nhập đáp án TLN trong phòng học
+    (đúng yêu cầu "giống như phần nhập kết quả trong phòng học của học sinh"). GV gõ trực tiếp
+    HOẶC bấm bảng công thức → hiện đồng thời 2 ô: công thức Toán (KaTeX, đối chiếu đã nhập đúng
+    ý) + cú pháp SymPy (debounce 500ms gọi API, có nút "Sao chép" để dán qua ô "Biểu thức kết
+    quả"). Bảng công thức `BangCongThuc` (TexField, dùng cho đề bài/gợi ý) giữ nguyên không đổi.
+  - Sửa 1 lỗi lint mới phát sinh khi viết effect debounce (setState đồng bộ đầu effect —
+    `react-hooks/set-state-in-effect`) bằng cách dời state-update vào trong callback bất đồng bộ
+    (`setTimeout`/promise) — không thêm nợ kỹ thuật mới, giữ nguyên 5 lỗi lint có sẵn của file.
+  - Test mới `test_ve_hinh.py`: chuyển đổi đúng vài công thức hay gặp, HS bị chặn 403, LaTeX hỏng
+    → 400, rỗng → 422.
+  - Không đổi schema DB.
+  - **User test tay trên UI thật, phát hiện + đã sửa 2 vấn đề:**
+    1. Bấm nút bảng công thức có Ô TRỐNG (vd "logₐ" chèn `\log_{\placeholder{}}(\placeholder{})`)
+       nhưng chưa điền — gửi dịch ngay sẽ luôn lỗi khó hiểu. Frontend giờ tự phát hiện
+       `\placeholder{}` còn sót trong latex TRƯỚC khi gọi API, hiện cảnh báo nhẹ "⚠ Còn ô trống
+       (□) chưa điền" thay vì gọi API rồi hiện lỗi kỹ thuật.
+    2. Thông báo lỗi backend (`latex_sang_sympy`) từng lộ nguyên văn dump lỗi ANTLR (dài, tiếng
+       Anh, có dấu `^^^` chỉ vị trí) — cắt bỏ phần dump kỹ thuật khỏi message hiển thị (vẫn giữ
+       `raise ... from e` để debug qua traceback khi cần). Đã xác nhận hàm này còn dùng chung cho
+       CAS chấm đáp án HS (`core/matching/cas.py`) — an toàn vì message ValueError ở đó bị nuốt
+       (không hiện cho HS), chỉ ảnh hưởng phần hiển thị cho GV ở công cụ mới. Test mới khóa: lỗi
+       không còn chứa `^^^`, độ dài < 100 ký tự.
+    3. Thêm nút ✕ nhỏ trong ô nhập công thức để xóa nhanh (chỉ hiện khi có nội dung).
 - **✅ 2 sửa UI nhỏ cho GV (v78):**
   1. **Ô dán ảnh đề (Ctrl+V) — `ODanAnh` (`AISinhCauHoi.jsx`)**: 2 nút "🔎 Nhận dạng từ ảnh" /
      "Xóa ảnh" trước xếp ngang cạnh ảnh preview (`flex items-start`), ảnh lớn/rộng đẩy nút tràn

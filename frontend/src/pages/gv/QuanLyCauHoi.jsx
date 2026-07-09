@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Input, Select, Table, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
+import FormulaEditor from '../../components/FormulaEditor'
+import MathPalette from '../../components/answer/MathPalette'
 import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
 import VeDoThiDialog from '../../components/gv/VeDoThiDialog'
 import VeBBTDialog from '../../components/gv/VeBBTDialog'
@@ -150,105 +152,110 @@ export function BangCongThuc({ onChen }) {
   )
 }
 
-// ---- Bảng tra cú pháp SymPy cho ô "Biểu thức kết quả" ----
-const NHOM_SYMPY = [
-  {
-    ten: 'Cơ bản',
-    rows: [
-      { toan: '$x^2$, $x^n$', sympy: 'x**2, x**n', ghi: 'Lũy thừa dùng **' },
-      { toan: '$x \\cdot y$', sympy: 'x*y', ghi: 'Luôn ghi dấu * khi nhân' },
-      { toan: '$2x$', sympy: '2*x', ghi: 'Phải có *, không viết 2x' },
-      { toan: '$\\dfrac{a}{b}$', sympy: 'a/b', ghi: 'Phép chia' },
-      { toan: '$\\dfrac{x+1}{x-2}$', sympy: '(x+1)/(x-2)', ghi: 'Nhớ bọc ngoặc' },
-    ],
-  },
-  {
-    ten: 'Căn & lũy thừa',
-    rows: [
-      { toan: '$\\sqrt{x}$', sympy: 'sqrt(x)', ghi: 'Căn bậc hai' },
-      { toan: '$\\sqrt[3]{x}$', sympy: 'x**(Rational(1,3))', ghi: 'Hoặc cbrt(x)' },
-      { toan: '$\\sqrt[n]{x}$', sympy: 'x**(1/n)', ghi: 'Căn bậc n' },
-      { toan: '$e^x$', sympy: 'exp(x)', ghi: 'Hàm mũ cơ số e' },
-      { toan: '$a^x$', sympy: 'a**x', ghi: 'Mũ cơ số bất kỳ' },
-    ],
-  },
-  {
-    ten: 'Mũ & log',
-    rows: [
-      { toan: '$\\ln x$', sympy: 'log(x)', ghi: 'log() là ln (cơ số e)' },
-      { toan: '$\\log_{10} x$', sympy: 'log(x, 10)', ghi: 'Log cơ số 10' },
-      { toan: '$\\log_a x$', sympy: 'log(x, a)', ghi: 'Log cơ số a' },
-    ],
-  },
-  {
-    ten: 'Lượng giác',
-    rows: [
-      { toan: '$\\sin x,\\ \\cos x$', sympy: 'sin(x), cos(x)', ghi: '' },
-      { toan: '$\\tan x,\\ \\cot x$', sympy: 'tan(x), cot(x)', ghi: '' },
-      { toan: '$\\sin^2 x$', sympy: 'sin(x)**2', ghi: 'Không viết sin^2 x' },
-      { toan: '$\\arcsin x$', sympy: 'asin(x)', ghi: 'acos, atan tương tự' },
-    ],
-  },
-  {
-    ten: 'Hằng số & ký hiệu',
-    rows: [
-      { toan: '$\\pi$', sympy: 'pi', ghi: 'Số pi' },
-      { toan: '$e$', sympy: 'E', ghi: 'Cơ số tự nhiên (E hoa)' },
-      { toan: '$\\infty$', sympy: 'oo', ghi: 'Vô cực (hai chữ o)' },
-      { toan: '$|x|$', sympy: 'Abs(x)', ghi: 'Giá trị tuyệt đối' },
-      { toan: '$\\dfrac{1}{2}$', sympy: 'Rational(1,2)', ghi: 'Phân số chính xác' },
-    ],
-  },
-  {
-    ten: 'Giải tích',
-    rows: [
-      { toan: "$f'(x)$", sympy: 'diff(f, x)', ghi: 'Đạo hàm theo x' },
-      { toan: "$f''(x)$", sympy: 'diff(f, x, 2)', ghi: 'Đạo hàm cấp 2' },
-      { toan: '$\\int f\\,dx$', sympy: 'integrate(f, x)', ghi: 'Nguyên hàm' },
-      { toan: '$\\int_a^b f\\,dx$', sympy: 'integrate(f,(x,a,b))', ghi: 'Tích phân xác định' },
-      { toan: '$\\lim_{x\\to a} f$', sympy: 'limit(f, x, a)', ghi: 'Giới hạn' },
-    ],
-  },
-]
+// ---- Chuyển đổi LaTeX → SymPy cho ô "Biểu thức kết quả" ----
+// GV gõ hoặc bấm chọn công thức bằng math-field (giống hệt ô nhập kết quả của HS trong
+// phòng học — dùng lại đúng FormulaEditor + MathPalette) — hiện đồng thời công thức Toán
+// (để đối chiếu đã nhập đúng ý chưa) và cú pháp SymPy tương ứng để copy dán, khỏi cần nhớ
+// cú pháp. Thay cho bảng tra cứu tĩnh trước đây.
+function ChuyenDoiLatexSympy() {
+  const [latex, setLatex] = useState('')
+  const [sympy, setSympy] = useState('')
+  const [loi, setLoi] = useState('')
+  const [dangChuyenDoi, setDangChuyenDoi] = useState(false)
+  const [daSaoChep, setDaSaoChep] = useState(false)
+  const wrapRef = useRef(null)
 
-function BangCuPhapSymPy() {
-  const [mo, setMo] = useState(true)
+  // Reset ngay khi ô trống — đặt ở nơi thay đổi latex (sự kiện người dùng), không phải
+  // trong effect, để tránh setState đồng bộ ngay đầu effect (cascading render).
+  function datLatex(v) {
+    setLatex(v)
+    if (!v.trim()) { setSympy(''); setLoi('') }
+  }
+  const getMf = () => wrapRef.current?.querySelector('math-field')
+  const syncFromField = () => {
+    const mf = getMf()
+    if (mf) datLatex(mf.value)
+  }
+
+  // Bấm nút bảng công thức (vd "logₐ", "x^n") chèn cấu trúc còn Ô TRỐNG (\placeholder{})
+  // GV chưa điền — gửi dịch ngay sẽ luôn lỗi khó hiểu. Phát hiện trước, cảnh báo nhẹ
+  // nhàng thay vì gọi API rồi hiện lỗi kỹ thuật.
+  const conOTrong = /\\placeholder\{\}/.test(latex)
+
+  useEffect(() => {
+    const bt = latex.trim()
+    if (!bt || conOTrong) return
+    let huy = false
+    const timer = setTimeout(() => {
+      setDangChuyenDoi(true)
+      setLoi('')
+      api.latexSangSympy(bt)
+        .then((r) => { if (!huy) setSympy(r.sympy) })
+        .catch((e) => { if (!huy) { setSympy(''); setLoi(e.message) } })
+        .finally(() => { if (!huy) setDangChuyenDoi(false) })
+    }, 500)
+    return () => { huy = true; clearTimeout(timer) }
+  }, [latex, conOTrong])
+
+  function saoChep() {
+    if (!sympy) return
+    navigator.clipboard.writeText(sympy).then(() => {
+      setDaSaoChep(true)
+      setTimeout(() => setDaSaoChep(false), 1500)
+    })
+  }
+
   return (
     <div className="rounded-md border border-border bg-surface-2 p-2.5 flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={() => setMo((m) => !m)}
-        className="flex items-center justify-between text-left"
-      >
-        <span className="text-xs font-semibold text-ink">Cú pháp SymPy (ô "Biểu thức kết quả")</span>
-        <span className="text-muted text-xs">{mo ? '▲' : '▼'}</span>
-      </button>
-      {mo && (
+      <p className="text-xs font-semibold text-ink">Chuyển công thức → cú pháp SymPy</p>
+      <p className="text-[11px] text-muted">
+        Gõ trực tiếp hoặc bấm chọn ở bảng bên dưới — tự dịch sang cú pháp cho ô
+        "Biểu thức kết quả" (KHÔNG bọc $), khỏi cần nhớ cú pháp SymPy.
+      </p>
+      <div ref={wrapRef} className="relative">
+        <FormulaEditor value={latex} onChange={datLatex} placeholder="Nhập công thức..." />
+        {latex && (
+          <button
+            type="button"
+            onClick={() => { const mf = getMf(); if (mf) mf.value = ''; datLatex('') }}
+            title="Xóa"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center
+              rounded-full bg-surface-2 text-muted hover:bg-danger-soft hover:text-danger transition-colors"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      {latex.trim() && (
         <>
-          <p className="text-[11px] text-muted">
-            Ô "Biểu thức kết quả" để máy chấm (CAS), <b>KHÔNG bọc $</b> và <b>không phải LaTeX</b>.
-            Đây là cú pháp Python/SymPy của các biểu thức hay gặp.
-          </p>
-          {NHOM_SYMPY.map((g) => (
-            <div key={g.ten}>
-              <p className="text-[10px] text-muted uppercase tracking-wide mb-1">{g.ten}</p>
-              <div className="flex flex-col gap-1">
-                {g.rows.map((r, i) => (
-                  <div key={i} className="rounded border border-border bg-surface px-2 py-1.5 text-[12px]">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-ink">{renderTex(r.toan)}</span>
-                      <code className="font-mono text-[11px] text-primary bg-primary-soft rounded px-1.5 py-0.5 whitespace-nowrap">
-                        {r.sympy}
-                      </code>
-                    </div>
-                    {r.ghi && <p className="text-[10px] text-muted mt-0.5">{r.ghi}</p>}
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-md bg-surface border border-border px-2.5 py-1.5">
+            <p className="text-[10px] text-muted mb-0.5">Công thức Toán</p>
+            <Formula latex={latex} />
+          </div>
+          <div className="rounded-md bg-surface border border-border px-2.5 py-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] text-muted">Cú pháp SymPy</p>
+              {sympy && !dangChuyenDoi && !conOTrong && (
+                <button type="button" onClick={saoChep} className="text-[10px] text-primary hover:underline">
+                  {daSaoChep ? '✓ Đã sao chép' : 'Sao chép'}
+                </button>
+              )}
             </div>
-          ))}
+            {conOTrong ? (
+              <p className="text-xs text-warning">
+                ⚠ Còn ô trống (□) chưa điền trong công thức — điền xong mới dịch được.
+              </p>
+            ) : dangChuyenDoi ? (
+              <p className="text-xs text-muted">Đang dịch...</p>
+            ) : loi ? (
+              <p className="text-xs text-danger">Không dịch được: {loi}</p>
+            ) : (
+              <code className="text-sm font-mono text-primary">{sympy}</code>
+            )}
+          </div>
         </>
       )}
+      <MathPalette getMf={getMf} onInserted={syncFromField} />
     </div>
   )
 }
@@ -765,10 +772,10 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
               </div>
             </div>
 
-            {/* Cột phải: bảng công thức + cú pháp SymPy (sticky) */}
+            {/* Cột phải: bảng công thức + chuyển đổi LaTeX→SymPy (sticky) */}
             <div className="sticky top-0 self-start max-h-screen overflow-y-auto flex flex-col gap-3 pb-4">
               <BangCongThuc onChen={chen} />
-              <BangCuPhapSymPy />
+              <ChuyenDoiLatexSympy />
             </div>
     </div>
   )

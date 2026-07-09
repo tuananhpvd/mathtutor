@@ -74,6 +74,7 @@ export const api = {
   },
   veDoThi: (body) => post('/problems/ve-do-thi', body),
   veBBT: (body) => post('/problems/ve-bbt', body),
+  latexSangSympy: (latex) => post('/problems/latex-sang-sympy', { latex }),
   createProblem: (body) => post('/problems', body),
   updateProblem: (id, body) =>
     request(`/problems/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),

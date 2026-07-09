@@ -50,6 +50,13 @@ class VeDoThiRequest(BaseModel):
     x_max: float | None = None
 
 
+class LatexSangSympyRequest(BaseModel):
+    """GV gõ/chọn công thức bằng math-field (LaTeX) — CAS chuyển sang cú pháp SymPy để
+    dán vào ô "Biểu thức kết quả", khỏi phải nhớ cú pháp."""
+
+    latex: str = Field(..., min_length=1, max_length=500)
+
+
 class VeBBTRequest(BaseModel):
     """GĐ3B: GV chỉ nhập hàm số — CAS (SymPy) tự phân tích để dựng bảng biến thiên."""
 
