@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, require_role
 from app.auth.security import create_access_token, verify_password
+from app.auth.throttle import ghi_nhan_sai, qua_nguong, xoa_lich_su_sai
 from app.db.session import get_db
 from app.models.user import User, VaiTro
 from app.schemas.auth import LoginRequest, LoginResponse
@@ -12,8 +13,15 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)):
+    if qua_nguong(body.dang_nhap):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Sai mật khẩu quá nhiều lần. Vui lòng thử lại sau vài phút.",
+        )
+
     user = db.query(User).filter(User.dang_nhap == body.dang_nhap).first()
     if user is None or not verify_password(body.mat_khau, user.mat_khau_hash):
+        ghi_nhan_sai(body.dang_nhap)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Tên đăng nhập hoặc mật khẩu không đúng",
@@ -21,6 +29,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     if user.trang_thai.value == "khoa":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tài khoản đã bị khóa")
 
+    xoa_lich_su_sai(body.dang_nhap)
     token = create_access_token({"sub": str(user.id), "vai_tro": user.vai_tro.value})
     return LoginResponse(
         access_token=token,

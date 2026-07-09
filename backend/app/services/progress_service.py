@@ -82,6 +82,17 @@ def hoc_sinh_thuoc_gv(db: Session, gv_id: int, hoc_sinh_id: int) -> bool:
     return hs.lop_id in lop_ids
 
 
+def hs_ids_cua_gv(db: Session, gv_id: int) -> list[int]:
+    """Toàn bộ id học sinh thuộc các lớp GV này chủ nhiệm — dùng để lọc danh sách
+    (vd cờ, nhật ký phiên) theo quyền sở hữu thay vì kiểm từng bản ghi một."""
+    from app.models.lop import Lop
+
+    lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == gv_id).all()]
+    if not lop_ids:
+        return []
+    return [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
+
+
 def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
     """Thống kê tiến độ chi tiết của HS trên toàn bộ bài đã duyệt.
 

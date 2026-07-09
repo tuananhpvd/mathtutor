@@ -240,8 +240,18 @@ def tao_phien(
     session.y_hien_tai = trang_thai_moi.y_hien_tai
     session.trang_thai_y = trang_thai_moi.trang_thai_y or {}
 
-    van_ban = llm.dien_dat(chi_thi.to_dict())
-    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=van_ban, cap_goi_y=0))
+    van_ban_raw = llm.dien_dat(chi_thi.to_dict())
+
+    # Chốt chặn: kiểm tra rò rỉ đáp án trước khi gửi HS — kể cả lời chào mở đầu phiên,
+    # đúng tinh thần bất biến #3 (CLAUDE.md): rà MỌI phản hồi, không chỉ các lượt sau.
+    gia_tri_chuan = (problem.meta or {}).get("dap_an_cuoi") or (problem.meta or {}).get("dap_an_dung")
+    chot = kiem_tra_ro_ri(van_ban_raw, gia_tri_chuan, problem.loai_cau.value)
+    van_ban = chot.van_ban_thay_the if chot.muc_do == MucDoRoRi.ro_ri else van_ban_raw
+    bi_chot = chot.muc_do == MucDoRoRi.ro_ri
+
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=van_ban, cap_goi_y=0,
+                co_bi_chot_chan=bi_chot))
+    _tu_dong_gan_co_chot_chan(db, session, bi_chot)
     db.commit()
     db.refresh(session)
     return session, van_ban

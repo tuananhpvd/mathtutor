@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cài dependencies
+        # ".[llm,dev]" — GIỐNG HỆT Build Command thật trên Render (xem PROGRESS.md v56:
+        # thiếu extra "llm" từng khiến production âm thầm rơi về StubLLMClient không ai
+        # phát hiện). Cài thiếu ở đây cũng khiến test_llm_client.py lỗi ImportError.
+        run: python -m pip install -e ".[llm,dev]"
+
+      - name: Lint (ruff)
+        run: python -m ruff check app/
+
+      - name: Import smoke test
+        run: python -c "import app.main"
+
+      - name: Test (pytest)
+        run: python -m pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Cài dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint (không chặn — còn nợ kỹ thuật cũ, xem PROGRESS.md)
+        run: npm run lint
+        continue-on-error: true

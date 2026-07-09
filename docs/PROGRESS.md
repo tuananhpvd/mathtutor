@@ -4,10 +4,73 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v74**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v75**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **364/364 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **380/380 test backend xanh** (`pytest`, +16 test mới).
+- **🔒 Rà soát bảo mật & hoàn thiện vận hành toàn diện (v75)** — theo yêu cầu "kiểm tra và đánh
+  giá toàn diện dự án như 1 senior developer", đã thực hiện đủ 7 mục đề xuất theo đúng thứ tự ưu
+  tiên đã phân tích:
+  1. **🔴 Vá lỗ hổng IDOR nghiêm trọng ở `monitor.py`** — vi phạm trực tiếp bất biến #6
+     (CLAUDE.md: "GV chỉ thấy lớp mình"). Cả 5 endpoint (`GET/POST /monitor/flags`,
+     `PATCH /monitor/flags/{id}`, `GET /monitor/sessions/{id}/turns`,
+     `GET /monitor/sessions-hoan-thanh`) TRƯỚC ĐÓ không kiểm quyền sở hữu — bất kỳ GV nào
+     cũng đọc/sửa được cờ, hội thoại, tên HS + điểm của HS thuộc GV KHÁC. Sửa bằng cách tái
+     dùng `hoc_sinh_thuoc_gv()` (đã có sẵn, dùng đúng ở `progress.py`) + hàm mới
+     `hs_ids_cua_gv()` (`progress_service.py`) để lọc theo GV ở cấp truy vấn (không lọc sau khi
+     limit, tránh GV bị cờ của GV khác chiếm hết trang). Admin/tài khoản Quản lý
+     (`co_toan_quyen`) không bị lọc, thấy toàn hệ thống như thiết kế.
+     - **Test `test_monitor_idor.py` (7 test) đã XÁC NHẬN THẬT bằng cách chạy lại trên code
+       CŨ** (git stash) — 5/7 test fail đúng như dự đoán trước khi vá, pass sau khi vá. Đây
+       không phải suy đoán, đã kiểm chứng thực nghiệm.
+  2. **Fail-fast khi `JWT_SECRET` mặc định chạy chung PostgreSQL** — `config.py` thêm
+     `kiem_tra_an_toan_khoi_dong()`, gọi ở đầu `lifespan` (`main.py`) TRƯỚC `init_db()`. Nếu
+     `DATABASE_URL` chứa "postgres" (dấu hiệu production) mà `JWT_SECRET` vẫn là
+     `dev-secret-change-in-prod`/`change-me-in-production` → raise ngay, app từ chối khởi
+     động thay vì âm thầm chạy với secret công khai (ai đọc mã nguồn cũng tự ký được JWT giả
+     mạo Admin). SQLite (dev/test) không bị chặn. 4 test mới `test_config_safety.py`.
+     - **⚠️ CẦN USER TỰ XÁC NHẬN**: vào Render dashboard → service `mathtutor` → Environment,
+       kiểm `JWT_SECRET` đã là 1 chuỗi ngẫu nhiên riêng, KHÔNG phải giá trị mẫu — Claude không
+       tự xem được biến môi trường thật trên Render.
+  3. **`pool_pre_ping=True, pool_recycle=300`** cho engine SQLAlchemy (`db/base.py`) — chống lỗi
+     "server closed the connection unexpectedly" khi Postgres managed (Render) tự đóng kết nối
+     nhàn rỗi, nhất là sau khi service free/starter "ngủ" rồi "thức" lại.
+  4. **CI GitHub Actions** (`.github/workflows/ci.yml`, MỚI — trước đây không có CI nào): job
+     `backend` chạy `ruff check` + import smoke test + `pytest` (cài `.[llm,dev]` — GIỐNG HỆT
+     Build Command thật trên Render, để CI cũng bắt được lỗi thiếu extra như sự cố v56); job
+     `frontend` chạy `npm run build` (chặn) + `npm run lint` (KHÔNG chặn — còn nợ kỹ thuật lint
+     cũ trước đợt này, vd `QuanLyCauHoi.jsx` 5 lỗi có sẵn, `XemLaiBai.jsx` 1 lỗi có sẵn, chưa
+     thuộc phạm vi đợt rà soát này). Sẽ tự chạy trên mỗi push/PR vào `main` — đúng loại lỗi vừa
+     làm sập production ở v72 (`DATETIME` không phải cú pháp Postgres) sẽ được CI chặn TRƯỚC khi
+     Render deploy, nếu lỗi đó tái diễn dạng tương tự.
+  5. **Chặn dò mật khẩu (brute-force) khi đăng nhập** — module mới `app/auth/throttle.py`
+     (cửa sổ trượt trong bộ nhớ, KHÔNG thêm dependency mới, khớp phong cách dự án dùng thư viện
+     tối giản). Khóa mềm theo TÊN ĐĂNG NHẬP (không theo IP — HS dùng chung mạng trường/NAT dễ
+     khóa oan cả lớp nếu khóa theo IP) sau 5 lần sai liên tiếp trong 5 phút → 429. Đăng nhập
+     đúng xóa lịch sử sai. Khởi động lại app thì bộ đếm reset — chấp nhận được, Render không
+     restart theo từng request. 3 test mới `test_login_throttle.py`.
+     Đồng thời giới hạn `anh_base64` (AI đọc đề từ ảnh) `max_length=10_000_000` ký tự ở tầng
+     Pydantic (`schemas/question_gen.py`) — chặn NGOÀI payload khổng lồ trước khi tốn RAM giải
+     mã base64; ngưỡng nghiệp vụ THẬT (5MB ảnh gốc, thông báo tiếng Việt rõ ràng) vẫn giữ
+     nguyên ở `question_gen_service.doc_de_tu_anh()` — đã tính kỹ để 2 ngưỡng không đụng nhau
+     (10M ký tự base64 ≈ 7,3MB ảnh gốc, rộng hơn 5MB).
+  6. **`render.yaml` (mới, KHÔNG tự động áp dụng — chỉ tài liệu hóa/IaC tham khảo)** +
+     `backend/runtime.txt` (`python-3.11.9`, ghim phiên bản — log deploy cho thấy Render đang
+     chạy Python 3.14.3, quá mới so với `pyproject.toml` nhắm `py311` và các gói ghim chặt như
+     `bcrypt<4.0`/`antlr4==4.11.0`, rủi ro tương thích). ⚠️ `render.yaml` có `<TODO>` placeholder
+     cho URL thật (không tự bịa URL) — đọc kỹ cảnh báo đầu file trước khi cân nhắc bật Blueprint
+     sync, KHÔNG tự ý bật vì có thể ảnh hưởng Persistent Disk chứa `backend/uploads/` đang có
+     dữ liệu thật.
+  7. Dọn 2 khoảng trống nhỏ còn lại: chốt chặn rò rỉ (`kiem_tra_ro_ri`) giờ rà CẢ lời chào mở
+     đầu phiên (`tao_phien()`, `tutor_service.py`) — trước đây chỉ rà các lượt trả lời sau,
+     lời chào đầu tiên đi thẳng ra HS không qua chốt chặn, vi phạm bất biến #3 ("rà MỌI phản
+     hồi"). Test `test_leak_guard_opening_turn.py` — đã XÁC NHẬN THẬT bằng git stash y hệt
+     cách 1. `/api/health` giờ ping DB thật (`SELECT 1`), trả `503` + `db:false` nếu DB chết
+     thay vì luôn luôn trả `200 ok` dù mất kết nối — uptime monitor phân biệt được "app đứng"
+     vs "app sống nhưng DB chết".
+  - **An toàn dữ liệu**: KHÔNG đổi schema DB nào (chỉ thêm code/config/CI), không cần migration,
+    không đụng dữ liệu production. Đã xác nhận qua dev server thật (khởi động lại, gọi
+    `/api/health` và `/api/auth/login` qua HTTP thật, không chỉ pytest) — không có lỗi khởi động.
 - **✅ Sửa phần "Xem lại bài" của HS — hiện công thức toán đúng (v74):**
   - Đổi tên "Lời giải chuẩn" → "Gợi ý các bước làm" (`XemLaiBai.jsx`).
   - **Fix "Kết quả bước" hiện lỗi kiểu `3∗x∗∗2−3`:** `bieu_thuc_ket_qua` lưu bằng cú pháp

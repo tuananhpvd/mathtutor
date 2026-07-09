@@ -48,7 +48,11 @@ class DuyetRequest(BaseModel):
 
 class DocDeTuAnhRequest(BaseModel):
     """AI đọc ảnh GV dán, nhận dạng loại câu + trích xuất đề bài/phương án/ý."""
-    anh_base64: str = Field(..., min_length=1)
+    # Chặn NGOÀI ở tầng request — ngăn payload khổng lồ (hàng chục/trăm MB) tốn RAM giải
+    # mã trước khi tới được service. Ngưỡng nghiệp vụ THẬT (5MB ảnh gốc, thông báo rõ
+    # ràng bằng tiếng Việt) đã có sẵn ở question_gen_service.doc_de_tu_anh() — 10_000_000
+    # ký tự base64 ≈ 7,3MB ảnh gốc, đủ rộng để KHÔNG đụng ngưỡng 5MB đó.
+    anh_base64: str = Field(..., min_length=1, max_length=10_000_000)
     mime_type: str = Field(..., description="image/png | image/jpeg | image/webp")
     loai_cau_ky_vong: str = Field(..., description="TN4PA | TNDS | TLN — loại GV đang chọn")
 

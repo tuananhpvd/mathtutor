@@ -1,8 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.api.admin import router as admin_api_router
 from app.api.auth import admin_router, gv_router, hs_router
@@ -21,8 +24,9 @@ from app.api.questions_ai import router as questions_ai_router
 from app.api.sessions import router as sessions_router
 from app.api.thong_bao import router as thong_bao_router
 from app.api.tro_giup import router as tro_giup_router
-from app.config import settings
+from app.config import kiem_tra_an_toan_khoi_dong, settings
 from app.core.uploads import UPLOADS_DIR
+from app.db.session import get_db
 
 
 @asynccontextmanager
@@ -30,6 +34,7 @@ async def lifespan(app: FastAPI):
     from app.db.init_db import init_db
     from app.services import lich_phan_tich
 
+    kiem_tra_an_toan_khoi_dong()
     init_db()
     lich_phan_tich.khoi_dong()
     try:
@@ -77,5 +82,15 @@ app.include_router(de_thi_router)
 
 
 @app.get("/api/health")
-def health():
-    return {"status": "ok", "service": "MathTutor"}
+def health(db: Session = Depends(get_db)):
+    """Uptime monitor cần phân biệt "app đứng" vs "app sống nhưng DB chết" — trước đây
+    endpoint này lúc nào cũng trả 200 dù DB mất kết nối hoàn toàn."""
+    try:
+        db.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return JSONResponse(
+        status_code=200 if db_ok else 503,
+        content={"status": "ok" if db_ok else "db_loi", "service": "MathTutor", "db": db_ok},
+    )

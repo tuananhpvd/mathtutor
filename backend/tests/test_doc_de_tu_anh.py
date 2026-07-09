@@ -195,6 +195,17 @@ def test_api_mime_khong_hop_le_tra_400(db, client):
     assert r.status_code == 400
 
 
+def test_api_payload_khong_lo_bi_chan_o_tang_request(db, client):
+    """Chặn NGOÀI (Pydantic max_length) — không để payload khổng lồ tốn RAM giải mã
+    trước khi tới được ngưỡng nghiệp vụ 5MB ở tầng service."""
+    _seed_gv_hs(db)
+    tok = _login(client, "gv_anh")
+    r = client.post("/api/questions-ai/doc-de-tu-anh", headers=_h(tok), json={
+        "anh_base64": "A" * 10_000_001, "mime_type": "image/png", "loai_cau_ky_vong": "TLN",
+    })
+    assert r.status_code == 422
+
+
 def test_api_loai_cau_ky_vong_khong_hop_le_tra_400(db, client):
     _seed_gv_hs(db)
     tok = _login(client, "gv_anh")
