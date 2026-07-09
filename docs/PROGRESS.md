@@ -4,10 +4,27 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v77**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v78**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **386/386 test backend xanh** (`pytest`, +3 test mới).
+  Tailwind) chạy end-to-end. **386/386 test backend xanh** (không đổi backend đợt này).
+- **✅ 2 sửa UI nhỏ cho GV (v78):**
+  1. **Ô dán ảnh đề (Ctrl+V) — `ODanAnh` (`AISinhCauHoi.jsx`)**: 2 nút "🔎 Nhận dạng từ ảnh" /
+     "Xóa ảnh" trước xếp ngang cạnh ảnh preview (`flex items-start`), ảnh lớn/rộng đẩy nút tràn
+     ra ngoài hoặc bị khuất. Đổi thành ảnh trên, 2 nút xuống hàng dưới (`flex-col`) + thêm
+     `max-w-full` cho ảnh (trước chỉ giới hạn `max-h-40`, chưa giới hạn chiều rộng). Xác nhận
+     với user: đổi CSS hiển thị này KHÔNG ảnh hưởng dữ liệu `anh_base64` gửi AI nhận dạng — ảnh
+     đọc từ `FileReader` lúc dán, tách biệt hoàn toàn khỏi cách `<img>` được render.
+  2. **Ô xem trước trong `TexField` (dùng chung cho mọi ô nhiều dòng, gồm "Lời giải chi tiết")
+     mất dấu xuống dòng**: user báo "gõ Enter trong Lời giải chi tiết không có tác dụng". Nguyên
+     nhân KHÔNG phải do LaTeX (lệnh `\\`/`\newline` chỉ có tác dụng TRONG `$...$`, không áp dụng
+     cho chữ thường) — dữ liệu Enter đã lưu đúng, nhưng ô preview nhỏ dưới textarea (thẻ `<p>`)
+     thiếu CSS `white-space: pre-wrap` nên xuống dòng bị collapse khi hiển thị, khiến user tưởng
+     "không có tác dụng". Thêm `whitespace-pre-wrap` — sửa 1 chỗ, áp dụng cho MỌI ô nhiều dòng
+     (đề bài/mô tả bước/gợi ý/lời giải chi tiết...), không chỉ riêng lời giải chi tiết. Màn
+     "Xem lại bài" của HS đã đúng từ trước (đã thêm `whitespace-pre-wrap` khi làm tính năng ở
+     v76), chỉ preview lúc GV đang sửa là thiếu.
+  - Không đổi backend/schema DB.
 - **✅ AI tự sinh "Lời giải chi tiết" cho GV sửa (v77, nối tiếp v76):** v76 mới thêm được
   Ô/cấu hình "Lời giải chi tiết" do GV TỰ GÕ; lượt này bắt AI (cả "Sinh hàng loạt" lẫn "Tạo
   bước và gợi ý") TỰ SINH nội dung này luôn, đổ sẵn vào ô để GV chỉ cần sửa thay vì viết từ đầu.

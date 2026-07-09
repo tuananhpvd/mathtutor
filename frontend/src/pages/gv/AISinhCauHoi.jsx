@@ -88,9 +88,9 @@ function ODanAnh({ anhDan, onDanAnh, onXoaAnh, onNhanDang, dangDoc, loaiCau }) {
         Chụp/copy ảnh đề rồi bấm vào ô dưới và dán (Ctrl+V) — AI sẽ đọc ảnh và tự điền đề bài{loaiCau === 'TN4PA' ? '/phương án' : loaiCau === 'TNDS' ? '/4 ý' : ''} bên dưới để anh/chị kiểm tra lại trước khi tạo. Ảnh chỉ dùng để đọc, không được lưu lại.
       </p>
       {anhDan ? (
-        <div className="flex items-start gap-3">
-          <img src={anhDan.dataUrl} alt="Ảnh đề đã dán" className="max-h-40 rounded-md border border-border" />
-          <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
+          <img src={anhDan.dataUrl} alt="Ảnh đề đã dán" className="max-h-40 max-w-full rounded-md border border-border" />
+          <div className="flex flex-wrap gap-2">
             <Button onClick={onNhanDang} disabled={dangDoc}>
               {dangDoc ? 'AI đang đọc ảnh...' : '🔎 Nhận dạng từ ảnh'}
             </Button>
