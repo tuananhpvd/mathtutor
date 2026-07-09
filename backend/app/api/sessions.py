@@ -296,6 +296,9 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
             "thoi_gian_hoat_dong_giay": session.thoi_gian_hoat_dong_giay,
             "thoi_gian_y": session.thoi_gian_y,
         },
+        # Chỉ trả khi GV đã bật hiển thị — KHÔNG đưa vào _strip_answers() vì hàm đó còn
+        # dùng chung cho lúc ĐANG học (nơi tuyệt đối không được lộ lời giải).
+        "loi_giai_chi_tiet": problem.loi_giai_chi_tiet if problem.hien_loi_giai_chi_tiet else None,
     }
 
 

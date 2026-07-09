@@ -183,6 +183,19 @@ export default function XemLaiBai({ sessionId, onDong }) {
               </Card>
             )}
 
+            {/* Lời giải chi tiết — chỉ hiện nếu GV bật cho phép (backend đã lọc theo cấu
+                hình, ở đây chỉ cần kiểm có nội dung hay không). */}
+            {data.loi_giai_chi_tiet && (
+              <Card>
+                <CardHeader title="Lời giải chi tiết" />
+                <CardBody>
+                  <div className="text-sm text-ink leading-relaxed whitespace-pre-wrap">
+                    {renderVanBan(data.loi_giai_chi_tiet)}
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+
             <div className="flex justify-end pb-4">
               <Button variant="secondary" onClick={onDong}>Đóng</Button>
             </div>

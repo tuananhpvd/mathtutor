@@ -21,6 +21,8 @@ class ProblemCreate(BaseModel):
     che_do_so_khop: str = "tuong_duong"
     meta: dict = Field(default_factory=dict)
     solution_steps: list[SolutionStepIn] = Field(default_factory=list)
+    loi_giai_chi_tiet: str = ""
+    hien_loi_giai_chi_tiet: bool = False
 
 
 class ImportCauHoiItem(BaseModel):
@@ -32,6 +34,7 @@ class ImportCauHoiItem(BaseModel):
     de_bai: str = ""
     hinh_anh: str | None = None  # URL ảnh đã upload (GĐ2: khớp từ cột "Hình" = tên file)
     meta: dict = Field(default_factory=dict)
+    loi_giai_chi_tiet: str = ""
 
 
 class ImportBatchRequest(BaseModel):
@@ -67,3 +70,5 @@ class ProblemUpdate(BaseModel):
     meta: dict | None = None
     solution_steps: list[SolutionStepIn] | None = None
     trang_thai_duyet: str | None = None  # cho_duyet | da_duyet | loai
+    loi_giai_chi_tiet: str | None = None
+    hien_loi_giai_chi_tiet: bool | None = None

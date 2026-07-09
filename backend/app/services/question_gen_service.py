@@ -56,6 +56,10 @@ def _luu_mot_cau(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
         nguon=Nguon.ai_sinh,
         nguoi_tao_id=nguoi_tao_id,
         meta=meta,
+        # AI sinh hàng loạt không tạo trường này (rỗng mặc định); luồng "AI tạo bước và
+        # gợi ý" thì GV xem/sửa bản nháp qua ThanCauHoiForm trước khi lưu nên có thể có.
+        loi_giai_chi_tiet=str(cau.get("loi_giai_chi_tiet") or "").strip(),
+        hien_loi_giai_chi_tiet=bool(cau.get("hien_loi_giai_chi_tiet", False)),
     )
     db.add(problem)
     db.flush()

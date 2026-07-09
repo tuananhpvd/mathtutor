@@ -106,6 +106,8 @@ def _problem_full(p: Problem, dang_cd: dict[int, str]) -> dict:
         "nguoi_tao_id": p.nguoi_tao_id,
         "meta": p.meta,
         "solution_steps": _steps_full(p),
+        "loi_giai_chi_tiet": p.loi_giai_chi_tiet,
+        "hien_loi_giai_chi_tiet": p.hien_loi_giai_chi_tiet,
     }
 
 

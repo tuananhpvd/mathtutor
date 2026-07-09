@@ -88,6 +88,8 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
         nguon=Nguon.gv_nhap,
         nguoi_tao_id=nguoi_tao_id,
         meta=meta,
+        loi_giai_chi_tiet=(du_lieu.get("loi_giai_chi_tiet") or "").strip(),
+        hien_loi_giai_chi_tiet=bool(du_lieu.get("hien_loi_giai_chi_tiet", False)),
     )
     db.add(p)
     db.flush()
@@ -149,6 +151,7 @@ def import_batch(db: Session, items: list, nguoi_tao_id: int | None) -> dict:
                     nguon=Nguon.gv_nhap,
                     nguoi_tao_id=nguoi_tao_id,
                     meta=meta,
+                    loi_giai_chi_tiet=(item.loi_giai_chi_tiet or "").strip(),
                 )
                 db.add(p)
                 db.flush()
@@ -207,6 +210,10 @@ def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
             p.trang_thai_duyet = TrangThaiDuyet(du_lieu["trang_thai_duyet"])
         except ValueError:
             raise ValueError("trang_thai_duyet không hợp lệ")
+    if "loi_giai_chi_tiet" in du_lieu and du_lieu["loi_giai_chi_tiet"] is not None:
+        p.loi_giai_chi_tiet = du_lieu["loi_giai_chi_tiet"].strip()
+    if "hien_loi_giai_chi_tiet" in du_lieu and du_lieu["hien_loi_giai_chi_tiet"] is not None:
+        p.hien_loi_giai_chi_tiet = bool(du_lieu["hien_loi_giai_chi_tiet"])
 
     if "solution_steps" in du_lieu and du_lieu["solution_steps"] is not None:
         # Xóa các bước cũ rồi tạo lại từ danh sách mới.

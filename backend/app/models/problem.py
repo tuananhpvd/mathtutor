@@ -67,6 +67,10 @@ class Problem(Base):
     tao_luc: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, nullable=True)
     bi_an: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    # Lời giải chi tiết (khác solution_steps — đó là bước/gợi ý Socratic dùng lúc ĐANG học,
+    # đây là bài giải đầy đủ chỉ hiện SAU KHI HS hoàn thành, nếu GV bật hien_loi_giai_chi_tiet).
+    loi_giai_chi_tiet: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    hien_loi_giai_chi_tiet: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     solution_steps: Mapped[list["SolutionStep"]] = relationship(  # noqa: F821
         "SolutionStep", back_populates="problem", order_by="SolutionStep.thu_tu"

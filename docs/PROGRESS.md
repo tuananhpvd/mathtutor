@@ -4,10 +4,32 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v75**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v76**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **380/380 test backend xanh** (`pytest`, +16 test mới).
+  Tailwind) chạy end-to-end. **383/383 test backend xanh** (`pytest`, +3 test mới).
+- **✅ "Lời giải chi tiết" cho câu hỏi — GV cấu hình, HS xem sau khi hoàn thành (v76):**
+  - `Problem` thêm 2 cột: `loi_giai_chi_tiet` (Text, mặc định rỗng) và `hien_loi_giai_chi_tiet`
+    (Boolean, mặc định `False` — ẨN cho tới khi GV chủ động bật, an toàn theo mặc định).
+    Khác `solution_steps`/`bieu_thuc_ket_qua` (dùng cho gợi ý Socratic LÚC ĐANG học) —
+    đây là bài giải đầy đủ, chỉ hiện SAU KHI hoàn thành nếu GV cho phép.
+  - **Áp dụng cho cả 3 nguồn tạo câu hỏi** (đúng yêu cầu): `ThanCauHoiForm` (form dùng CHUNG
+    cho `TaoCauHoi` + `SuaCauHoi` trong `QuanLyCauHoi.jsx`, và cũng được `AISinhCauHoi.jsx` tái
+    dùng cho luồng "AI tạo bước và gợi ý" xem/sửa bản nháp trước khi lưu) — sửa 1 chỗ, áp dụng
+    cả 3 nơi. Riêng `_luu_mot_cau()` (`question_gen_service.py`, dùng chung cho "Sinh hàng loạt"
+    và "Tạo bước và gợi ý") tạo `Problem` trực tiếp, tách biệt khỏi `problem_service.tao_problem()`
+    → phải sửa riêng để đọc đúng field khi GV chỉnh bản nháp AI.
+  - **An toàn dữ liệu**: `loi_giai_chi_tiet`/`hien_loi_giai_chi_tiet` KHÔNG đưa vào
+    `_strip_answers()` (hàm dùng chung cho lúc ĐANG học) — chỉ trả riêng ở endpoint
+    `GET /sessions/{id}/xem-lai`, và CHỈ khi `problem.hien_loi_giai_chi_tiet == True`, nếu
+    không trả `None`. Test khóa hành vi: HS không thấy qua danh sách/chi tiết bài (đang học),
+    chỉ thấy qua xem-lại khi GV đã bật, mất ngay khi GV tắt lại.
+  - Frontend: `TexField` (`QuanLyCauHoi.jsx`) thêm prop `rows` tùy chọn (mặc định vẫn 2, không
+    đổi hành vi chỗ khác) — dùng `rows={6}` riêng cho ô này vì nội dung thường dài hơn 1 dòng.
+    `XemLaiBai.jsx` thêm Card "Lời giải chi tiết" ngay SAU "Hành trình của em", chỉ hiện khi
+    response có nội dung; dùng `whitespace-pre-wrap` để giữ xuống dòng GV đã gõ.
+  - 2 cột mới thêm qua `ALTER TABLE` tự động lúc khởi động (đã xác nhận qua `dev.db` thật) —
+    không cần migration thủ công, không đụng dữ liệu cũ.
 - **🔒 Rà soát bảo mật & hoàn thiện vận hành toàn diện (v75)** — theo yêu cầu "kiểm tra và đánh
   giá toàn diện dự án như 1 senior developer", đã thực hiện đủ 7 mục đề xuất theo đúng thứ tự ưu
   tiên đã phân tích:
@@ -29,9 +51,8 @@
      `dev-secret-change-in-prod`/`change-me-in-production` → raise ngay, app từ chối khởi
      động thay vì âm thầm chạy với secret công khai (ai đọc mã nguồn cũng tự ký được JWT giả
      mạo Admin). SQLite (dev/test) không bị chặn. 4 test mới `test_config_safety.py`.
-     - **⚠️ CẦN USER TỰ XÁC NHẬN**: vào Render dashboard → service `mathtutor` → Environment,
-       kiểm `JWT_SECRET` đã là 1 chuỗi ngẫu nhiên riêng, KHÔNG phải giá trị mẫu — Claude không
-       tự xem được biến môi trường thật trên Render.
+     - **✅ ĐÃ XÁC NHẬN (user, 2026-07-08)**: `JWT_SECRET` trên Render dashboard (service
+       `mathtutor`) là 1 chuỗi ngẫu nhiên riêng, không phải giá trị mẫu mặc định.
   3. **`pool_pre_ping=True, pool_recycle=300`** cho engine SQLAlchemy (`db/base.py`) — chống lỗi
      "server closed the connection unexpectedly" khi Postgres managed (Render) tự đóng kết nối
      nhàn rỗi, nhất là sau khi service free/starter "ngủ" rồi "thức" lại.

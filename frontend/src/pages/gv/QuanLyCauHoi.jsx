@@ -254,7 +254,7 @@ function BangCuPhapSymPy() {
 }
 
 // Ô nhập có xem trước công thức + đăng ký làm ô đang focus để chèn ký hiệu.
-export function TexField({ value, onChange, label, multiline, registerActive, placeholder }) {
+export function TexField({ value, onChange, label, multiline, rows, registerActive, placeholder }) {
   const ref = useRef(null)
   // Bug đã sửa: focusSelf chỉ chạy 1 lần khi Focus (không chạy lại khi gõ chữ), nên closure
   // đăng ký từng "chốt cứng" value/onChange tại thời điểm focus. Gõ thêm chữ rồi mới bấm chèn
@@ -297,7 +297,7 @@ export function TexField({ value, onChange, label, multiline, registerActive, pl
   return (
     <div>
       {label && <p className="text-xs text-muted mb-1">{label}</p>}
-      {multiline ? <textarea rows={2} {...common} /> : <input {...common} />}
+      {multiline ? <textarea rows={rows || 2} {...common} /> : <input {...common} />}
       {value && (
         <p className="text-[13px] text-ink/80 mt-1 px-2.5 py-1.5 rounded-lg bg-primary-soft border border-primary/30">
           {renderTex(value)}
@@ -736,6 +736,27 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                 ))}
               </div>
 
+              {/* Lời giải chi tiết — khác các bước/gợi ý Socratic ở trên (dùng LÚC ĐANG học);
+                  đây là bài giải đầy đủ CHỈ hiện cho HS sau khi hoàn thành, nếu GV bật. */}
+              <div className="flex flex-col gap-2 rounded-md border border-border bg-surface-2 p-3">
+                <TexField
+                  label="Lời giải chi tiết (tùy chọn — HS chỉ thấy sau khi hoàn thành bài)"
+                  value={bai.loi_giai_chi_tiet || ''}
+                  onChange={(v) => setBai((b) => ({ ...b, loi_giai_chi_tiet: v }))}
+                  multiline
+                  rows={6}
+                  registerActive={register}
+                />
+                <label className="flex items-center gap-2 text-xs text-ink">
+                  <input
+                    type="checkbox"
+                    checked={!!bai.hien_loi_giai_chi_tiet}
+                    onChange={(e) => setBai((b) => ({ ...b, hien_loi_giai_chi_tiet: e.target.checked }))}
+                  />
+                  Cho phép học sinh xem lời giải chi tiết khi xem lại bài (sau khi hoàn thành)
+                </label>
+              </div>
+
               <div className="flex gap-2 pt-1">
                 <Button onClick={onLuu} disabled={dangLuu}>
                   {dangLuu ? 'Đang lưu...' : (nutLuuText || 'Lưu thay đổi')}
@@ -819,6 +840,8 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
         hinh_anh: bai.hinh_anh ?? null,
         meta: bai.meta,
         solution_steps: chuanHoaSteps(bai.solution_steps),
+        loi_giai_chi_tiet: bai.loi_giai_chi_tiet || '',
+        hien_loi_giai_chi_tiet: !!bai.hien_loi_giai_chi_tiet,
       })
       // Câu chưa duyệt → hỏi ngay có duyệt luôn không, đỡ phải quay lại tìm trong danh sách.
       if (bai.trang_thai_duyet !== 'da_duyet') {
@@ -855,6 +878,7 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
 function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
   const [bai, setBai] = useState(() => ({
     loai_cau: 'TN4PA', do_kho: 'tb', dang_id: null, de_bai: '',
+    loi_giai_chi_tiet: '', hien_loi_giai_chi_tiet: false,
     ...templateTheoLoai('TN4PA'),
   }))
   const [error, setError] = useState('')
@@ -882,6 +906,8 @@ function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
         hinh_anh: bai.hinh_anh || null,
         meta: bai.meta,
         solution_steps: chuanHoaSteps(bai.solution_steps),
+        loi_giai_chi_tiet: bai.loi_giai_chi_tiet || '',
+        hien_loi_giai_chi_tiet: !!bai.hien_loi_giai_chi_tiet,
       })
       onLuuXong()
     } catch (e) {

@@ -37,6 +37,41 @@ def test_gv_sua_de_bai_mucdo_buoc(client, db):
     assert data["solution_steps"][0]["danh_sach_goi_y"] == ["g mới"]
 
 
+def test_gv_sua_loi_giai_chi_tiet(client, db):
+    _, gv, _, p = seed_all(db)
+    tok = _token(client, "gv_test")
+    body = {"loi_giai_chi_tiet": "Bước 1: ... Bước 2: ...", "hien_loi_giai_chi_tiet": True}
+    r = client.patch(f"/api/problems/{p.id}", json=body, headers=_h(tok))
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["loi_giai_chi_tiet"] == "Bước 1: ... Bước 2: ..."
+    assert data["hien_loi_giai_chi_tiet"] is True
+
+    # GV xem lại — vẫn còn nguyên (không bị mất khi PATCH các trường khác không đụng tới)
+    r = client.patch(f"/api/problems/{p.id}", json={"do_kho": "kho"}, headers=_h(tok))
+    assert r.json()["loi_giai_chi_tiet"] == "Bước 1: ... Bước 2: ..."
+    assert r.json()["hien_loi_giai_chi_tiet"] is True
+
+
+def test_hs_khong_thay_loi_giai_chi_tiet_qua_danh_sach_bai(client, db):
+    """loi_giai_chi_tiet KHÔNG được lộ qua _strip_answers (dùng lúc ĐANG học) — chỉ lộ qua
+    xem-lai SAU KHI hoàn thành, và chỉ khi GV bật hien_loi_giai_chi_tiet (xem test_xem_lai.py)."""
+    hs, gv, _, p = seed_all(db)
+    tok_gv = _token(client, "gv_test")
+    client.patch(f"/api/problems/{p.id}", json={
+        "loi_giai_chi_tiet": "đáp án bí mật", "hien_loi_giai_chi_tiet": True,
+    }, headers=_h(tok_gv))
+
+    tok_hs = _token(client, "hs_test")
+    r = client.get(f"/api/problems/{p.id}", headers=_h(tok_hs))
+    assert r.status_code == 200
+    assert "loi_giai_chi_tiet" not in r.json()
+    assert "đáp án bí mật" not in r.text
+
+    r = client.get("/api/problems", headers=_h(tok_hs))
+    assert "đáp án bí mật" not in r.text
+
+
 def test_hs_khong_duoc_sua(client, db):
     hs, _, _, p = seed_all(db)
     tok = _token(client, "hs_test")
@@ -72,6 +107,8 @@ def test_gv_tao_cau_hoi_tn4pa(client, db):
             {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "b1",
              "bieu_thuc_ket_qua": "2*x", "danh_sach_goi_y": ["gợi ý 1"]},
         ],
+        "loi_giai_chi_tiet": "Lời giải đầy đủ: ...",
+        "hien_loi_giai_chi_tiet": True,
     }
     r = client.post("/api/problems", json=body, headers=_h(tok))
     assert r.status_code == 200, r.text
@@ -81,6 +118,8 @@ def test_gv_tao_cau_hoi_tn4pa(client, db):
     # GV tạo → da_duyet ngay
     assert data["trang_thai_duyet"] == TrangThaiDuyet.da_duyet.value
     assert data["meta"]["dap_an_dung"] == "B"
+    assert data["loi_giai_chi_tiet"] == "Lời giải đầy đủ: ..."
+    assert data["hien_loi_giai_chi_tiet"] is True
     # HS lớp do gv_test chủ nhiệm → thấy được bài đã duyệt của GV mình (không lộ đáp án)
     htok = _token(client, "hs_test")
     r_hs = client.get(f"/api/problems/{data['id']}", headers=_h(htok))

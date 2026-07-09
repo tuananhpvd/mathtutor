@@ -46,6 +46,35 @@ def test_xem_lai_sau_hoan_thanh_du_du_lieu(client, db):
     assert "dap_an_cuoi" not in str(data["problem"])
 
 
+def test_xem_lai_loi_giai_chi_tiet_theo_cau_hinh_gv(client, db):
+    """loi_giai_chi_tiet chỉ hiện trong xem-lai khi GV bật hien_loi_giai_chi_tiet; mặc định
+    (chưa cấu hình) hoặc GV tắt → None, HS không thấy."""
+    hs, gv, admin, p = seed_all(db)
+    tok_gv = _token(client, "gv_test")
+    tok_hs = _token(client, "hs_test")
+
+    # Mặc định (chưa cấu hình): không có lời giải chi tiết trong xem-lai
+    sid1 = _hoan_thanh_phien(client, tok_hs, p.id)
+    data1 = client.get(f"/api/sessions/{sid1}/xem-lai", headers=_h(tok_hs)).json()
+    assert data1["loi_giai_chi_tiet"] is None
+
+    # GV bật hiển thị
+    r = client.patch(f"/api/problems/{p.id}", headers=_h(tok_gv), json={
+        "loi_giai_chi_tiet": "Giải chi tiết: bước 1 ... bước 2 ...",
+        "hien_loi_giai_chi_tiet": True,
+    })
+    assert r.status_code == 200, r.text
+
+    data2 = client.get(f"/api/sessions/{sid1}/xem-lai", headers=_h(tok_hs)).json()
+    assert data2["loi_giai_chi_tiet"] == "Giải chi tiết: bước 1 ... bước 2 ..."
+
+    # GV tắt lại → HS không còn thấy nữa
+    client.patch(f"/api/problems/{p.id}", headers=_h(tok_gv),
+                json={"hien_loi_giai_chi_tiet": False})
+    data3 = client.get(f"/api/sessions/{sid1}/xem-lai", headers=_h(tok_hs)).json()
+    assert data3["loi_giai_chi_tiet"] is None
+
+
 def test_xem_lai_bieu_thuc_ket_qua_tra_ve_latex(client, db):
     """bieu_thuc_ket_qua lưu cú pháp SymPy (vd "3*x**2 - 3") — trang Xem lại phải nhận
     được LaTeX thật (vd "3 x^{2} - 3") để Formula/KaTeX hiển thị đẹp, không phải chuỗi
