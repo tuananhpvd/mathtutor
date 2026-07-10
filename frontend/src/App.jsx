@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Login from './pages/auth/Login'
 import HocSinhApp from './pages/hs/HocSinhApp'
 import GiaoVienApp from './pages/gv/GiaoVienApp'
 import QuanTriApp from './pages/admin/QuanTriApp'
 import { getSession } from './auth'
 import { ConfirmProvider } from './components/ui'
+import { api } from './api'
+
+const KHOA_XEM_TRUOC = 'mt_xem_truoc'
 
 function getPage(vai_tro) {
   if (vai_tro === 'admin') return 'admin'
@@ -13,9 +16,43 @@ function getPage(vai_tro) {
   return 'login'
 }
 
+function TrangBaoTri() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-white p-8">
+      <p className="max-w-3xl text-center text-2xl font-bold text-gray-800 md:text-3xl">
+        SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!
+      </p>
+    </div>
+  )
+}
+
 export default function App() {
   const session = getSession()
   const [page, setPage] = useState(session ? getPage(session.vai_tro) : 'login')
+  const [dangKiemTra, setDangKiemTra] = useState(true)
+  const [baoTri, setBaoTri] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem(KHOA_XEM_TRUOC) === '1') {
+      setTimeout(() => setDangKiemTra(false), 0)
+      return
+    }
+    const ma = new URLSearchParams(window.location.search).get('ma')
+    api
+      .trangThaiBaoTri(ma)
+      .then((res) => {
+        if (res.hop_le) {
+          localStorage.setItem(KHOA_XEM_TRUOC, '1')
+          const url = new URL(window.location.href)
+          url.searchParams.delete('ma')
+          window.history.replaceState({}, '', url.toString())
+        } else {
+          setBaoTri(!!res.bao_tri)
+        }
+        setDangKiemTra(false)
+      })
+      .catch(() => setDangKiemTra(false))
+  }, [])
 
   function handleLogin(vai_tro) {
     setPage(getPage(vai_tro))
@@ -24,6 +61,9 @@ export default function App() {
   function handleLogout() {
     setPage('login')
   }
+
+  if (dangKiemTra) return null
+  if (baoTri) return <TrangBaoTri />
 
   return (
     <ConfirmProvider>

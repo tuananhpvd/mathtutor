@@ -94,3 +94,19 @@ def health(db: Session = Depends(get_db)):
         status_code=200 if db_ok else 503,
         content={"status": "ok" if db_ok else "db_loi", "service": "MathTutor", "db": db_ok},
     )
+
+
+@app.get("/api/trang-thai-bao-tri")
+def trang_thai_bao_tri(ma: str | None = None, db: Session = Depends(get_db)):
+    """CÔNG KHAI (không cần đăng nhập) — frontend gọi lúc mở trang để biết có đang bật
+    "sản phẩm đang hoàn thiện" hay không, và nếu có thì "ma" (query param) người dùng gửi
+    có khớp mã xem trước (bao_tri_ma, đặt trong Cấu hình Admin) hay không.
+
+    KHÔNG trả nguyên văn mã xem trước ra ngoài — chỉ trả true/false, tránh lộ mã qua việc
+    đọc response."""
+    from app.services.admin_service import lay_cau_hinh
+
+    cau_hinh = lay_cau_hinh(db)
+    bat = bool(cau_hinh.get("bao_tri_bat", False))
+    hop_le = bat and bool(ma) and ma == str(cau_hinh.get("bao_tri_ma", ""))
+    return {"bao_tri": bat, "hop_le": hop_le}

@@ -155,6 +155,8 @@ export const api = {
   adminGetConfig: () => request('/admin/config'),
   adminSetConfig: (khoa, gia_tri) =>
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
+  trangThaiBaoTri: (ma) =>
+    request('/trang-thai-bao-tri' + (ma ? `?ma=${encodeURIComponent(ma)}` : '')),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
   adminLLMSuDung: () => request('/admin/llm-su-dung'),
   // Đề ôn thi THPT (C1)

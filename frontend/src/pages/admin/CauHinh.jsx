@@ -45,6 +45,11 @@ export default function CauHinh() {
   const [suDung, setSuDung] = useState(null)
   const [msgQuota, setMsgQuota] = useState('')
 
+  // "Sản phẩm đang hoàn thiện" — chặn người ngoài xem trước khi ra mắt chính thức
+  const [baoTriBat, setBaoTriBat] = useState(false)
+  const [baoTriMa, setBaoTriMa] = useState('')
+  const [msgBaoTri, setMsgBaoTri] = useState('')
+
   function nap() {
     api.adminLLMSuDung().then(setSuDung).catch(() => setSuDung(null))
     api.adminGetConfig().then((c) => {
@@ -63,9 +68,21 @@ export default function CauHinh() {
       setGoiY(c.so_goi_y_mac_dinh ? { ...c.so_goi_y_mac_dinh } : { de: 2, tb: 3, kho: 4 })
       setGioiHanHS(c.gioi_han_llm_hs_ngay ?? 30)
       setGioiHanHeThong(c.gioi_han_llm_he_thong_ngay ?? 500)
+      setBaoTriBat(c.bao_tri_bat === true)
+      setBaoTriMa(c.bao_tri_ma ?? '')
     })
   }
   useEffect(nap, [])
+
+  async function luuBaoTri() {
+    setMsgBaoTri(''); setError('')
+    try {
+      await api.adminSetConfig('bao_tri_bat', baoTriBat)
+      await api.adminSetConfig('bao_tri_ma', baoTriMa.trim())
+      nap()
+      setMsgBaoTri('Đã lưu.')
+    } catch (e) { setError(e.message) }
+  }
 
   async function luuTuDong() {
     setMsgPt(''); setError('')
@@ -163,8 +180,44 @@ export default function CauHinh() {
     </div>
   )
 
+  const urlXemTruoc = baoTriMa
+    ? `${window.location.origin}/?ma=${encodeURIComponent(baoTriMa)}`
+    : ''
+
   return (
     <div className="flex flex-col gap-5">
+      <Card>
+        <CardHeader title="Sản phẩm đang hoàn thiện"
+          subtitle="Khi bật, người ngoài truy cập trang chỉ thấy dòng thông báo. Người có đúng mã xem trước (mở qua đường dẫn bên dưới) vẫn dùng bình thường, kể cả đăng nhập GV/HS/Admin." />
+        <CardBody className="flex flex-col gap-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" className="h-4 w-4 accent-primary"
+              checked={baoTriBat} onChange={(e) => setBaoTriBat(e.target.checked)} />
+            <span className="text-sm text-ink">Bật trang "đang hoàn thiện" cho người ngoài</span>
+            {cfg.bao_tri_bat === true
+              ? <Badge tone="warning">Đang chặn</Badge>
+              : <Badge tone="success">Đang mở cho mọi người</Badge>}
+          </label>
+          <div className="max-w-sm">
+            <Input
+              label="Mã xem trước (dùng trong đường dẫn để tự vào test)"
+              value={baoTriMa}
+              onChange={(e) => setBaoTriMa(e.target.value)}
+            />
+          </div>
+          {urlXemTruoc && (
+            <div className="rounded-lg bg-surface-2 px-4 py-3">
+              <p className="text-xs text-muted mb-1">Đường dẫn xem trước (mở 1 lần trên trình duyệt của bạn là nhớ luôn):</p>
+              <code className="text-sm text-primary break-all">{urlXemTruoc}</code>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <Button onClick={luuBaoTri}>Lưu</Button>
+            {msgBaoTri && <span className="text-sm text-success">{msgBaoTri}</span>}
+          </div>
+        </CardBody>
+      </Card>
+
       <Card>
         <CardHeader title="Ngưỡng & LLM" subtitle="Áp dụng cho toàn hệ thống" />
         <CardBody className="grid sm:grid-cols-2 gap-4 items-end">

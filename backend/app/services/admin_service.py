@@ -44,6 +44,11 @@ CAU_HINH_MAC_DINH: dict = {
     # Hội thoại vượt ngưỡng chỉ chuyển sang lời diễn đạt mẫu, KHÔNG chặn HS học.
     "gioi_han_llm_hs_ngay": 30,        # lượt hội thoại / học sinh / ngày
     "gioi_han_llm_he_thong_ngay": 500,  # tổng lượt toàn hệ thống / ngày
+    # Trang "sản phẩm đang hoàn thiện" — chặn người ngoài xem trong lúc chưa ra mắt chính
+    # thức, nhưng ai có đúng "mã xem trước" (bao_tri_ma) vẫn vào dùng bình thường (kể cả
+    # đăng nhập GV/HS/Admin) — xem GET /api/trang-thai-bao-tri (public, không cần đăng nhập).
+    "bao_tri_bat": False,
+    "bao_tri_ma": "xem-truoc-mt79",
 }
 
 # Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).

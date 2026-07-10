@@ -4,10 +4,38 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-08, phiên bản **v79**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v80**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **391/391 test backend xanh** (`pytest`, +5 test mới).
+  Tailwind) chạy end-to-end. **396/396 test backend xanh** (`pytest`, +5 test mới).
+- **✅ Trang "Sản phẩm đang hoàn thiện" — chặn người ngoài xem trước khi ra mắt chính thức (v80):**
+  domain `mathtutor.pro.vn` đã trỏ xong về Render (custom domain qua 2 bản ghi A tại nhà cung cấp
+  BKNS, không cần CNAME/CORS_EXTRA_ORIGINS gì thêm — kiến trúc gọi cùng-origin qua Render proxy).
+  Chủ dự án muốn: (1) người ngoài vào domain chỉ thấy 1 dòng thông báo, (2) bản thân vẫn test được
+  bình thường mọi vai trò GV/HS/admin, (3) bật/tắt được bất kỳ lúc nào không cần deploy lại.
+  - **Thiết kế: chặn ở TẦNG HIỂN THỊ frontend, không chặn API** — mọi endpoint nghiệp vụ đã có JWT
+    nên khách vãng lai không làm được gì kể cả không có cổng này; đây thuần là lớp trình bày.
+  - **Tái dùng CƠ CHẾ CẤU HÌNH key-value có sẵn** (`cau_hinh` table, `CAU_HINH_MAC_DINH` trong
+    `admin_service.py`) — thêm 2 khóa mới `bao_tri_bat` (bool) và `bao_tri_ma` (chuỗi bí mật),
+    **không cần migration DB nào** (đúng ràng buộc "không ảnh hưởng dữ liệu thật trên Render").
+    Bật/tắt lưu ngay vào DB qua endpoint `PATCH /api/admin/config` đã có sẵn → thỏa yêu cầu (3).
+  - **Backend**: `GET /api/trang-thai-bao-tri` (công khai, không cần đăng nhập) — trả
+    `{bao_tri, hop_le}`; `hop_le` = true khi query param `ma` khớp `bao_tri_ma` trong Cấu hình.
+    KHÔNG bao giờ trả nguyên văn mã ra response (tránh lộ mã xem trước).
+  - **Frontend** (`App.jsx`): gọi endpoint trên khi mở trang; nếu `hop_le` → lưu cờ vào
+    `localStorage` (`mt_xem_truoc`) rồi dọn `?ma=` khỏi URL — từ đó trình duyệt đó luôn vào bình
+    thường (đăng nhập GV/HS/admin không bị ảnh hưởng, vì cổng chỉ can thiệp việc render component
+    nào, không đụng auth). Nếu `bao_tri=true` và chưa có cờ bypass → hiện `TrangBaoTri` (trang
+    trắng, 1 dòng chữ lớn giữa màn hình, đúng nguyên văn yêu cầu). Lỗi mạng khi kiểm tra → fail-open
+    (hiện app bình thường), tránh tự khóa nhầm chính mình.
+  - **Admin UI** (`CauHinh.jsx`): thêm Card "Sản phẩm đang hoàn thiện" ở đầu trang — checkbox bật/
+    tắt + ô sửa mã xem trước + hiện sẵn URL đầy đủ để copy (`<origin>/?ma=<mã>`).
+  - Test mới `test_bao_tri.py` (5 case): mặc định tắt, bật không có mã, mã sai, mã đúng, không lộ
+    mã qua response khi sai.
+  - Bypass URL sau khi bật cho chủ dự án: `https://mathtutor.pro.vn/?ma=xem-truoc-mt79` (mã mặc
+    định `xem-truoc-mt79`, đổi được bất kỳ lúc nào qua Admin > Cấu hình). Mở URL này 1 lần trên
+    trình duyệt của mình TRƯỚC KHI bật `bao_tri_bat`, hoặc bất kỳ lúc nào sau đó vẫn vào lại được
+    qua chính URL này.
 - **✅ Thay "Bảng cú pháp SymPy" bằng ô chuyển đổi LaTeX→SymPy tương tác (v79):** trang Xem/Sửa
   câu hỏi (GV) — sidebar phải trước đây có bảng tra cứu TĨNH (vd "$\sqrt x$ → sqrt(x)"), GV phải
   tự đối chiếu bằng mắt. Thay bằng công cụ chuyển đổi TRỰC TIẾP.
