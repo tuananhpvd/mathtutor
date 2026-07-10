@@ -18,8 +18,9 @@ function getPage(vai_tro) {
 
 function TrangBaoTri({ noiDung }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-8">
-      <p className="max-w-3xl text-center text-2xl font-bold text-gray-800 md:text-3xl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white p-8">
+      <img src="/logomt.png" alt="MathTutor" className="h-40 w-40 rounded-lg object-cover" />
+      <p className="max-w-3xl text-center text-2xl font-bold text-gray-800 md:text-3xl mt-6">
         {noiDung || 'SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!'}
       </p>
     </div>
