@@ -4,10 +4,26 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v85**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v86**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **408/408 test backend xanh** (`pytest`, +10 test mới).
+  Tailwind) chạy end-to-end. **411/411 test backend xanh** (`pytest`, +3 test mới).
+- **🐞 FIX (v86): ô chuyển đổi LaTeX→SymPy (v79) báo lỗi "Không thể parse LaTeX '\sqrt2'".**
+  Nguyên nhân: LaTeX chuẩn cho phép bỏ ngoặc nhọn quanh `\sqrt` khi đối số chỉ đúng 1 "token"
+  (1 ký tự hoặc 1 lệnh `\ten` — vd `\sqrt2`, `\sqrt\alpha` đều hợp lệ, hiển thị đúng khi biên
+  dịch LaTeX thật), nhưng parser `sympy.parsing.latex` (backend antlr) lại BẮT BUỘC phải có
+  `{}`. Nghiêm trọng hơn: phát hiện thêm trường hợp KHÔNG báo lỗi mà ÂM THẦM SAI — `2\sqrt3`
+  (thiếu ngoặc, đứng sau số khác) bị parser cắt cụt thành `2`, mất hẳn phần căn, không ai biết.
+  - **Sửa** (`backend/app/core/matching/latex.py`): thêm bước tiền xử lý `_them_ngoac_sqrt()`
+    tự bổ sung `{}` quanh đối số `\sqrt`/`\sqrt[n]` bị thiếu ngoặc TRƯỚC khi đưa cho parser (chỉ
+    khi chưa có ngoặc sẵn, không đụng input đã đúng). Hàm này dùng chung cho cả ô chuyển đổi của
+    GV (`/api/problems/latex-sang-sympy`) LẪN việc CAS chấm đáp án học sinh
+    (`core/matching/cas.py._parse_an_toan`) — sửa 1 chỗ, cả 2 luồng đều được lợi (HS gõ `\sqrt2`
+    trong ô đáp án TLN từ nay cũng chấm đúng thay vì trước đây có thể bị chấm sai/báo lỗi).
+  - Test mới `test_latex.py` (3 case): thiếu ngoặc đơn giản, thiếu ngoặc kèm bậc `[n]`, và hồi
+    quy khóa lại đúng-không-còn-âm-thầm-sai cho `2\sqrt3`. Xác nhận bằng `git stash`: cả 3 test
+    thất bại trên code cũ (kể cả case âm thầm sai, không chỉ case báo lỗi thẳng).
+  - Không đổi schema DB.
 - **🏗️ GIẢI PHÁP TRIỆT ĐỂ (v85, nối tiếp v84): chặn tận gốc nhóm lỗi "AI sinh JSON hỏng" thay vì
   vá từng ca một.** User phản ánh: dù v84 đã vá lỗi escape LaTeX, "thỉnh thoảng AI sinh câu hỏi/
   tạo bước gợi ý lại phát sinh lỗi MỚI" — phân tích nghiêm túc (không code trước) xác định gốc rễ:
