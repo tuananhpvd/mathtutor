@@ -4,7 +4,44 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v86**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v87**)
+
+- **🔍 RÀ SOÁT TOÀN DIỆN (v87, nối tiếp v86): chuyển đổi LaTeX→SymPy + CAS chấm đáp án HS.**
+  User yêu cầu nghiêm túc rà soát để không phải vá đi vá lại nhiều lần. Thay vì đợi lỗi tiếp
+  theo tự lộ ra, đã test CÓ HỆ THỐNG toàn bộ ký hiệu trong bảng công thức thật (`MathPalette.jsx`
+  — đúng bộ HS/GV dùng để nhập, không phải LaTeX tùy ý) qua thẳng parser antlr — phát hiện 7 lỗ
+  hổng cùng loại với v86 (parser hiểu SAI ÂM THẦM, không báo lỗi):
+  1. **🔴 NGHIÊM TRỌNG NHẤT — Số phức: "i" không bao giờ được hiểu là đơn vị ảo.** `3+4i` (HS
+     gõ) parse thành ký hiệu tự do "i" nhân vào, KHÔNG PHẢI `I` (đơn vị ảo SymPy) — so với đáp
+     án chuẩn lưu dạng `3+4*I` sẽ KHÔNG BAO GIỜ khớp dù đúng giá trị. Ảnh hưởng CẢ CHUYÊN ĐỀ Số
+     phức (chủ đề chính thức lớp 12), không phải 1 ký hiệu lẻ.
+  2. Giá trị tuyệt đối/môđun `\left|x\right|` (nút "|x|"/"|z|") — LỖI THẲNG dù là cú pháp LaTeX
+     hợp lệ (antlr đòi `\rangle`). Ảnh hưởng cả môđun số phức `|3+4i|`.
+  3. Tổ hợp `C_n^k` / chỉnh hợp `A_n^k` (nút "Cₙᵏ"/"Aₙᵏ", ký hiệu SGK VN) — bị hiểu thành "C"/"A"
+     (ký hiệu tự do) lũy thừa thay vì `binomial(n,k)`/`n!/(n-k)!`, ÂM THẦM SAI. Chủ đề Tổ hợp -
+     Xác suất rất phổ biến trong đề thi.
+  4. Ký hiệu độ `^{\circ}` (nút "°") — `180^{\circ}` bị hiểu thành `180` lũy thừa ký hiệu tự do
+     "circ" thay vì giữ nguyên `180`.
+  5. `\ne` (nút "≠") — antlr chỉ hiểu `\neq` (có "q"), `\ne` bị hiểu thành ký hiệu tự do "ne".
+  6. `\pm`/`\mp`/`\approx` (nút "±"/"≈") — không đại diện 1 giá trị xác định NHƯNG antlr âm thầm
+     biến thành ký hiệu tự do nhân vào thay vì báo lỗi → **đổi chiến lược**: chủ động báo lỗi rõ
+     ràng (an toàn hơn để lọt qua so sánh sai không ai biết).
+  - **Sửa** (`backend/app/core/matching/latex.py`): dồn TOÀN BỘ chuẩn hóa LaTeX (kể cả
+    `\star`/`\ast`→`\cdot` trước đây nằm riêng ở `cas.py`) về 1 module DUY NHẤT — để ô "chuyển
+    đổi công thức" của GV và CAS chấm bài HS LUÔN đồng bộ, tránh vá 1 chỗ mà chỗ kia vẫn lỗi
+    (đúng yêu cầu "không phát sinh lỗi mới" của user). Xóa `_chuan_hoa_latex()` trùng lặp khỏi
+    `cas.py`.
+  - 10 test mới `test_latex.py`, xác nhận bằng `git stash`: **10/10 test đều fail trên code cũ**
+    (kể cả ca số phức nghiêm trọng nhất) — đúng nguyên nhân gốc, không phải false positive.
+  - Tự phát hiện + sửa 1 lỗi trong chính bản vá: kiểm tra `\pm` ban đầu dùng substring thô, sẽ
+    báo NHẦM cả `\pmod` (chứa "\pm" làm tiền tố) — đổi sang regex có ranh giới từ trước khi
+    commit, thêm test khóa lại (`test_pm_khong_bao_nham_pmod`).
+  - **Đã cân nhắc và CHỦ ĐỘNG KHÔNG sửa** (rủi ro thấp — không phải định dạng đáp án cuối hợp
+    lệ trong thực tế): `\vec{v}` (vectơ không phải "1 giá trị"), `P(A \mid B)` (xác suất điều
+    kiện không dùng làm đáp án cuối, HS gõ số thập phân trực tiếp). Ghi lại ở đây để không cần
+    rà soát lại nếu sau này có báo cáo — đã xem xét, quyết định có chủ đích.
+  - 421/421 test xanh (+10 test mới). Không đổi schema DB.
+
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
   Tailwind) chạy end-to-end. **411/411 test backend xanh** (`pytest`, +3 test mới).

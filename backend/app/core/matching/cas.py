@@ -43,11 +43,6 @@ def _safe_sympify(expr_str: str):
         raise ValueError(str(e)) from e
 
 
-def _chuan_hoa_latex(s: str) -> str:
-    """Chuẩn hóa vài ký hiệu nhân của editor (MathLive) về dạng parse_latex hiểu."""
-    return s.replace("\\star", "\\cdot").replace("\\ast", "\\cdot")
-
-
 # Dấu hiệu chuỗi là công thức LaTeX/toán (cần parse_latex), KHÔNG phải chữ thường.
 # Tránh biến văn bản tự do (vd "hai muoi") thành tích các biến h*a*i*...
 _RE_DAU_HIEU_LATEX = re.compile(r"[\\^{}]|\d\s*[a-zA-Z]|[a-zA-Z]\s*\d")
@@ -76,7 +71,9 @@ def _parse_an_toan(expr_str: str):
     # Thử như LaTeX (parse_latex hỗ trợ nhân ngầm '3x', '^', '\\frac', '\\sqrt'...)
     from app.core.matching.latex import latex_sang_sympy
 
-    sympy_str = latex_sang_sympy(_chuan_hoa_latex(expr_str))  # ném ValueError nếu hỏng
+    # Mọi chuẩn hóa LaTeX (bao gồm \star/\ast → \cdot) nằm chung trong latex_sang_sympy(),
+    # dùng chung với ô "chuyển đổi công thức" của GV — sửa 1 chỗ, cả 2 nơi cùng được lợi.
+    sympy_str = latex_sang_sympy(expr_str)  # ném ValueError nếu hỏng
     return _safe_sympify(sympy_str)
 
 
