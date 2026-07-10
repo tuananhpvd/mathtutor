@@ -4,10 +4,32 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v81**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v84**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **397/397 test backend xanh** (`pytest`).
+  Tailwind) chạy end-to-end. **398/398 test backend xanh** (`pytest`, +1 test mới).
+- **🐞 FIX (v84): AI "Tạo bước và gợi ý" (và "Sinh câu hỏi") lỗi ngẫu nhiên với LaTeX — báo cáo
+  qua TNDS sinh từ ảnh dán, thông báo "LLM trả JSON không hợp lệ: Invalid \escape: line 8 column
+  61".** Nguyên nhân gốc: `_va_escape_json()` (`backend/app/llm/client.py`) vá backslash đơn của
+  LaTeX cho hợp lệ JSON, nhưng coi `\b \f \n \r \t` là "escape JSON hợp lệ sẵn" nên KHÔNG vá —
+  trong khi b/f/n/r/t lại chính là chữ cái mở đầu của rất nhiều lệnh LaTeX phổ biến (`\begin`,
+  `\bar`, `\frac`, `\forall`, `\neq`, `\nabla`, `\right`, `\tan`, `\theta`, `\to`...). Kết quả: câu
+  hỏi có các lệnh này hỏng JSON thầm lặng (không lỗi nhưng nội dung sai), hoặc vỡ hẳn ("Invalid
+  \escape") khi đứng cạnh dấu `\\` LaTeX thật (vd `\begin{cases}...\\...\end{cases}`, phổ biến khi
+  AI đọc ảnh đề có hệ phương trình/TNDS nhiều ý). Đã kiểm chứng bằng `git stash`: test mới thất bại
+  trên code cũ với ĐÚNG dạng lỗi user báo cáo, xác nhận đúng nguyên nhân gốc.
+  - **Sửa**: viết lại `_va_escape_json()` — chỉ tin `\"` và `\\` (cặp backslash đã tự escape đúng)
+    và `\uXXXX` là escape JSON thật; MỌI backslash đơn khác đều nhân đôi. Xử lý theo CẶP ký tự
+    (`re.sub` với callback, không phải lookahead đơn ký tự) để không tách đôi 1 cặp `\\` hợp lệ.
+    Hàm dùng chung cho cả `_parse_json_cau_hoi` (sinh câu hỏi/tạo bước gợi ý) lẫn
+    `_parse_phan_tich`/`_parse_json_doc_de_tu_anh` — sửa 1 chỗ, khỏi ảnh hưởng cả 3 luồng.
+  - Test mới `test_parse_json_latex_chu_b_f_n_r_t` (`test_question_gen.py`) khóa các lệnh LaTeX
+    hay gặp (`\frac \to \neq \begin{cases}...\\...\end{cases}`) parse đúng, không vỡ JSON.
+  - Không đổi schema DB, không đổi hành vi khi JSON không có LaTeX đặc biệt.
+- **✅ Trang bảo trì — logo + xuống hàng (v82–v83, nối tiếp v81):** thêm logo MathTutor
+  (`/logomt.png`, dùng chung ảnh với trang đăng nhập) phía trên câu thông báo; sửa `<p>` thiếu
+  `whitespace-pre-wrap` khiến Enter trong ô nhập nội dung ở Admin không xuống hàng khi hiển thị
+  cho người dùng ngoài (ô textarea nhập vẫn nhận Enter bình thường — chỉ thiếu phần hiển thị).
 - **✅ Chế độ bảo trì — admin tự sửa nội dung thông báo (v81, nối tiếp v80):** thêm khóa cấu hình
   `bao_tri_noi_dung` (chuỗi, mặc định câu gốc) — sửa được ngay trong Admin > Cấu hình > "Chế độ
   bảo trì" (đổi tên từ "Sản phẩm đang hoàn thiện" cho ngắn gọn), qua ô textarea bên dưới mã xem

@@ -369,13 +369,27 @@ class OpenAILLMClient(LLMClient):
 
 
 def _va_escape_json(text: str) -> str:
-    r"""Vá backslash đơn không hợp lệ trong JSON do LLM trả LaTeX (\dfrac, \sqrt...).
+    r"""Vá backslash không hợp lệ trong JSON do LLM trả LaTeX (\dfrac, \sqrt, \frac...).
 
-    JSON chỉ cho \" \\ \/ \b \f \n \r \t \uXXXX. Mọi '\' khác (vd "\d", "\s",
-    "\underline") đều khiến json.loads lỗi. Nhân đôi chúng thành '\\' để hợp lệ
-    mà vẫn giữ nguyên các escape đã đúng.
+    LƯU Ý: chỉ coi \" và \\ (cặp backslash đã tự escape đúng) và \uXXXX là escape
+    JSON THẬT SỰ đáng tin — mọi backslash đơn khác đều nhân đôi thành '\\'.
+
+    TRƯỚC ĐÂY hàm này còn coi \b \f \n \r \t là "hợp lệ sẵn" (đúng theo chuẩn JSON),
+    nhưng b/f/n/r/t lại chính là chữ cái mở đầu của rất nhiều lệnh LaTeX phổ biến
+    (\begin, \bar, \frac, \forall, \neq, \nabla, \right, \tan, \theta, \to...) —
+    khiến các câu hỏi có LaTeX kiểu này bị hiểu nhầm thành escape JSON, hỏng thầm
+    lặng (không lỗi nhưng nội dung sai) hoặc vỡ hẳn (lỗi "Invalid \escape") khi đứng
+    cạnh dấu "\\" LaTeX (vd "\begin{cases}...\\\\...\end{cases}"). Xử lý theo CẶP ký
+    tự (không phải regex lookahead đơn) để không tách đôi 1 cặp "\\" đã hợp lệ.
     """
-    return re.sub(r'\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})', r'\\\\', text)
+
+    def _thay(m: re.Match) -> str:
+        khop = m.group(0)
+        if khop in ('\\\\', '\\"') or khop.startswith('\\u'):
+            return khop
+        return '\\\\'
+
+    return re.sub(r'\\\\|\\"|\\u[0-9a-fA-F]{4}|\\', _thay, text)
 
 
 def _bo_dau_phay_thua(text: str) -> str:

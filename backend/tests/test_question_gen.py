@@ -257,6 +257,24 @@ def test_parse_json_mang_tran_va_rao_code():
     assert len(d["cau_hoi"]) == 1
 
 
+def test_parse_json_latex_chu_b_f_n_r_t():
+    """Hồi quy: \\frac \\right \\to \\neq \\begin đều bắt đầu bằng b/f/n/r/t — trước đây
+    bị coi nhầm là escape JSON hợp lệ (\\f \\r \\n \\t \\b) nên không được vá, khiến JSON
+    hỏng thầm lặng hoặc lỗi hẳn khi đứng cạnh "\\\\" LaTeX (vd trong \\begin{cases}...)."""
+    from app.llm.client import _parse_json_cau_hoi
+    raw = (
+        '{"cau_hoi": [{"loai_cau": "TLN", '
+        '"de_bai": "Tinh $\\frac{1}{x}$ khi $x \\to 0$, biet $x \\neq 0$", '
+        '"y_a": "$\\begin{cases} x=1 \\\\ y=2 \\end{cases}$"}]}'
+    )
+    d = _parse_json_cau_hoi(raw)
+    de_bai = d["cau_hoi"][0]["de_bai"]
+    assert "\\frac" in de_bai
+    assert "\\to" in de_bai
+    assert "\\neq" in de_bai
+    assert "\\begin{cases}" in d["cau_hoi"][0]["y_a"]
+
+
 def test_goi_va_parse_thu_lai_roi_thanh_cong(monkeypatch):
     from app.llm import client as cl
     monkeypatch.setattr(cl.time, "sleep", lambda *a, **k: None)  # khỏi chờ
