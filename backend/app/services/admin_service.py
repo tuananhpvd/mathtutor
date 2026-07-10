@@ -49,6 +49,7 @@ CAU_HINH_MAC_DINH: dict = {
     # đăng nhập GV/HS/Admin) — xem GET /api/trang-thai-bao-tri (public, không cần đăng nhập).
     "bao_tri_bat": False,
     "bao_tri_ma": "xem-truoc-mt79",
+    "bao_tri_noi_dung": "SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!",
 }
 
 # Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).

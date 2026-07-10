@@ -16,11 +16,11 @@ function getPage(vai_tro) {
   return 'login'
 }
 
-function TrangBaoTri() {
+function TrangBaoTri({ noiDung }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white p-8">
       <p className="max-w-3xl text-center text-2xl font-bold text-gray-800 md:text-3xl">
-        SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!
+        {noiDung || 'SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!'}
       </p>
     </div>
   )
@@ -31,6 +31,7 @@ export default function App() {
   const [page, setPage] = useState(session ? getPage(session.vai_tro) : 'login')
   const [dangKiemTra, setDangKiemTra] = useState(true)
   const [baoTri, setBaoTri] = useState(false)
+  const [noiDungBaoTri, setNoiDungBaoTri] = useState('')
 
   useEffect(() => {
     if (localStorage.getItem(KHOA_XEM_TRUOC) === '1') {
@@ -48,6 +49,7 @@ export default function App() {
           window.history.replaceState({}, '', url.toString())
         } else {
           setBaoTri(!!res.bao_tri)
+          setNoiDungBaoTri(res.noi_dung || '')
         }
         setDangKiemTra(false)
       })
@@ -63,7 +65,7 @@ export default function App() {
   }
 
   if (dangKiemTra) return null
-  if (baoTri) return <TrangBaoTri />
+  if (baoTri) return <TrangBaoTri noiDung={noiDungBaoTri} />
 
   return (
     <ConfirmProvider>

@@ -109,4 +109,4 @@ def trang_thai_bao_tri(ma: str | None = None, db: Session = Depends(get_db)):
     cau_hinh = lay_cau_hinh(db)
     bat = bool(cau_hinh.get("bao_tri_bat", False))
     hop_le = bat and bool(ma) and ma == str(cau_hinh.get("bao_tri_ma", ""))
-    return {"bao_tri": bat, "hop_le": hop_le}
+    return {"bao_tri": bat, "hop_le": hop_le, "noi_dung": str(cau_hinh.get("bao_tri_noi_dung", ""))}

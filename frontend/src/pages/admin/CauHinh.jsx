@@ -48,6 +48,7 @@ export default function CauHinh() {
   // "Sản phẩm đang hoàn thiện" — chặn người ngoài xem trước khi ra mắt chính thức
   const [baoTriBat, setBaoTriBat] = useState(false)
   const [baoTriMa, setBaoTriMa] = useState('')
+  const [baoTriNoiDung, setBaoTriNoiDung] = useState('')
   const [msgBaoTri, setMsgBaoTri] = useState('')
 
   function nap() {
@@ -70,6 +71,7 @@ export default function CauHinh() {
       setGioiHanHeThong(c.gioi_han_llm_he_thong_ngay ?? 500)
       setBaoTriBat(c.bao_tri_bat === true)
       setBaoTriMa(c.bao_tri_ma ?? '')
+      setBaoTriNoiDung(c.bao_tri_noi_dung ?? '')
     })
   }
   useEffect(nap, [])
@@ -79,6 +81,7 @@ export default function CauHinh() {
     try {
       await api.adminSetConfig('bao_tri_bat', baoTriBat)
       await api.adminSetConfig('bao_tri_ma', baoTriMa.trim())
+      await api.adminSetConfig('bao_tri_noi_dung', baoTriNoiDung.trim())
       nap()
       setMsgBaoTri('Đã lưu.')
     } catch (e) { setError(e.message) }
@@ -187,13 +190,13 @@ export default function CauHinh() {
   return (
     <div className="flex flex-col gap-5">
       <Card>
-        <CardHeader title="Sản phẩm đang hoàn thiện"
+        <CardHeader title="Chế độ bảo trì"
           subtitle="Khi bật, người ngoài truy cập trang chỉ thấy dòng thông báo. Người có đúng mã xem trước (mở qua đường dẫn bên dưới) vẫn dùng bình thường, kể cả đăng nhập GV/HS/Admin." />
         <CardBody className="flex flex-col gap-4">
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" className="h-4 w-4 accent-primary"
               checked={baoTriBat} onChange={(e) => setBaoTriBat(e.target.checked)} />
-            <span className="text-sm text-ink">Bật trang "đang hoàn thiện" cho người ngoài</span>
+            <span className="text-sm text-ink">Bật trang "đang bảo trì" cho người ngoài</span>
             {cfg.bao_tri_bat === true
               ? <Badge tone="warning">Đang chặn</Badge>
               : <Badge tone="success">Đang mở cho mọi người</Badge>}
@@ -203,6 +206,19 @@ export default function CauHinh() {
               label="Mã xem trước (dùng trong đường dẫn để tự vào test)"
               value={baoTriMa}
               onChange={(e) => setBaoTriMa(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1">
+              Nội dung thông báo hiển thị cho người ngoài
+            </label>
+            <textarea
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm
+                text-ink placeholder:text-muted focus:outline-none focus:ring-2
+                focus:ring-primary/40 focus:border-primary"
+              rows={3}
+              value={baoTriNoiDung}
+              onChange={(e) => setBaoTriNoiDung(e.target.value)}
             />
           </div>
           {urlXemTruoc && (

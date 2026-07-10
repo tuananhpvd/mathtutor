@@ -4,10 +4,17 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v80**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v81**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **396/396 test backend xanh** (`pytest`, +5 test mới).
+  Tailwind) chạy end-to-end. **397/397 test backend xanh** (`pytest`).
+- **✅ Chế độ bảo trì — admin tự sửa nội dung thông báo (v81, nối tiếp v80):** thêm khóa cấu hình
+  `bao_tri_noi_dung` (chuỗi, mặc định câu gốc) — sửa được ngay trong Admin > Cấu hình > "Chế độ
+  bảo trì" (đổi tên từ "Sản phẩm đang hoàn thiện" cho ngắn gọn), qua ô textarea bên dưới mã xem
+  trước. `GET /api/trang-thai-bao-tri` trả thêm `noi_dung`; `App.jsx` hiển thị đúng nội dung admin
+  đã lưu (fallback về câu mặc định nếu rỗng/lỗi mạng — vẫn fail-open như thiết kế gốc). Không cần
+  migration DB (vẫn dùng bảng `cau_hinh` key-value có sẵn). Test mới khóa nội dung tùy chỉnh trả
+  đúng qua API.
 - **✅ Trang "Sản phẩm đang hoàn thiện" — chặn người ngoài xem trước khi ra mắt chính thức (v80):**
   domain `mathtutor.pro.vn` đã trỏ xong về Render (custom domain qua 2 bản ghi A tại nhà cung cấp
   BKNS, không cần CNAME/CORS_EXTRA_ORIGINS gì thêm — kiến trúc gọi cùng-origin qua Render proxy).
