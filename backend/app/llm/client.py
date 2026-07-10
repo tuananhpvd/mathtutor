@@ -475,21 +475,44 @@ def _phan_tich_qua_call(call_fn, ho_so: dict) -> dict | None:
     return None
 
 
+def _ghi_chu_phan_hoi_loi(loi: Exception) -> str:
+    """Đoạn ghi chú nối vào user prompt khi thử lại sau lỗi PARSE (không phải lỗi mạng) —
+    cho AI biết CHÍNH XÁC lỗi lần trước để tự sửa, thay vì lặp lại y hệt sai lầm cũ."""
+    return (
+        f"\n\nLƯU Ý: lần trả lời TRƯỚC của bạn bị lỗi khi đọc JSON: {loi}\n"
+        "Hãy sửa lại và CHỈ trả JSON hợp lệ đúng schema, đặc biệt chú ý escape backslash "
+        "LaTeX đúng chuẩn JSON (mỗi ký tự '\\' phải viết thành '\\\\')."
+    )
+
+
 def _goi_va_parse(call_fn, system: str, user: str) -> dict:
     """Gọi LLM rồi parse JSON, tự thử lại khi lỗi tạm thời hoặc JSON hỏng.
 
     call_fn(system, user) -> str. Ném RuntimeError nếu hết số lần thử vẫn lỗi.
+
+    Khi JSON hỏng (không phải lỗi mạng/API), lần thử lại kế tiếp được nối thêm ghi chú lỗi cụ
+    thể vào "user" để AI tự sửa (thay vì lặp lại y hệt sai lầm cũ), đồng thời JSON thô được ghi
+    log (rút gọn) — để nếu tương lai vẫn có kiểu lỗi mới lọt qua, chẩn đoán được từ dữ liệu thật
+    thay vì đoán mù từ mỗi dòng thông báo lỗi ngắn.
     """
     loi = None
+    yeu_cau = user
     for lan in range(SO_LAN_THU):
+        raw = None
         try:
-            raw = call_fn(system, user)
+            raw = call_fn(system, yeu_cau)
             data = _parse_json_cau_hoi(raw)
             if not data.get("cau_hoi"):
                 raise ValueError("LLM trả danh sách câu hỏi rỗng")
             return data
         except Exception as e:  # lỗi mạng/API hoặc JSON → thử lại
             loi = e
+            if raw is not None:  # có phản hồi nhưng JSON hỏng — không phải lỗi mạng
+                logger.warning(
+                    "Sinh câu hỏi lần %d/%d lỗi (%s) — JSON thô: %s",
+                    lan + 1, SO_LAN_THU, e, raw[:2000],
+                )
+                yeu_cau = user + _ghi_chu_phan_hoi_loi(e)
             if lan < SO_LAN_THU - 1:
                 time.sleep(1.5 * (lan + 1))  # chờ tăng dần trước khi thử lại
     raise RuntimeError(f"Sinh câu hỏi thất bại sau {SO_LAN_THU} lần: {loi}")
@@ -521,18 +544,28 @@ def _parse_json_doc_de_tu_anh(raw: str) -> dict:
 def _doc_de_tu_anh_qua_call(call_fn) -> dict:
     """Gọi LLM đọc ảnh rồi parse JSON, tự thử lại khi lỗi tạm thời/JSON hỏng.
 
-    call_fn() -> str (đã đóng gói sẵn system/user/ảnh). Ném RuntimeError nếu hết số lần vẫn lỗi.
+    call_fn(extra: str = "") -> str (đã đóng gói sẵn system/user/ảnh; "extra" nối thêm vào
+    user khi thử lại sau lỗi parse — xem _ghi_chu_phan_hoi_loi). Ném RuntimeError nếu hết số
+    lần vẫn lỗi.
     """
     loi = None
+    extra = ""
     for lan in range(SO_LAN_THU):
+        raw = None
         try:
-            raw = call_fn()
+            raw = call_fn(extra)
             data = _parse_json_doc_de_tu_anh(raw)
             if data["khop_loai_cau"] and not data["de_bai"].strip():
                 raise ValueError("LLM báo khớp loại câu nhưng không trích được đề bài")
             return data
         except Exception as e:  # lỗi mạng/API hoặc JSON → thử lại
             loi = e
+            if raw is not None:
+                logger.warning(
+                    "Đọc ảnh đề lần %d/%d lỗi (%s) — JSON thô: %s",
+                    lan + 1, SO_LAN_THU, e, raw[:2000],
+                )
+                extra = _ghi_chu_phan_hoi_loi(e)
             if lan < SO_LAN_THU - 1:
                 time.sleep(1.5 * (lan + 1))
     raise RuntimeError(f"Đọc ảnh đề bài thất bại sau {SO_LAN_THU} lần: {loi}")
@@ -646,7 +679,7 @@ class GeminiLLMClient(LLMClient):
         self._models = [self._model] + [m for m in self._DU_PHONG if m != self._model]
 
     def _call(self, system: str, user: str, max_tokens: int = 4096,
-              suy_nghi: bool | None = None) -> str:
+              suy_nghi: bool | None = None, response_schema: dict | None = None) -> str:
         from google.genai import errors as genai_errors  # type: ignore
         from google.genai import types  # type: ignore
 
@@ -666,6 +699,12 @@ class GeminiLLMClient(LLMClient):
                 cfg_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
             except Exception:  # noqa: BLE001
                 pass
+        # response_schema: ép Gemini CHỈ sinh được JSON đúng cấu trúc (constrained decoding) —
+        # loại bỏ tận gốc nhóm lỗi "JSON không hợp lệ" thay vì vá bằng regex SAU KHI nhận về.
+        # Xem app/llm/prompts.py (schema_sinh_cau_hoi/schema_doc_de_tu_anh).
+        if response_schema is not None:
+            cfg_kwargs["response_mime_type"] = "application/json"
+            cfg_kwargs["response_schema"] = response_schema
         cfg = types.GenerateContentConfig(**cfg_kwargs)
         loi = None
         for m in self._models:
@@ -684,16 +723,20 @@ class GeminiLLMClient(LLMClient):
         raise loi if loi else RuntimeError("Gemini không phản hồi")
 
     def _call_voi_anh(self, system: str, user: str, anh_bytes: bytes, mime_type: str,
-                       max_tokens: int = 4096) -> str:
+                       max_tokens: int = 4096, response_schema: dict | None = None) -> str:
         """Giống _call nhưng kèm 1 ảnh trong nội dung gửi (multimodal)."""
         from google.genai import errors as genai_errors  # type: ignore
         from google.genai import types  # type: ignore
 
-        cfg = types.GenerateContentConfig(
+        cfg_kwargs = dict(
             system_instruction=system,
             temperature=self._temperature,
             max_output_tokens=max_tokens,
         )
+        if response_schema is not None:
+            cfg_kwargs["response_mime_type"] = "application/json"
+            cfg_kwargs["response_schema"] = response_schema
+        cfg = types.GenerateContentConfig(**cfg_kwargs)
         contents = [types.Part.from_bytes(data=anh_bytes, mime_type=mime_type), user]
         loi = None
         for m in self._models:
@@ -728,26 +771,39 @@ class GeminiLLMClient(LLMClient):
             return f"Gợi ý: {chi_thi.get('y_goi_y', '')}"
 
     def sinh_cau_hoi(self, yeu_cau: dict) -> dict:
-        from app.llm.prompts import SYSTEM_SINH_CAU_HOI, user_prompt_sinh_cau_hoi
+        from app.llm.prompts import (
+            SYSTEM_SINH_CAU_HOI,
+            schema_sinh_cau_hoi,
+            user_prompt_sinh_cau_hoi,
+        )
 
+        loai_cau = yeu_cau.get("loai_cau", "TLN")
         user = user_prompt_sinh_cau_hoi(
             so_luong=int(yeu_cau.get("so_luong", 1)),
-            loai_cau=yeu_cau.get("loai_cau", "TLN"),
+            loai_cau=loai_cau,
             chuyen_de=yeu_cau.get("chuyen_de", ""),
             do_kho=yeu_cau.get("do_kho", "tb"),
             tai_lieu=yeu_cau.get("tai_lieu"),
             dang=yeu_cau.get("dang"),
         )
+        schema = schema_sinh_cau_hoi(loai_cau)
         return _goi_va_parse(
-            lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_SINH_CAU_HOI, user
+            lambda s, u: self._call(s, u, max_tokens=8192, response_schema=schema),
+            SYSTEM_SINH_CAU_HOI, user,
         )
 
     def tao_buoc_goi_y(self, yeu_cau: dict) -> dict:
-        from app.llm.prompts import SYSTEM_TAO_BUOC_GOI_Y, user_prompt_tao_buoc_goi_y
+        from app.llm.prompts import (
+            SYSTEM_TAO_BUOC_GOI_Y,
+            schema_sinh_cau_hoi,
+            user_prompt_tao_buoc_goi_y,
+        )
 
         user = user_prompt_tao_buoc_goi_y(yeu_cau)
+        schema = schema_sinh_cau_hoi(yeu_cau.get("loai_cau", "TLN"))
         return _goi_va_parse(
-            lambda s, u: self._call(s, u, max_tokens=8192), SYSTEM_TAO_BUOC_GOI_Y, user
+            lambda s, u: self._call(s, u, max_tokens=8192, response_schema=schema),
+            SYSTEM_TAO_BUOC_GOI_Y, user,
         )
 
     def phan_tich(self, ho_so: dict) -> dict | None:
@@ -756,12 +812,18 @@ class GeminiLLMClient(LLMClient):
         )
 
     def doc_de_tu_anh(self, anh_bytes: bytes, mime_type: str, loai_cau_ky_vong: str) -> dict:
-        from app.llm.prompts import SYSTEM_DOC_DE_TU_ANH, user_prompt_doc_de_tu_anh
+        from app.llm.prompts import (
+            SYSTEM_DOC_DE_TU_ANH,
+            schema_doc_de_tu_anh,
+            user_prompt_doc_de_tu_anh,
+        )
 
         user = user_prompt_doc_de_tu_anh(loai_cau_ky_vong)
+        schema = schema_doc_de_tu_anh(loai_cau_ky_vong)
         return _doc_de_tu_anh_qua_call(
-            lambda: self._call_voi_anh(
-                SYSTEM_DOC_DE_TU_ANH, user, anh_bytes, mime_type, max_tokens=4096
+            lambda extra="": self._call_voi_anh(
+                SYSTEM_DOC_DE_TU_ANH, user + extra, anh_bytes, mime_type,
+                max_tokens=4096, response_schema=schema,
             )
         )
 

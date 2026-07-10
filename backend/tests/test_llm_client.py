@@ -196,3 +196,82 @@ def test_gemini_400_khong_thu_model_khac():
 
 def test_gemini_khong_con_model_khai_tu_trong_danh_sach_du_phong():
     assert "gemini-2.0-flash" not in GeminiLLMClient._DU_PHONG
+
+
+# ---------- sinh_cau_hoi/tao_buoc_goi_y phải ép Structured Output (Gemini responseSchema) ----------
+#
+# Bối cảnh: trước đây Gemini chỉ được NHẮC bằng lời phải trả JSON đúng cú pháp, rồi code cố vá
+# chuỗi trả về bằng regex — không triệt để, liên tục phát sinh lỗi mới (vd v84: escape LaTeX).
+# Giải pháp triệt để: ép Gemini CHỈ SINH ĐƯỢC JSON đúng cấu trúc ngay ở tầng giải mã token bằng
+# responseSchema. Test này khóa: sinh_cau_hoi/tao_buoc_goi_y LUÔN truyền response_schema vào
+# _call, đúng theo loai_cau được yêu cầu.
+
+def test_gemini_sinh_cau_hoi_truyen_response_schema(monkeypatch):
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    goi_lai = {}
+
+    def _fake_call(system, user, max_tokens=4096, suy_nghi=None, response_schema=None):
+        goi_lai["response_schema"] = response_schema
+        return '{"cau_hoi": [{"loai_cau": "TN4PA", "de_bai": "x"}]}'
+
+    monkeypatch.setattr(llm, "_call", _fake_call)
+    llm.sinh_cau_hoi({"loai_cau": "TN4PA", "chuyen_de": "X", "do_kho": "tb", "so_luong": 1})
+    assert goi_lai["response_schema"] is not None
+    item = goi_lai["response_schema"]["properties"]["cau_hoi"]["items"]
+    assert item["properties"]["loai_cau"]["enum"] == ["TN4PA"]
+
+
+def test_gemini_tao_buoc_goi_y_truyen_response_schema(monkeypatch):
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    goi_lai = {}
+
+    def _fake_call(system, user, max_tokens=4096, suy_nghi=None, response_schema=None):
+        goi_lai["response_schema"] = response_schema
+        return '{"cau_hoi": [{"loai_cau": "TNDS", "de_bai": "x"}]}'
+
+    monkeypatch.setattr(llm, "_call", _fake_call)
+    llm.tao_buoc_goi_y({"loai_cau": "TNDS", "de_bai": "x", "cau_truc_buoc": []})
+    assert goi_lai["response_schema"] is not None
+    item = goi_lai["response_schema"]["properties"]["cau_hoi"]["items"]
+    assert item["properties"]["loai_cau"]["enum"] == ["TNDS"]
+
+
+def test_gemini_call_gan_response_mime_type_khi_co_schema():
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    llm._models = ["model-a"]
+    goi_lai = {}
+
+    class _FakeModels:
+        def generate_content(self, model, contents, config):
+            goi_lai["config"] = config
+            return type("R", (), {"text": '{"cau_hoi": []}'})()
+
+    llm._client = type("C", (), {"models": _FakeModels()})()
+    llm._call("system", "user", response_schema={"type": "OBJECT"})
+    assert goi_lai["config"].response_mime_type == "application/json"
+    assert goi_lai["config"].response_schema == {"type": "OBJECT"}
+
+
+def test_gemini_call_khong_gan_response_mime_type_khi_khong_co_schema():
+    """dien_dat/phan_tich (không truyền response_schema) KHÔNG bị ép JSON mode — dien_dat trả
+    văn xuôi tự nhiên cho học sinh, không phải JSON."""
+    llm = GeminiLLMClient.__new__(GeminiLLMClient)
+    llm._temperature = 0.4
+    llm._suy_nghi = False
+    llm._models = ["model-a"]
+    goi_lai = {}
+
+    class _FakeModels:
+        def generate_content(self, model, contents, config):
+            goi_lai["config"] = config
+            return type("R", (), {"text": "cau tra loi tu nhien"})()
+
+    llm._client = type("C", (), {"models": _FakeModels()})()
+    llm._call("system", "user")
+    assert goi_lai["config"].response_mime_type is None

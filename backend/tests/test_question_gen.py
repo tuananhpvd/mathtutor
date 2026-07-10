@@ -298,6 +298,85 @@ def test_goi_va_parse_het_luot_nem_loi(monkeypatch):
         cl._goi_va_parse(lambda s, u: "không phải json", "sys", "usr")
 
 
+def test_goi_va_parse_phan_hoi_loi_cho_lan_thu_lai(monkeypatch, caplog):
+    """Lớp phòng thủ #2/#3 (nối tiếp v84): khi JSON hỏng, lần thử lại kế tiếp phải được
+    nối thêm ghi chú lỗi cụ thể (để AI tự sửa thay vì lặp lại y hệt sai lầm cũ), và JSON thô
+    phải được log lại để chẩn đoán nhanh nếu tương lai có kiểu lỗi mới chưa từng gặp."""
+    import logging
+
+    from app.llm import client as cl
+    monkeypatch.setattr(cl.time, "sleep", lambda *a, **k: None)
+    lan_nhan_duoc = []
+
+    def call_fn(system, user):
+        lan_nhan_duoc.append(user)
+        if len(lan_nhan_duoc) < 2:
+            return "khong phai json hop le"
+        return '{"cau_hoi": [{"loai_cau": "TLN", "de_bai": "x"}]}'
+
+    with caplog.at_level(logging.WARNING):
+        d = cl._goi_va_parse(call_fn, "sys", "usr goc")
+    assert len(d["cau_hoi"]) == 1
+    assert lan_nhan_duoc[0] == "usr goc"  # lần đầu: nguyên văn, chưa có phản hồi lỗi
+    assert "usr goc" in lan_nhan_duoc[1]
+    assert "LƯU Ý" in lan_nhan_duoc[1]  # lần 2: có ghi chú lỗi lần trước để AI tự sửa
+    assert any("JSON thô" in r.message for r in caplog.records)
+
+
+def test_goi_va_parse_khong_phan_hoi_khi_loi_mang(monkeypatch):
+    """Lỗi mạng/API (KHÔNG có phản hồi JSON để đọc) thì KHÔNG nối ghi chú lỗi vào lần thử
+    lại — phân biệt rõ với lỗi parse JSON (nối ghi chú không có ý nghĩa gì cho lỗi mạng)."""
+    from app.llm import client as cl
+    monkeypatch.setattr(cl.time, "sleep", lambda *a, **k: None)
+    lan_nhan_duoc = []
+
+    def call_fn(system, user):
+        lan_nhan_duoc.append(user)
+        if len(lan_nhan_duoc) < 2:
+            raise RuntimeError("503 quá tải")
+        return '{"cau_hoi": [{"loai_cau": "TLN", "de_bai": "x"}]}'
+
+    d = cl._goi_va_parse(call_fn, "sys", "usr goc")
+    assert len(d["cau_hoi"]) == 1
+    assert lan_nhan_duoc == ["usr goc", "usr goc"]  # lỗi mạng: user KHÔNG bị đổi
+
+
+# ----- Schema JSON cho Structured Output (Gemini responseSchema, lớp phòng thủ #1) -----
+
+def test_schema_sinh_cau_hoi_tn4pa_dung_cau_truc():
+    from app.llm.prompts import schema_sinh_cau_hoi
+    s = schema_sinh_cau_hoi("TN4PA")
+    item = s["properties"]["cau_hoi"]["items"]
+    assert item["properties"]["loai_cau"]["enum"] == ["TN4PA"]
+    meta = item["properties"]["meta"]
+    assert set(meta["properties"]["phuong_an"]["required"]) == {"A", "B", "C", "D"}
+    assert meta["properties"]["dap_an_dung"]["enum"] == ["A", "B", "C", "D"]
+
+
+def test_schema_sinh_cau_hoi_tnds_dung_cau_truc():
+    from app.llm.prompts import schema_sinh_cau_hoi
+    s = schema_sinh_cau_hoi("TNDS")
+    meta = s["properties"]["cau_hoi"]["items"]["properties"]["meta"]
+    y_item = meta["properties"]["y"]["items"]
+    assert y_item["properties"]["dap_an"]["enum"] == ["Dung", "Sai"]
+    assert y_item["properties"]["ky_hieu"]["enum"] == ["a", "b", "c", "d"]
+
+
+def test_schema_sinh_cau_hoi_tln_dung_cau_truc():
+    from app.llm.prompts import schema_sinh_cau_hoi
+    s = schema_sinh_cau_hoi("TLN")
+    meta = s["properties"]["cau_hoi"]["items"]["properties"]["meta"]
+    assert meta["required"] == ["dap_an_cuoi"]
+
+
+def test_schema_doc_de_tu_anh_theo_loai_ky_vong():
+    from app.llm.prompts import schema_doc_de_tu_anh
+    s = schema_doc_de_tu_anh("TN4PA")
+    assert "phuong_an" in s["properties"]["meta_nhap"]["properties"]
+    s2 = schema_doc_de_tu_anh("TNDS")
+    assert "y" in s2["properties"]["meta_nhap"]["properties"]
+
+
 # ----- Endpoint KHÔNG bao giờ trả 500 -----
 
 class _LLMLoi(StubLLMClient):

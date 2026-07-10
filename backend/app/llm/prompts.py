@@ -185,6 +185,150 @@ _RANG_BUOC_TLN = (
 _MAU_THEO_LOAI = {"TN4PA": _MAU_TN4PA, "TNDS": _MAU_TNDS, "TLN": _MAU_TLN}
 
 
+# ---------- Schema JSON cho Structured Output (Gemini responseSchema) ----------
+#
+# Trước đây AI chỉ được NHẮC bằng lời (prompt) rằng phải trả JSON đúng cú pháp, rồi code cố
+# ĐOÁN & VÁ chuỗi trả về bằng regex (xem client.py _va_escape_json...) — cách này không triệt
+# để: mỗi kiểu lệch định dạng mới (escape sai, phẩy thừa, thiếu khóa...) lại phải vá thêm một
+# lần, y hệt các lỗi rải rác đã gặp (v79, v84...). Các schema dưới đây ÉP Gemini CHỈ SINH ĐƯỢC
+# JSON đúng cấu trúc ngay ở tầng giải mã token (constrained decoding) — loại bỏ tận gốc cả
+# NHÓM lỗi "JSON không hợp lệ", không cần đoán trước từng kiểu lỗi để vá nữa. Chỉ Gemini hỗ trợ
+# (responseSchema trong GenerateContentConfig); Anthropic/OpenAI vẫn dùng đường vá regex hiện có
+# làm lớp dự phòng (cũng là lớp dự phòng cho chính Gemini nếu vì lý do gì đó schema không dùng
+# được). Định dạng theo đúng OpenAPI-subset mà SDK google-genai chấp nhận.
+
+_SCHEMA_BUOC = {
+    "type": "OBJECT",
+    "properties": {
+        "thu_tu": {"type": "INTEGER"},
+        "pham_vi": {"type": "STRING"},
+        "mo_ta": {"type": "STRING"},
+        "bieu_thuc_ket_qua": {"type": "STRING"},
+        "danh_sach_goi_y": {"type": "ARRAY", "items": {"type": "STRING"}},
+    },
+    "required": ["thu_tu", "pham_vi", "mo_ta", "bieu_thuc_ket_qua", "danh_sach_goi_y"],
+}
+
+_SCHEMA_META_TN4PA = {
+    "type": "OBJECT",
+    "properties": {
+        "phuong_an": {
+            "type": "OBJECT",
+            "properties": {k: {"type": "STRING"} for k in ("A", "B", "C", "D")},
+            "required": ["A", "B", "C", "D"],
+        },
+        "dap_an_dung": {"type": "STRING", "enum": ["A", "B", "C", "D"]},
+        "bat_buoc_suy_luan": {"type": "BOOLEAN"},
+    },
+    "required": ["phuong_an", "dap_an_dung", "bat_buoc_suy_luan"],
+}
+
+_SCHEMA_META_TNDS = {
+    "type": "OBJECT",
+    "properties": {
+        "y": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "ky_hieu": {"type": "STRING", "enum": ["a", "b", "c", "d"]},
+                    "noi_dung_y": {"type": "STRING"},
+                    "dap_an": {"type": "STRING", "enum": ["Dung", "Sai"]},
+                    "bat_buoc_suy_luan": {"type": "BOOLEAN"},
+                },
+                "required": ["ky_hieu", "noi_dung_y", "dap_an"],
+            },
+        },
+    },
+    "required": ["y"],
+}
+
+_SCHEMA_META_TLN = {
+    "type": "OBJECT",
+    "properties": {
+        "dap_an_cuoi": {"type": "STRING"},
+        "quy_tac_lam_tron": {"type": "STRING", "nullable": True},
+        "don_vi": {"type": "STRING", "nullable": True},
+    },
+    "required": ["dap_an_cuoi"],
+}
+
+_SCHEMA_META_THEO_LOAI = {
+    "TN4PA": _SCHEMA_META_TN4PA, "TNDS": _SCHEMA_META_TNDS, "TLN": _SCHEMA_META_TLN,
+}
+
+
+def schema_sinh_cau_hoi(loai_cau: str) -> dict:
+    """Schema cho {"cau_hoi": [ <1..N câu đúng loai_cau> ]} — dùng chung cho "Sinh câu hỏi"
+    (N câu) và "Tạo bước và gợi ý" (luôn đúng 1 câu)."""
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "cau_hoi": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "loai_cau": {"type": "STRING", "enum": [loai_cau]},
+                        "de_bai": {"type": "STRING"},
+                        "meta": _SCHEMA_META_THEO_LOAI.get(loai_cau, _SCHEMA_META_TLN),
+                        "solution_steps": {"type": "ARRAY", "items": _SCHEMA_BUOC},
+                        "loi_giai_chi_tiet": {"type": "STRING"},
+                    },
+                    "required": [
+                        "loai_cau", "de_bai", "meta", "solution_steps", "loi_giai_chi_tiet",
+                    ],
+                },
+            },
+        },
+        "required": ["cau_hoi"],
+    }
+
+
+def schema_doc_de_tu_anh(loai_cau_ky_vong: str) -> dict:
+    """Schema cho {khop_loai_cau, loai_cau_nhan_dang, de_bai, meta_nhap, ly_do_khong_khop}."""
+    if loai_cau_ky_vong == "TN4PA":
+        meta_nhap = {
+            "type": "OBJECT",
+            "properties": {
+                "phuong_an": {
+                    "type": "OBJECT",
+                    "properties": {k: {"type": "STRING"} for k in ("A", "B", "C", "D")},
+                },
+            },
+        }
+    elif loai_cau_ky_vong == "TNDS":
+        meta_nhap = {
+            "type": "OBJECT",
+            "properties": {
+                "y": {
+                    "type": "ARRAY",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "ky_hieu": {"type": "STRING"},
+                            "noi_dung_y": {"type": "STRING"},
+                        },
+                    },
+                },
+            },
+        }
+    else:
+        meta_nhap = {"type": "OBJECT", "properties": {}}
+
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "khop_loai_cau": {"type": "BOOLEAN"},
+            "loai_cau_nhan_dang": {"type": "STRING", "enum": ["TN4PA", "TNDS", "TLN", ""]},
+            "de_bai": {"type": "STRING"},
+            "meta_nhap": meta_nhap,
+            "ly_do_khong_khop": {"type": "STRING", "nullable": True},
+        },
+        "required": ["khop_loai_cau", "loai_cau_nhan_dang", "de_bai", "meta_nhap"],
+    }
+
+
 def user_prompt_sinh_cau_hoi(
     so_luong: int,
     loai_cau: str,

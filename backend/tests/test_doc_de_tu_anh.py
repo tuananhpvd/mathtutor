@@ -141,9 +141,11 @@ def test_gemini_doc_de_tu_anh_goi_dung_va_parse(monkeypatch):
     llm = GeminiLLMClient.__new__(GeminiLLMClient)  # bỏ qua __init__ (không cần API key thật)
     goi_lai = {}
 
-    def _fake_call_voi_anh(system, user, anh_bytes, mime_type, max_tokens=4096):
+    def _fake_call_voi_anh(system, user, anh_bytes, mime_type, max_tokens=4096,
+                            response_schema=None):
         goi_lai["mime_type"] = mime_type
         goi_lai["anh_bytes"] = anh_bytes
+        goi_lai["response_schema"] = response_schema
         return '{"khop_loai_cau": true, "loai_cau_nhan_dang": "TN4PA", "de_bai": "Tính y\'", "meta_nhap": {"phuong_an": {"A": "1", "B": "2", "C": "3", "D": "4"}}, "ly_do_khong_khop": null}'
 
     monkeypatch.setattr(llm, "_call_voi_anh", _fake_call_voi_anh)
@@ -153,6 +155,12 @@ def test_gemini_doc_de_tu_anh_goi_dung_va_parse(monkeypatch):
     assert ket["meta_nhap"]["phuong_an"]["A"] == "1"
     assert goi_lai["mime_type"] == "image/png"
     assert goi_lai["anh_bytes"] == anh_bytes
+    # Structured Output: schema JSON được truyền để Gemini không tự viết JSON tay nữa
+    # (loại tận gốc nhóm lỗi "JSON không hợp lệ" thay vì vá regex sau khi nhận về).
+    assert goi_lai["response_schema"] is not None
+    assert goi_lai["response_schema"]["required"] == [
+        "khop_loai_cau", "loai_cau_nhan_dang", "de_bai", "meta_nhap",
+    ]
 
 
 # ---------- API /questions-ai/doc-de-tu-anh (E2E, dùng Stub mặc định trong test) ----------

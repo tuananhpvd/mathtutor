@@ -4,10 +4,38 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v84**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v85**)
 
 - Backend (FastAPI + SQLAlchemy, SQLite `dev.db` / đích PostgreSQL) + Frontend (React + Vite +
-  Tailwind) chạy end-to-end. **398/398 test backend xanh** (`pytest`, +1 test mới).
+  Tailwind) chạy end-to-end. **408/408 test backend xanh** (`pytest`, +10 test mới).
+- **🏗️ GIẢI PHÁP TRIỆT ĐỂ (v85, nối tiếp v84): chặn tận gốc nhóm lỗi "AI sinh JSON hỏng" thay vì
+  vá từng ca một.** User phản ánh: dù v84 đã vá lỗi escape LaTeX, "thỉnh thoảng AI sinh câu hỏi/
+  tạo bước gợi ý lại phát sinh lỗi MỚI" — phân tích nghiêm túc (không code trước) xác định gốc rễ:
+  kiến trúc cũ để AI "tự viết tay" JSON dưới dạng văn bản tự do rồi code ĐOÁN & VÁ bằng regex sau
+  khi nhận về — cách này về bản chất không triệt để vì AI không được RÀNG BUỘC phải đúng cú pháp,
+  chỉ được "nhắc" bằng lời; mỗi kiểu lệch mới (escape sai, phẩy thừa, thiếu khóa...) lại phải vá
+  thêm một lần, không gian lỗi gần như vô hạn. Đã trình bày phân tích + phương án cho user, được
+  chọn triển khai đủ 3 lớp:
+  1. **Lớp chính — Structured Output (Gemini `responseSchema`)**: ép Gemini CHỈ SINH ĐƯỢC JSON
+     đúng cấu trúc ngay ở tầng giải mã token (constrained decoding) — loại tận gốc CẢ NHÓM lỗi
+     "JSON không hợp lệ", không cần đoán trước từng kiểu lỗi để vá nữa. Thêm `schema_sinh_cau_hoi()`
+     / `schema_doc_de_tu_anh()` (`app/llm/prompts.py`, đặt cạnh các `_MAU_*` mà chúng mô tả) —
+     schema dựng ĐỘNG theo `loai_cau` (TN4PA/TNDS/TLN có `meta` khác nhau). Wire vào
+     `GeminiLLMClient._call`/`_call_voi_anh` (tham số `response_schema`, tự set
+     `response_mime_type="application/json"`) cho cả 3 luồng: `sinh_cau_hoi`, `tao_buoc_goi_y`,
+     `doc_de_tu_anh`. Anthropic/OpenAI chưa hỗ trợ (không phải provider khuyến nghị) — vẫn dùng
+     đường vá regex hiện có, cũng là lớp dự phòng cho chính Gemini nếu vì lý do gì đó schema lỗi.
+  2. **Lớp 2 — Retry có phản hồi lỗi cụ thể**: `_goi_va_parse`/`_doc_de_tu_anh_qua_call` giờ nối
+     thêm nguyên văn lỗi parse lần trước vào prompt của lần thử lại kế tiếp (AI tự sửa đúng chỗ
+     thay vì lặp lại y hệt sai lầm cũ) — CHỈ áp dụng khi lỗi là JSON hỏng (có phản hồi để đọc),
+     KHÔNG áp dụng khi lỗi mạng/API (phản hồi không có ý nghĩa gì để sửa).
+  3. **Lớp 3 — Log JSON thô khi thất bại**: mỗi lần parse lỗi, ghi `logger.warning` kèm JSON thô
+     (rút gọn 2000 ký tự) — nếu tương lai vẫn có kiểu lỗi mới lọt qua (vd provider khác, ảnh lạ),
+     chẩn đoán được từ dữ liệu thật thay vì đoán mù từ 1 dòng thông báo lỗi ngắn như các lần trước.
+  - 10 test mới: cấu trúc schema đúng theo từng loại câu, `GeminiLLMClient` truyền đúng
+    `response_schema`/`response_mime_type`, retry nối đúng ghi chú lỗi (và KHÔNG nối khi lỗi
+    mạng), log JSON thô xuất hiện khi thất bại.
+  - Không đổi schema DB, không đổi hành vi StubLLMClient/Anthropic/OpenAI.
 - **🐞 FIX (v84): AI "Tạo bước và gợi ý" (và "Sinh câu hỏi") lỗi ngẫu nhiên với LaTeX — báo cáo
   qua TNDS sinh từ ảnh dán, thông báo "LLM trả JSON không hợp lệ: Invalid \escape: line 8 column
   61".** Nguyên nhân gốc: `_va_escape_json()` (`backend/app/llm/client.py`) vá backslash đơn của
