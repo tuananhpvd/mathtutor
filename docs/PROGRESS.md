@@ -4,7 +4,30 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v93**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v94**)
+
+- **✨ (v94) Admin tự quản lý từ khóa lọc an toàn (3 tầng) — không cần sửa code.**
+  - Tận dụng cơ chế cấu hình key-value có sẵn (`CauHinh`) — KHÔNG bảng mới, KHÔNG migration.
+    3 khóa mới `tu_khoa_khan_cap`/`tu_khoa_khong_phu_hop`/`tu_khoa_ngoai_pham_vi`, mỗi khóa là
+    mảng `{tu_khoa, kich_hoat, la_mac_dinh}`. Chưa từng chỉnh → dùng đúng danh sách mặc định
+    trong code làm nền.
+  - `core/guard/safety.py`: `kiem_tra_an_toan()` nhận danh sách từ khóa làm tham số (vẫn thuần
+    khiết, không đụng DB) + `bo_dau()` chuẩn hóa bỏ dấu (bắt được "tu tu" không dấu) + tự thêm
+    ranh giới `\b` cho từ đơn (tránh "kill" khớp nhầm "skill").
+  - `admin_service._chuan_hoa_danh_sach_tu_khoa()`: Admin **chỉ tắt được** từ khóa mặc định,
+    không xóa được; thiếu 1 từ mặc định trong request → server tự thêm lại ở trạng thái BẬT
+    (fail-safe, không để mất nền an toàn dù thao tác nhầm/gọi API tay).
+  - API mới `POST /api/admin/tu-khoa-thu` ("thử trước", admin-only) — chạy kiểm tra thật với
+    đúng danh sách đang lưu, không tạo phiên học.
+  - UI **Admin → Cấu hình → Từ khóa lọc an toàn**: mỗi tầng là accordion (đóng mặc định, đếm
+    số lượng) → mở ra có ô tìm kiếm + bảng (Từ khóa/Loại/Trạng thái bật-tắt/Xóa) — tránh rối khi
+    danh sách dài. Nút **Import từ file mẫu (.xlsx)** — tải mẫu, chọn file, xem trước (dòng lỗi/
+    trùng tự động bỏ qua), xác nhận thêm hàng loạt cho cả 3 tầng cùng lúc (dùng lại thư viện
+    `xlsx` + pattern "file mẫu" đã có ở Import tài khoản/Import câu hỏi, không cần API mới).
+  - Nối dây `sessions.py` (chat AI) và `tro_giup_service.py` ("Nhờ thầy/cô") dùng danh sách
+    admin đang lưu thay vì hard-code. Test mới: bỏ dấu, ghi đè danh sách, ranh giới từ, thêm từ
+    mới → chat AI bắt được ngay không cần deploy, không xóa được từ mặc định, tắt mặc định vẫn
+    còn trong danh sách. `pytest` 462/462, `ruff`/`eslint`/`vite build` sạch.
 
 - **✨ (v93) Ô chat tự do "Hỏi gia sư" trong Phòng học + nâng cấp an toàn nội dung.**
   - Orchestrator: HS gõ câu hỏi tự do (không phải đáp án) → `y_dinh="giai_thich_ngan"` (có ngữ
