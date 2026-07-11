@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession, updateHoTen } from '../../auth'
+import { useConfirm } from '../../components/ui'
 import TrangChu from './TrangChu'
 import ChonBai from './ChonBai'
 import PhongHoc from './PhongHoc'
@@ -31,8 +32,13 @@ function pageFromHash() {
 }
 
 export default function HocSinhApp({ onLogout }) {
+  const confirm = useConfirm()
   const [hoTen, setHoTen] = useState(() => (getSession() || {}).ho_ten || '')
   const [page, setPage] = useState(pageFromHash)
+  // Session ĐANG active trong phòng học (nếu page === 'phong_hoc') — PhongHoc tự báo lên qua
+  // onSid, kể cả khi mở bài mới chưa có sessionId ban đầu. Dùng để chuông thông báo biết HS
+  // có đang ở sẵn đúng bài trong thông báo hay không.
+  const [activeSid, setActiveSid] = useState(null)
 
   function capNhatHoTen(ten) {
     updateHoTen(ten)
@@ -66,6 +72,31 @@ export default function HocSinhApp({ onLogout }) {
     window.location.hash = 'chon_bai'
     setPage('chon_bai')
   }
+
+  // Bấm vào 1 thông báo gắn với phòng học (vd "Thầy/cô trả lời") ở chuông thông báo.
+  async function moPhongHocTuThongBao(sessionId) {
+    if (!sessionId) return
+    if (page === 'phong_hoc' && activeSid === sessionId) {
+      // Đang ở sẵn đúng bài này — tải lại trang để cập nhật câu trả lời mới của GV.
+      window.location.reload()
+      return
+    }
+    if (page === 'phong_hoc') {
+      // Đang làm dở bài khác — hỏi trước khi rời, tránh mất dở dang không báo trước.
+      const dongY = await confirm(
+        'Bạn đang làm dở một bài khác. Bạn có muốn rời khỏi bài này để chuyển đến bài trong thông báo không?'
+      )
+      if (!dongY) return
+    }
+    lamTiep(sessionId)
+  }
+
+  // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — chỉ xử lý loại "session"
+  // (vd "Thầy/cô trả lời"), các loại khác (nếu có) bỏ qua không làm gì ở app HS.
+  function moTuThongBao(tb) {
+    if (tb.lien_ket_loai === 'session') moPhongHocTuThongBao(tb.lien_ket_id)
+  }
+
   function dieuHuong(key) {
     setLocBai(null)
     if (key !== 'phong_hoc') sessionStorage.removeItem(PHONG_HOC_KEY)
@@ -98,6 +129,7 @@ export default function HocSinhApp({ onLogout }) {
         clearSession()
         onLogout()
       }}
+      onMoLienKet={moTuThongBao}
     >
       {page === 'trang_chu' && (
         <TrangChu onChonBai={() => dieuHuong('chon_bai')} onLamTiep={lamTiep} />
@@ -107,10 +139,15 @@ export default function HocSinhApp({ onLogout }) {
       )}
       {page === 'phong_hoc' && phongHoc && (
         <PhongHoc
+          // key: ép mount lại hoàn toàn khi chuyển thẳng từ phòng học này sang phòng học
+          // khác (vd bấm thông báo trả lời trong lúc đang làm dở bài khác) — tránh sót lại
+          // state UI phụ (hộp "nhờ thầy/cô" đang mở, ảnh đang zoom...) của bài trước.
+          key={phongHoc.sessionId || phongHoc.problemId || 'moi'}
           problemId={phongHoc.problemId}
           sessionId={phongHoc.sessionId}
           onTrangChu={() => dieuHuong('trang_chu')}
           onChonBai={() => dieuHuong('chon_bai')}
+          onSid={setActiveSid}
         />
       )}
       {page === 'nhiem_vu' && <NhiemVu onChon={moBaiMoi} />}

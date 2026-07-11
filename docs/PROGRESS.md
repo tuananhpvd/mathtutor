@@ -4,7 +4,75 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v88**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v91**)
+
+- **✨ TÍNH NĂNG (v91, nối tiếp v90): bấm thông báo "Học sinh nhờ trợ giúp" (bên GV) → chuyển
+  thẳng đến đúng yêu cầu ở "Hỗ trợ học sinh".** Đối xứng với tính năng HS bấm thông báo "Thầy/
+  cô trả lời" ở v90. Vì cần dùng chung cho cả 2 vai trò, đã TỔNG QUÁT HÓA cơ chế thay vì làm
+  riêng: `ChuongThongBao.jsx` đổi từ prop `onMoPhongHoc` (chỉ HS) sang `onMoLienKet(tb)` tổng
+  quát — mỗi app (HS/GV) tự quyết định điều hướng theo `tb.lien_ket_loai`, không cần
+  `ChuongThongBao` biết trước có bao nhiêu loại liên kết. `RoleLayout.jsx` xuyên prop này qua
+  CẢ `HSLayout` (đã có từ v90) LẪN `SidebarLayout` (mới thêm, GV/Admin dùng — Admin không
+  truyền `onMoLienKet` nên hành vi giữ nguyên, không đổi).
+  - **Backend** (`tro_giup_service.tao_yeu_cau()`): thông báo cho GV trước đây trỏ
+    `lien_ket_loai="session", lien_ket_id=session_id` — ĐỔI sang
+    `lien_ket_loai="yeu_cau_tro_giup", lien_ket_id=yc.id` để trỏ ĐÚNG yêu cầu cụ thể (1 session
+    có thể có nhiều yêu cầu "Nhờ thầy/cô" nếu HS hỏi nhiều lần, trỏ theo session sẽ mơ hồ).
+    Thông báo "Thầy/cô trả lời" (phía HS) giữ nguyên `lien_ket_loai="session"` — không đổi.
+  - **`HoTroHocSinh.jsx`**: nhận prop `focusYc` (`{id, ts}`) — tự tìm đúng yêu cầu trong danh
+    sách (kể cả phải đổi trang phân trang giữa "chờ xử lý"/"đã trả lời"), cuộn tới
+    (`scrollIntoView`) và làm nổi bật viền 3 giây (`ring-2 ring-primary`). `ts` đổi mỗi lần
+    bấm để ép hiệu ứng chạy lại kể cả bấm trùng đúng yêu cầu đã focus trước đó.
+  - **`GiaoVienApp.jsx`**: state `focusYc`, hàm `moTuThongBao(tb)` chỉ xử lý
+    `lien_ket_loai === "yeu_cau_tro_giup"` (bỏ qua loại khác), điều hướng sang trang `ho_tro`.
+  - Test backend: `tests/test_tro_giup.py` (6 test, không assert trực tiếp `lien_ket_*` nên
+    không cần sửa) vẫn xanh sau khi đổi — xác nhận không phá luồng "Nhờ thầy/cô" hiện có.
+  - `eslint` 0 lỗi, `npm run build` OK, `pytest` 421/421. **CHƯA kiểm thử qua trình duyệt thật**
+    (môi trường không có công cụ điều khiển trình duyệt) — như v90, đề nghị tự test tay: GV
+    xem chuông thông báo "Học sinh nhờ trợ giúp", bấm vào, xác nhận nhảy đúng trang + đúng thẻ
+    yêu cầu + tự cuộn tới + có viền nổi bật tạm thời.
+
+- **✨ TÍNH NĂNG (v90): bấm thông báo "Thầy/cô trả lời" → chuyển thẳng vào phòng học.**
+  Trước đây thông báo chỉ hiện nội dung, không click được. Backend đã sẵn đủ dữ liệu
+  (`lien_ket_loai="session"`, `lien_ket_id=session_id`, gắn từ v-trước ở
+  `tro_giup_service.tra_loi()`) — KHÔNG cần sửa backend, chỉ nối dây phần frontend.
+  - `ChuongThongBao.jsx` nhận prop `onMoPhongHoc(sessionId)` — bấm vào thông báo có
+    `lien_ket_loai === "session"` sẽ gọi callback này (kèm nhãn "→ Vào phòng học" gợi ý bấm
+    được); `RoleLayout.jsx` xuyên prop này qua `ProfileMenu`/`UserMenu` (chỉ HS dùng, GV/Admin
+    không truyền nên hành vi cũ giữ nguyên).
+  - `PhongHoc.jsx` thêm prop `onSid` — báo lên `HocSinhApp` biết session ĐANG active trong
+    phòng học (kể cả khi mở bài mới qua `problemId`, chỉ có sessionId thật sau khi tạo phiên).
+  - `HocSinhApp.jsx` — hàm `moTuThongBao(sessionId)` xử lý đúng 2 tình huống theo yêu cầu:
+    (1) HS đang ở SẴN đúng bài đó → `window.location.reload()` (đúng nghĩa đen "tải lại
+    trang" — vì `phongHoc` đã lưu `sessionStorage` nên reload xong quay lại đúng bài, tải
+    turns mới có câu trả lời); (2) HS đang làm dở BÀI KHÁC → hỏi xác nhận qua `useConfirm()`
+    trước khi rời; (3) HS không ở phòng học nào → chuyển thẳng, không cần hỏi.
+  - Phát hiện + xử lý thêm 1 rủi ro không nằm trong yêu cầu gốc: nếu HS đang ở phòng học A rồi
+    chuyển THẲNG sang phòng học B (không rời trang giữa chừng), `PhongHoc` không unmount hoàn
+    toàn (chỉ đổi prop) → có thể sót state UI phụ (hộp "nhờ thầy/cô" đang mở, ảnh đang zoom)
+    của bài cũ. Thêm `key={phongHoc.sessionId || phongHoc.problemId}` để ép mount lại sạch —
+    không ảnh hưởng các luồng cũ (trước đây luôn đổi trang nên vốn đã mount lại tự nhiên).
+  - **CHƯA kiểm thử qua trình duyệt thật** (môi trường này không có công cụ điều khiển
+    trình duyệt) — đã xác minh bằng đọc mã nguồn đầu-cuối (backend trả đúng field → frontend
+    dùng đúng field → logic điều hướng đúng theo yêu cầu), `eslint` 0 lỗi, `npm run build`
+    thành công. Đề nghị tự kiểm tra tay trước khi coi là xong: đăng nhập 2 tab (GV + HS), HS
+    nhờ trợ giúp, GV trả lời, HS bấm chuông thông báo — thử cả 3 tình huống điều hướng.
+
+- **🐞 FIX (v89): GV gõ vào ô "trả lời" ở "Hỗ trợ học sinh" cứ 1 ký tự lại mất focus.**
+  Nguyên nhân: `CardYeuCau` (thẻ hiển thị 1 yêu cầu trợ giúp, gồm cả form trả lời) được định
+  nghĩa BÊN TRONG thân hàm render của `HoTroHocSinh` — cùng loại lỗi với `KhoaApi` đã sửa ở
+  v88 (`CauHinh.jsx`) nhưng lần này KHÔNG bị `eslint react-hooks/static-components` bắt được
+  (rule không phát hiện khi component dùng qua `.map()` thay vì gọi lặp lại trực tiếp trong
+  JSX). Mỗi lần gõ 1 ký tự → `setText` đổi state cha → `CardYeuCau` bị coi là 1 KIỂU COMPONENT
+  MỚI ở lần render kế → React unmount/remount toàn bộ cây con bên trong (kể cả `<textarea>`
+  của `MixedChatInput`) → mất focus, chỉ gõ được đúng 1 ký tự rồi bật ra ngoài.
+  - Sửa: chuyển `CardYeuCau` ra module-level (ngoài `HoTroHocSinh`), nhận toàn bộ state/hàm
+    cần thiết qua props (`dangXoa`, `onXoa`, `traLoiId`, `text`, `setText`, `loi`, `dangGui`,
+    `onMoTraLoi`, `onHuyTraLoi`, `onGui`) thay vì đọc từ closure.
+  - Đã rà toàn bộ `frontend/src` tìm thêm pattern "component định nghĩa lồng trong component
+    khác" tương tự — không còn chỗ nào khác (chỉ `HoTroHocSinh.jsx` là trường hợp sót lại,
+    eslint không bắt được do dùng qua `.map()`).
+  - `eslint .` (toàn bộ) vẫn 0 lỗi, `npm run build` OK. Không có backend nào bị ảnh hưởng.
 
 - **🧹 SỬA TOÀN BỘ REVIEW.md (v88, nối tiếp v87): review 5 bước → sửa hết trừ rủi ro đã chấp
   nhận.** User yêu cầu review toàn diện dự án theo quy trình 5 bước (hiểu dự án → kiểm tra

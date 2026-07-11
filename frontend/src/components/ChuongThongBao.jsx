@@ -34,7 +34,7 @@ function thoiGianGon(iso) {
   return d.toLocaleDateString('vi-VN')
 }
 
-export default function ChuongThongBao() {
+export default function ChuongThongBao({ onMoLienKet } = {}) {
   const [mo, setMo] = useState(false)
   const [soChuaDoc, setSoChuaDoc] = useState(0)
   const [ds, setDs] = useState([])
@@ -90,6 +90,17 @@ export default function ChuongThongBao() {
     } catch { /* bỏ qua */ }
   }
 
+  // Thông báo gắn với 1 nơi cụ thể (vd "Thầy/cô trả lời" → phòng học, "Học sinh nhờ trợ
+  // giúp" → trang Hỗ trợ học sinh) — bấm vào để chuyển thẳng tới đó. onMoLienKet tự quyết
+  // định điều hướng theo tb.lien_ket_loai (mỗi vai trò/app hiểu các loại liên kết khác nhau).
+  function moThongBao(tb) {
+    danhDau(tb)
+    if (tb.lien_ket_loai && onMoLienKet) {
+      setMo(false)
+      onMoLienKet(tb)
+    }
+  }
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -131,9 +142,10 @@ export default function ChuongThongBao() {
               ds.map((tb) => (
                 <button
                   key={tb.id}
-                  onClick={() => danhDau(tb)}
+                  onClick={() => moThongBao(tb)}
                   className={`w-full text-left px-4 py-3 border-b border-border last:border-0
-                    hover:bg-surface-2 transition-colors ${tb.da_doc ? '' : 'bg-primary-soft/40'}`}
+                    hover:bg-surface-2 transition-colors ${tb.da_doc ? '' : 'bg-primary-soft/40'}
+                    ${tb.lien_ket_loai && onMoLienKet ? 'cursor-pointer' : ''}`}
                 >
                   <div className="flex items-center gap-2">
                     {!tb.da_doc && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
@@ -147,6 +159,9 @@ export default function ChuongThongBao() {
                   <p className="text-sm text-ink mt-1 leading-relaxed break-words">{renderNoiDung(tb.noi_dung)}</p>
                   {tb.nguoi_gui_ten && (
                     <p className="text-[11px] text-muted mt-1">— {tb.nguoi_gui_ten}</p>
+                  )}
+                  {tb.lien_ket_loai && onMoLienKet && (
+                    <p className="text-[11px] text-primary mt-1 font-medium">→ Xem chi tiết</p>
                   )}
                 </button>
               ))

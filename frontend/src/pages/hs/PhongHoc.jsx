@@ -94,11 +94,20 @@ function CardBuoc({ buoc_hien_tai, tong_buoc, buoc_mo_ta }) {
   )
 }
 
-export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai }) {
+export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, onSid }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [problem, setProblem] = useState(null)
   const [sid, setSid] = useState(sessionId || null)
+
+  // Báo cho HocSinhApp biết session ĐANG active trong phòng học này (kể cả khi mở bài mới
+  // chưa có sessionId ban đầu, chỉ biết sau khi tạo phiên) — để chuông thông báo xác định
+  // đúng "HS có đang ở sẵn đúng bài đó không" khi bấm vào 1 thông báo trả lời.
+  useEffect(() => {
+    onSid?.(sid)
+    return () => onSid?.(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sid])
   const [turns, setTurns] = useState([])
   const [xemLaiMo, setXemLaiMo] = useState(false)
   const [trangThai, setTrangThai] = useState({

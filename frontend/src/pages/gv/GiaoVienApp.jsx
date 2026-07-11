@@ -70,10 +70,22 @@ export default function GiaoVienApp({ onLogout }) {
   }
 
   const [page, setPage] = useState(pageFromHash)
+  // { id, ts } | null — yêu cầu "Nhờ thầy/cô" cần nhảy tới + làm nổi bật khi GV bấm thông
+  // báo "Học sinh nhờ trợ giúp" ở chuông. "ts" đổi mỗi lần bấm để ép hiệu ứng chạy lại kể
+  // cả bấm trùng đúng yêu cầu đã focus trước đó.
+  const [focusYc, setFocusYc] = useState(null)
 
   function navigate(key) {
     window.location.hash = key
     setPage(key)
+  }
+
+  // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — chỉ xử lý loại
+  // "yeu_cau_tro_giup" (thông báo "Học sinh nhờ trợ giúp"), các loại khác bỏ qua ở app GV.
+  function moTuThongBao(tb) {
+    if (tb.lien_ket_loai !== 'yeu_cau_tro_giup' || !navKeys.includes('ho_tro')) return
+    setFocusYc({ id: tb.lien_ket_id, ts: Date.now() })
+    navigate('ho_tro')
   }
 
   useEffect(() => {
@@ -97,6 +109,7 @@ export default function GiaoVienApp({ onLogout }) {
         onLogout()
       }}
       title={TIEU_DE[page]}
+      onMoLienKet={moTuThongBao}
     >
       {page === 'noi_dung_gv' && <QuanLyNoiDungGV />}
       {page === 'tong_quan' && <TongQuan onNavigate={navigate} />}
@@ -104,7 +117,9 @@ export default function GiaoVienApp({ onLogout }) {
       {page === 'cau_hoi' && <QuanLyCauHoi />}
       {page === 'ai_sinh' && <AISinhCauHoi />}
       {page === 'co' && <QuanLyCo />}
-      {page === 'ho_tro' && <HoTroHocSinh />}
+      {page === 'ho_tro' && (
+        <HoTroHocSinh focusYc={focusYc} onFocusDone={() => setFocusYc(null)} />
+      )}
       {page === 'nhiem_vu' && <GiaoNhiemVu />}
       {page === 'de_thi' && <QuanLyDeThi />}
       {page === 'tien_bo' && <TheoDoiTienBo />}

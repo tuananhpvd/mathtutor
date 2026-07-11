@@ -94,8 +94,11 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
             loai=LoaiThongBao.nho_tro_giup,
             nguoi_gui_id=hs_id,
             tieu_de="Học sinh nhờ trợ giúp",
-            lien_ket_loai="session",
-            lien_ket_id=session_id,
+            # Trỏ thẳng vào ĐÚNG yêu cầu (không phải session) — 1 session có thể có nhiều
+            # yêu cầu "Nhờ thầy/cô" (HS hỏi nhiều lần), trỏ theo yc.id mới chính xác tuyệt
+            # đối GV bấm vào thông báo nào sẽ mở đúng câu đó ở "Hỗ trợ học sinh".
+            lien_ket_loai="yeu_cau_tro_giup",
+            lien_ket_id=yc.id,
         )
     return {"id": yc.id}
 

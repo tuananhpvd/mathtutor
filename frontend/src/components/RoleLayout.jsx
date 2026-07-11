@@ -30,10 +30,10 @@ function Brand({ vai_tro, compact = false }) {
   )
 }
 
-function UserMenu({ ho_ten, onLogout }) {
+function UserMenu({ ho_ten, onLogout, onMoLienKet }) {
   return (
     <div className="flex items-center gap-2">
-      <ChuongThongBao />
+      <ChuongThongBao onMoLienKet={onMoLienKet} />
       <span className="text-sm text-muted hidden sm:inline">{ho_ten}</span>
       <button
         onClick={onLogout}
@@ -47,7 +47,7 @@ function UserMenu({ ho_ten, onLogout }) {
 
 // Menu tài khoản dạng avatar + dropdown (SaaS hiện đại: gộp "Tài khoản" + "Đăng xuất"
 // vào 1 điểm, giải phóng chỗ cho thanh điều hướng chính không cần cuộn ngang).
-function ProfileMenu({ ho_ten, dangOTrang, onMoTaiKhoan, onLogout }) {
+function ProfileMenu({ ho_ten, dangOTrang, onMoTaiKhoan, onLogout, onMoLienKet }) {
   const [mo, setMo] = useState(false)
   const ref = useRef(null)
 
@@ -71,7 +71,7 @@ function ProfileMenu({ ho_ten, dangOTrang, onMoTaiKhoan, onLogout }) {
 
   return (
     <div className="flex items-center gap-1.5" ref={ref}>
-      <ChuongThongBao />
+      <ChuongThongBao onMoLienKet={onMoLienKet} />
       <div className="relative">
         <button
           onClick={() => setMo((m) => !m)}
@@ -123,7 +123,7 @@ function ProfileMenu({ ho_ten, dangOTrang, onMoTaiKhoan, onLogout }) {
   )
 }
 
-function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, children }) {
+function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, onMoLienKet, children }) {
   // "Tài khoản" dời vào menu avatar (dropdown) — nhường chỗ cho thanh điều hướng chính,
   // tránh phải cuộn ngang khi danh sách mục ngày càng dài.
   const taiKhoan = nav.find((n) => n.key === 'tai_khoan')
@@ -157,6 +157,7 @@ function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, children }) 
               dangOTrang={taiKhoan && active === taiKhoan.key}
               onMoTaiKhoan={taiKhoan ? () => onNavigate?.(taiKhoan.key) : null}
               onLogout={onLogout}
+              onMoLienKet={onMoLienKet}
             />
           </div>
         </div>
@@ -166,7 +167,7 @@ function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, children }) 
   )
 }
 
-function SidebarLayout({ vai_tro, ho_ten, nav = [], active, onNavigate, onLogout, title, children }) {
+function SidebarLayout({ vai_tro, ho_ten, nav = [], active, onNavigate, onLogout, title, onMoLienKet, children }) {
   return (
     <div className="min-h-screen flex bg-bg">
       <aside className="w-60 shrink-0 bg-surface border-r border-border flex flex-col">
@@ -192,7 +193,7 @@ function SidebarLayout({ vai_tro, ho_ten, nav = [], active, onNavigate, onLogout
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 bg-surface border-b border-border flex items-center justify-between px-6">
           <h1 className="text-base font-semibold text-ink">{title}</h1>
-          <UserMenu ho_ten={ho_ten} onLogout={onLogout} />
+          <UserMenu ho_ten={ho_ten} onLogout={onLogout} onMoLienKet={onMoLienKet} />
         </header>
         <main className="flex-1 p-6 overflow-x-hidden">{children}</main>
       </div>
