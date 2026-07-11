@@ -9,7 +9,7 @@ gợi ý lưu đúng, lỗi do (1) dien_dat() không được truyền đề bà
 from app.core.orchestrator.directive import ChiThi
 from app.core.orchestrator.rules import xu_ly_tln
 from app.core.orchestrator.state import TrangThaiPhien
-from app.llm.client import AnthropicLLMClient, GeminiLLMClient, OpenAILLMClient
+from app.llm.client import AnthropicLLMClient, GeminiLLMClient, OpenAILLMClient, StubLLMClient
 
 STEPS_TLN = [
     {
@@ -75,6 +75,28 @@ def test_anthropic_dien_dat_truyen_de_bai(monkeypatch):
         "de_bai": _DE_BAI_MAU,
     })
     assert _DE_BAI_MAU in goi_lai["user_prompt"]
+
+
+def test_stub_giai_thich_ngan_khong_giong_dinh_huong():
+    """StubLLMClient phải phân biệt được giai_thich_ngan với dinh_huong (câu mở đầu) —
+    nếu rơi vào nhánh mặc định thì 2 y_dinh khác nhau sẽ trông giống hệt nhau."""
+    llm = StubLLMClient()
+    van_ban = llm.dien_dat({
+        "y_dinh": "giai_thich_ngan", "y_goi_y": "gợi ý hiện tại",
+        "ngu_canh_hs": "vì sao đạo hàm bằng 0 lại là cực trị ạ?",
+    })
+    assert van_ban  # không rỗng
+    assert "gợi ý hiện tại" in van_ban
+
+
+def test_stub_het_goi_y_khong_giong_goi_y_moi():
+    """het_goi_y phải thành thật báo hết gợi ý, khác hẳn văn bản của goi_y bình thường."""
+    llm = StubLLMClient()
+    chung = {"y_goi_y": "gợi ý cuối", "cap_goi_y": 2, "buoc": 1, "ngu_canh_hs": ""}
+    van_ban_het = llm.dien_dat({**chung, "y_dinh": "het_goi_y"})
+    van_ban_goi_y = llm.dien_dat({**chung, "y_dinh": "goi_y"})
+    assert van_ban_het != van_ban_goi_y
+    assert "hết" in van_ban_het.lower() or "cuối cùng" in van_ban_het.lower()
 
 
 def test_openai_dien_dat_truyen_de_bai():

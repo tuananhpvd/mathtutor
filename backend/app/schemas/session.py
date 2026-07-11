@@ -15,6 +15,7 @@ class TaoPhienResponse(BaseModel):
     tong_buoc: int | None = None    # tổng số bước
     cho_chon_dap_an: bool | None = None  # TN4PA: đã mở khóa cho chọn A/B/C/D chưa
     cho_chon_dung_sai: bool | None = None  # TNDS: đã mở khóa cho chốt Đúng/Sai ý hiện tại chưa
+    so_goi_y_toi_da: int | None = None  # số gợi ý tối đa của bước/ý hiện tại (FE hiện "x/y")
 
 
 class GửiTinRequest(BaseModel):
@@ -39,6 +40,9 @@ class PhanHoiResponse(BaseModel):
     cho_chon_dung_sai: bool | None = None  # TNDS: đã mở khóa cho chốt Đúng/Sai ý hiện tại
     thoi_gian_y: dict | None = None       # TNDS: thời gian (giây) từng ý đã hoàn thành
     dap_an_y: dict | None = None          # TNDS: đáp án đúng từng ý — CHỈ gửi khi đã hoàn thành
+    so_goi_y_toi_da: int | None = None    # số gợi ý tối đa của bước/ý hiện tại
+    so_lan_khong_hieu: int | None = None  # số lần xin gợi ý/không hiểu CẢ PHIÊN
+    tong_so_lan_sai: int | None = None    # số lần trả lời sai CẢ PHIÊN
 
 
 class TurnResponse(BaseModel):
@@ -70,6 +74,9 @@ class ChiTietPhienResponse(BaseModel):
     cho_chon_dung_sai: bool | None = None
     thoi_gian_y: dict | None = None
     dap_an_y: dict | None = None
+    so_goi_y_toi_da: int | None = None
+    so_lan_khong_hieu: int | None = None
+    tong_so_lan_sai: int | None = None
     turns: list[TurnResponse]
 
 

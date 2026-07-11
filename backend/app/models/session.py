@@ -29,6 +29,13 @@ class Session(Base):
     cap_goi_y_hien_tai: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     so_lan_sai_lien_tiep: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     so_lan_khong_hieu: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Tổng số lần sai CẢ PHIÊN (không reset qua bước/ý, khác so_lan_sai_lien_tiep) — dùng để
+    # kể lại hành trình cho HS lúc hoàn thành + tính điểm quá trình cho GV.
+    tong_so_lan_sai: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Điểm quá trình (0-1, CHỈ GV/Admin thấy — không phải điểm chính thức): tính từ số lần
+    # sai + xin gợi ý, phân hóa HS "làm phát ăn ngay" và HS "bò qua nhiều lần sai/gợi ý" dù
+    # cùng điểm hoàn thành. None khi phiên chưa hoàn thành.
+    diem_qua_trinh: Mapped[float | None] = mapped_column(Float, nullable=True)
     so_y_dung: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     # TN4PA/TNDS: đã suy luận đúng cho ý/bước hiện tại chưa (mở khóa chọn đáp án/Đúng-Sai)
     da_suy_luan: Mapped[bool] = mapped_column(default=False, nullable=False)

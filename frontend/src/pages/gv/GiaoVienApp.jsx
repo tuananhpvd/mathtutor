@@ -74,18 +74,25 @@ export default function GiaoVienApp({ onLogout }) {
   // báo "Học sinh nhờ trợ giúp" ở chuông. "ts" đổi mỗi lần bấm để ép hiệu ứng chạy lại kể
   // cả bấm trùng đúng yêu cầu đã focus trước đó.
   const [focusYc, setFocusYc] = useState(null)
+  // { id, ts } | null — cờ theo dõi cần nhảy tới + làm nổi bật khi GV bấm thông báo
+  // "⚠️/🆘 ..." ở chuông (nội dung không phù hợp / khẩn cấp).
+  const [focusCo, setFocusCo] = useState(null)
 
   function navigate(key) {
     window.location.hash = key
     setPage(key)
   }
 
-  // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — chỉ xử lý loại
-  // "yeu_cau_tro_giup" (thông báo "Học sinh nhờ trợ giúp"), các loại khác bỏ qua ở app GV.
+  // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — mỗi loại nhảy tới đúng
+  // trang tương ứng ở app GV: "yeu_cau_tro_giup" → Hỗ trợ học sinh, "co" → Cờ theo dõi.
   function moTuThongBao(tb) {
-    if (tb.lien_ket_loai !== 'yeu_cau_tro_giup' || !navKeys.includes('ho_tro')) return
-    setFocusYc({ id: tb.lien_ket_id, ts: Date.now() })
-    navigate('ho_tro')
+    if (tb.lien_ket_loai === 'yeu_cau_tro_giup' && navKeys.includes('ho_tro')) {
+      setFocusYc({ id: tb.lien_ket_id, ts: Date.now() })
+      navigate('ho_tro')
+    } else if (tb.lien_ket_loai === 'co' && navKeys.includes('co')) {
+      setFocusCo({ id: tb.lien_ket_id, ts: Date.now() })
+      navigate('co')
+    }
   }
 
   useEffect(() => {
@@ -116,7 +123,9 @@ export default function GiaoVienApp({ onLogout }) {
       {page === 'danh_muc' && <QuanLyDanhMuc />}
       {page === 'cau_hoi' && <QuanLyCauHoi />}
       {page === 'ai_sinh' && <AISinhCauHoi />}
-      {page === 'co' && <QuanLyCo />}
+      {page === 'co' && (
+        <QuanLyCo focusId={focusCo} onFocusDone={() => setFocusCo(null)} />
+      )}
       {page === 'ho_tro' && (
         <HoTroHocSinh focusYc={focusYc} onFocusDone={() => setFocusYc(null)} />
       )}

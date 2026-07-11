@@ -13,13 +13,17 @@ const NHAN_CO = {
 const TONE_TT = { cho_xu_ly: 'warning', da_xu_ly: 'success', bo_qua: 'neutral' }
 const NHAN_TT = { cho_xu_ly: 'Chờ xử lý', da_xu_ly: 'Đã xử lý', bo_qua: 'Bỏ qua' }
 
-export default function QuanLyCo() {
+// focusId: { id, ts } | null — GV bấm thông báo "⚠️/🆘 ..." ở chuông thông báo, cần nhảy
+// tới + làm nổi bật đúng cờ đó. "ts" đổi mỗi lần bấm để ép hiệu ứng chạy lại kể cả bấm
+// trùng đúng cờ đã focus trước đó.
+export default function QuanLyCo({ focusId, onFocusDone } = {}) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [fTT, setFTT] = useState('')
   const [xuLy, setXuLy] = useState(null) // cờ đang xử lý (mở modal lời nhắn)
   const [loiNhan, setLoiNhan] = useState('')
   const [dangGui, setDangGui] = useState(false)
+  const [noiBatId, setNoiBatId] = useState(null)
 
   function taiFlags() {
     return api.listFlags(fTT || undefined).then(setRows).catch(() => {})
@@ -61,6 +65,34 @@ export default function QuanLyCo() {
 
   // Cờ liên quan đến HS (gửi lời nhắn được); cờ nội dung (chốt chặn) chỉ xử lý.
   const coTheNhanHs = (loai) => loai !== 'chot_chan_nhieu'
+
+  // Nhảy tới + làm nổi bật đúng cờ khi được yêu cầu focus từ chuông thông báo — đợi danh
+  // sách tải xong (loading=false) rồi mới tìm. Nếu không thấy (có thể do đang lọc theo
+  // trạng thái khác), mở lại "Tất cả" rồi để effect chạy lại lần tới danh sách đổi.
+  useEffect(() => {
+    if (!focusId || loading) return
+    let cuonTimeout, tatNoiBat
+    const batDau = setTimeout(() => {
+      if (!rows.some((r) => r.id === focusId.id)) {
+        if (fTT !== '') { setFTT(''); return }
+        onFocusDone?.()
+        return
+      }
+      setNoiBatId(focusId.id)
+      cuonTimeout = setTimeout(() => {
+        document.getElementById(`co-${focusId.id}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 150)
+      tatNoiBat = setTimeout(() => setNoiBatId(null), 3000)
+      onFocusDone?.()
+    }, 0)
+    return () => {
+      clearTimeout(batDau)
+      clearTimeout(cuonTimeout)
+      clearTimeout(tatNoiBat)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, loading, rows])
 
   return (
     <div className="flex flex-col gap-4">
@@ -129,6 +161,8 @@ export default function QuanLyCo() {
               ]}
               rows={rows}
               rowKey={(r) => r.id}
+              rowId={(r) => `co-${r.id}`}
+              rowClassName={(r) => (noiBatId === r.id ? 'ring-2 ring-primary' : '')}
               empty="Không có cờ nào."
             />
           )}

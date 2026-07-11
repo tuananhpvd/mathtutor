@@ -93,6 +93,140 @@ def _bao_hs_gap_kho(db: Session, session: SessionModel) -> None:
     ))
 
 
+def _gan_co_ro_ri_neu_bi_chot(db: Session, session: SessionModel, turn: Turn, bi_chot: bool) -> None:
+    """Gắn cờ 'ro_ri_dap_an' cho ĐÚNG lượt bị chốt chặn — khác 'chot_chan_nhieu' (cờ TỔNG
+    HỢP chỉ gắn 1 lần khi vượt ngưỡng nhiều lần). Cờ này cho GV thấy được TỪNG lần cụ thể,
+    kèm turn_id để tra lại đúng câu đã bị viết lại trước khi gửi HS."""
+    if not bi_chot:
+        return
+    from app.models.flag import Flag, LoaiCo
+
+    db.flush()  # turn vừa add, cần flush để có turn.id trước khi gắn vào Flag
+    db.add(Flag(
+        session_id=session.id,
+        turn_id=turn.id,
+        loai_co=LoaiCo.ro_ri_dap_an,
+        ghi_chu="Phản hồi của gia sư AI có dấu hiệu lộ đáp án — đã được viết lại "
+                "trước khi gửi học sinh.",
+    ))
+
+
+def _gv_cua_session(db: Session, session: SessionModel) -> int | None:
+    from app.models.lop import Lop
+    from app.models.user import User
+
+    hs = db.get(User, session.hoc_sinh_id)
+    if hs is None or hs.lop_id is None:
+        return None
+    lop = db.get(Lop, hs.lop_id)
+    return lop.gv_id if lop else None
+
+
+def bao_gv_noi_dung_khong_phu_hop(
+    db: Session, session: SessionModel, ly_do: str, *, ngu_canh: str = "", khan_cap: bool = False
+) -> None:
+    """Gắn cờ 'noi_dung_khong_phu_hop' + báo GV NGAY (khác các cờ khác chỉ nằm chờ trong
+    hàng đợi) — nội dung bị lớp lọc an toàn phát hiện có thể liên quan tới an toàn của HS
+    (vd từ khoá nhạy cảm), nên không đợi GV tự vào xem 'Cờ theo dõi' mà đẩy thông báo ngay.
+    khan_cap=True (dấu hiệu khủng hoảng/tự hại): nâng mức ưu tiên rõ rệt (🆘) để GV phân biệt
+    ngay với các cờ "cần chú ý" thông thường (⚠️, vd ngôn từ không phù hợp, ngoài phạm vi).
+    Tự commit vì có thể được gọi từ điểm dừng sớm ở API layer (không đi tiếp vào xu_ly_luot).
+    """
+    from app.models.flag import Flag, LoaiCo
+    from app.models.thong_bao import LoaiThongBao
+
+    tien_to = "🆘 KHẨN CẤP" if khan_cap else "Hệ thống phát hiện"
+    ghi_chu = f"{tien_to}: {ly_do}"
+    if ngu_canh:
+        ghi_chu += f" — nội dung: “{ngu_canh[:200]}”"
+    flag = Flag(session_id=session.id, loai_co=LoaiCo.noi_dung_khong_phu_hop, ghi_chu=ghi_chu)
+    db.add(flag)
+    db.flush()  # cần flag.id để thông báo trỏ đúng cờ (không phải chỉ trỏ chung tới session)
+
+    gv_id = _gv_cua_session(db, session)
+    if gv_id:
+        from app.services import thong_bao_service
+
+        if khan_cap:
+            tieu_de = "🆘 Cần quan tâm khẩn cấp"
+            noi_dung = (
+                f"Hệ thống phát hiện học sinh có dấu hiệu cần được quan tâm ngay ({ly_do}). "
+                f"Thầy/cô nên liên hệ trực tiếp với em càng sớm càng tốt."
+            )
+        else:
+            tieu_de = "⚠️ Nội dung cần chú ý"
+            noi_dung = (
+                f"Hệ thống phát hiện 1 nội dung cần chú ý từ học sinh trong lúc học "
+                f"({ly_do}). Thầy/cô xem chi tiết ở mục Cờ theo dõi."
+            )
+        thong_bao_service.tao(
+            db, nguoi_nhan_id=gv_id, noi_dung=noi_dung, loai=LoaiThongBao.co, tieu_de=tieu_de,
+            # Trỏ thẳng vào ĐÚNG cờ (không phải session) — bấm vào thông báo mở đúng dòng ở
+            # "Cờ theo dõi" để GV xử lý ngay, khỏi phải tự tìm trong danh sách.
+            lien_ket_loai="co", lien_ket_id=flag.id,
+        )
+    db.commit()
+
+
+# Câu trả lời CỐ ĐỊNH (không qua LLM) khi phát hiện dấu hiệu khủng hoảng/tự hại — tuyệt đối
+# không để AI tự ứng biến với chủ đề nhạy cảm này, dù có thể diễn đạt hay hơn nhưng rủi ro
+# nói sai/nói hớ là không chấp nhận được.
+TIN_NHAN_KHAN_CAP = (
+    "Thầy/cô rất quan tâm đến em và đã được báo để hỗ trợ ngay. Nếu em đang thấy quá sức, "
+    "hãy nói chuyện với người em tin tưởng (bố mẹ, thầy cô, bạn bè) nhé — em không đơn độc đâu."
+)
+
+
+def xu_ly_noi_dung_khan_cap(
+    db: Session, session: SessionModel, ngu_canh: str, ly_do: str
+) -> str:
+    """HS gửi nội dung có dấu hiệu khủng hoảng/tự hại trong lúc chat với AI — KHÔNG cho AI
+    tự do trả lời (tránh AI ứng biến vụng về với chủ đề nhạy cảm). Vẫn ghi lại đúng lời HS
+    vào hội thoại (để GV xem lại được ngữ cảnh khi cần), trả một câu ấm áp CỐ ĐỊNH, và gắn cờ
+    + báo GV mức ưu tiên cao nhất. Trả về văn bản đã "gửi" HS (để API layer đưa vào response).
+    """
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=ngu_canh))
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=TIN_NHAN_KHAN_CAP))
+    bao_gv_noi_dung_khong_phu_hop(db, session, ly_do, ngu_canh=ngu_canh, khan_cap=True)
+    return TIN_NHAN_KHAN_CAP
+
+
+# Câu trả lời CỐ ĐỊNH khi nội dung không phù hợp lứa tuổi (không phải khủng hoảng) — thân
+# thiện, KHÔNG lặp lại từ khóa đã khớp (không cần thiết và hơi thô), hướng thẳng về bài học.
+TIN_NHAN_KHONG_PHU_HOP = (
+    "Nội dung này không phù hợp để mình trao đổi trong giờ học nhé. Chúng ta quay lại bài "
+    "toán đang làm thôi em — em thử tiếp tục xem sao!"
+)
+
+# Câu trả lời CỐ ĐỊNH khi HS hỏi việc ngoài phạm vi môn Toán (vd nhờ viết code, dịch bài) —
+# không phải vấn đề an toàn, chỉ nhắc nhở nhẹ nhàng quay lại đúng trọng tâm.
+TIN_NHAN_NGOAI_PHAM_VI = (
+    "Câu này nằm ngoài nội dung Toán mình đang học rồi em ơi. Mình tập trung vào bài này "
+    "nhé, em thử tiếp tục xem sao!"
+)
+
+
+def xu_ly_noi_dung_khong_phu_hop(
+    db: Session, session: SessionModel, ngu_canh: str, ly_do: str
+) -> str:
+    """HS gửi nội dung không phù hợp lứa tuổi (không phải khủng hoảng) — KHÔNG cho AI tự do
+    trả lời, thay bằng câu nhắc nhở thân thiện CỐ ĐỊNH ngay trong khung chat (không phải lỗi
+    HTTP kỹ thuật, không lặp lại từ khóa) + vẫn gắn cờ, báo GV như cũ."""
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=ngu_canh))
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=TIN_NHAN_KHONG_PHU_HOP))
+    bao_gv_noi_dung_khong_phu_hop(db, session, ly_do, ngu_canh=ngu_canh)
+    return TIN_NHAN_KHONG_PHU_HOP
+
+
+def xu_ly_ngoai_pham_vi(db: Session, session: SessionModel, ngu_canh: str) -> str:
+    """HS hỏi việc ngoài phạm vi môn Toán — không phải vấn đề an toàn nên KHÔNG gắn cờ/báo
+    GV, chỉ nhắc nhở thân thiện ngay trong khung chat và hướng về bài học."""
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=ngu_canh))
+    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=TIN_NHAN_NGOAI_PHAM_VI))
+    db.commit()
+    return TIN_NHAN_NGOAI_PHAM_VI
+
+
 def _nguong_co_chot_chan(db: Session) -> int:
     """Số lần phản hồi bị chốt chặn rò rỉ trong 1 phiên để gắn cờ; lỗi → mặc định 3."""
     try:
@@ -158,11 +292,19 @@ def _restore_state(session: SessionModel, problem: Problem) -> TrangThaiPhien:
         cap_goi_y_hien_tai=session.cap_goi_y_hien_tai,
         so_lan_sai_lien_tiep=session.so_lan_sai_lien_tiep,
         so_lan_khong_hieu=session.so_lan_khong_hieu,
+        tong_so_lan_sai=session.tong_so_lan_sai,
         so_y_dung=session.so_y_dung,
         da_suy_luan=session.da_suy_luan,
         steps=_steps_to_list(problem),
         de_bai=problem.de_bai,
     )
+
+
+def _tinh_diem_qua_trinh(tong_so_lan_sai: int, so_lan_khong_hieu: int) -> float:
+    """Điểm quá trình (0-1, chỉ để GV tham khảo — KHÔNG phải điểm chính thức của bài):
+    trừ dần theo số lần sai + số lần xin gợi ý/không hiểu cả phiên, không xuống dưới 0."""
+    diem = 1.0 - 0.1 * tong_so_lan_sai - 0.15 * so_lan_khong_hieu
+    return round(max(0.0, diem), 2)
 
 
 def _la_chon_dap_an(dap_an_nhap) -> bool:
@@ -249,8 +391,10 @@ def tao_phien(
     van_ban = chot.van_ban_thay_the if chot.muc_do == MucDoRoRi.ro_ri else van_ban_raw
     bi_chot = chot.muc_do == MucDoRoRi.ro_ri
 
-    db.add(Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=van_ban, cap_goi_y=0,
-                co_bi_chot_chan=bi_chot))
+    turn_mo_dau = Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=van_ban,
+                       cap_goi_y=0, co_bi_chot_chan=bi_chot)
+    db.add(turn_mo_dau)
+    _gan_co_ro_ri_neu_bi_chot(db, session, turn_mo_dau, bi_chot)
     _tu_dong_gan_co_chot_chan(db, session, bi_chot)
     db.commit()
     db.refresh(session)
@@ -357,6 +501,7 @@ def xu_ly_luot(
     session.cap_goi_y_hien_tai = trang_thai_moi.cap_goi_y_hien_tai
     session.so_lan_sai_lien_tiep = trang_thai_moi.so_lan_sai_lien_tiep
     session.so_lan_khong_hieu = trang_thai_moi.so_lan_khong_hieu
+    session.tong_so_lan_sai = trang_thai_moi.tong_so_lan_sai
     session.so_y_dung = trang_thai_moi.so_y_dung
     session.da_suy_luan = trang_thai_moi.da_suy_luan
     session.cap_nhat_luc = now
@@ -373,6 +518,9 @@ def xu_ly_luot(
             session.diem = 1.0
         # Thời gian làm bài = tổng thời gian HOẠT ĐỘNG (đã chặn nghỉ).
         session.thoi_gian_giay = int(session.thoi_gian_hoat_dong_giay or 0)
+        session.diem_qua_trinh = _tinh_diem_qua_trinh(
+            trang_thai_moi.tong_so_lan_sai, trang_thai_moi.so_lan_khong_hieu
+        )
 
     van_ban_raw = llm.dien_dat(chi_thi.to_dict())
 
@@ -382,14 +530,16 @@ def xu_ly_luot(
     van_ban = chot.van_ban_thay_the if chot.muc_do == MucDoRoRi.ro_ri else van_ban_raw
     bi_chot = chot.muc_do == MucDoRoRi.ro_ri
 
-    db.add(Turn(
+    turn_phan_hoi = Turn(
         session_id=session.id,
         vai_tro=VaiTroTurn.gia_su,
         noi_dung=van_ban,
         ket_qua_so_khop=ket_qua_dict,
         cap_goi_y=trang_thai_moi.cap_goi_y_hien_tai,
         co_bi_chot_chan=bi_chot,
-    ))
+    )
+    db.add(turn_phan_hoi)
+    _gan_co_ro_ri_neu_bi_chot(db, session, turn_phan_hoi, bi_chot)
 
     # Tự gắn cờ cho GV khi phản hồi bị chốt chặn rò rỉ vượt ngưỡng (gắn 1 lần/phiên).
     _tu_dong_gan_co_chot_chan(db, session, bi_chot)
@@ -411,4 +561,6 @@ def xu_ly_luot(
         "y_hien_tai": trang_thai_moi.y_hien_tai,
         "so_y_dung": trang_thai_moi.so_y_dung,
         "thoi_gian_giay": session.thoi_gian_giay,
+        "so_lan_khong_hieu": trang_thai_moi.so_lan_khong_hieu,
+        "tong_so_lan_sai": trang_thai_moi.tong_so_lan_sai,
     }

@@ -294,6 +294,9 @@ export default function TheoDoiTienBo() {
   const [thongBaoOk, setThongBaoOk] = useState('')
   const [lopDialog, setLopDialog] = useState(null) // tên lớp đang xem thống kê
   const [trangLop, setTrangLop] = useState(1)
+  const [gcSession, setGcSession] = useState(null) // {session_id, ho_ten} đang gắn cờ thủ công
+  const [gcGhiChu, setGcGhiChu] = useState('')
+  const [gcDangGui, setGcDangGui] = useState(false)
   const MOI_TRANG = 5
   const MOI_TRANG_LOP = 5
 
@@ -326,6 +329,19 @@ export default function TheoDoiTienBo() {
     setDangCapNhatAi(true)
     try { setPtChon(await api.capNhatPhanTichHocSinh(chon)) } catch { /* giữ nguyên */ }
     finally { setDangCapNhatAi(false) }
+  }
+
+  async function xacNhanGanCo() {
+    if (!gcSession) return
+    setGcDangGui(true)
+    try {
+      await api.createFlag(gcSession.session_id, gcGhiChu.trim())
+      setGcSession(null)
+      setGcGhiChu('')
+      setThongBaoOk('Đã gắn cờ — xem ở mục "Cờ theo dõi".')
+      setTimeout(() => setThongBaoOk(''), 4000)
+    } catch { /* bỏ qua, giữ hộp thoại để GV thử lại */ }
+    finally { setGcDangGui(false) }
   }
 
   function tongHopHs(hs) {
@@ -469,6 +485,16 @@ export default function TheoDoiTienBo() {
                 header: 'Hoàn thành lúc',
                 render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
               },
+              {
+                key: 'gan_co',
+                header: '',
+                render: (r) => (
+                  <Button size="sm" variant="secondary"
+                    onClick={() => { setGcSession(r); setGcGhiChu('') }}>
+                    🚩 Gắn cờ
+                  </Button>
+                ),
+              },
             ]}
             rows={nkTrang}
             rowKey={(r) => r.session_id}
@@ -568,6 +594,42 @@ export default function TheoDoiTienBo() {
               <ThongKeTienDo tk={tkChon} />
             </>
           )}
+        </div>
+      )}
+
+      {gcSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md flex flex-col">
+            <div className="px-5 pt-5 pb-3 border-b border-border">
+              <h2 className="font-bold text-lg text-ink">🚩 Gắn cờ thủ công</h2>
+              <p className="text-sm text-muted mt-0.5">
+                {gcSession.ho_ten ? `${gcSession.ho_ten} · ` : ''}
+                {gcSession.chuyen_de || `Phiên #${gcSession.session_id}`}
+              </p>
+            </div>
+            <div className="px-5 py-4">
+              <label className="text-sm font-medium text-ink">Ghi chú (tùy chọn)</label>
+              <textarea
+                value={gcGhiChu}
+                onChange={(e) => setGcGhiChu(e.target.value)}
+                rows={3}
+                placeholder="VD: Cần theo dõi thêm bài này, trao đổi với phụ huynh..."
+                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm text-ink
+                  focus:outline-none focus:ring-2 focus:ring-primary/40 resize-y"
+              />
+              <p className="text-xs text-muted mt-1">
+                Cờ sẽ xuất hiện ở mục "Cờ theo dõi" để xử lý sau.
+              </p>
+            </div>
+            <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+              <Button variant="secondary" onClick={() => setGcSession(null)} disabled={gcDangGui}>
+                Hủy
+              </Button>
+              <Button onClick={xacNhanGanCo} disabled={gcDangGui}>
+                {gcDangGui ? 'Đang lưu...' : 'Gắn cờ'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

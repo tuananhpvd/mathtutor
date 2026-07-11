@@ -31,5 +31,8 @@ class User(Base):
     # Tài khoản GV đặc biệt "Quản lý": toàn quyền trên nội dung mọi GV (không phải admin).
     la_quan_ly: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     lop_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("lop.id"), nullable=True)
+    # HS: đã xem hướng dẫn 3 bước lúc vào phòng học lần đầu chưa — lưu server-side (không
+    # dùng localStorage) để hướng dẫn chỉ hiện đúng 1 lần dù đổi máy/trình duyệt.
+    da_xem_huong_dan_phong_hoc: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     lop: Mapped["Lop | None"] = relationship("Lop", back_populates="hoc_sinhs", foreign_keys=[lop_id])  # noqa: F821

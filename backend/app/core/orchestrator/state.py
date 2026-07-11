@@ -12,6 +12,9 @@ class TrangThaiPhien:
     cap_goi_y_hien_tai: int = 0
     so_lan_sai_lien_tiep: int = 0
     so_lan_khong_hieu: int = 0
+    # Tổng số lần sai CẢ PHIÊN (không reset khi qua bước/ý mới, khác so_lan_sai_lien_tiep) —
+    # dùng để kể lại hành trình cho HS lúc hoàn thành + tính điểm quá trình cho GV.
+    tong_so_lan_sai: int = 0
     so_y_dung: int = 0       # TNDS: số ý trả lời đúng (để tính điểm bậc thang)
     da_suy_luan: bool = False  # TN4PA/TNDS: đã suy luận đúng cho ý/bước hiện tại chưa
     da_xong: bool = False

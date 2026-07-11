@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { Button, Card, CardBody, ChatBubble, TypingBubble } from '../../components/ui'
 import Formula from '../../components/Formula'
+import HuongDanPhongHoc from '../../components/HuongDanPhongHoc'
 import MixedChatInput from '../../components/MixedChatInput'
 import XemLaiBai from '../../components/XemLaiBai'
 import AnswerInputTN4PA from '../../components/answer/AnswerInputTN4PA'
@@ -25,7 +26,11 @@ function trangThaiYBanDau(meta) {
   return tt
 }
 
-function BangHoanThanh({ loai, thoi_gian, thoi_gian_y, dap_an_y, onChonBai, onTrangChu, onXemLai }) {
+function BangHoanThanh({
+  loai, thoi_gian, thoi_gian_y, dap_an_y, so_lan_khong_hieu, tong_so_lan_sai,
+  onChonBai, onTrangChu, onXemLai,
+}) {
+  const khongCanGoiY = !so_lan_khong_hieu && !tong_so_lan_sai
   return (
     <div className="rounded-lg border-2 border-success bg-success-soft p-4 text-center flex flex-col items-center gap-2">
       <div className="h-12 w-12 rounded-full bg-success text-white grid place-items-center text-2xl">
@@ -34,6 +39,17 @@ function BangHoanThanh({ loai, thoi_gian, thoi_gian_y, dap_an_y, onChonBai, onTr
       <p className="text-lg font-semibold text-success">Trả lời đúng — Hoàn thành bài!</p>
       <p className="text-sm text-ink">
         Tổng thời gian làm bài: <b>{dinhDangThoiGian(thoi_gian)}</b>
+      </p>
+      <p className="text-sm text-ink">
+        {khongCanGoiY ? (
+          <>Em tự làm hoàn toàn không cần gợi ý — quá xuất sắc! 🌟</>
+        ) : (
+          <>
+            Hành trình của em: dùng <b>{so_lan_khong_hieu || 0}</b> lượt xin gợi ý, thử lại{' '}
+            <b>{tong_so_lan_sai || 0}</b> lần trước khi ra đúng kết quả. Cứ tiếp tục kiên trì
+            như vậy nhé!
+          </>
+        )}
       </p>
       {loai === 'TNDS' && thoi_gian_y && Object.keys(thoi_gian_y).length > 0 && (
         <table className="text-sm w-full max-w-sm border-collapse bg-surface rounded-md overflow-hidden">
@@ -124,10 +140,16 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     cho_chon_dung_sai: null,
     thoi_gian_y: null,
     dap_an_y: null,
+    cap_goi_y: 0,
+    so_goi_y_toi_da: null,
+    so_lan_khong_hieu: 0,
+    tong_so_lan_sai: 0,
   })
   const [dangGui, setDangGui] = useState(false)
   const [zoomHinh, setZoomHinh] = useState(null)
   const chatRef = useRef(null)
+  // Hỏi tự do (chat với gia sư — không kèm đáp án): câu hỏi khái niệm, "vì sao", bối rối...
+  const [cauHoi, setCauHoi] = useState('')
   // Nhờ thầy/cô (A2)
   const [nhoMo, setNhoMo] = useState(false)
   const [nhoText, setNhoText] = useState('')
@@ -181,6 +203,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
             cho_chon_dung_sai: ct.cho_chon_dung_sai ?? null,
             thoi_gian_y: ct.thoi_gian_y ?? null,
             dap_an_y: ct.dap_an_y ?? null,
+            cap_goi_y: ct.cap_goi_y_hien_tai ?? 0,
+            so_goi_y_toi_da: ct.so_goi_y_toi_da ?? null,
+            so_lan_khong_hieu: ct.so_lan_khong_hieu ?? 0,
+            tong_so_lan_sai: ct.tong_so_lan_sai ?? 0,
           })
         } else {
           const p = await api.getProblem(problemId)
@@ -203,6 +229,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
             cho_chon_dung_sai: phien.cho_chon_dung_sai ?? null,
             thoi_gian_y: null,
             dap_an_y: null,
+            cap_goi_y: 0,
+            so_goi_y_toi_da: phien.so_goi_y_toi_da ?? null,
+            so_lan_khong_hieu: 0,
+            tong_so_lan_sai: 0,
           })
         }
       } catch (e) {
@@ -254,6 +284,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
           cho_chon_dung_sai: res.cho_chon_dung_sai ?? tt.cho_chon_dung_sai,
           thoi_gian_y: res.thoi_gian_y ?? tt.thoi_gian_y,
           dap_an_y: res.dap_an_y ?? tt.dap_an_y,
+          cap_goi_y: res.cap_goi_y ?? tt.cap_goi_y,
+          so_goi_y_toi_da: res.so_goi_y_toi_da ?? tt.so_goi_y_toi_da,
+          so_lan_khong_hieu: res.so_lan_khong_hieu ?? tt.so_lan_khong_hieu,
+          tong_so_lan_sai: res.tong_so_lan_sai ?? tt.tong_so_lan_sai,
         }
       })
     } catch (e) {
@@ -261,6 +295,13 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     } finally {
       setDangGui(false)
     }
+  }
+
+  function guiCauHoi() {
+    const nd = cauHoi.trim()
+    if (!nd || dangGui) return
+    setCauHoi('')
+    gui({ noi_dung: nd })
   }
 
   if (loading) return <p className="text-muted text-sm">Đang vào phòng học...</p>
@@ -276,9 +317,13 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
   }
 
   const daXong = trangThai.da_xong
+  // Hết thang gợi ý của bước/ý hiện tại → nút "Gợi ý" đổi thành mời Nhờ thầy/cô.
+  const hetGoiY = trangThai.so_goi_y_toi_da != null &&
+    trangThai.cap_goi_y >= trangThai.so_goi_y_toi_da - 1
 
   return (
     <div className="flex flex-col gap-4">
+      <HuongDanPhongHoc />
       {zoomHinh && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 cursor-zoom-out"
@@ -344,6 +389,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
         {/* Khung hội thoại */}
         <Card className="lg:col-span-3">
           <CardBody className="flex flex-col gap-3 pt-5">
+            <p className="text-[11px] text-muted text-center -mt-1">
+              🤖 Gia sư AI chỉ dẫn dắt — đúng/sai do máy chấm, đáp án được khóa tuyệt đối tới
+              khi em hoàn thành bài.
+            </p>
             <div ref={chatRef} className="flex flex-col gap-3 overflow-y-auto max-h-[48vh] min-h-[180px] pr-1">
               {turns.map((t, i) => (
                 <ChatBubble key={i} vai_tro={t.vai_tro} text={t.noi_dung} />
@@ -355,16 +404,42 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 ✓ {nhoOk}
               </div>
             )}
+            {!daXong && (
+              <div className="border-t border-border pt-3">
+                <MixedChatInput
+                  value={cauHoi}
+                  onChange={setCauHoi}
+                  placeholder="Hỏi gia sư điều em chưa hiểu (vd: vì sao lại làm vậy ạ?)... — bấm vào ô để nhập công thức"
+                  rows={2}
+                  luonHienBangCT={false}
+                  textareaClassName="bg-success-soft shadow-sm border border-[#2596be]"
+                  duoiO={
+                    <Button size="sm" variant="primary" className="w-full"
+                      disabled={dangGui || !cauHoi.trim()} onClick={guiCauHoi}>
+                      Gửi câu hỏi
+                    </Button>
+                  }
+                />
+              </div>
+            )}
             <div className="border-t border-border pt-2 flex flex-wrap justify-center gap-2">
               <Button
-                variant="warning"
-                disabled={dangGui || daXong}
+                variant={hetGoiY ? 'secondary' : 'warning'}
+                disabled={dangGui || daXong || hetGoiY}
                 onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
               >
-                💡 GỢI Ý CHO EM
+                {hetGoiY
+                  ? '💡 Đã dùng hết gợi ý'
+                  : trangThai.so_goi_y_toi_da != null
+                    ? `💡 GỢI Ý CHO EM (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
+                    : '💡 GỢI Ý CHO EM'}
               </Button>
-              <Button variant="secondary" disabled={!sid}
-                onClick={() => { setNhoMo((v) => !v); setNhoText('') }}>
+              <Button
+                variant={hetGoiY ? 'warning' : 'secondary'}
+                disabled={!sid}
+                className={hetGoiY ? 'ring-2 ring-warning animate-pulse' : ''}
+                onClick={() => { setNhoMo((v) => !v); setNhoText('') }}
+              >
                 🙋 NHỜ THẦY/CÔ
               </Button>
               <Button variant="primary" onClick={onChonBai}>
@@ -412,6 +487,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 thoi_gian={trangThai.thoi_gian_giay}
                 thoi_gian_y={trangThai.thoi_gian_y}
                 dap_an_y={trangThai.dap_an_y}
+                so_lan_khong_hieu={trangThai.so_lan_khong_hieu}
+                tong_so_lan_sai={trangThai.tong_so_lan_sai}
                 onChonBai={onChonBai}
                 onTrangChu={onTrangChu}
                 onXemLai={() => setXemLaiMo(true)}
@@ -422,6 +499,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                   trangThai.cho_chon_dap_an === false ? (
                     // Pha suy luận: HS nhập biểu thức kết quả của bước (CAS chấm)
                     <>
+                      <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink">
+                        🔒 Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này —
+                        làm đúng để chọn được đáp án nhé!
+                      </div>
                       <CardBuoc
                         buoc_hien_tai={trangThai.buoc_hien_tai}
                         tong_buoc={trangThai.tong_buoc}

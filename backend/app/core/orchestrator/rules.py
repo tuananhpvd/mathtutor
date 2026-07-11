@@ -7,6 +7,10 @@ from app.core.matching.cas import KetQuaSoKhop
 from app.core.orchestrator.directive import ChiThi
 from app.core.orchestrator.state import TrangThaiPhien
 
+# Số lần sai LIÊN TIẾP (cùng bước/ý) để orchestrator tự nâng 1 cấp gợi ý, không đợi HS
+# tự bấm xin — mô phỏng gia sư thật chủ động hỗ trợ thêm khi thấy trò bí nhiều lần.
+NGUONG_SAI_TU_DONG_GOI_Y = 2
+
 # ---------- Helpers ----------
 
 
@@ -17,6 +21,21 @@ def _lay_goi_y(trang_thai: TrangThaiPhien) -> str:
     lst = d.get("danh_sach_goi_y", ["hãy thử lại"])
     idx = min(trang_thai.cap_goi_y_hien_tai, len(lst) - 1)
     return lst[idx]
+
+
+def _da_het_goi_y(trang_thai: TrangThaiPhien) -> bool:
+    return trang_thai.cap_goi_y_hien_tai >= trang_thai.so_goi_y_buoc() - 1
+
+
+def _tang_sai(trang_thai: TrangThaiPhien) -> None:
+    """Tăng bộ đếm sai (streak hiện tại + tổng cả phiên). Khi streak VỪA chạm ngưỡng,
+    tự nâng 1 cấp gợi ý — chỉ nâng đúng 1 lần lúc chạm ngưỡng, không nâng tiếp mỗi lượt
+    sai sau đó (tránh nhảy thẳng lên mức gợi ý cao nhất chỉ vì sai nhiều)."""
+    trang_thai.so_lan_sai_lien_tiep += 1
+    trang_thai.tong_so_lan_sai += 1
+    if trang_thai.so_lan_sai_lien_tiep == NGUONG_SAI_TU_DONG_GOI_Y:
+        so_max = trang_thai.so_goi_y_buoc()
+        trang_thai.cap_goi_y_hien_tai = min(trang_thai.cap_goi_y_hien_tai + 1, so_max - 1)
 
 
 def _tim_buoc_tiep(trang_thai: TrangThaiPhien) -> int | None:
@@ -62,12 +81,15 @@ def xu_ly_tln(
     st = trang_thai
 
     if ket_qua_so_khop is None and not yeu_cau_goi_y:
-        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs), st
+        y_dinh = "giai_thich_ngan" if ngu_canh_hs.strip() else "dinh_huong"
+        return _chi_thi(st, y_dinh, _lay_goi_y(st), ngu_canh_hs), st
 
     if yeu_cau_goi_y:
+        st.so_lan_khong_hieu += 1
+        if _da_het_goi_y(st):
+            return _chi_thi(st, "het_goi_y", _lay_goi_y(st), ngu_canh_hs), st
         so_max = st.so_goi_y_buoc()
         st.cap_goi_y_hien_tai = min(st.cap_goi_y_hien_tai + 1, so_max - 1)
-        st.so_lan_khong_hieu += 1
         return _chi_thi(st, "goi_y", _lay_goi_y(st), ngu_canh_hs), st
 
     if ket_qua_so_khop == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC:
@@ -87,7 +109,7 @@ def xu_ly_tln(
         st.so_lan_sai_lien_tiep = 0
         return _chi_thi(st, "xac_nhan_dung", _lay_goi_y(st), ngu_canh_hs), st
 
-    st.so_lan_sai_lien_tiep += 1
+    _tang_sai(st)
     return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs), st
 
 
@@ -116,15 +138,18 @@ def xu_ly_tn4pa(
     def _da_mo_dap_an() -> bool:
         return (not bat_buoc_suy_luan) or st.buoc_hien_tai > 1
 
-    # Lượt mở đầu / chưa nhập gì
+    # Lượt mở đầu / chưa nhập gì / hỏi tự do
     if ket_qua_so_khop is None and not yeu_cau_goi_y:
-        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs), st
+        y_dinh = "giai_thich_ngan" if ngu_canh_hs.strip() else "dinh_huong"
+        return _chi_thi(st, y_dinh, _lay_goi_y(st), ngu_canh_hs), st
 
     # Xin gợi ý
     if yeu_cau_goi_y:
+        st.so_lan_khong_hieu += 1
+        if _da_het_goi_y(st):
+            return _chi_thi(st, "het_goi_y", _lay_goi_y(st), ngu_canh_hs), st
         so_max = st.so_goi_y_buoc()
         st.cap_goi_y_hien_tai = min(st.cap_goi_y_hien_tai + 1, so_max - 1)
-        st.so_lan_khong_hieu += 1
         return _chi_thi(st, "goi_y", _lay_goi_y(st), ngu_canh_hs), st
 
     # Nhập không hợp lệ (biểu thức bước không parse được)
@@ -144,7 +169,7 @@ def xu_ly_tn4pa(
             return _chi_thi(st, "ket_thuc",
                             "khen HS chọn đúng, nhắc mạch suy nghĩ (không nhắc lại đáp án)",
                             ngu_canh_hs), st
-        st.so_lan_sai_lien_tiep += 1
+        _tang_sai(st)
         return _chi_thi(st, "hoi_nguoc",
                         "em đã tính ra kết quả rồi, thử đối chiếu lại với từng phương án xem nhé",
                         ngu_canh_hs), st
@@ -161,7 +186,7 @@ def xu_ly_tn4pa(
                         ngu_canh_hs), st
 
     # Sai biểu thức bước
-    st.so_lan_sai_lien_tiep += 1
+    _tang_sai(st)
     return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs), st
 
 
@@ -192,13 +217,16 @@ def xu_ly_tnds(
         return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs, y_dang_xet="a"), st
 
     if yeu_cau_goi_y:
+        st.so_lan_khong_hieu += 1
+        if _da_het_goi_y(st):
+            return _chi_thi(st, "het_goi_y", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
         so_max = st.so_goi_y_buoc()
         st.cap_goi_y_hien_tai = min(st.cap_goi_y_hien_tai + 1, so_max - 1)
-        st.so_lan_khong_hieu += 1
         return _chi_thi(st, "goi_y", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     if ket_qua_y is None:
-        return _chi_thi(st, "dinh_huong", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
+        y_dinh = "giai_thich_ngan" if ngu_canh_hs.strip() else "dinh_huong"
+        return _chi_thi(st, y_dinh, _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     if ket_qua_y == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC:
         msg = ("em hãy chọn Đúng hoặc Sai cho ý này nhé" if la_chon_dung_sai
@@ -216,7 +244,7 @@ def xu_ly_tnds(
             return _chi_thi(st, "xac_nhan_dung",
                             "khen HS suy luận đúng, mời em kết luận Đúng/Sai cho ý này",
                             ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
-        st.so_lan_sai_lien_tiep += 1
+        _tang_sai(st)
         return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     # --- Pha chốt Đúng/Sai ---
@@ -227,7 +255,7 @@ def xu_ly_tnds(
 
     if ket_qua_y != KetQuaSoKhop.DUNG:
         # Chốt sai → ở lại ý này, phải làm đúng mới qua
-        st.so_lan_sai_lien_tiep += 1
+        _tang_sai(st)
         return _chi_thi(st, "hoi_nguoc", _lay_goi_y(st), ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     # Chốt đúng → đánh dấu ý xong, sang ý kế tiếp (hoặc kết thúc)

@@ -148,6 +148,14 @@ def _migrate_them_cot(engine) -> None:
                 conn.execute(text(
                     "ALTER TABLE sessions ADD COLUMN bi_an BOOLEAN DEFAULT false NOT NULL"
                 ))
+        if "tong_so_lan_sai" not in cot_s:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE sessions ADD COLUMN tong_so_lan_sai INTEGER DEFAULT 0 NOT NULL"
+                ))
+        if "diem_qua_trinh" not in cot_s:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE sessions ADD COLUMN diem_qua_trinh FLOAT"))
     if "phan_tich_hs" in ten_bang:
         cot_pt = {c["name"] for c in insp.get_columns("phan_tich_hs")}
         if "nguon" not in cot_pt:
@@ -161,6 +169,12 @@ def _migrate_them_cot(engine) -> None:
             with engine.begin() as conn:
                 conn.execute(text(
                     "ALTER TABLE users ADD COLUMN la_quan_ly BOOLEAN DEFAULT false NOT NULL"
+                ))
+        if "da_xem_huong_dan_phong_hoc" not in cot_u:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE users ADD COLUMN da_xem_huong_dan_phong_hoc "
+                    "BOOLEAN DEFAULT false NOT NULL"
                 ))
     if "de_thi" in ten_bang:
         cot_dt = {c["name"] for c in insp.get_columns("de_thi")}

@@ -170,6 +170,16 @@ export default function XemLaiBai({ sessionId, onDong }) {
                         Thời gian: {dinhDangThoiGian(tk.thoi_gian_hoat_dong_giay)}
                       </Badge>
                     )}
+                    {!!tk.so_lan_khong_hieu && (
+                      <Badge tone="neutral">Đã xin gợi ý: {tk.so_lan_khong_hieu} lần</Badge>
+                    )}
+                    {!!tk.tong_so_lan_sai && (
+                      <Badge tone="neutral">Thử lại: {tk.tong_so_lan_sai} lần</Badge>
+                    )}
+                    {/* diem_qua_trinh chỉ backend trả cho GV/Admin — HS không thấy trường này */}
+                    {tk.diem_qua_trinh != null && (
+                      <Badge tone="primary">Điểm quá trình (GV): {tk.diem_qua_trinh}</Badge>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
                     {data.hanh_trinh.map((t, i) => (

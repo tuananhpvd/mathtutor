@@ -27,3 +27,10 @@ def cap_nhat_ho_so(body: HoSoUpdate, current_user: CurrentUser, db: Session = De
 @router.get("/chuoi-ngay", dependencies=_HS)
 def chuoi_ngay(current_user: CurrentUser, db: Session = Depends(get_db)):
     return chuoi_ngay_service.ho_so_chuoi_va_moc(db, current_user.id)
+
+
+@router.post("/da-xem-huong-dan-phong-hoc", dependencies=_HS)
+def da_xem_huong_dan_phong_hoc(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Đánh dấu HS đã xem hướng dẫn 3 bước lúc vào phòng học — chỉ hiện 1 lần/tài khoản."""
+    hs_service.danh_dau_da_xem_huong_dan(db, current_user)
+    return {"ok": True}

@@ -108,6 +108,19 @@ class StubLLMClient(LLMClient):
                 f"Gần đúng rồi đó! Em kiểm tra lại một chút xem: {y_goi_y}",
                 f"Hmm, chỗ này em xem lại nhé. {y_goi_y}",
             ])
+        if y_dinh == "het_goi_y":
+            return pick([
+                f"Gợi ý của cô tới đây là hết rồi đó em. Em thử vận dụng gợi ý cuối xem sao: "
+                f"{y_goi_y}. Nếu vẫn chưa được, em bấm 'Nhờ thầy/cô' nhé!",
+                f"Đây là gợi ý cuối cùng cho phần này rồi: {y_goi_y}. Em thử làm theo hướng đó, "
+                f"còn bí quá thì nhờ thầy/cô giúp thêm nhé.",
+            ])
+        if y_dinh == "giai_thich_ngan":
+            return pick([
+                f"Câu hỏi hay đấy! Trong phạm vi bài này, em cứ tạm hiểu theo hướng: {y_goi_y}. "
+                f"Giờ mình quay lại làm tiếp nhé.",
+                f"Để cô giải thích ngắn gọn rồi mình làm tiếp: {y_goi_y}.",
+            ])
 
         # goi_y (mặc định): lời dẫn leo thang theo cấp gợi ý.
         if cap <= 0:

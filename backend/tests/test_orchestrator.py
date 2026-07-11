@@ -111,6 +111,65 @@ def test_4_goi_y_dung_dung():
     assert st.cap_goi_y_hien_tai == 3  # max index = 3
 
 
+def test_hs_hoi_tu_do_khong_tinh_la_dinh_huong():
+    """HS gõ câu hỏi tự do (không kèm đáp án, không xin gợi ý) → y_dinh giai_thich_ngan,
+    KHÔNG tốn lượt gợi ý, KHÔNG đổi bước."""
+    st = _state()
+    chi_thi, st2 = xu_ly_tln(st, None, "vì sao đạo hàm bằng 0 lại là cực trị ạ?")
+    assert chi_thi.y_dinh == "giai_thich_ngan"
+    assert st2.buoc_hien_tai == 1
+    assert st2.cap_goi_y_hien_tai == 0
+    assert st2.so_lan_khong_hieu == 0
+
+
+def test_lan_dau_van_la_dinh_huong_khong_phai_hoi_tu_do():
+    """Câu mở đầu phiên (ngu_canh_hs rỗng) vẫn là dinh_huong, không lẫn với hỏi tự do."""
+    chi_thi, _ = xu_ly_tln(_state(), None, "")
+    assert chi_thi.y_dinh == "dinh_huong"
+
+
+def test_het_goi_y_khong_lap_lai_nhu_goi_y_moi():
+    """Xin gợi ý khi đã ở mức cao nhất → y_dinh het_goi_y (không phải goi_y lặp lại)."""
+    st = _state(cap=2)  # STEPS_TLN bước 1 có 3 gợi ý, max index = 2
+    chi_thi, st2 = xu_ly_tln(st, None, "", yeu_cau_goi_y=True)
+    assert chi_thi.y_dinh == "het_goi_y"
+    assert st2.cap_goi_y_hien_tai == 2  # không vượt
+    assert st2.so_lan_khong_hieu == 1  # vẫn tính là 1 lần "không hiểu"
+
+
+def test_sai_2_lan_lien_tiep_tu_dong_nang_goi_y():
+    """Sai liên tiếp chạm ngưỡng (2) → tự nâng cấp gợi ý mà không cần HS bấm xin."""
+    st = _state()
+    _, st = xu_ly_tln(st, KetQuaSoKhop.SAI, "sai 1")
+    assert st.cap_goi_y_hien_tai == 0  # sai lần 1 — chưa nâng
+    chi_thi, st = xu_ly_tln(st, KetQuaSoKhop.SAI, "sai 2")
+    assert st.so_lan_sai_lien_tiep == 2
+    assert st.cap_goi_y_hien_tai == 1  # vừa chạm ngưỡng — tự nâng 1 cấp
+    assert chi_thi.y_dinh == "hoi_nguoc"
+    assert chi_thi.y_goi_y == "gợi 2"  # nội dung đã leo thang theo cap mới
+
+
+def test_sai_nhieu_lan_khong_nang_lien_tuc():
+    """Sai thêm lần 3, 4... KHÔNG tiếp tục tự nâng nữa (chỉ nâng đúng lúc chạm ngưỡng)."""
+    st = _state(sai=2, cap=1)  # đã chạm ngưỡng ở lần trước
+    _, st = xu_ly_tln(st, KetQuaSoKhop.SAI, "sai 3")
+    assert st.so_lan_sai_lien_tiep == 3
+    assert st.cap_goi_y_hien_tai == 1  # không nâng thêm
+
+
+def test_tong_so_lan_sai_khong_reset_qua_buoc():
+    """tong_so_lan_sai cộng dồn cả phiên, khác so_lan_sai_lien_tiep (reset khi qua bước)."""
+    st = _state()
+    _, st = xu_ly_tln(st, KetQuaSoKhop.SAI, "sai")
+    assert st.tong_so_lan_sai == 1
+    # Qua bước tiếp (làm đúng) — so_lan_sai_lien_tiep reset về 0, tong_so_lan_sai giữ nguyên
+    _, st = xu_ly_tln(st, KetQuaSoKhop.DUNG, "đúng")
+    assert st.so_lan_sai_lien_tiep == 0
+    assert st.tong_so_lan_sai == 1
+    _, st = xu_ly_tln(st, KetQuaSoKhop.SAI, "sai nữa")
+    assert st.tong_so_lan_sai == 2
+
+
 def test_orchestrator_khong_import_llm():
     import app.core.orchestrator.rules as r
 

@@ -66,9 +66,45 @@ def test_noi_dung_hop_le():
 
 
 def test_noi_dung_khong_phu_hop():
+    k = kiem_tra_an_toan("thầy ơi em mua ma túy được không")
+    assert k.an_toan is False
+    assert "ma túy" in k.ly_do
+    assert k.khan_cap is False
+
+
+def test_dau_hieu_khan_cap_tu_tu():
     k = kiem_tra_an_toan("thầy dạy em tự tử đi")
     assert k.an_toan is False
-    assert "tự tử" in k.ly_do
+    assert k.khan_cap is True
+
+
+def test_dau_hieu_khan_cap_muon_chet():
+    """'em muốn chết' KHÔNG chứa 'tự tử' nhưng vẫn phải bắt được — đây chính là lỗ hổng
+    thực tế đã phát hiện qua báo cáo người dùng trước khi mở rộng danh sách này."""
+    k = kiem_tra_an_toan("em muốn chết")
+    assert k.an_toan is False
+    assert k.khan_cap is True
+
+
+def test_dau_hieu_khan_cap_khong_muon_song():
+    k = kiem_tra_an_toan("em không muốn sống nữa")
+    assert k.an_toan is False
+    assert k.khan_cap is True
+
+
+def test_cuong_dieu_van_bi_bat_co_tinh_thien_ve_an_toan():
+    """Quyết định thiết kế CÓ CHỦ ĐÍCH: 'mệt muốn chết' (cường điệu, vô hại) cũng bị bắt vì
+    không thể phân biệt chắc chắn với lời nói thật bằng regex — chấp nhận báo động giả rẻ
+    (1 câu quan tâm hơi thừa) hơn là bỏ lọt lời kêu cứu thật. KHÔNG coi đây là bug cần fix."""
+    k = kiem_tra_an_toan("bài này khó quá, em mệt muốn chết")
+    assert k.an_toan is False
+    assert k.khan_cap is True
+
+
+def test_bai_toan_binh_thuong_khong_bi_bat_nham_khan_cap():
+    k = kiem_tra_an_toan("em tính ra kết quả là hết nghiệm, bài này khó thật")
+    assert k.an_toan is True
+    assert k.khan_cap is False
 
 
 def test_ngoai_pham_vi():

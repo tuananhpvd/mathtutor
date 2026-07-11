@@ -24,7 +24,13 @@ from app.schemas.session import (
 )
 from app.services.admin_service import lay_cau_hinh
 from app.services.llm_quota_service import ap_quota_hoi_thoai
-from app.services.tutor_service import tao_phien, xu_ly_luot
+from app.services.tutor_service import (
+    tao_phien,
+    xu_ly_luot,
+    xu_ly_ngoai_pham_vi,
+    xu_ly_noi_dung_khan_cap,
+    xu_ly_noi_dung_khong_phu_hop,
+)
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
@@ -74,6 +80,19 @@ def _cho_chon_dung_sai(problem, session) -> bool | None:
     return (not bat_buoc) or bool(session.da_suy_luan)
 
 
+def _so_goi_y_toi_da(problem, buoc_so: int, y_hien_tai: str | None = None) -> int | None:
+    """Số gợi ý tối đa của bước/ý hiện tại (đọc từ danh_sach_goi_y) — để FE hiện
+    '💡 Gợi ý (x/y)' và tự đổi nút khi hết gợi ý. None nếu không xác định được."""
+    steps = problem.solution_steps if problem else []
+    if problem and problem.loai_cau.value == "TNDS" and y_hien_tai:
+        s = next((s for s in steps if s.pham_vi == y_hien_tai), None)
+    else:
+        s = next((s for s in steps if s.thu_tu == buoc_so), None)
+    if s is None:
+        return None
+    return len(s.danh_sach_goi_y or []) or None
+
+
 def _dap_an_y_neu_xong(problem, da_xong: bool) -> dict | None:
     """TNDS: đáp án đúng từng ý {a: 'Dung', ...} — CHỈ trả khi phiên đã hoàn thành.
 
@@ -108,6 +127,7 @@ def tao_phien_moi(
         tong_buoc=tong,
         cho_chon_dap_an=_cho_chon_dap_an(problem, session.buoc_hien_tai),
         cho_chon_dung_sai=_cho_chon_dung_sai(problem, session),
+        so_goi_y_toi_da=_so_goi_y_toi_da(problem, session.buoc_hien_tai, session.y_hien_tai),
     )
 
 
@@ -203,6 +223,9 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
         cho_chon_dung_sai=_cho_chon_dung_sai(problem, session),
         thoi_gian_y=session.thoi_gian_y,
         dap_an_y=_dap_an_y_neu_xong(problem, session.trang_thai.value == "hoan_thanh"),
+        so_goi_y_toi_da=_so_goi_y_toi_da(problem, session.buoc_hien_tai, session.y_hien_tai),
+        so_lan_khong_hieu=session.so_lan_khong_hieu,
+        tong_so_lan_sai=session.tong_so_lan_sai,
         turns=[
             TurnResponse(
                 vai_tro=t.vai_tro.value,
@@ -292,9 +315,15 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
             "diem": session.diem,
             "cap_goi_y_max": cap_goi_y_max,
             "so_lan_khong_hieu": session.so_lan_khong_hieu,
+            "tong_so_lan_sai": session.tong_so_lan_sai,
             "so_luot_hs": sum(1 for t in turns if t.vai_tro.value == "hoc_sinh"),
             "thoi_gian_hoat_dong_giay": session.thoi_gian_hoat_dong_giay,
             "thoi_gian_y": session.thoi_gian_y,
+            # Điểm quá trình CHỈ dành cho GV/Admin tham khảo (không phải điểm chính thức) —
+            # HS không thấy để tránh cảm giác bị "chấm điểm ngầm" khi tự xem lại bài.
+            "diem_qua_trinh": (
+                session.diem_qua_trinh if current_user.vai_tro != VaiTro.hs else None
+            ),
         },
         # Chỉ trả khi GV đã bật hiển thị — KHÔNG đưa vào _strip_answers() vì hàm đó còn
         # dùng chung cho lúc ĐANG học (nơi tuyệt đối không được lộ lời giải).
@@ -318,7 +347,21 @@ def gui_tin(
 
     ks = kiem_tra_an_toan(body.noi_dung)
     if not ks.an_toan:
-        raise HTTPException(status_code=400, detail=f"Nội dung không hợp lệ: {ks.ly_do}")
+        # Cả 3 trường hợp: KHÔNG cho AI tự do trả lời, nhưng cũng KHÔNG chặn lạnh bằng lỗi
+        # HTTP kỹ thuật (từng khiến HS thấy nguyên văn từ khóa bị chặn, rất phản cảm) — luôn
+        # trả một lượt trò chuyện thân thiện ngay trong khung chat, hướng về bài học.
+        if ks.khan_cap:
+            van_ban = xu_ly_noi_dung_khan_cap(db, session, body.noi_dung, ks.ly_do)
+        elif ks.ngoai_pham_vi:
+            van_ban = xu_ly_ngoai_pham_vi(db, session, body.noi_dung)
+        else:
+            van_ban = xu_ly_noi_dung_khong_phu_hop(db, session, body.noi_dung, ks.ly_do)
+        return PhanHoiResponse(
+            van_ban=van_ban, y_dinh="tu_choi",
+            buoc_hien_tai=session.buoc_hien_tai, cap_goi_y=session.cap_goi_y_hien_tai,
+            da_xong=False, diem=session.diem, y_hien_tai=session.y_hien_tai,
+            so_y_dung=session.so_y_dung, thoi_gian_giay=session.thoi_gian_giay,
+        )
 
     problem = db.get(Problem, session.problem_id)
     cau_hinh = lay_cau_hinh(db)
@@ -337,4 +380,7 @@ def gui_tin(
     result["cho_chon_dung_sai"] = _cho_chon_dung_sai(problem, session)
     result["thoi_gian_y"] = session.thoi_gian_y
     result["dap_an_y"] = _dap_an_y_neu_xong(problem, result.get("da_xong", False))
+    result["so_goi_y_toi_da"] = _so_goi_y_toi_da(
+        problem, result["buoc_hien_tai"], result.get("y_hien_tai")
+    )
     return PhanHoiResponse(**result)

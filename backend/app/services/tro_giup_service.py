@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.core.guard.safety import kiem_tra_an_toan
 from app.models.lop import Lop
 from app.models.problem import Problem
 from app.models.session import Session as SessionModel
@@ -62,6 +63,18 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
         raise ValueError("Phiên không tồn tại")
 
     noi_dung_sach = (noi_dung or "").strip() or None
+    # Lọc an toàn nhưng KHÔNG chặn — khác với chat với AI, nội dung này gửi thẳng cho GV
+    # (con người), nên dù bị lớp lọc phát hiện (vd từ khoá nhạy cảm) vẫn cho gửi tới GV,
+    # tránh trường hợp đây là lời kêu cứu thật của HS mà bị âm thầm chặn. Chỉ gắn cờ +
+    # nâng mức khẩn cấp của thông báo để GV chú ý ngay.
+    ly_do_khong_an_toan = None
+    khan_cap = False
+    if noi_dung_sach:
+        ks = kiem_tra_an_toan(noi_dung_sach)
+        if not ks.an_toan:
+            ly_do_khong_an_toan = ks.ly_do
+            khan_cap = ks.khan_cap
+
     yc = YeuCauTroGiup(
         hoc_sinh_id=hs_id,
         session_id=session_id,
@@ -76,6 +89,18 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
     db.add(Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd))
     db.commit()
     db.refresh(yc)
+
+    if ly_do_khong_an_toan:
+        from app.models.flag import Flag, LoaiCo
+
+        tien_to = "🆘 KHẨN CẤP" if khan_cap else "Không phù hợp"
+        db.add(Flag(
+            session_id=session_id,
+            loai_co=LoaiCo.noi_dung_khong_phu_hop,
+            ghi_chu=f"Trong yêu cầu 'Nhờ thầy/cô' ({tien_to}): {ly_do_khong_an_toan} — nội "
+                    f"dung: “{(noi_dung_sach or '')[:200]}”",
+        ))
+        db.commit()
 
     gv_id = _gv_cua_hs(db, hs_id)
     if gv_id:
@@ -93,7 +118,14 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
             noi_dung=chi_tiet,
             loai=LoaiThongBao.nho_tro_giup,
             nguoi_gui_id=hs_id,
-            tieu_de="Học sinh nhờ trợ giúp",
+            # Nâng mức khẩn cấp nếu nội dung bị lớp lọc an toàn phát hiện — GV nhận ra
+            # ngay từ tiêu đề thông báo, không cần mở ra mới biết cần chú ý đặc biệt.
+            # 🆘 (khủng hoảng/tự hại) > ⚠️ (nội dung không phù hợp thường) > bình thường.
+            tieu_de=(
+                "🆘 Học sinh cần quan tâm khẩn cấp" if khan_cap
+                else "⚠️ Học sinh nhờ trợ giúp — nội dung cần chú ý" if ly_do_khong_an_toan
+                else "Học sinh nhờ trợ giúp"
+            ),
             # Trỏ thẳng vào ĐÚNG yêu cầu (không phải session) — 1 session có thể có nhiều
             # yêu cầu "Nhờ thầy/cô" (HS hỏi nhiều lần), trỏ theo yc.id mới chính xác tuyệt
             # đối GV bấm vào thông báo nào sẽ mở đúng câu đó ở "Hỗ trợ học sinh".

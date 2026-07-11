@@ -46,6 +46,7 @@ export const api = {
   // Học sinh — hồ sơ cá nhân
   hsHoSo: () => request('/hs/ho-so'),
   hsCapNhatHoSo: (body) => request('/hs/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
+  hsDaXemHuongDanPhongHoc: () => post('/hs/da-xem-huong-dan-phong-hoc'),
 
   // Giáo viên / Admin (Phase 9–10)
   getProgressStudents: () => request('/progress/students'),
@@ -91,6 +92,12 @@ export const api = {
       { method: 'PATCH' }
     ),
   listSessionsHoanThanh: () => request('/monitor/sessions-hoan-thanh'),
+  createFlag: (session_id, ghi_chu = '') =>
+    request(
+      `/monitor/flags?session_id=${session_id}` +
+        (ghi_chu ? `&ghi_chu=${encodeURIComponent(ghi_chu)}` : ''),
+      { method: 'POST' }
+    ),
 
   // Giáo viên — hồ sơ + quản lý lớp & học sinh của mình
   gvTongQuan: () => request('/gv/tong-quan'),

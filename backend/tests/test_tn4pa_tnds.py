@@ -94,6 +94,33 @@ def test_tn4pa_yeu_cau_goi_y():
     assert st2.cap_goi_y_hien_tai == 1
 
 
+def test_tn4pa_hoi_tu_do():
+    st = make_tn4pa()
+    ct, st2 = xu_ly_tn4pa(st, None, "vì sao lại xét dấu đạo hàm ạ?")
+    assert ct.y_dinh == "giai_thich_ngan"
+    assert st2.cap_goi_y_hien_tai == 0
+
+
+def test_tn4pa_het_goi_y():
+    # STEPS_TN4PA có đúng 2 gợi ý → max index = 1
+    st = make_tn4pa(cap_goi_y_hien_tai=1)
+    ct, st2 = xu_ly_tn4pa(st, None, "", yeu_cau_goi_y=True)
+    assert ct.y_dinh == "het_goi_y"
+    assert st2.cap_goi_y_hien_tai == 1
+
+
+def test_tn4pa_sai_lien_tiep_tu_dong_nang_goi_y():
+    st = make_tn4pa()
+    _, st = xu_ly_tn4pa(st, KetQuaSoKhop.SAI, "sai 1",
+                        bat_buoc_suy_luan=True, la_chon_dap_an=False)
+    assert st.cap_goi_y_hien_tai == 0
+    _, st = xu_ly_tn4pa(st, KetQuaSoKhop.SAI, "sai 2",
+                        bat_buoc_suy_luan=True, la_chon_dap_an=False)
+    assert st.so_lan_sai_lien_tiep == 2
+    assert st.cap_goi_y_hien_tai == 1
+    assert st.tong_so_lan_sai == 2
+
+
 def test_tn4pa_so_khop_chinh_xac():
     du_lieu = {"dap_an_dung": "B", "phuong_an": {"A": "...", "B": "...", "C": "...", "D": "..."}}
     assert so_khop("TN4PA", "B", du_lieu).ket_qua == KetQuaSoKhop.DUNG
@@ -199,6 +226,24 @@ def test_tnds_so_khop_toan_bo_diem_bac_thang():
     # 0 đúng
     km3 = so_khop("TNDS", {"a": "Sai", "b": "Dung", "c": "Sai", "d": "Dung"}, META_TNDS)
     assert km3.diem == 0.0
+
+
+def test_tnds_hoi_tu_do_khong_tinh_dinh_huong():
+    st = make_tnds(y_hien_tai="a",
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    ct, st2 = xu_ly_tnds(st, None, "ý a nghĩa là gì vậy ạ?")
+    assert ct.y_dinh == "giai_thich_ngan"
+    assert st2.y_hien_tai == "a"  # không đổi ý đang xét
+    assert st2.cap_goi_y_hien_tai == 0
+
+
+def test_tnds_het_goi_y():
+    # ý "a" trong STEPS_TNDS có 3 gợi ý → max index = 2
+    st = make_tnds(y_hien_tai="a", cap_goi_y_hien_tai=2,
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    ct, st2 = xu_ly_tnds(st, None, "", yeu_cau_goi_y=True)
+    assert ct.y_dinh == "het_goi_y"
+    assert st2.cap_goi_y_hien_tai == 2
 
 
 def test_tnds_khong_phan_tich():
