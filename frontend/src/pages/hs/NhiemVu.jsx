@@ -25,9 +25,13 @@ function hanInfo(iso) {
   return { text: `Hạn ${ngay}`, tone: 'primary' }
 }
 
-export default function NhiemVu({ onChon }) {
+// focusId: { id, ts } | null — HS bấm thông báo "Nhiệm vụ mới" ở chuông, cần nhảy tới +
+// làm nổi bật tạm thời đúng nhiệm vụ đó. "ts" đổi mỗi lần bấm để ép hiệu ứng chạy lại kể cả
+// bấm trùng nhiệm vụ đã focus trước đó.
+export default function NhiemVu({ onChon, focusId, onFocusDone }) {
   const [ds, setDs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [noiBatId, setNoiBatId] = useState(null)
 
   useEffect(() => {
     api.hsNhiemVu()
@@ -35,6 +39,27 @@ export default function NhiemVu({ onChon }) {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!focusId || loading) return
+    let cuonTimeout, tatNoiBat
+    const batDau = setTimeout(() => {
+      if (!ds.some((nv) => nv.id === focusId.id)) { onFocusDone?.(); return }
+      setNoiBatId(focusId.id)
+      cuonTimeout = setTimeout(() => {
+        document.getElementById(`nv-${focusId.id}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 150)
+      tatNoiBat = setTimeout(() => setNoiBatId(null), 3000)
+      onFocusDone?.()
+    }, 0)
+    return () => {
+      clearTimeout(batDau)
+      clearTimeout(cuonTimeout)
+      clearTimeout(tatNoiBat)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, loading, ds])
 
   return (
     <div className="flex flex-col gap-5">
@@ -56,7 +81,8 @@ export default function NhiemVu({ onChon }) {
           const xong = nv.tong_bai > 0 && nv.so_hoan_thanh >= nv.tong_bai
           const han = hanInfo(nv.han_chot)
           return (
-            <Card key={nv.id}>
+            <Card key={nv.id} id={`nv-${nv.id}`}
+              className={noiBatId === nv.id ? 'ring-2 ring-primary transition-shadow' : ''}>
               <CardHeader
                 title={nv.tieu_de}
                 subtitle={nv.gv_ten ? (

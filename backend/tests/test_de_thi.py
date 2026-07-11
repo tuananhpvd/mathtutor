@@ -422,6 +422,46 @@ def test_phat_hanh_tuy_chon_doi_tuong(db, client):
     assert len(client.get("/api/de-thi", headers=h_hs2).json()) == 1
 
 
+def test_phat_hanh_gui_thong_bao(db, client):
+    """Phát hành đề → HS trong phạm vi nhận thông báo có liên kết mở đúng đề; ngoài phạm vi
+    (tuỳ chọn không giao) thì không nhận."""
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    lop2 = Lop(ten="12DE-C", gv_id=gv.id)
+    db.add(lop2)
+    db.flush()
+    hs2 = User(vai_tro=VaiTro.hs, ho_ten="HS Đề 3", dang_nhap="hs_de3",
+               mat_khau_hash=hash_password("pass"), lop_id=lop2.id)
+    db.add(hs2)
+    db.commit()
+
+    h_gv = _h(_login(client, "gv_de"))
+    h_hs = _h(_login(client, "hs_de"))
+    h_hs2 = _h(_login(client, "hs_de3"))
+
+    # Mặc định "tất cả" — cả 2 lớp của GV đều nhận thông báo
+    de_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln).json()["id"]
+    r = client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv, json={"phat_hanh": True})
+    assert r.status_code == 200
+
+    for h in (h_hs, h_hs2):
+        ds = client.get("/api/thong-bao", headers=h).json()
+        assert len(ds) == 1
+        assert ds[0]["tieu_de"] == "Đề thi mới"
+        assert ds[0]["lien_ket_loai"] == "de_thi"
+        assert ds[0]["lien_ket_id"] == de_id
+
+    # Tuỳ chọn — chỉ hs được giao mới nhận thông báo cho đề mới
+    de2_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln, ten="Đề thử số 2").json()["id"]
+    r = client.patch(f"/api/de-thi/{de2_id}/phat-hanh", headers=h_gv,
+                     json={"phat_hanh": True, "pham_vi": "tuy_chon", "hoc_sinh_ids": [hs.id]})
+    assert r.status_code == 200
+
+    ds_hs = client.get("/api/thong-bao", headers=h_hs).json()
+    assert any(t["lien_ket_id"] == de2_id for t in ds_hs)
+    ds_hs2 = client.get("/api/thong-bao", headers=h_hs2).json()
+    assert not any(t["lien_ket_id"] == de2_id for t in ds_hs2)
+
+
 def test_quyen_bai_thi(db, client):
     gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
     h_gv = _h(_login(client, "gv_de"))

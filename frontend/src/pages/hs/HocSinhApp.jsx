@@ -39,6 +39,10 @@ export default function HocSinhApp({ onLogout }) {
   // onSid, kể cả khi mở bài mới chưa có sessionId ban đầu. Dùng để chuông thông báo biết HS
   // có đang ở sẵn đúng bài trong thông báo hay không.
   const [activeSid, setActiveSid] = useState(null)
+  // { id, ts } | null — nhảy tới + làm nổi bật đúng nhiệm vụ/đề thi khi HS bấm thông báo
+  // tương ứng ở chuông. "ts" đổi mỗi lần bấm để ép hiệu ứng chạy lại kể cả bấm trùng.
+  const [focusNv, setFocusNv] = useState(null)
+  const [focusDeThi, setFocusDeThi] = useState(null)
 
   function capNhatHoTen(ten) {
     updateHoTen(ten)
@@ -91,10 +95,19 @@ export default function HocSinhApp({ onLogout }) {
     lamTiep(sessionId)
   }
 
-  // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — chỉ xử lý loại "session"
-  // (vd "Thầy/cô trả lời"), các loại khác (nếu có) bỏ qua không làm gì ở app HS.
+  // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — mỗi loại nhảy tới đúng
+  // trang tương ứng ở app HS: "session" → phòng học, "nhiem_vu" → trang Nhiệm vụ,
+  // "de_thi" → trang Thi thử (danh sách đề), làm nổi bật đúng mục.
   function moTuThongBao(tb) {
-    if (tb.lien_ket_loai === 'session') moPhongHocTuThongBao(tb.lien_ket_id)
+    if (tb.lien_ket_loai === 'session') {
+      moPhongHocTuThongBao(tb.lien_ket_id)
+    } else if (tb.lien_ket_loai === 'nhiem_vu') {
+      setFocusNv({ id: tb.lien_ket_id, ts: Date.now() })
+      dieuHuong('nhiem_vu')
+    } else if (tb.lien_ket_loai === 'de_thi') {
+      setFocusDeThi({ id: tb.lien_ket_id, ts: Date.now() })
+      dieuHuong('thi_thu')
+    }
   }
 
   function dieuHuong(key) {
@@ -150,8 +163,12 @@ export default function HocSinhApp({ onLogout }) {
           onSid={setActiveSid}
         />
       )}
-      {page === 'nhiem_vu' && <NhiemVu onChon={moBaiMoi} />}
-      {page === 'thi_thu' && <ThiThu onLuyenBai={moBaiMoi} />}
+      {page === 'nhiem_vu' && (
+        <NhiemVu onChon={moBaiMoi} focusId={focusNv} onFocusDone={() => setFocusNv(null)} />
+      )}
+      {page === 'thi_thu' && (
+        <ThiThu onLuyenBai={moBaiMoi} focusId={focusDeThi} onFocusDone={() => setFocusDeThi(null)} />
+      )}
       {page === 'muc_tieu' && <MucTieu />}
       {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}
       {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}

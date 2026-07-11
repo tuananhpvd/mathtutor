@@ -31,13 +31,37 @@ function daTraLoi(gia_tri) {
 
 /* ───────────────────────── Danh sách đề ───────────────────────── */
 
-function DanhSachDe({ onVaoThi, onXemKetQua }) {
+function DanhSachDe({ onVaoThi, onXemKetQua, focusId, onFocusDone }) {
   const [ds, setDs] = useState(null)
   const [error, setError] = useState('')
+  const [noiBatId, setNoiBatId] = useState(null)
 
   useEffect(() => {
     api.deThiDs().then(setDs).catch((e) => setError(e.message))
   }, [])
+
+  // focusId: { id, ts } | null — HS bấm thông báo "Đề thi mới" ở chuông, nhảy tới + làm nổi
+  // bật tạm thời đúng đề đó trong danh sách.
+  useEffect(() => {
+    if (!focusId || !ds) return
+    let cuonTimeout, tatNoiBat
+    const batDau = setTimeout(() => {
+      if (!ds.some((de) => de.id === focusId.id)) { onFocusDone?.(); return }
+      setNoiBatId(focusId.id)
+      cuonTimeout = setTimeout(() => {
+        document.getElementById(`de-thi-${focusId.id}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 150)
+      tatNoiBat = setTimeout(() => setNoiBatId(null), 3000)
+      onFocusDone?.()
+    }, 0)
+    return () => {
+      clearTimeout(batDau)
+      clearTimeout(cuonTimeout)
+      clearTimeout(tatNoiBat)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, ds])
 
   if (error) return <p className="text-sm text-danger">{error}</p>
   if (!ds) return <p className="text-sm text-muted">Đang tải danh sách đề...</p>
@@ -55,7 +79,8 @@ function DanhSachDe({ onVaoThi, onXemKetQua }) {
       {ds.map((de) => {
         const bai = de.bai_gan_nhat
         return (
-          <Card key={de.id}>
+          <Card key={de.id} id={`de-thi-${de.id}`}
+            className={noiBatId === de.id ? 'ring-2 ring-primary transition-shadow' : ''}>
             <CardBody className="pt-4 flex flex-col gap-2">
               <p className="font-bold text-ink">{de.ten}</p>
               <div className="flex gap-2 flex-wrap items-center text-sm text-muted">
@@ -384,7 +409,7 @@ function ManKetQua({ kq, onQuayLai, onLuyenBai }) {
 
 /* ───────────────────────── Trang chính ───────────────────────── */
 
-export default function ThiThu({ onLuyenBai }) {
+export default function ThiThu({ onLuyenBai, focusId, onFocusDone }) {
   const [man, setMan] = useState({ ten: 'ds' }) // ds | thi | ket_qua
   const [error, setError] = useState('')
 
@@ -412,7 +437,8 @@ export default function ThiThu({ onLuyenBai }) {
         <>
           <h2 className="text-2xl font-bold text-black">Thi thử</h2>
           {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
-          <DanhSachDe onVaoThi={vaoThi} onXemKetQua={xemKetQua} />
+          <DanhSachDe onVaoThi={vaoThi} onXemKetQua={xemKetQua}
+            focusId={focusId} onFocusDone={onFocusDone} />
         </>
       )}
       {man.ten === 'thi' && (

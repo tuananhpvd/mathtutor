@@ -20,7 +20,9 @@ from app.core.matching.matcher import so_khop
 from app.models.de_thi import BaiThi, DeThi, DeThiCau, DeThiHocSinh, PhamViDeThi, TrangThaiBaiThi
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
+from app.models.thong_bao import LoaiThongBao
 from app.models.user import User, VaiTro
+from app.services import thong_bao_service
 from app.services.gv_service import _so_huu_hs, _so_huu_lop
 
 PHAN_LOAI = {"I": "TN4PA", "II": "TNDS", "III": "TLN"}
@@ -170,7 +172,34 @@ def dat_phat_hanh(
 
     db.commit()
     db.refresh(de)
+
+    if phat_hanh:
+        _bao_phat_hanh(db, de, gv_id)
+
     return de
+
+
+def _bao_phat_hanh(db: Session, de: DeThi, gv_id: int) -> None:
+    """Báo cho HS trong phạm vi đề khi GV phát hành — mirror thông báo giao nhiệm vụ.
+    Dùng lại LoaiThongBao.nhiem_vu (không thêm enum mới) để tránh phải ALTER TYPE
+    trên Postgres production; lien_ket_loai="de_thi" (cột string tự do) đủ để HS
+    click mở đúng đề."""
+    if de.pham_vi == PhamViDeThi.tuy_chon.value:
+        hs_ids = {d.hoc_sinh_id for d in de.hoc_sinh_duoc_giao}
+    else:
+        lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == gv_id).all()]
+        hs_ids = (
+            {u.id for u in db.query(User).filter(
+                User.vai_tro == VaiTro.hs, User.lop_id.in_(lop_ids)).all()}
+            if lop_ids else set()
+        )
+    noi_dung = f"Thầy/cô phát hành đề thi mới: «{de.ten}» ({de.thoi_gian_phut} phút)."
+    for hid in hs_ids:
+        thong_bao_service.tao(
+            db, nguoi_nhan_id=hid, noi_dung=noi_dung,
+            loai=LoaiThongBao.nhiem_vu, nguoi_gui_id=gv_id,
+            tieu_de="Đề thi mới", lien_ket_loai="de_thi", lien_ket_id=de.id,
+        )
 
 
 def xoa_de(db: Session, gv_id: int, de_id: int) -> None:
