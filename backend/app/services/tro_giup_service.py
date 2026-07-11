@@ -70,7 +70,15 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
     ly_do_khong_an_toan = None
     khan_cap = False
     if noi_dung_sach:
-        ks = kiem_tra_an_toan(noi_dung_sach)
+        from app.services.admin_service import lay_tu_khoa_an_toan
+
+        tu_khoa = lay_tu_khoa_an_toan(db)
+        ks = kiem_tra_an_toan(
+            noi_dung_sach,
+            tu_khoa["tu_khoa_khan_cap"],
+            tu_khoa["tu_khoa_khong_phu_hop"],
+            tu_khoa["tu_khoa_ngoai_pham_vi"],
+        )
         if not ks.an_toan:
             ly_do_khong_an_toan = ks.ly_do
             khan_cap = ks.khan_cap

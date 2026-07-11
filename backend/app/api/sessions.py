@@ -22,7 +22,7 @@ from app.schemas.session import (
     TaoPhienResponse,
     TurnResponse,
 )
-from app.services.admin_service import lay_cau_hinh
+from app.services.admin_service import lay_cau_hinh, lay_tu_khoa_an_toan
 from app.services.llm_quota_service import ap_quota_hoi_thoai
 from app.services.tutor_service import (
     tao_phien,
@@ -345,7 +345,14 @@ def gui_tin(
     if session.trang_thai.value == "hoan_thanh":
         raise HTTPException(status_code=400, detail="Phiên đã hoàn thành")
 
-    ks = kiem_tra_an_toan(body.noi_dung)
+    cau_hinh = lay_cau_hinh(db)
+    tu_khoa = lay_tu_khoa_an_toan(db)
+    ks = kiem_tra_an_toan(
+        body.noi_dung,
+        tu_khoa["tu_khoa_khan_cap"],
+        tu_khoa["tu_khoa_khong_phu_hop"],
+        tu_khoa["tu_khoa_ngoai_pham_vi"],
+    )
     if not ks.an_toan:
         # Cả 3 trường hợp: KHÔNG cho AI tự do trả lời, nhưng cũng KHÔNG chặn lạnh bằng lỗi
         # HTTP kỹ thuật (từng khiến HS thấy nguyên văn từ khóa bị chặn, rất phản cảm) — luôn
@@ -364,7 +371,6 @@ def gui_tin(
         )
 
     problem = db.get(Problem, session.problem_id)
-    cau_hinh = lay_cau_hinh(db)
     llm = ap_quota_hoi_thoai(db, cau_hinh, current_user.id, get_llm_client(cau_hinh))
     result = xu_ly_luot(
         db, session, problem,

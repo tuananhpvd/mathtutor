@@ -12,6 +12,7 @@ from app.schemas.admin import (
     GanLopRequest,
     ImportTaiKhoanRequest,
     KiemTraDangNhapRequest,
+    KiemTraTuKhoaRequest,
     SuaLopRequest,
     SuaTaiKhoanRequest,
     TaoLopRequest,
@@ -181,6 +182,21 @@ def set_config(body: DatCauHinhRequest, current_user: CurrentUser, db: Session =
         return dat_cau_hinh(db, body.khoa, body.gia_tri)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post("/tu-khoa-thu", dependencies=_ADMIN)
+def tu_khoa_thu(body: KiemTraTuKhoaRequest, db: Session = Depends(get_db)):
+    """'Thử trước' cho trang quản lý từ khóa an toàn — chạy kiểm tra thật với đúng danh
+    sách từ khóa đang lưu (không tạo phiên học, không gắn cờ)."""
+    from app.services.admin_service import kiem_tra_thu_an_toan
+
+    ks = kiem_tra_thu_an_toan(db, body.van_ban)
+    return {
+        "an_toan": ks.an_toan,
+        "ly_do": ks.ly_do,
+        "khan_cap": ks.khan_cap,
+        "ngoai_pham_vi": ks.ngoai_pham_vi,
+    }
 
 
 @router.post("/lop/{lop_id}/kiem-tra-hs", dependencies=_ADMIN)

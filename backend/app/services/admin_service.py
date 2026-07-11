@@ -6,6 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
 from app.config import SO_GOI_Y_MAC_DINH, settings
+from app.core.guard.safety import (
+    TU_KHOA_KHAN_CAP_MAC_DINH,
+    TU_KHOA_KHONG_PHU_HOP_MAC_DINH,
+    TU_KHOA_NGOAI_PHAM_VI_MAC_DINH,
+    bo_dau,
+    kiem_tra_an_toan,
+)
 from app.core.matching.scoring import BANG_BAC_THANG
 from app.models.cauhinh import CauHinh
 from app.models.flag import Flag, TrangThaiCo
@@ -50,10 +57,75 @@ CAU_HINH_MAC_DINH: dict = {
     "bao_tri_bat": False,
     "bao_tri_ma": "xem-truoc-mt79",
     "bao_tri_noi_dung": "SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!",
+    # Từ khóa lọc an toàn (3 tầng) — Admin quản lý qua trang Cấu hình, KHÔNG cần sửa code
+    # để thêm từ mới. Mỗi phần tử: {tu_khoa, kich_hoat, la_mac_dinh}. Từ khóa mặc định
+    # (la_mac_dinh=True) chỉ được TẮT (kich_hoat=False), không thể xóa khỏi danh sách —
+    # xem _chuan_hoa_danh_sach_tu_khoa. Admin tự thêm thì tự do thêm/tắt/xóa.
+    "tu_khoa_khan_cap": [
+        {"tu_khoa": t, "kich_hoat": True, "la_mac_dinh": True} for t in TU_KHOA_KHAN_CAP_MAC_DINH
+    ],
+    "tu_khoa_khong_phu_hop": [
+        {"tu_khoa": t, "kich_hoat": True, "la_mac_dinh": True}
+        for t in TU_KHOA_KHONG_PHU_HOP_MAC_DINH
+    ],
+    "tu_khoa_ngoai_pham_vi": [
+        {"tu_khoa": t, "kich_hoat": True, "la_mac_dinh": True}
+        for t in TU_KHOA_NGOAI_PHAM_VI_MAC_DINH
+    ],
 }
 
 # Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).
 CAU_HINH_BI_MAT = {"llm_api_key_gemini", "llm_api_key_anthropic", "llm_api_key_openai"}
+
+# khoa cấu hình → danh sách từ khóa MẶC ĐỊNH gốc (nguồn sự thật để phân biệt mặc định/tự
+# thêm khi admin lưu lại danh sách — xem _chuan_hoa_danh_sach_tu_khoa).
+_TU_KHOA_GOC = {
+    "tu_khoa_khan_cap": TU_KHOA_KHAN_CAP_MAC_DINH,
+    "tu_khoa_khong_phu_hop": TU_KHOA_KHONG_PHU_HOP_MAC_DINH,
+    "tu_khoa_ngoai_pham_vi": TU_KHOA_NGOAI_PHAM_VI_MAC_DINH,
+}
+
+
+def _chuan_hoa_danh_sach_tu_khoa(khoa: str, gia_tri) -> list[dict]:
+    """Chuẩn hóa danh sách từ khóa admin gửi lên trước khi lưu:
+    - `la_mac_dinh` LUÔN do server tự tính lại (không tin giá trị client gửi) — so khớp
+      với danh sách gốc theo dạng bỏ dấu, không phân biệt hoa/thường.
+    - Từ khóa mặc định bị THIẾU trong danh sách gửi lên (vd lỗi giao diện, gọi API thủ
+      công) được TỰ ĐỘNG thêm lại ở trạng thái BẬT — không cho phép một request lỗi làm
+      mất từ khóa nền an toàn; muốn tắt phải tắt tường minh (kich_hoat=False), không phải
+      bằng cách xóa khỏi danh sách.
+    - Từ khóa tự thêm (không trùng mặc định) được giữ nguyên, loại trùng lặp.
+    """
+    if not isinstance(gia_tri, list):
+        raise ValueError("Danh sách từ khóa không hợp lệ")
+    goc = _TU_KHOA_GOC[khoa]
+    goc_chuan = {bo_dau(t).strip().lower() for t in goc}
+
+    trang_thai_mac_dinh: dict[str, bool] = {}
+    tuy_chinh: dict[str, dict] = {}
+    for item in gia_tri:
+        if not isinstance(item, dict):
+            continue
+        tu_khoa = str(item.get("tu_khoa", "")).strip()
+        if not tu_khoa:
+            continue
+        chuan = bo_dau(tu_khoa).lower()
+        kich_hoat = bool(item.get("kich_hoat", True))
+        if chuan in goc_chuan:
+            trang_thai_mac_dinh[chuan] = kich_hoat
+        else:
+            tuy_chinh[chuan] = {"tu_khoa": tu_khoa, "kich_hoat": kich_hoat, "la_mac_dinh": False}
+
+    ket_qua = [
+        {
+            "tu_khoa": t,
+            "kich_hoat": trang_thai_mac_dinh.get(bo_dau(t).strip().lower(), True),
+            "la_mac_dinh": True,
+        }
+        for t in goc
+    ]
+    ket_qua.extend(tuy_chinh.values())
+    return ket_qua
 
 
 def thong_ke(db: Session) -> dict:
@@ -393,6 +465,8 @@ def dat_cau_hinh(db: Session, khoa: str, gia_tri) -> dict:
     # Khóa API rỗng = giữ nguyên giá trị cũ (tránh xóa nhầm khi lưu form).
     if khoa in CAU_HINH_BI_MAT and not str(gia_tri or "").strip():
         return lay_cau_hinh_an_toan(db)
+    if khoa in _TU_KHOA_GOC:
+        gia_tri = _chuan_hoa_danh_sach_tu_khoa(khoa, gia_tri)
     row = db.get(CauHinh, khoa)
     if row is None:
         row = CauHinh(khoa=khoa, gia_tri={"v": gia_tri})
@@ -401,3 +475,35 @@ def dat_cau_hinh(db: Session, khoa: str, gia_tri) -> dict:
         row.gia_tri = {"v": gia_tri}
     db.commit()
     return lay_cau_hinh(db)
+
+
+def lay_tu_khoa_an_toan(db: Session) -> dict[str, list[str]]:
+    """Danh sách từ khóa ĐANG BẬT theo từng tầng — sẵn sàng truyền thẳng vào
+    `core.guard.safety.kiem_tra_an_toan`. Lỗi đọc cấu hình → dùng nền mặc định (không bao
+    giờ để hỏng tầng lọc an toàn vì sự cố đọc DB)."""
+    try:
+        cau_hinh = lay_cau_hinh(db)
+        return {
+            khoa: [
+                item["tu_khoa"] for item in (cau_hinh.get(khoa) or []) if item.get("kich_hoat", True)
+            ]
+            for khoa in _TU_KHOA_GOC
+        }
+    except Exception:
+        return {
+            "tu_khoa_khan_cap": list(TU_KHOA_KHAN_CAP_MAC_DINH),
+            "tu_khoa_khong_phu_hop": list(TU_KHOA_KHONG_PHU_HOP_MAC_DINH),
+            "tu_khoa_ngoai_pham_vi": list(TU_KHOA_NGOAI_PHAM_VI_MAC_DINH),
+        }
+
+
+def kiem_tra_thu_an_toan(db: Session, van_ban: str):
+    """'Thử trước' cho trang admin: chạy kiểm tra an toàn thật với đúng danh sách từ khóa
+    ĐANG LƯU (đã bao gồm các từ admin vừa thêm/tắt), không cần tạo phiên học."""
+    tu_khoa = lay_tu_khoa_an_toan(db)
+    return kiem_tra_an_toan(
+        van_ban,
+        tu_khoa["tu_khoa_khan_cap"],
+        tu_khoa["tu_khoa_khong_phu_hop"],
+        tu_khoa["tu_khoa_ngoai_pham_vi"],
+    )

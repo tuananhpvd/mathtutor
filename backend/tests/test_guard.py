@@ -117,6 +117,39 @@ def test_bai_toan_binh_thuong():
     assert k.an_toan is True
 
 
+# ----- Danh sách từ khóa nạp từ ngoài (admin quản lý) -----
+
+def test_khong_dau_van_bat_duoc_tu_khoa_mac_dinh():
+    """HS gõ không dấu ('tu tu' thay vì 'tự tử') vẫn phải bị phát hiện — chuẩn hóa bỏ dấu
+    áp dụng cho cả từ khóa mặc định, không chỉ từ khóa admin tự thêm."""
+    k = kiem_tra_an_toan("thay day em tu tu di")
+    assert k.an_toan is False
+    assert k.khan_cap is True
+
+
+def test_truyen_danh_sach_rieng_ghi_de_mac_dinh():
+    """Truyền danh sách rỗng → không còn bắt được từ khóa mặc định 'ma túy' (chứng minh
+    caller có thể ghi đè hoàn toàn danh sách mặc định, đúng như tầng admin sẽ làm)."""
+    k = kiem_tra_an_toan("thầy ơi em mua ma túy được không", [], [], [])
+    assert k.an_toan is True
+
+
+def test_tu_khoa_tuy_chinh_khong_dau_duoc_bat():
+    """Từ khóa do admin tự thêm ('bỏ học đi lang thang') cũng được chuẩn hóa bỏ dấu khi
+    so khớp, không chỉ danh sách mặc định."""
+    k = kiem_tra_an_toan(
+        "em tinh bo hoc di lang thang", [], ["bỏ học đi lang thang"], []
+    )
+    assert k.an_toan is False
+    assert "bỏ học đi lang thang" in k.ly_do
+
+
+def test_tu_khoa_don_tu_khong_khop_nham_ben_trong_tu_khac():
+    """'kill' phải có ranh giới từ — không khớp nhầm bên trong 'skill' (kỹ năng)."""
+    k = kiem_tra_an_toan("em cần luyện skill làm bài nhanh hơn", [], ["kill"], [])
+    assert k.an_toan is True
+
+
 # ----- Scope lock -----
 
 def test_chuyen_de_duoc_phep():

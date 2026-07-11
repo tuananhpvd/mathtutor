@@ -43,6 +43,10 @@ class KiemTraDangNhapRequest(BaseModel):
     dang_nhaps: list[str] = Field(..., min_length=1)
 
 
+class KiemTraTuKhoaRequest(BaseModel):
+    van_ban: str
+
+
 class TaiKhoanImportItem(BaseModel):
     ho_ten: str = Field(..., min_length=1)
     dang_nhap: str = Field(..., min_length=1)

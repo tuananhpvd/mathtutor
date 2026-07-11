@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
+import ImportTuKhoaDialog from '../../components/admin/ImportTuKhoaDialog'
+import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
 
 const NHA_CUNG_CAP = [
   { value: 'gemini', label: 'Google Gemini (khuyến nghị)', model: 'gemini-2.5-flash' },
@@ -25,6 +26,126 @@ function KhoaApi({ label, p, provider, value, onChange, daDat }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
+    </div>
+  )
+}
+
+const NHAN_TANG_TU_KHOA = {
+  tu_khoa_khan_cap: {
+    title: '🆘 Khẩn cấp / dấu hiệu tự hại',
+    hint: 'Ưu tiên cao nhất. HS gõ trúng 1 từ ở đây sẽ nhận phản hồi ấm áp trong khung chat '
+      + '(KHÔNG chặn lỗi kỹ thuật) và GV được báo ngay ở mức khẩn cấp.',
+  },
+  tu_khoa_khong_phu_hop: {
+    title: '⚠️ Nội dung không phù hợp',
+    hint: 'Gắn cờ báo GV (mức thường), phản hồi thân thiện hướng học sinh quay lại bài học.',
+  },
+  tu_khoa_ngoai_pham_vi: {
+    title: '↩️ Ngoài phạm vi môn Toán',
+    hint: 'Chỉ nhắc nhẹ hướng về bài học — KHÔNG gắn cờ, KHÔNG báo GV.',
+  },
+}
+
+// khoa: 1 trong 3 khóa cấu hình tầng từ khóa. items: [{tu_khoa, kich_hoat, la_mac_dinh}].
+// onDoi(khoa, danh_sach_moi): lưu ngay khi thêm/bật-tắt/xóa (không cần nút "Lưu" riêng).
+// Dạng accordion (đóng mặc định) + bảng + ô tìm kiếm — danh sách dài (mặc định đã > 15
+// từ/tầng, admin thêm thêm nữa) vẫn dễ scan thay vì 1 khối thẻ tràn lan.
+function KhoiTuKhoa({ khoa, items, onDoi }) {
+  const [moRong, setMoRong] = useState(false)
+  const [timKiem, setTimKiem] = useState('')
+  const [tuMoi, setTuMoi] = useState('')
+  const meta = NHAN_TANG_TU_KHOA[khoa]
+  const soBat = items.filter((x) => x.kich_hoat).length
+
+  function themTu() {
+    const t = tuMoi.trim()
+    if (!t) return
+    onDoi(khoa, [...items, { tu_khoa: t, kich_hoat: true }])
+    setTuMoi('')
+  }
+  function batTat(item) {
+    onDoi(khoa, items.map((x) => (x.tu_khoa === item.tu_khoa ? { ...x, kich_hoat: !x.kich_hoat } : x)))
+  }
+  function xoa(item) {
+    onDoi(khoa, items.filter((x) => x.tu_khoa !== item.tu_khoa))
+  }
+
+  const timChuan = timKiem.trim().toLowerCase()
+  const hienThi = timChuan
+    ? items.filter((it) => it.tu_khoa.toLowerCase().includes(timChuan))
+    : items
+
+  return (
+    <div className="rounded-lg border border-border overflow-hidden">
+      <button type="button" onClick={() => setMoRong((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-surface-2 text-left">
+        <div>
+          <p className="text-sm font-semibold text-ink">{meta.title}</p>
+          <p className="text-[11px] text-muted">{meta.hint}</p>
+        </div>
+        <span className="text-xs text-muted whitespace-nowrap">
+          {items.length} từ · {soBat} đang bật {moRong ? '▾' : '▸'}
+        </span>
+      </button>
+
+      {moRong && (
+        <div className="p-4 flex flex-col gap-3 border-t border-border">
+          <Input
+            placeholder="🔍 Tìm từ khóa..."
+            value={timKiem}
+            onChange={(e) => setTimKiem(e.target.value)}
+          />
+          <Table
+            columns={[
+              { key: 'tu_khoa', header: 'Từ khóa' },
+              {
+                key: 'loai',
+                header: 'Loại',
+                render: (r) => (
+                  <Badge tone={r.la_mac_dinh ? 'neutral' : 'primary'}>
+                    {r.la_mac_dinh ? 'Mặc định' : 'Tự thêm'}
+                  </Badge>
+                ),
+              },
+              {
+                key: 'trang_thai',
+                header: 'Trạng thái',
+                render: (r) => (
+                  <button type="button" onClick={() => batTat(r)}
+                    className={`text-xs font-semibold ${r.kich_hoat ? 'text-success' : 'text-muted'}`}
+                    title={r.kich_hoat ? 'Bấm để tắt từ khóa này' : 'Bấm để bật lại từ khóa này'}>
+                    {r.kich_hoat ? '● Bật' : '○ Tắt'}
+                  </button>
+                ),
+              },
+              {
+                key: 'hanh_dong',
+                header: '',
+                className: 'w-10 text-center',
+                render: (r) =>
+                  r.la_mac_dinh ? (
+                    <span title="Từ khóa mặc định — chỉ tắt được, không xóa">🔒</span>
+                  ) : (
+                    <button type="button" className="text-danger font-bold" title="Xóa từ khóa tự thêm"
+                      onClick={() => xoa(r)}>
+                      ✕
+                    </button>
+                  ),
+              },
+            ]}
+            rows={hienThi}
+            rowKey={(r) => r.tu_khoa}
+            empty={timChuan ? 'Không tìm thấy từ khóa nào khớp.' : 'Chưa có từ khóa nào.'}
+          />
+          <div className="flex gap-2 items-end max-w-md">
+            <Input label="Thêm từ khóa mới" value={tuMoi} placeholder="vd: bỏ học đi bụi"
+              onChange={(e) => setTuMoi(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); themTu() } }}
+            />
+            <Button size="sm" onClick={themTu} disabled={!tuMoi.trim()}>Thêm</Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -58,6 +179,13 @@ export default function CauHinh() {
   // Số gợi ý mặc định theo độ khó
   const [goiY, setGoiY] = useState(null)
   const [msgGoiY, setMsgGoiY] = useState('')
+
+  // Từ khóa lọc an toàn (3 tầng) — admin tự quản lý, không cần sửa code
+  const [thuVanBan, setThuVanBan] = useState('')
+  const [ketQuaThu, setKetQuaThu] = useState(null)
+  const [dangThu, setDangThu] = useState(false)
+  const [hienImportTuKhoa, setHienImportTuKhoa] = useState(false)
+  const [msgImportTuKhoa, setMsgImportTuKhoa] = useState('')
 
   // Giới hạn lượt AI mỗi ngày (phanh chi phí)
   const [gioiHanHS, setGioiHanHS] = useState('')
@@ -148,6 +276,22 @@ export default function CauHinh() {
       nap()
       setMsgGoiY('Đã lưu.')
     } catch (e) { setError(e.message) }
+  }
+
+  async function luuTuKhoa(khoa, arr) {
+    setError('')
+    try {
+      const c = await api.adminSetConfig(khoa, arr)
+      setCfg(c)
+    } catch (e) { setError(e.message) }
+  }
+
+  async function thuKiemTraTuKhoa() {
+    if (!thuVanBan.trim()) return
+    setDangThu(true); setError('')
+    try {
+      setKetQuaThu(await api.adminTuKhoaThu(thuVanBan.trim()))
+    } catch (e) { setError(e.message) } finally { setDangThu(false) }
   }
 
   async function luu(khoa, gia_tri) {
@@ -293,6 +437,46 @@ export default function CauHinh() {
           </p>
           {msg && <p className="text-sm text-success sm:col-span-2">{msg}</p>}
           {error && <p className="text-sm text-danger sm:col-span-2">{error}</p>}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader title="Từ khóa lọc an toàn"
+          subtitle="Tự thêm/bật/tắt từ khóa mà không cần sửa code — áp dụng ngay cho ô chat hỏi gia sư và 'Nhờ thầy/cô'. Từ khóa mặc định (🔒) chỉ tắt được, không xóa được, để giữ nền an toàn."
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setHienImportTuKhoa(true)}>
+              Import từ file mẫu
+            </Button>
+          }
+        />
+        <CardBody className="flex flex-col gap-5">
+          {msgImportTuKhoa && <p className="text-sm text-success">{msgImportTuKhoa}</p>}
+          <KhoiTuKhoa khoa="tu_khoa_khan_cap" items={cfg.tu_khoa_khan_cap || []} onDoi={luuTuKhoa} />
+          <KhoiTuKhoa khoa="tu_khoa_khong_phu_hop" items={cfg.tu_khoa_khong_phu_hop || []} onDoi={luuTuKhoa} />
+          <KhoiTuKhoa khoa="tu_khoa_ngoai_pham_vi" items={cfg.tu_khoa_ngoai_pham_vi || []} onDoi={luuTuKhoa} />
+
+          <div className="rounded-lg bg-surface-2 px-4 py-3 flex flex-col gap-2">
+            <p className="text-sm font-semibold text-ink">Thử trước</p>
+            <p className="text-[11px] text-muted">
+              Gõ 1 câu mẫu để kiểm tra với đúng danh sách từ khóa đang lưu ở trên (không tạo phiên
+              học, không gắn cờ).
+            </p>
+            <div className="flex gap-2 items-end max-w-lg">
+              <Input value={thuVanBan} placeholder="vd: em cảm thấy mệt muốn chết"
+                onChange={(e) => setThuVanBan(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); thuKiemTraTuKhoa() } }}
+              />
+              <Button size="sm" onClick={thuKiemTraTuKhoa} disabled={dangThu || !thuVanBan.trim()}>
+                {dangThu ? 'Đang kiểm tra...' : 'Kiểm tra'}
+              </Button>
+            </div>
+            {ketQuaThu && (
+              ketQuaThu.an_toan
+                ? <Badge tone="success">An toàn — không khớp từ khóa nào</Badge>
+                : <Badge tone={ketQuaThu.khan_cap ? 'danger' : 'warning'}>{ketQuaThu.ly_do}</Badge>
+            )}
+          </div>
+          {error && <p className="text-sm text-danger">{error}</p>}
         </CardBody>
       </Card>
 
@@ -464,6 +648,18 @@ export default function CauHinh() {
           </div>
         </CardBody>
       </Card>
+
+      {hienImportTuKhoa && (
+        <ImportTuKhoaDialog
+          cfg={cfg}
+          onClose={() => setHienImportTuKhoa(false)}
+          onSaved={(soLuong) => {
+            setHienImportTuKhoa(false)
+            setMsgImportTuKhoa(`Đã import ${soLuong} từ khóa mới.`)
+            nap()
+          }}
+        />
+      )}
     </div>
   )
 }

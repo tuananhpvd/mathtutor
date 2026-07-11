@@ -253,3 +253,118 @@ def test_users_list_admin(db, client):
     r = client.get("/api/admin/users", headers=h)
     assert r.status_code == 200
     assert len(r.json()) == 3
+
+
+# ----- Từ khóa an toàn quản lý qua admin (không sửa code) -----
+
+def test_tu_khoa_an_toan_mac_dinh_hien_du_khi_chua_tuy_chinh(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    r = client.get("/api/admin/config", headers=h).json()
+    assert any(t["tu_khoa"] == "tự tử" for t in r["tu_khoa_khan_cap"])
+    assert all(t["la_mac_dinh"] for t in r["tu_khoa_khan_cap"])
+
+
+def test_them_tu_khoa_moi_va_ap_dung_ngay_trong_chat(db, client):
+    """Admin thêm 1 từ khóa mới KHÔNG có sẵn trong code — HS gõ đúng từ đó ngay lập tức
+    bị lớp lọc phát hiện, không cần sửa code/deploy lại."""
+    from app.auth.security import hash_password
+    from app.models.lop import Lop
+    from app.models.problem import Problem, TrangThaiDuyet
+    from app.models.solution_step import SolutionStep
+    from app.models.user import User, VaiTro
+
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+
+    r = client.get("/api/admin/config", headers=h).json()
+    danh_sach = r["tu_khoa_khong_phu_hop"] + [{"tu_khoa": "bỏ học đi bụi", "kich_hoat": True}]
+    r2 = client.patch("/api/admin/config", headers=h,
+                      json={"khoa": "tu_khoa_khong_phu_hop", "gia_tri": danh_sach})
+    assert r2.status_code == 200
+    them = next(t for t in r2.json()["tu_khoa_khong_phu_hop"] if t["tu_khoa"] == "bỏ học đi bụi")
+    assert them["la_mac_dinh"] is False
+
+    # HS gõ đúng từ mới thêm (không dấu) → phải bị lọc, dù từ này chưa từng có trong code.
+    lop = Lop(ten="12A1")
+    db.add(lop)
+    db.flush()
+    gv = User(vai_tro=VaiTro.gv, ho_ten="GV X", dang_nhap="gvtukhoa",
+              mat_khau_hash=hash_password("password"))
+    hs = User(vai_tro=VaiTro.hs, ho_ten="HS A", dang_nhap="hstukhoa",
+              mat_khau_hash=hash_password("password"), lop_id=lop.id)
+    db.add_all([gv, hs])
+    db.flush()
+    lop.gv_id = gv.id
+    p = Problem(chuyen_de="Test", loai_cau="TLN", do_kho="tb", de_bai="Tìm x.",
+                loai_dap_an_nhap="gia_tri", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                nguoi_tao_id=gv.id, meta={"dap_an_cuoi": "5"})
+    db.add(p)
+    db.flush()
+    db.add(SolutionStep(problem_id=p.id, thu_tu=1, pham_vi="ca_bai", mo_ta="b1",
+                        bieu_thuc_ket_qua="5", danh_sach_goi_y=["g1", "g2"]))
+    db.commit()
+    h_hs = {"Authorization": f"Bearer {_login(client, 'hstukhoa')}"}
+    rp = client.post("/api/sessions", headers=h_hs, json={"problem_id": p.id})
+    sid = rp.json()["session_id"]
+    rm = client.post(f"/api/sessions/{sid}/message", headers=h_hs,
+                     json={"noi_dung": "em muon bo hoc di bui"})
+    assert rm.status_code == 200
+    assert rm.json()["y_dinh"] == "tu_choi"
+    assert "bỏ học đi bụi" not in rm.json()["van_ban"]  # không lặp từ khóa cho HS thấy
+
+
+def test_tu_khoa_mac_dinh_chi_tat_duoc_khong_the_mat_khoi_danh_sach(db, client):
+    """Gửi lên danh sách THIẾU 1 từ khóa mặc định (vd lỗi giao diện/gọi API thủ công) →
+    server tự thêm lại ở trạng thái BẬT, không cho phép làm mất từ khóa nền an toàn."""
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    r = client.get("/api/admin/config", headers=h).json()
+    con_lai = [t for t in r["tu_khoa_khan_cap"] if t["tu_khoa"] != "tự tử"]
+    r2 = client.patch("/api/admin/config", headers=h,
+                      json={"khoa": "tu_khoa_khan_cap", "gia_tri": con_lai})
+    assert r2.status_code == 200
+    tu_tu = next(t for t in r2.json()["tu_khoa_khan_cap"] if t["tu_khoa"] == "tự tử")
+    assert tu_tu["kich_hoat"] is True
+    assert tu_tu["la_mac_dinh"] is True
+
+
+def test_tat_tu_khoa_mac_dinh_thi_khong_con_bat_duoc_nhung_van_con_trong_danh_sach(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    r = client.get("/api/admin/config", headers=h).json()
+    moi = [
+        {**t, "kich_hoat": False} if t["tu_khoa"] == "ma túy" else t
+        for t in r["tu_khoa_khong_phu_hop"]
+    ]
+    client.patch("/api/admin/config", headers=h,
+                 json={"khoa": "tu_khoa_khong_phu_hop", "gia_tri": moi})
+
+    from app.services.admin_service import lay_tu_khoa_an_toan
+    tu_khoa = lay_tu_khoa_an_toan(db)
+    assert "ma túy" not in tu_khoa["tu_khoa_khong_phu_hop"]
+
+    r2 = client.get("/api/admin/config", headers=h).json()
+    ma_tuy = next(t for t in r2["tu_khoa_khong_phu_hop"] if t["tu_khoa"] == "ma túy")
+    assert ma_tuy["kich_hoat"] is False
+    assert ma_tuy["la_mac_dinh"] is True
+
+
+def test_tu_khoa_thu_dung_danh_sach_dang_luu(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    r = client.post("/api/admin/tu-khoa-thu", headers=h, json={"van_ban": "em muốn chết"})
+    assert r.status_code == 200
+    assert r.json()["an_toan"] is False
+    assert r.json()["khan_cap"] is True
+
+    r2 = client.post("/api/admin/tu-khoa-thu", headers=h,
+                     json={"van_ban": "em tính đạo hàm ra sao"})
+    assert r2.json()["an_toan"] is True
+
+
+def test_tu_khoa_thu_khong_phai_admin_bi_chan(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    r = client.post("/api/admin/tu-khoa-thu", headers=h, json={"van_ban": "test"})
+    assert r.status_code == 403
