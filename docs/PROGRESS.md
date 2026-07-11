@@ -4,7 +4,31 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v92**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v93**)
+
+- **✨ (v93) Ô chat tự do "Hỏi gia sư" trong Phòng học + nâng cấp an toàn nội dung.**
+  - Orchestrator: HS gõ câu hỏi tự do (không phải đáp án) → `y_dinh="giai_thich_ngan"` (có ngữ
+    cảnh) hoặc `"dinh_huong"` (rỗng); sai liên tiếp ≥2 lần tự leo cấp gợi ý
+    (`NGUONG_SAI_TU_DONG_GOI_Y`); hết gợi ý → `y_dinh="het_goi_y"`, nút gợi ý khoá lại, nút
+    "Nhờ thầy/cô" nổi bật (`ring-warning animate-pulse`) — bỏ trùng lặp 2 nút "Nhờ thầy/cô"
+    trước đây (mỗi nút 1 vai trò riêng). Thêm `tong_so_lan_sai` (cộng dồn, không reset) +
+    `diem_qua_trinh` (chỉ GV/Admin thấy) để kể "câu chuyện hành trình" làm bài, không chỉ
+    đúng/sai cuối.
+  - **An toàn 2 tầng** (`core/guard/safety.py`): tầng `khan_cap` (tự tử/tự hại/muốn chết — mở
+    rộng nhiều từ khoá, ưu tiên cao nhất, thà bắt nhầm còn hơn bỏ sót) và tầng thường
+    (`noi_dung_khong_phu_hop`/`ngoai_pham_vi`). CẢ 2 tầng KHÔNG còn chặn bằng HTTP 400 lộ từ
+    khoá gốc — luôn trả 200 với câu trả lời thân thiện, chèn thẳng vào luồng chat, hướng HS
+    quay lại bài học. Tầng khẩn cấp + không phù hợp vẫn tự động gắn cờ + báo GV (tiêu đề phân
+    theo mức độ 🆘/⚠️); tầng ngoài phạm vi thì không gắn cờ. "Nhờ thầy/cô" có nội dung nhạy
+    cảm: KHÔNG chặn, luôn tới GV, chỉ gắn cờ khẩn cấp (quyết định sản phẩm — xem mục 4).
+  - Cờ theo dõi: thêm gắn cờ thủ công (`thu_cong`) từ trang Theo dõi tiến bộ; rò rỉ đáp án gắn
+    cờ theo từng lượt chốt chặn cụ thể (`Flag.turn_id`), không chỉ đếm gộp; thông báo GV bấm
+    vào cờ mở thẳng đúng dòng trong "Cờ theo dõi" (`lien_ket_loai="co"`, tái dùng enum `co`).
+  - `MixedChatInput.jsx`: hỗ trợ nhập công thức Toán (bảng ký hiệu hiện khi focus), nút gửi nằm
+    ngay dưới ô (không bị đẩy khi bảng công thức mở).
+  - Test mới: `test_chat_tu_do.py`, `test_gan_co_tu_dong.py` + mở rộng `test_orchestrator.py`,
+    `test_tn4pa_tnds.py`, `test_guard.py`, `test_de_bai_ngu_canh.py`. `pytest` 452/452,
+    `ruff` sạch, frontend build+lint sạch.
 
 > Lưu ý số phiên bản: 3 mục dưới đây (chuông thông báo GV, chuông thông báo HS, fix mất focus
 > ô trả lời) ban đầu dự tính tách thành v89/v90/v91 riêng, nhưng thực tế được gộp chung 1 lần
