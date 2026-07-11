@@ -3,7 +3,8 @@
 from datetime import datetime, timedelta, timezone
 
 from app.auth.security import hash_password
-from app.models.session import Session as SessionModel, TrangThaiSession
+from app.models.session import Session as SessionModel
+from app.models.session import TrangThaiSession
 from app.models.user import User, VaiTro
 from app.services.chuoi_ngay_service import (
     DINH_NGHIA_COT_MOC,

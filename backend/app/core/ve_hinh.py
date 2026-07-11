@@ -295,9 +295,8 @@ def du_lieu_do_thi(bieu_thuc_str: str, cua_so: tuple[float, float] | None = None
         if not bi_loai:
             try:
                 y = f_so(x)
-                if isinstance(y, complex) or not math.isfinite(y):
-                    bi_loai = True
-                elif not (y_hien_thi_lo <= y <= y_hien_thi_hi):
+                if (isinstance(y, complex) or not math.isfinite(y)
+                        or not (y_hien_thi_lo <= y <= y_hien_thi_hi)):
                     bi_loai = True
             except (ZeroDivisionError, ValueError, OverflowError):
                 bi_loai = True

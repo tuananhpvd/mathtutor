@@ -43,12 +43,12 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
     """Tạo câu hỏi mới (GV/Admin nhập). Trạng thái khởi tạo: cho_duyet."""
     try:
         loai = LoaiCau(du_lieu.get("loai_cau"))
-    except ValueError:
-        raise ValueError("loai_cau phải là TN4PA | TNDS | TLN")
+    except ValueError as e:
+        raise ValueError("loai_cau phải là TN4PA | TNDS | TLN") from e
     try:
         do_kho = DoKho(du_lieu.get("do_kho", "tb"))
-    except ValueError:
-        raise ValueError("do_kho phải là de | tb | kho")
+    except ValueError as e:
+        raise ValueError("do_kho phải là de | tb | kho") from e
 
     de_bai = (du_lieu.get("de_bai") or "").strip()
     if not de_bai:
@@ -67,8 +67,8 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
 
     try:
         che_do = CheDoSoKhopEnum(du_lieu.get("che_do_so_khop", "tuong_duong"))
-    except ValueError:
-        raise ValueError("che_do_so_khop không hợp lệ")
+    except ValueError as e:
+        raise ValueError("che_do_so_khop không hợp lệ") from e
 
     meta = du_lieu.get("meta") or {}
     if loai == LoaiCau.TLN:
@@ -199,8 +199,8 @@ def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
     if "do_kho" in du_lieu and du_lieu["do_kho"]:
         try:
             p.do_kho = DoKho(du_lieu["do_kho"])
-        except ValueError:
-            raise ValueError("do_kho phải là de | tb | kho")
+        except ValueError as e:
+            raise ValueError("do_kho phải là de | tb | kho") from e
     if "meta" in du_lieu and du_lieu["meta"] is not None:
         if p.loai_cau == LoaiCau.TLN:
             _kiem_tra_dap_an_tln(du_lieu["meta"])
@@ -208,8 +208,8 @@ def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
     if "trang_thai_duyet" in du_lieu and du_lieu["trang_thai_duyet"]:
         try:
             p.trang_thai_duyet = TrangThaiDuyet(du_lieu["trang_thai_duyet"])
-        except ValueError:
-            raise ValueError("trang_thai_duyet không hợp lệ")
+        except ValueError as e:
+            raise ValueError("trang_thai_duyet không hợp lệ") from e
     if "loi_giai_chi_tiet" in du_lieu and du_lieu["loi_giai_chi_tiet"] is not None:
         p.loi_giai_chi_tiet = du_lieu["loi_giai_chi_tiet"].strip()
     if "hien_loi_giai_chi_tiet" in du_lieu and du_lieu["hien_loi_giai_chi_tiet"] is not None:

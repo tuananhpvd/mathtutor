@@ -58,9 +58,11 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   // Áp bộ lọc ban đầu (vd từ "Luyện ngay" của trang Tiến độ): chọn sẵn chuyên đề + dạng.
   useEffect(() => {
     if (!locBanDau || danhMuc.length === 0) return
-    const cd = danhMuc.find((c) => c.ten === locBanDau.chuyen_de)
-    if (cd) setFChuyenDeId(String(cd.id))
-    if (locBanDau.dang_id) setFDangId(String(locBanDau.dang_id))
+    setTimeout(() => {
+      const cd = danhMuc.find((c) => c.ten === locBanDau.chuyen_de)
+      if (cd) setFChuyenDeId(String(cd.id))
+      if (locBanDau.dang_id) setFDangId(String(locBanDau.dang_id))
+    }, 0)
   }, [danhMuc, locBanDau])
 
   // Dạng của chuyên đề đang chọn

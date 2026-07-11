@@ -102,7 +102,7 @@ def them_chuyen_de(body: ChuyenDeCreate, current_user: CurrentUser, db: Session 
     try:
         cd = tao_chuyen_de(db, body.ten, body.mo_ta, body.thu_tu, current_user.id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": cd.id, "ten": cd.ten, "mo_ta": cd.mo_ta, "thu_tu": cd.thu_tu}
 
 
@@ -118,7 +118,7 @@ def cap_nhat_chuyen_de(cd_id: int, body: ChuyenDeUpdate, current_user: CurrentUs
     try:
         cd = sua_chuyen_de(db, cd_id, body.model_dump(exclude_none=True))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã sửa chuyên đề", ten_cu)
     return {"id": cd.id, "ten": cd.ten, "mo_ta": cd.mo_ta, "thu_tu": cd.thu_tu}
 
@@ -134,7 +134,7 @@ def xoa_chuyen_de_api(cd_id: int, current_user: CurrentUser, db: Session = Depen
     try:
         xoa_chuyen_de(db, cd_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã xóa chuyên đề", ten_cu)
     return {"ok": True}
 
@@ -152,7 +152,7 @@ def them_dang(body: DangCreate, current_user: CurrentUser, db: Session = Depends
     try:
         d = tao_dang(db, body.chuyen_de_id, body.ten, body.mo_ta, body.thu_tu, cd.nguoi_tao_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, cd.nguoi_tao_id, "đã thêm dạng vào chuyên đề", cd.ten)
     return {"id": d.id, "chuyen_de_id": d.chuyen_de_id, "ten": d.ten, "mo_ta": d.mo_ta, "thu_tu": d.thu_tu}
 
@@ -169,7 +169,7 @@ def cap_nhat_dang(dang_id: int, body: DangUpdate, current_user: CurrentUser,
     try:
         d = sua_dang(db, dang_id, body.model_dump(exclude_none=True))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã sửa dạng", ten_cu)
     return {"id": d.id, "chuyen_de_id": d.chuyen_de_id, "ten": d.ten, "mo_ta": d.mo_ta, "thu_tu": d.thu_tu}
 
@@ -185,6 +185,6 @@ def xoa_dang_api(dang_id: int, current_user: CurrentUser, db: Session = Depends(
     try:
         xoa_dang(db, dang_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã xóa dạng", ten_cu)
     return {"ok": True}

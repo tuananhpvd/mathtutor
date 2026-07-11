@@ -58,9 +58,16 @@ export default function XemLaiBai({ sessionId, onDong }) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setData(null)
-    setError('')
-    api.xemLaiPhien(sessionId).then(setData).catch((e) => setError(e.message))
+    let con = true
+    setTimeout(() => {
+      if (!con) return
+      setData(null)
+      setError('')
+      api.xemLaiPhien(sessionId).then((d) => con && setData(d)).catch((e) => con && setError(e.message))
+    }, 0)
+    return () => {
+      con = false
+    }
   }, [sessionId])
 
   const tk = data?.thong_ke

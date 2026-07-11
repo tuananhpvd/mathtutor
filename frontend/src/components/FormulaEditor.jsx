@@ -9,17 +9,23 @@ import { useEffect, useRef, useState } from 'react'
 export default function FormulaEditor({ value = '', onChange, placeholder = 'Nhập công thức...' }) {
   const ref = useRef(null)
   const [ready, setReady] = useState(false)
+  const [loiTai, setLoiTai] = useState(false)
+  const [thuLai, setThuLai] = useState(0)
 
   // Tải & đăng ký custom element math-field
   useEffect(() => {
     let con = true
-    import('mathlive').then(() => {
-      if (con) setReady(true)
-    })
+    import('mathlive')
+      .then(() => {
+        if (con) setReady(true)
+      })
+      .catch(() => {
+        if (con) setLoiTai(true)
+      })
     return () => {
       con = false
     }
-  }, [])
+  }, [thuLai])
 
   // Gắn listener sau khi phần tử đã render & upgrade
   useEffect(() => {
@@ -50,6 +56,23 @@ export default function FormulaEditor({ value = '', onChange, placeholder = 'Nh�
     'w-full border border-border rounded-md px-3 py-2 text-base bg-surface ' +
     'focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[44px]'
 
+  if (loiTai) {
+    return (
+      <div className={`${cls} flex items-center justify-between gap-2 text-danger`}>
+        <span>Không tải được bộ soạn công thức. Kiểm tra kết nối mạng.</span>
+        <button
+          type="button"
+          className="shrink-0 rounded border border-danger px-2 py-0.5 text-xs hover:bg-danger-soft"
+          onClick={() => {
+            setLoiTai(false)
+            setThuLai((n) => n + 1)
+          }}
+        >
+          Thử lại
+        </button>
+      </div>
+    )
+  }
   if (!ready) {
     return <div className={`${cls} text-muted animate-pulse`}>Đang tải bộ soạn công thức…</div>
   }

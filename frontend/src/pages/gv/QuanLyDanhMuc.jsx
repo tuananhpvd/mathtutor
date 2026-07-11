@@ -140,8 +140,10 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
   }
 
   useEffect(() => {
-    setLoading(true)
-    tai().catch((e) => setError(e.message)).finally(() => setLoading(false))
+    setTimeout(() => {
+      setLoading(true)
+      tai().catch((e) => setError(e.message)).finally(() => setLoading(false))
+    }, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gvId])
 

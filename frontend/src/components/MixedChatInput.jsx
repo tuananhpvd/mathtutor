@@ -4,7 +4,7 @@
  * - Bấm MathPalette → chèn $latex$ tại vị trí con trỏ.
  * - Preview render $...$ thành KaTeX khi có nội dung.
  */
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import Formula from './Formula'
 import MathPalette from './answer/MathPalette'
 
@@ -24,7 +24,9 @@ export default function MixedChatInput({ value, onChange, placeholder = 'Nhập 
   const textareaRef = useRef(null)
   // Ref để adapter luôn đọc được giá trị mới nhất (tránh stale closure).
   const valueRef = useRef(value)
-  valueRef.current = value
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
 
   function getMf() {
     const el = textareaRef.current

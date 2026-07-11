@@ -1,5 +1,5 @@
 """Chặn dò mật khẩu (brute-force) bằng cửa sổ trượt trong bộ nhớ — không cần thêm
-dependency mới (khớp phong cách dự án dùng thư viện tối giản: jose/passlib thuần thay
+dependency mới (khớp phong cách dự án dùng thư viện tối giản: PyJWT/passlib thuần thay
 vì framework auth nặng). Đủ dùng cho quy mô 1 trường/1 instance Render; khởi động lại
 app thì bộ đếm reset — chấp nhận được, không phải hổng bảo mật (Render không restart
 theo từng request).

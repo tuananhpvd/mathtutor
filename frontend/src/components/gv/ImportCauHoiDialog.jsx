@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { api } from '../../api'
 import { Button } from '../ui'
+import { kiemTraDapAnTLN } from '../../utils/cauHoi'
 
 const TABS = [
   { key: 'TN4PA', label: 'Trắc nghiệm ABCD' },
@@ -9,20 +10,10 @@ const TABS = [
   { key: 'TLN', label: 'Trả lời ngắn' },
 ]
 
-const RE_SO_TLN = /^-?\d+([.,]\d+)?$/
-
-function kiemTraDapAnTLN(v) {
-  const val = String(v ?? '').trim()
-  if (!val) return 'Thiếu đáp án cuối'
-  if (val.length > 4) return 'Đáp án cuối tối đa 4 ký tự'
-  if (!RE_SO_TLN.test(val)) return 'Đáp án cuối phải là số (ví dụ: 3, -2, 1,5)'
-  return null
-}
-
 const DO_KHO_MAP = {
   'dễ': 'de', 'de': 'de', 'dê': 'de',
   'trung bình': 'tb', 'tb': 'tb', 'trung binh': 'tb',
-  'khó': 'kho', 'kho': 'kho', 'khó': 'kho',
+  'khó': 'kho', 'kho': 'kho',
 }
 
 function chuanHoaDoKho(v) {
@@ -435,6 +426,7 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
     if (!rows) return
     const valid = rows
       .filter((r) => !r.ly_do)
+      // eslint-disable-next-line no-unused-vars -- loại "dong"/"ly_do" khỏi payload gửi API
       .map(({ dong, ly_do, hinh_ten, ...rest }) => ({
         ...rest,
         hinh_anh: hinh_ten ? (anhMap[hinh_ten] || null) : null,

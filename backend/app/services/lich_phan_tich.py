@@ -7,6 +7,7 @@ thread riêng (asyncio.to_thread) để không chặn event loop.
 """
 
 import asyncio
+import contextlib
 import logging
 import os
 
@@ -90,8 +91,6 @@ async def dung() -> None:
     global _task
     if _task is not None and not _task.done():
         _task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await _task
-        except asyncio.CancelledError:
-            pass
     _task = None

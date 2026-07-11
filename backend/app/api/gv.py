@@ -52,7 +52,7 @@ def them_lop(body: TaoLopGVRequest, current_user: CurrentUser, db: Session = Dep
     try:
         lop_ = gv_service.tao_lop_gv(db, current_user.id, body.ten)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": lop_.id, "ten": lop_.ten}
 
 
@@ -85,7 +85,7 @@ def sua_lop(lop_id: int, body: SuaLopGVRequest, current_user: CurrentUser,
     try:
         lop_ = gv_service.sua_lop_gv(db, current_user.id, lop_id, body.ten)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": lop_.id, "ten": lop_.ten}
 
 
@@ -94,7 +94,7 @@ def xoa_lop(lop_id: int, current_user: CurrentUser, db: Session = Depends(get_db
     try:
         gv_service.xoa_lop_gv(db, current_user.id, lop_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"ok": True}
 
 
@@ -110,7 +110,7 @@ def tao_hoc_sinh(body: TaoHocSinhRequest, current_user: CurrentUser,
         hs = gv_service.tao_hs_gv(db, current_user.id, body.ho_ten, body.dang_nhap,
                                   body.mat_khau, body.lop_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": hs.id, "dang_nhap": hs.dang_nhap}
 
 
@@ -120,7 +120,7 @@ def sua_hoc_sinh(hs_id: int, body: SuaHocSinhRequest, current_user: CurrentUser,
     try:
         hs = gv_service.sua_hs_gv(db, current_user.id, hs_id, body.model_dump(exclude_unset=True))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": hs.id, "ho_ten": hs.ho_ten, "dang_nhap": hs.dang_nhap}
 
 
@@ -130,7 +130,7 @@ def gan_lop(hs_id: int, body: GanLopRequest, current_user: CurrentUser,
     try:
         hs = gv_service.gan_lop_hs_gv(db, current_user.id, hs_id, body.lop_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": hs.id, "lop_id": hs.lop_id}
 
 
@@ -140,7 +140,7 @@ def doi_trang_thai(hs_id: int, body: DoiTrangThaiRequest, current_user: CurrentU
     try:
         hs = gv_service.khoa_hs_gv(db, current_user.id, hs_id, body.trang_thai)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": hs.id, "trang_thai": hs.trang_thai.value}
 
 
@@ -149,7 +149,7 @@ def xoa_hoc_sinh(hs_id: int, current_user: CurrentUser, db: Session = Depends(ge
     try:
         gv_service.xoa_hs_gv(db, current_user.id, hs_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"ok": True}
 
 
@@ -170,7 +170,7 @@ def import_hs_batch(lop_id: int, body: ImportHSBatchRequest, current_user: Curre
             [h.model_dump() for h in body.hoc_sinhs],
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return result
 
 
@@ -180,7 +180,7 @@ def nhan_xet_nhap(hs_id: int, current_user: CurrentUser, db: Session = Depends(g
     try:
         return {"noi_dung": gv_service.nhap_nhan_xet(db, current_user.id, hs_id)}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/hoc-sinh/{hs_id}/nhan-xet", dependencies=_GV)
@@ -190,4 +190,4 @@ def gui_nhan_xet(hs_id: int, body: GuiNhanXetRequest, current_user: CurrentUser,
     try:
         return gv_service.gui_nhan_xet(db, current_user.id, hs_id, body.noi_dung)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

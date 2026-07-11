@@ -54,7 +54,7 @@ def sinh_cau_hoi(
             status_code=502,
             detail="Không sinh được câu hỏi (mô hình AI lỗi hoặc trả dữ liệu không hợp lệ). "
                    "Vui lòng thử lại sau giây lát. Chi tiết: " + str(e)[:200],
-        )
+        ) from e
     if not ket_qua:
         raise HTTPException(
             status_code=502,
@@ -82,13 +82,13 @@ def tao_buoc_goi_y_api(
     try:
         ket_qua = tao_nhap_buoc_goi_y(db, body.model_dump(), llm)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:  # KHÔNG để lộ 500 — báo lỗi rõ ràng để GV thử lại
         raise HTTPException(
             status_code=502,
             detail="AI không tạo được bước/gợi ý hợp lệ (mô hình lỗi hoặc trả dữ liệu "
                    "không đúng). Vui lòng thử lại. Chi tiết: " + str(e)[:200],
-        )
+        ) from e
     return ket_qua
 
 
@@ -112,15 +112,15 @@ def doc_de_tu_anh_api(
     try:
         ket_qua = doc_de_tu_anh(llm, body.anh_base64, body.mime_type, body.loai_cau_ky_vong)
     except KhongHoTroDocAnhError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:  # KHÔNG để lộ 500 — báo lỗi rõ ràng để GV thử lại
         raise HTTPException(
             status_code=502,
             detail="AI không đọc được ảnh (mô hình lỗi hoặc trả dữ liệu không đúng). "
                    "Vui lòng thử lại. Chi tiết: " + str(e)[:200],
-        )
+        ) from e
     return ket_qua
 
 
@@ -135,7 +135,7 @@ def luu_buoc_goi_y_api(
         problem = luu_cau_nhap(db, body.cau, current_user.id)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"Không lưu được câu hỏi: {str(e)[:200]}")
+        raise HTTPException(status_code=400, detail=f"Không lưu được câu hỏi: {str(e)[:200]}") from e
     return {"id": problem.id, "trang_thai_duyet": problem.trang_thai_duyet.value}
 
 
@@ -172,7 +172,7 @@ def duyet(
     try:
         problem = duyet_cau(db, problem_id, body.hanh_dong)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     # Quản lý duyệt/loại câu của GV khác → thông báo cho chủ.
     if co_toan_quyen(current_user) and owner_id and owner_id != current_user.id:
         nhan = "đã duyệt câu hỏi" if body.hanh_dong == "duyet" else "đã loại câu hỏi"

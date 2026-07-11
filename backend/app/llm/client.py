@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import re
@@ -272,7 +273,7 @@ class StubLLMClient(LLMClient):
                 {"thu_tu": 1, "pham_vi": k,
                  "mo_ta": f"Xét ý {k}",
                  "bieu_thuc_ket_qua": "0", "danh_sach_goi_y": goi_y(b.get("so_goi_y", 2))}
-                for k, b in zip(("a", "b", "c", "d"), cau_truc)
+                for k, b in zip(("a", "b", "c", "d"), cau_truc, strict=True)
             ]
         else:  # TLN
             meta = {"dap_an_cuoi": "0", "quy_tac_lam_tron": None, "don_vi": None}
@@ -310,19 +311,21 @@ class OpenAILLMClient(LLMClient):
     def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
             from openai import OpenAI  # type: ignore
-        except ImportError:
-            raise ImportError("pip install openai để dùng provider openai")
+        except ImportError as e:
+            raise ImportError("pip install openai để dùng provider openai") from e
         self._client = OpenAI(api_key=api_key)
         self._model = model or "gpt-4o-mini"
         self._temperature = temperature
         self._suy_nghi = suy_nghi  # bật/tắt suy luận (chỉ tác dụng với model reasoning)
 
     def _call(self, system: str, user: str) -> str:
-        kwargs = dict(
-            model=self._model,
-            temperature=self._temperature,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-        )
+        kwargs = {
+            "model": self._model,
+            "temperature": self._temperature,
+            "messages": [
+                {"role": "system", "content": system}, {"role": "user", "content": user},
+            ],
+        }
         # Model dòng reasoning (o*, gpt-5*) nhận reasoning_effort; model chat thường bỏ qua.
         if self._model.startswith(("o", "gpt-5")):
             kwargs.pop("temperature", None)
@@ -577,8 +580,8 @@ class AnthropicLLMClient(LLMClient):
     def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
             from anthropic import Anthropic  # type: ignore
-        except ImportError:
-            raise ImportError("pip install anthropic để dùng provider anthropic")
+        except ImportError as e:
+            raise ImportError("pip install anthropic để dùng provider anthropic") from e
         self._client = Anthropic(api_key=api_key)
         self._model = model or "claude-opus-4-8"
         self._temperature = temperature
@@ -587,12 +590,12 @@ class AnthropicLLMClient(LLMClient):
     def _call(self, system: str, user: str, max_tokens: int = 4096,
               suy_nghi: bool | None = None) -> str:
         dung_suy_nghi = self._suy_nghi if suy_nghi is None else suy_nghi
-        kwargs = dict(
-            model=self._model,
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
+        kwargs = {
+            "model": self._model,
+            "max_tokens": max_tokens,
+            "system": system,
+            "messages": [{"role": "user", "content": user}],
+        }
         if dung_suy_nghi:
             # Thinking thích nghi (Claude 4.6+); khi bật, không đặt temperature tùy biến.
             kwargs["thinking"] = {"type": "adaptive"}
@@ -668,8 +671,8 @@ class GeminiLLMClient(LLMClient):
     def __init__(self, api_key: str, model: str, temperature: float, suy_nghi: bool = False):
         try:
             from google import genai  # type: ignore
-        except ImportError:
-            raise ImportError("pip install google-genai để dùng provider gemini")
+        except ImportError as e:
+            raise ImportError("pip install google-genai để dùng provider gemini") from e
         self._genai = genai
         self._client = genai.Client(api_key=api_key)
         self._model = model or "gemini-2.5-flash"
@@ -686,19 +689,17 @@ class GeminiLLMClient(LLMClient):
         # None = theo cấu hình admin; tác vụ riêng có thể ép (vd phân tích luôn tắt).
         dung_suy_nghi = self._suy_nghi if suy_nghi is None else suy_nghi
 
-        cfg_kwargs = dict(
-            system_instruction=system,
-            temperature=self._temperature,
-            max_output_tokens=max_tokens,
-        )
+        cfg_kwargs = {
+            "system_instruction": system,
+            "temperature": self._temperature,
+            "max_output_tokens": max_tokens,
+        }
         # Tắt "thinking" cho tác vụ không cần suy luận sâu (vd phân tích) để token
-        # đầu ra không bị thinking ăn hết gây cắt cụt JSON. Bọc try vì bản genai cũ
+        # đầu ra không bị thinking ăn hết gây cắt cụt JSON. Bọc suppress vì bản genai cũ
         # có thể chưa có ThinkingConfig.
         if not dung_suy_nghi:
-            try:
+            with contextlib.suppress(Exception):
                 cfg_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
-            except Exception:  # noqa: BLE001
-                pass
         # response_schema: ép Gemini CHỈ sinh được JSON đúng cấu trúc (constrained decoding) —
         # loại bỏ tận gốc nhóm lỗi "JSON không hợp lệ" thay vì vá bằng regex SAU KHI nhận về.
         # Xem app/llm/prompts.py (schema_sinh_cau_hoi/schema_doc_de_tu_anh).
@@ -728,11 +729,11 @@ class GeminiLLMClient(LLMClient):
         from google.genai import errors as genai_errors  # type: ignore
         from google.genai import types  # type: ignore
 
-        cfg_kwargs = dict(
-            system_instruction=system,
-            temperature=self._temperature,
-            max_output_tokens=max_tokens,
-        )
+        cfg_kwargs = {
+            "system_instruction": system,
+            "temperature": self._temperature,
+            "max_output_tokens": max_tokens,
+        }
         if response_schema is not None:
             cfg_kwargs["response_mime_type"] = "application/json"
             cfg_kwargs["response_schema"] = response_schema

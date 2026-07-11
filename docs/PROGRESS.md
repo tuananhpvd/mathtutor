@@ -4,8 +4,38 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-10, phiên bản **v87**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v88**)
 
+- **🧹 SỬA TOÀN BỘ REVIEW.md (v88, nối tiếp v87): review 5 bước → sửa hết trừ rủi ro đã chấp
+  nhận.** User yêu cầu review toàn diện dự án theo quy trình 5 bước (hiểu dự án → kiểm tra
+  tĩnh → chạy thử thực tế → bảo mật/cấu hình → báo cáo phân loại 🔴/🟡/🟢), tạo `REVIEW.md`,
+  sau đó yêu cầu sửa hết (trừ lỗ hổng `xlsx` — chấp nhận rủi ro vì không có bản vá npm).
+  - **Kết quả review**: 0 lỗi Critical, 6 nhóm Warning, 12 nhóm Minor. Điểm đáng chú ý nhất:
+    lỗ hổng `ecdsa` (transitive qua `python-jose`) và thiếu `.catch()` ở 2 chỗ khiến trang có
+    thể kẹt vĩnh viễn khi API lỗi.
+  - **Backend đã sửa**: đổi `python-jose` → `PyJWT` (loại bỏ hẳn `ecdsa` khỏi dependency tree,
+    `pip-audit` từ 2 lỗ hổng → 0); phát hiện thêm lúc đổi: PyJWT cảnh báo secret mẫu quá ngắn
+    (<32 ký tự) mà jose cũ không cảnh báo — kéo dài secret mẫu, giữ cả giá trị cũ trong danh
+    sách "không an toàn" để không phá fail-fast production; sửa 78 chỗ `raise ... from e`
+    thiếu (B904, đa số áp dụng qua script có kiểm tra diff từng dòng, phần còn lại sửa tay);
+    dọn 10 style nits `ruff` (SIM/C4/B905), xóa thư mục `api/routes/` rỗng, nâng cấp `pip`.
+  - **Frontend đã sửa (eslint 20 lỗi → 0)**: thêm `.catch()` thiếu ở `FormulaEditor.jsx` (tải
+    MathLive lỗi giờ có nút "Thử lại") và `CauHinh.jsx` (tải cấu hình lỗi không còn kẹt vĩnh
+    viễn); chuyển `valueRef.current = value` (MixedChatInput.jsx) và component `KhoaApi`
+    (CauHinh.jsx) ra khỏi thân render; `Date.now()` (TrangChu.jsx) chuyển vào effect (phát
+    hiện `useMemo` KHÔNG đủ để qua rule "impure" mới của react-hooks, phải dùng effect thật);
+    sửa 6+1 chỗ `set-state-in-effect`; gom 3 hàm (`kiemTraDapAnTLN`, `dungDangOptions`,
+    `chuanHoaSteps`) từng trùng lặp/mixed-export giữa `QuanLyCauHoi.jsx` và
+    `ImportCauHoiDialog.jsx` về `utils/cauHoi.js` dùng chung; tách `useConfirm` khỏi
+    `ConfirmDialog.jsx` sang file riêng (không cần sửa 11 nơi đang dùng vì import qua barrel
+    `components/ui/index.js`); dọn unused import/dead code, sửa key trùng trong object literal.
+  - **Chủ động giữ nguyên có cân nhắc** (ghi rõ lý do trong `REVIEW.md`, không phải bỏ sót):
+    lỗ hổng `xlsx` (theo yêu cầu), bundle chưa code-split thêm (rủi ro Suspense/regression >
+    lợi ích, chỉ là gợi ý hiệu năng không phải lỗi), `SAWarning` khóa ngoại vòng lúc test
+    teardown (sửa đòi hỏi đổi định nghĩa FK của 2 bảng lõi `users`/`lop`, không tương xứng).
+  - **Kiểm chứng**: backend 421/421 test pass, `ruff` 0 lỗi, `pip-audit` 0 lỗ hổng; frontend
+    eslint 0 lỗi, build OK; xác nhận bằng dev server thật — đăng nhập + gọi API có token qua
+    PyJWT mới hoạt động đúng (thay đổi rủi ro cao nhất trong đợt sửa này).
 - **🔍 RÀ SOÁT TOÀN DIỆN (v87, nối tiếp v86): chuyển đổi LaTeX→SymPy + CAS chấm đáp án HS.**
   User yêu cầu nghiêm túc rà soát để không phải vá đi vá lại nhiều lần. Thay vì đợi lỗi tiếp
   theo tự lộ ra, đã test CÓ HỆ THỐNG toàn bộ ký hiệu trong bảng công thức thật (`MathPalette.jsx`

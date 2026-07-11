@@ -244,7 +244,7 @@ async def upload_hinh(file: UploadFile = File(...)):
     try:
         url = luu_hinh(data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"url": url}
 
 
@@ -261,7 +261,7 @@ def ve_do_thi(body: VeDoThiRequest):
     try:
         return du_lieu_do_thi(body.bieu_thuc, cua_so)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/ve-bbt", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -274,7 +274,7 @@ def ve_bbt(body: VeBBTRequest):
     try:
         return phan_tich_ham_so(body.bieu_thuc)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/latex-sang-sympy", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -284,7 +284,7 @@ def chuyen_doi_latex_sympy(body: LatexSangSympyRequest):
     try:
         return {"sympy": latex_sang_sympy(body.latex)}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -293,7 +293,7 @@ def tao_bai(body: ProblemCreate, current_user: CurrentUser, db: Session = Depend
     try:
         p = tao_problem(db, du_lieu, current_user.id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return _problem_full(p, _lay_dang_cd_map(db))
 
 
@@ -315,7 +315,7 @@ def cap_nhat_bai(problem_id: int, body: ProblemUpdate, current_user: CurrentUser
     try:
         p = sua_problem(db, problem_id, du_lieu)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã sửa câu hỏi", ten_bai)
     return _problem_full(p, _lay_dang_cd_map(db))
 
@@ -331,7 +331,7 @@ def xoa_bai(problem_id: int, current_user: CurrentUser, db: Session = Depends(ge
     try:
         kq = xoa_problem(db, problem_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã xóa câu hỏi", ten_bai)
     return kq
 
@@ -346,7 +346,7 @@ def khoi_phuc_bai(problem_id: int, current_user: CurrentUser, db: Session = Depe
     try:
         khoi_phuc_problem(db, problem_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"ok": True}
 
 
@@ -355,7 +355,7 @@ def xem_anh_huong(problem_id: int, db: Session = Depends(get_db)):
     try:
         return anh_huong_xoa_vinh_vien(db, problem_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.delete("/{problem_id}/vinh-vien", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
@@ -369,6 +369,6 @@ def xoa_bai_vinh_vien(problem_id: int, current_user: CurrentUser, db: Session = 
     try:
         kq = xoa_vinh_vien_problem(db, problem_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     _bao_quan_ly(db, current_user, owner_id, "đã xóa vĩnh viễn câu hỏi", ten_bai)
     return kq

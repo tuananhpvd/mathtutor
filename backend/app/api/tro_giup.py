@@ -19,7 +19,7 @@ def tao_yeu_cau(body: TaoYeuCauRequest, current_user: CurrentUser, db: Session =
     try:
         return tro_giup_service.tao_yeu_cau(db, current_user.id, body.session_id, body.noi_dung)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/gv", dependencies=_GV)
@@ -34,7 +34,7 @@ def tra_loi(yc_id: int, body: TraLoiRequest, current_user: CurrentUser,
     try:
         return tro_giup_service.tra_loi(db, current_user.id, yc_id, body.noi_dung)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.delete("/{yc_id}", dependencies=_GV)
@@ -43,4 +43,4 @@ def xoa_yeu_cau(yc_id: int, current_user: CurrentUser, db: Session = Depends(get
         tro_giup_service.xoa_yeu_cau(db, current_user.id, yc_id)
         return {"ok": True}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

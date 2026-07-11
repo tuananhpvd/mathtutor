@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader } from '../ui'
+import { Button, Card, CardBody, CardHeader } from '../ui'
 
 // Sequential tím nhạt→đậm cho mức gợi ý 0/1/2/3+ (đã chạy validate_palette: PASS)
 const MAU_MUC = ['#a294ea', '#8272e2', '#6353d0', '#4a3bc4']

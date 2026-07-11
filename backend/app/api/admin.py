@@ -58,7 +58,7 @@ def tao_user(body: TaoTaiKhoanRequest, current_user: CurrentUser, db: Session = 
     try:
         u = tao_tai_khoan(db, body.ho_ten, body.dang_nhap, body.mat_khau, body.vai_tro, body.lop_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": u.id, "dang_nhap": u.dang_nhap, "vai_tro": u.vai_tro.value}
 
 
@@ -75,7 +75,7 @@ def import_users_batch(body: ImportTaiKhoanRequest, db: Session = Depends(get_db
     try:
         result = import_tai_khoan_batch(db, [t.model_dump() for t in body.tai_khoans])
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return result
 
 
@@ -85,7 +85,7 @@ def sua_user(user_id: int, body: SuaTaiKhoanRequest, current_user: CurrentUser,
     try:
         u = sua_tai_khoan(db, user_id, body.model_dump(exclude_unset=True))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": u.id, "ho_ten": u.ho_ten, "dang_nhap": u.dang_nhap, "vai_tro": u.vai_tro.value}
 
 
@@ -94,7 +94,7 @@ def xoa_user(user_id: int, current_user: CurrentUser, db: Session = Depends(get_
     try:
         xoa_tai_khoan(db, user_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"ok": True}
 
 
@@ -113,7 +113,7 @@ def them_lop(body: TaoLopRequest, current_user: CurrentUser, db: Session = Depen
     try:
         lop_ = tao_lop(db, body.ten, body.gv_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": lop_.id, "ten": lop_.ten, "gv_id": lop_.gv_id}
 
 
@@ -123,7 +123,7 @@ def cap_nhat_lop(lop_id: int, body: SuaLopRequest, current_user: CurrentUser,
     try:
         lop_ = sua_lop(db, lop_id, body.model_dump(exclude_unset=True))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": lop_.id, "ten": lop_.ten, "gv_id": lop_.gv_id}
 
 
@@ -132,7 +132,7 @@ def xoa_lop_ep(lop_id: int, current_user: CurrentUser, db: Session = Depends(get
     try:
         xoa_lop(db, lop_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"ok": True}
 
 
@@ -152,7 +152,7 @@ def gan_lop(user_id: int, body: GanLopRequest, current_user: CurrentUser,
     try:
         u = gan_lop_tai_khoan(db, user_id, body.lop_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": u.id, "lop_id": u.lop_id}
 
 
@@ -166,7 +166,7 @@ def doi_trang_thai(
     try:
         u = doi_trang_thai_tai_khoan(db, user_id, body.trang_thai)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": u.id, "trang_thai": u.trang_thai.value}
 
 
@@ -180,7 +180,7 @@ def set_config(body: DatCauHinhRequest, current_user: CurrentUser, db: Session =
     try:
         return dat_cau_hinh(db, body.khoa, body.gia_tri)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.post("/lop/{lop_id}/kiem-tra-hs", dependencies=_ADMIN)
@@ -197,7 +197,7 @@ def admin_import_hs_batch(lop_id: int, body: ImportHSBatchRequest,
     try:
         result = import_hs_batch_admin(db, lop_id, [h.model_dump() for h in body.hoc_sinhs])
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return result
 
 

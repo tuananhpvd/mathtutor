@@ -34,7 +34,7 @@ def hs_tao(body: TaoMucTieuRequest, current_user: CurrentUser, db: Session = Dep
             body.chi_tieu_so, body.dang_id, body.chuyen_de, body.han,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 # ----- GV -----
@@ -63,7 +63,7 @@ def gv_tao(hoc_sinh_id: int, body: TaoMucTieuRequest, current_user: CurrentUser,
             body.chi_tieu_so, body.dang_id, body.chuyen_de, body.han, bao_hs=True,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 # ----- Chung -----
@@ -72,5 +72,5 @@ def xoa(mt_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:
         muc_tieu_service.xoa(db, current_user, mt_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"ok": True}

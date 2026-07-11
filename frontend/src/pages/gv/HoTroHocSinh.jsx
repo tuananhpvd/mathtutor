@@ -62,11 +62,13 @@ export default function HoTroHocSinh() {
   const [trangDa, setTrangDa] = useState(1)
 
   function tai() {
-    setLoading(true)
-    api.gvTroGiup()
-      .then((rows) => setDs(rows || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    setTimeout(() => {
+      setLoading(true)
+      api.gvTroGiup()
+        .then((rows) => setDs(rows || []))
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    }, 0)
   }
   useEffect(tai, [])
 

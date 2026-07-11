@@ -55,7 +55,7 @@ def so_khop(
 
     if loai_cau == "TLN":
         chuan = du_lieu_chuan.get("dap_an_cuoi", "")
-        lam_tron = du_lieu_chuan.get("quy_tac_lam_tron", None)
+        lam_tron = du_lieu_chuan.get("quy_tac_lam_tron")
         ket = tuong_duong(str(dap_an_nhap), str(chuan), che_do, lam_tron)
         return KetQuaMatch(ket_qua=ket)
 

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from jwt import PyJWTError as JWTError
 from sqlalchemy.orm import Session
 
 from app.auth.security import decode_token
@@ -20,8 +20,10 @@ def _get_current_user(
     try:
         payload = decode_token(token)
         user_id: int = int(payload["sub"])
-    except (JWTError, KeyError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token không hợp lệ")
+    except (JWTError, KeyError, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token không hợp lệ"
+        ) from e
 
     user = db.get(User, user_id)
     if user is None or user.trang_thai.value == "khoa":

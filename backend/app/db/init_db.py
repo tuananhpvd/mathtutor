@@ -226,9 +226,7 @@ def init_db() -> None:
                 steps_data = p_data.pop("solution_steps", [])
                 dang_ten = p_data.pop("dang", None)  # tên dạng (tùy chọn)
                 dang_id = _DANG_MAP.get((p_data.get("chuyen_de", ""), dang_ten or ""))
-                problem = Problem(
-                    dang_id=dang_id, nguoi_tao_id=gv_id, **{k: v for k, v in p_data.items()}
-                )
+                problem = Problem(dang_id=dang_id, nguoi_tao_id=gv_id, **p_data)
                 db.add(problem)
                 db.flush()
                 for s in steps_data:

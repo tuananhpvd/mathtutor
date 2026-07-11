@@ -8,28 +8,11 @@ import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
 import VeDoThiDialog from '../../components/gv/VeDoThiDialog'
 import VeBBTDialog from '../../components/gv/VeBBTDialog'
 import { CotThoiGian } from '../../components/ThoiGianPhanCach'
+import { chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN } from '../../utils/cauHoi'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
-
-export function kiemTraDapAnTLN(v) {
-  const val = String(v ?? '').trim()
-  if (!val) return 'Đáp án cuối không được để trống'
-  if (val.length > 4) return 'Đáp án cuối tối đa 4 ký tự (gồm dấu - và dấu ,)'
-  if (!/^-?\d+([.,]\d+)?$/.test(val)) return 'Đáp án cuối phải là số nguyên hoặc số thập phân (ví dụ: 3, -2, 1,5)'
-  return null
-}
 const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
 const NHAN_NGUON = { gv_nhap: 'GV', ai_sinh: 'AI' }
-
-function dinhDangNgay(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d)) return '—'
-  return d.toLocaleString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 function renderTex(text) {
   return String(text || '')
@@ -797,27 +780,6 @@ function KhungModal({ tieu_de, error, children, onDong }) {
   )
 }
 
-// Tập hợp danh sách dạng → options (dùng chung).
-export function dungDangOptions(danhMuc) {
-  return [
-    { value: '', label: '— Chưa gán dạng —' },
-    ...danhMuc.flatMap((cd) =>
-      cd.dang_list.map((d) => ({ value: String(d.id), label: `${cd.ten} › ${d.ten}`, cd: cd.ten }))
-    ),
-  ]
-}
-
-// Chuẩn hóa payload các bước.
-export function chuanHoaSteps(steps) {
-  return steps.map((s) => ({
-    thu_tu: s.thu_tu,
-    pham_vi: s.pham_vi || 'ca_bai',
-    mo_ta: s.mo_ta || '',
-    bieu_thuc_ket_qua: s.bieu_thuc_ket_qua || '',
-    danh_sach_goi_y: (s.danh_sach_goi_y || []).filter((g) => g.trim()),
-  }))
-}
-
 export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
   const [bai, setBai] = useState(null)
   const [error, setError] = useState('')
@@ -1237,8 +1199,10 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
   }
 
   useEffect(() => {
-    setLoading(true)
-    tai().catch(() => {}).finally(() => setLoading(false))
+    setTimeout(() => {
+      setLoading(true)
+      tai().catch(() => {}).finally(() => setLoading(false))
+    }, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gvId])
 

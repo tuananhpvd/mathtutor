@@ -60,9 +60,16 @@ export default function BanDoNangLuc({ taiDuLieu, khoa = 'mac_dinh', tieu_de = '
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setData(null)
-    setError('')
-    taiDuLieu().then(setData).catch((e) => setError(e.message))
+    let con = true
+    setTimeout(() => {
+      if (!con) return
+      setData(null)
+      setError('')
+      taiDuLieu().then((d) => con && setData(d)).catch((e) => con && setError(e.message))
+    }, 0)
+    return () => {
+      con = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [khoa])
 

@@ -40,8 +40,8 @@ def danh_sach_co(
     if trang_thai:
         try:
             q = q.filter(Flag.trang_thai == TrangThaiCo(trang_thai))
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ") from e
 
     # GV chỉ thấy cờ của học sinh lớp mình — lọc TRƯỚC limit để không bị cờ của GV
     # khác chiếm hết 100 dòng đầu.
@@ -138,8 +138,8 @@ def cap_nhat_co(
 
     try:
         flag.trang_thai = TrangThaiCo(trang_thai)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Trạng thái không hợp lệ") from e
     flag.xu_ly_boi = current_user.dang_nhap
     db.commit()
 

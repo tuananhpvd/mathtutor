@@ -9,6 +9,26 @@ const NHA_CUNG_CAP = [
   { value: 'stub', label: 'Tắt (mẫu cố định, demo)', model: '—' },
 ]
 
+function KhoaApi({ label, p, provider, value, onChange, daDat }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xs text-muted">{label}</span>
+        {daDat
+          ? <Badge tone="success">Đã lưu khóa</Badge>
+          : <Badge tone="warning">Chưa có khóa</Badge>}
+        {provider === p && <Badge tone="primary">Đang dùng</Badge>}
+      </div>
+      <Input
+        type="password"
+        placeholder={daDat ? '•••••••• (để trống nếu giữ nguyên)' : 'Dán khóa API vào đây'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  )
+}
+
 export default function CauHinh() {
   const [cfg, setCfg] = useState(null)
   const [nguong, setNguong] = useState('')
@@ -72,7 +92,7 @@ export default function CauHinh() {
       setBaoTriBat(c.bao_tri_bat === true)
       setBaoTriMa(c.bao_tri_ma ?? '')
       setBaoTriNoiDung(c.bao_tri_noi_dung ?? '')
-    })
+    }).catch((e) => setError(e.message))
   }
   useEffect(nap, [])
 
@@ -162,26 +182,17 @@ export default function CauHinh() {
     }
   }
 
+  if (!cfg && error) {
+    return (
+      <div className="flex items-center gap-3 text-sm text-danger">
+        <span>Không tải được cấu hình: {error}</span>
+        <Button variant="secondary" onClick={() => { setError(''); nap() }}>Thử lại</Button>
+      </div>
+    )
+  }
   if (!cfg) return <p className="text-muted text-sm">Đang tải cấu hình...</p>
 
   const modelMacDinh = NHA_CUNG_CAP.find((n) => n.value === provider)?.model || ''
-  const KhoaApi = ({ label, p, value, onChange, daDat }) => (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-xs text-muted">{label}</span>
-        {daDat
-          ? <Badge tone="success">Đã lưu khóa</Badge>
-          : <Badge tone="warning">Chưa có khóa</Badge>}
-        {provider === p && <Badge tone="primary">Đang dùng</Badge>}
-      </div>
-      <Input
-        type="password"
-        placeholder={daDat ? '•••••••• (để trống nếu giữ nguyên)' : 'Dán khóa API vào đây'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  )
 
   const urlXemTruoc = baoTriMa
     ? `${window.location.origin}/?ma=${encodeURIComponent(baoTriMa)}`
@@ -307,11 +318,11 @@ export default function CauHinh() {
 
           {provider !== 'stub' && (
             <div className="grid sm:grid-cols-1 gap-3">
-              <KhoaApi label="Khóa API Google Gemini" p="gemini"
+              <KhoaApi label="Khóa API Google Gemini" p="gemini" provider={provider}
                 value={keyGemini} onChange={setKeyGemini} daDat={cfg.llm_api_key_gemini_da_dat} />
-              <KhoaApi label="Khóa API Anthropic Claude" p="anthropic"
+              <KhoaApi label="Khóa API Anthropic Claude" p="anthropic" provider={provider}
                 value={keyAnthropic} onChange={setKeyAnthropic} daDat={cfg.llm_api_key_anthropic_da_dat} />
-              <KhoaApi label="Khóa API OpenAI" p="openai"
+              <KhoaApi label="Khóa API OpenAI" p="openai" provider={provider}
                 value={keyOpenai} onChange={setKeyOpenai} daDat={cfg.llm_api_key_openai_da_dat} />
             </div>
           )}

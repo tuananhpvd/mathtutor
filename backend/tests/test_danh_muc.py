@@ -80,7 +80,9 @@ def test_sua_ten_chuyen_de_cascade_problems(client, db):
         loai_dap_an_nhap="so", che_do_so_khop=CheDoSoKhopEnum.tuong_duong,
         dang_id=dang["id"], chuyen_de="Đại số", nguoi_tao_id=gv.id,
     )
-    db.add(p); db.commit(); db.refresh(p)
+    db.add(p)
+    db.commit()
+    db.refresh(p)
     assert p.chuyen_de == "Đại số"
     # Đổi tên chuyên đề
     r = client.patch(f"/api/danh-muc/chuyen-de/{cd['id']}", json={"ten": "Đại số - Giải tích"}, headers=h)

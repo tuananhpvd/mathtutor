@@ -6,9 +6,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import app.models.cauhinh  # noqa: F401
+
 # Import models để metadata nhận biết trước khi create_all
 import app.models.cot_moc  # noqa: F401
-import app.models.cauhinh  # noqa: F401
 import app.models.de_thi  # noqa: F401
 import app.models.flag  # noqa: F401
 import app.models.llm_su_dung  # noqa: F401

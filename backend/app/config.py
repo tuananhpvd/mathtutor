@@ -5,7 +5,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = "sqlite:///./dev.db"
-    jwt_secret: str = "dev-secret-change-in-prod"
+    # >= 32 ký tự để tránh InsecureKeyLengthWarning của PyJWT (khuyến nghị RFC 7518 §3.2
+    # cho HS256) — vẫn chỉ là giá trị MẪU cho dev/test, production luôn phải tự đặt riêng
+    # (xem kiem_tra_an_toan_khoi_dong() bên dưới).
+    jwt_secret: str = "dev-secret-change-in-prod-please-set-a-real-one"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
 
@@ -26,7 +29,14 @@ SO_GOI_Y_MAC_DINH: dict[str, int] = {"de": 2, "tb": 3, "kho": 4}
 # Các giá trị JWT_SECRET mặc định/mẫu — ai đọc được mã nguồn (repo công khai hoặc
 # .env.example) cũng biết, nên tự ký được JWT giả mạo bất kỳ vai trò nào nếu production
 # vô tình chạy với 1 trong các giá trị này.
-_JWT_SECRET_KHONG_AN_TOAN = {"dev-secret-change-in-prod", "change-me-in-production"}
+# Giữ CẢ giá trị mẫu cũ (ngắn, trước khi tăng độ dài cho đủ khuyến nghị PyJWT) lẫn mới —
+# phòng trường hợp production cũ còn copy nguyên .env.example bản trước đây.
+_JWT_SECRET_KHONG_AN_TOAN = {
+    "dev-secret-change-in-prod",
+    "dev-secret-change-in-prod-please-set-a-real-one",
+    "change-me-in-production",
+    "change-me-in-production-please-set-a-real-one",
+}
 
 
 def kiem_tra_an_toan_khoi_dong() -> None:

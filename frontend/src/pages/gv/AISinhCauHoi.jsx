@@ -2,10 +2,8 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
-import {
-  ThanCauHoiForm, SuaCauHoi, BangCongThuc, TexField,
-  chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN,
-} from './QuanLyCauHoi'
+import { ThanCauHoiForm, SuaCauHoi, BangCongThuc, TexField } from './QuanLyCauHoi'
+import { chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN } from '../../utils/cauHoi'
 
 function renderTex(text) {
   return String(text)

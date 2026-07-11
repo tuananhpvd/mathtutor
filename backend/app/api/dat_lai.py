@@ -15,4 +15,4 @@ def gv_dat_lai(hs_id: int, current_user: CurrentUser, db: Session = Depends(get_
         result = dat_lai_tien_do(db, hs_id, current_user.id)
         return {"ok": True, **result}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e

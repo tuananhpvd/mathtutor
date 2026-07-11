@@ -64,7 +64,7 @@ def tao_de(body: TaoDeRequest, current_user: CurrentUser, db: Session = Depends(
             diem_phan=body.diem_phan,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": de.id, "ten": de.ten, "canh_bao": canh_bao}
 
 
@@ -116,7 +116,7 @@ def phat_hanh(de_id: int, body: PhatHanhRequest, current_user: CurrentUser,
             pham_vi=body.pham_vi, lop_ids=body.lop_ids, hoc_sinh_ids=body.hoc_sinh_ids,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"id": de.id, "phat_hanh": de.phat_hanh, "pham_vi": de.pham_vi}
 
 
@@ -125,7 +125,7 @@ def xoa_de(de_id: int, current_user: CurrentUser, db: Session = Depends(get_db))
     try:
         svc.xoa_de(db, current_user.id, de_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"da_xoa": True}
 
 
@@ -134,7 +134,7 @@ def ket_qua_lop(de_id: int, current_user: CurrentUser, db: Session = Depends(get
     try:
         return svc.ket_qua_lop(db, current_user.id, de_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 # ---------- HS ----------
@@ -145,7 +145,7 @@ def bat_dau(de_id: int, current_user: CurrentUser, db: Session = Depends(get_db)
     try:
         bai = svc.bat_dau_thi(db, hs, de_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return _trang_thai_bai(db, bai.id, current_user.id)
 
 
@@ -160,7 +160,7 @@ def luu_bai(bai_id: int, body: BaiLamRequest, current_user: CurrentUser,
     try:
         bai = svc.luu_bai_lam(db, current_user.id, bai_id, body.bai_lam)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return {"trang_thai": bai.trang_thai.value}
 
 
@@ -171,7 +171,7 @@ def nop_bai(bai_id: int, current_user: CurrentUser,
         bai = svc.nop_bai(db, current_user.id, bai_id,
                           body.bai_lam if body is not None else None)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     return _trang_thai_bai(db, bai.id, current_user.id)
 
 
@@ -181,7 +181,7 @@ def _trang_thai_bai(db: Session, bai_id: int, hs_id: int) -> dict:
     try:
         bai, de = svc._bai_cua_hs(db, hs_id, bai_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     # Đang thi nhưng đã quá hạn → chốt luôn trước khi trả (đồng hồ server quyết định).
     if bai.trang_thai == TrangThaiBaiThi.dang_thi and svc._now() > svc._het_han_luc(bai, de):
@@ -255,7 +255,7 @@ def chi_tiet_bai_gv(bai_id: int, current_user: CurrentUser, db: Session = Depend
     try:
         de = svc._de_cua_gv(db, current_user.id, bai.de_thi_id)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     if bai.trang_thai != TrangThaiBaiThi.da_nop:
         raise HTTPException(status_code=400, detail="Bài chưa nộp")
 

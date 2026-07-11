@@ -85,6 +85,11 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
   const [trangTl, setTrangTl] = useState(1)
   const [chuoi, setChuoi] = useState(null) // {chuoi_ngay, tong_bai_hoan_thanh, cot_moc_da_dat}
   const MOI_TRANG_TB = 3
+  // Date.now() không được gọi trong thân render (impure) — tính 1 lần trong effect lúc mount.
+  const [bayNgayTruoc, setBayNgayTruoc] = useState(null)
+  useEffect(() => {
+    setTimeout(() => setBayNgayTruoc(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)), 0)
+  }, [])
 
   useEffect(() => {
     Promise.all([api.getDangDo(), api.getThongKeMe()])
@@ -141,10 +146,9 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
             </div>
           )}
           {(() => {
-            const bay_ngay_truoc = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-            const moi = (chuoi.cot_moc_da_dat || []).filter(
-              (m) => m.dat_luc && new Date(m.dat_luc) >= bay_ngay_truoc
-            ).slice(0, 2)
+            const moi = bayNgayTruoc ? (chuoi.cot_moc_da_dat || []).filter(
+              (m) => m.dat_luc && new Date(m.dat_luc) >= bayNgayTruoc
+            ).slice(0, 2) : []
             return moi.map((m) => (
               <div key={m.loai}
                 className="flex items-center gap-2 rounded-xl border border-success/40 bg-success-soft px-4 py-2.5">
