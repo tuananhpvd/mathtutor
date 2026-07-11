@@ -4,15 +4,19 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v91**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v89**)
 
-- **✨ TÍNH NĂNG (v91, nối tiếp v90): bấm thông báo "Học sinh nhờ trợ giúp" (bên GV) → chuyển
+> Lưu ý số phiên bản: 3 mục dưới đây (chuông thông báo GV, chuông thông báo HS, fix mất focus
+> ô trả lời) ban đầu dự tính tách thành v89/v90/v91 riêng, nhưng thực tế được gộp chung 1 lần
+> "đưa lên github" — tag thật trên GitHub là **v89** cho cả 3. Đánh số lại cho khớp thực tế.
+
+- **✨ TÍNH NĂNG (v89): bấm thông báo "Học sinh nhờ trợ giúp" (bên GV) → chuyển
   thẳng đến đúng yêu cầu ở "Hỗ trợ học sinh".** Đối xứng với tính năng HS bấm thông báo "Thầy/
-  cô trả lời" ở v90. Vì cần dùng chung cho cả 2 vai trò, đã TỔNG QUÁT HÓA cơ chế thay vì làm
-  riêng: `ChuongThongBao.jsx` đổi từ prop `onMoPhongHoc` (chỉ HS) sang `onMoLienKet(tb)` tổng
-  quát — mỗi app (HS/GV) tự quyết định điều hướng theo `tb.lien_ket_loai`, không cần
+  cô trả lời" (mục kế dưới). Vì cần dùng chung cho cả 2 vai trò, đã TỔNG QUÁT HÓA cơ chế thay
+  vì làm riêng: `ChuongThongBao.jsx` đổi từ prop `onMoPhongHoc` (chỉ HS) sang `onMoLienKet(tb)`
+  tổng quát — mỗi app (HS/GV) tự quyết định điều hướng theo `tb.lien_ket_loai`, không cần
   `ChuongThongBao` biết trước có bao nhiêu loại liên kết. `RoleLayout.jsx` xuyên prop này qua
-  CẢ `HSLayout` (đã có từ v90) LẪN `SidebarLayout` (mới thêm, GV/Admin dùng — Admin không
+  CẢ `HSLayout` LẪN `SidebarLayout` (mới thêm, GV/Admin dùng — Admin không
   truyền `onMoLienKet` nên hành vi giữ nguyên, không đổi).
   - **Backend** (`tro_giup_service.tao_yeu_cau()`): thông báo cho GV trước đây trỏ
     `lien_ket_loai="session", lien_ket_id=session_id` — ĐỔI sang
@@ -28,11 +32,11 @@
   - Test backend: `tests/test_tro_giup.py` (6 test, không assert trực tiếp `lien_ket_*` nên
     không cần sửa) vẫn xanh sau khi đổi — xác nhận không phá luồng "Nhờ thầy/cô" hiện có.
   - `eslint` 0 lỗi, `npm run build` OK, `pytest` 421/421. **CHƯA kiểm thử qua trình duyệt thật**
-    (môi trường không có công cụ điều khiển trình duyệt) — như v90, đề nghị tự test tay: GV
-    xem chuông thông báo "Học sinh nhờ trợ giúp", bấm vào, xác nhận nhảy đúng trang + đúng thẻ
-    yêu cầu + tự cuộn tới + có viền nổi bật tạm thời.
+    (môi trường không có công cụ điều khiển trình duyệt) — như mục dưới, đề nghị tự test tay:
+    GV xem chuông thông báo "Học sinh nhờ trợ giúp", bấm vào, xác nhận nhảy đúng trang + đúng
+    thẻ yêu cầu + tự cuộn tới + có viền nổi bật tạm thời.
 
-- **✨ TÍNH NĂNG (v90): bấm thông báo "Thầy/cô trả lời" → chuyển thẳng vào phòng học.**
+- **✨ TÍNH NĂNG (v89): bấm thông báo "Thầy/cô trả lời" → chuyển thẳng vào phòng học.**
   Trước đây thông báo chỉ hiện nội dung, không click được. Backend đã sẵn đủ dữ liệu
   (`lien_ket_loai="session"`, `lien_ket_id=session_id`, gắn từ v-trước ở
   `tro_giup_service.tra_loi()`) — KHÔNG cần sửa backend, chỉ nối dây phần frontend.
