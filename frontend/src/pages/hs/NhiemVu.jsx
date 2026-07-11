@@ -5,6 +5,7 @@ import Formula from '../../components/Formula'
 import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm', TNDS: 'Đúng/Sai', TLN: 'Trả lời ngắn' }
+const MOI_TRANG = 10
 
 function renderDeBai(text) {
   if (!text) return null
@@ -32,6 +33,7 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
   const [ds, setDs] = useState([])
   const [loading, setLoading] = useState(true)
   const [noiBatId, setNoiBatId] = useState(null)
+  const [trang, setTrang] = useState(1)
 
   useEffect(() => {
     api.hsNhiemVu()
@@ -44,7 +46,9 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
     if (!focusId || loading) return
     let cuonTimeout, tatNoiBat
     const batDau = setTimeout(() => {
-      if (!ds.some((nv) => nv.id === focusId.id)) { onFocusDone?.(); return }
+      const idx = ds.findIndex((nv) => nv.id === focusId.id)
+      if (idx < 0) { onFocusDone?.(); return }
+      setTrang(Math.floor(idx / MOI_TRANG) + 1)
       setNoiBatId(focusId.id)
       cuonTimeout = setTimeout(() => {
         document.getElementById(`nv-${focusId.id}`)
@@ -60,6 +64,9 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId, loading, ds])
+
+  const tongTrang = Math.max(1, Math.ceil(ds.length / MOI_TRANG))
+  const dsTrang = ds.slice((trang - 1) * MOI_TRANG, trang * MOI_TRANG)
 
   return (
     <div className="flex flex-col gap-5">
@@ -77,7 +84,7 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
           <p className="text-sm text-muted">Hiện chưa có nhiệm vụ nào. 🎉</p>
         </CardBody></Card>
       ) : (
-        ds.map((nv) => {
+        dsTrang.map((nv) => {
           const xong = nv.tong_bai > 0 && nv.so_hoan_thanh >= nv.tong_bai
           const han = hanInfo(nv.han_chot)
           return (
@@ -131,6 +138,16 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
             </Card>
           )
         })
+      )}
+
+      {!loading && ds.length > 0 && tongTrang > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <Button size="sm" variant="secondary" disabled={trang <= 1}
+            onClick={() => setTrang((t) => t - 1)}>← Trước</Button>
+          <span className="text-sm text-muted">Trang {trang}/{tongTrang}</span>
+          <Button size="sm" variant="secondary" disabled={trang >= tongTrang}
+            onClick={() => setTrang((t) => t + 1)}>Sau →</Button>
+        </div>
       )}
     </div>
   )

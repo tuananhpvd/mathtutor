@@ -336,15 +336,17 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
         </CardBody>
       </Card>
 
-      {/* Nhận xét + Trả lời — 2 cột */}
-      {(nhanXet.length > 0 || traLoi.length > 0) && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* Cột trái: Nhận xét */}
-          {nhanXet.length > 0 && (
-            <Card className="h-full">
-              <CardHeader title="💬 Nhận xét của thầy/cô"
-                subtitle={`${nhanXet.length} lời nhắn từ giáo viên`} />
-              <CardBody className="flex flex-col gap-3">
+      {/* Nhận xét + Trả lời — 2 cột, luôn hiện kể cả khi rỗng (báo trạng thái rõ ràng) */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Cột trái: Nhận xét */}
+        <Card className="h-full">
+          <CardHeader title="💬 Nhận xét của thầy/cô"
+            subtitle={nhanXet.length > 0 ? `${nhanXet.length} lời nhắn từ giáo viên` : undefined} />
+          <CardBody className="flex flex-col gap-3">
+            {nhanXet.length === 0 ? (
+              <p className="text-sm text-muted">Thầy/cô chưa gửi nhận xét nào cho em.</p>
+            ) : (
+              <>
                 {nxTrang.map((tb) => (
                   <div key={tb.id}
                     className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
@@ -364,16 +366,20 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                       onClick={() => setTrangNx((t) => t + 1)}>Sau →</Button>
                   </div>
                 )}
-              </CardBody>
-            </Card>
-          )}
+              </>
+            )}
+          </CardBody>
+        </Card>
 
-          {/* Cột phải: Trả lời */}
-          {traLoi.length > 0 && (
-            <Card className="h-full">
-              <CardHeader title="👩‍🏫 Thầy/cô đã trả lời"
-                subtitle={`${traLoi.length} câu trả lời`} />
-              <CardBody className="flex flex-col gap-3">
+        {/* Cột phải: Trả lời */}
+        <Card className="h-full">
+          <CardHeader title="👩‍🏫 Thầy/cô đã trả lời"
+            subtitle={traLoi.length > 0 ? `${traLoi.length} câu trả lời` : undefined} />
+          <CardBody className="flex flex-col gap-3">
+            {traLoi.length === 0 ? (
+              <p className="text-sm text-muted">Thầy/cô chưa trả lời các yêu cầu của em.</p>
+            ) : (
+              <>
                 {tlTrang.map((tb) => (
                   <div key={tb.id}
                     className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3 flex flex-col gap-2">
@@ -404,11 +410,11 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                       onClick={() => setTrangTl((t) => t + 1)}>Sau →</Button>
                   </div>
                 )}
-              </CardBody>
-            </Card>
-          )}
-        </div>
-      )}
+              </>
+            )}
+          </CardBody>
+        </Card>
+      </div>
 
     </div>
   )

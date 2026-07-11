@@ -7,6 +7,7 @@ import XemLaiBai from '../../components/XemLaiBai'
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
 const TONE_KHO = { de: 'success', tb: 'warning', kho: 'danger' }
+const MOI_TRANG = 20
 
 function renderDe(text) {
   return String(text)
@@ -30,6 +31,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   const [fLoai, setFLoai] = useState('')
   const [fKho, setFKho] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
+  const [trang, setTrang] = useState(1)
 
   useEffect(() => {
     async function load() {
@@ -98,6 +100,14 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
     }
     return true
   })
+
+  // Đổi bộ lọc → quay về trang 1, tránh kẹt ở trang rỗng.
+  useEffect(() => {
+    setTimeout(() => setTrang(1), 0)
+  }, [fChuyenDeId, fDangId, fLoai, fKho, fTrangThai])
+
+  const tongTrang = Math.max(1, Math.ceil(loc.length / MOI_TRANG))
+  const locTrang = loc.slice((trang - 1) * MOI_TRANG, trang * MOI_TRANG)
 
   return (
     <div className="flex flex-col gap-5">
@@ -171,7 +181,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
       )}
 
       <div className="grid md:grid-cols-2 gap-3">
-        {loc.map((b) => {
+        {locTrang.map((b) => {
           const tt = trangThaiBai[b.id]
           const daXong = tt?.trang_thai === 'hoan_thanh'
           const dangDo = tt?.trang_thai === 'dang_lam'
@@ -213,6 +223,16 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
           )
         })}
       </div>
+
+      {!loading && loc.length > 0 && tongTrang > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <Button size="sm" variant="secondary" disabled={trang <= 1}
+            onClick={() => setTrang((t) => t - 1)}>← Trước</Button>
+          <span className="text-sm text-muted">Trang {trang}/{tongTrang}</span>
+          <Button size="sm" variant="secondary" disabled={trang >= tongTrang}
+            onClick={() => setTrang((t) => t + 1)}>Sau →</Button>
+        </div>
+      )}
 
       {xemLaiSid && <XemLaiBai sessionId={xemLaiSid} onDong={() => setXemLaiSid(null)} />}
     </div>

@@ -14,6 +14,7 @@ import Formula from '../../components/Formula'
 import { dinhDangThoiGian } from '../../utils/format'
 
 const TEN_PHAN = { I: 'Phần I — Trắc nghiệm ABCD', II: 'Phần II — Đúng/Sai 4 ý', III: 'Phần III — Trả lời ngắn' }
+const MOI_TRANG_DE = 10
 
 function renderVanBan(text) {
   return String(text ?? '')
@@ -35,6 +36,7 @@ function DanhSachDe({ onVaoThi, onXemKetQua, focusId, onFocusDone }) {
   const [ds, setDs] = useState(null)
   const [error, setError] = useState('')
   const [noiBatId, setNoiBatId] = useState(null)
+  const [trang, setTrang] = useState(1)
 
   useEffect(() => {
     api.deThiDs().then(setDs).catch((e) => setError(e.message))
@@ -46,7 +48,9 @@ function DanhSachDe({ onVaoThi, onXemKetQua, focusId, onFocusDone }) {
     if (!focusId || !ds) return
     let cuonTimeout, tatNoiBat
     const batDau = setTimeout(() => {
-      if (!ds.some((de) => de.id === focusId.id)) { onFocusDone?.(); return }
+      const idx = ds.findIndex((de) => de.id === focusId.id)
+      if (idx < 0) { onFocusDone?.(); return }
+      setTrang(Math.floor(idx / MOI_TRANG_DE) + 1)
       setNoiBatId(focusId.id)
       cuonTimeout = setTimeout(() => {
         document.getElementById(`de-thi-${focusId.id}`)
@@ -74,50 +78,65 @@ function DanhSachDe({ onVaoThi, onXemKetQua, focusId, onFocusDone }) {
       </Card>
     )
   }
+  const tongTrang = Math.max(1, Math.ceil(ds.length / MOI_TRANG_DE))
+  const dsTrang = ds.slice((trang - 1) * MOI_TRANG_DE, trang * MOI_TRANG_DE)
+
   return (
-    <div className="grid md:grid-cols-2 gap-3">
-      {ds.map((de) => {
-        const bai = de.bai_gan_nhat
-        return (
-          <Card key={de.id} id={`de-thi-${de.id}`}
-            className={noiBatId === de.id ? 'ring-2 ring-primary transition-shadow' : ''}>
-            <CardBody className="pt-4 flex flex-col gap-2">
-              <p className="font-bold text-ink">{de.ten}</p>
-              <div className="flex gap-2 flex-wrap items-center text-sm text-muted">
-                <Badge tone="neutral">{de.thoi_gian_phut} phút</Badge>
-              </div>
-              {bai?.trang_thai === 'da_nop' && (
-                <p className="text-sm text-ink">
-                  Lần gần nhất: <b className="text-primary">{bai.diem}/{bai.diem_toi_da} điểm</b>
-                  {bai.lam_trong_giay != null && (
-                    <> · Làm trong <b>{dinhDangThoiGian(bai.lam_trong_giay)}</b></>
-                  )}
-                  {bai.nop_luc && (
-                    <> · Ngày <b>{new Date(bai.nop_luc).toLocaleDateString('vi-VN')}</b></>
-                  )}
-                </p>
-              )}
-              <div className="flex gap-2 mt-1">
-                {bai?.trang_thai === 'dang_thi' ? (
-                  <Button className="flex-1" variant="warning" onClick={() => onVaoThi(de.id)}>
-                    Làm tiếp (đang thi dở)
-                  </Button>
-                ) : (
-                  <Button className="flex-1" onClick={() => onVaoThi(de.id)}>
-                    {bai ? 'Thi lại' : 'Vào thi'}
-                  </Button>
-                )}
+    <div className="flex flex-col gap-3">
+      <div className="grid md:grid-cols-2 gap-3">
+        {dsTrang.map((de) => {
+          const bai = de.bai_gan_nhat
+          return (
+            <Card key={de.id} id={`de-thi-${de.id}`}
+              className={noiBatId === de.id ? 'ring-2 ring-primary transition-shadow' : ''}>
+              <CardBody className="pt-4 flex flex-col gap-2">
+                <p className="font-bold text-ink">{de.ten}</p>
+                <div className="flex gap-2 flex-wrap items-center text-sm text-muted">
+                  <Badge tone="neutral">{de.thoi_gian_phut} phút</Badge>
+                </div>
                 {bai?.trang_thai === 'da_nop' && (
-                  <Button className="flex-1" variant="secondary"
-                    onClick={() => onXemKetQua(bai.bai_thi_id)}>
-                    Xem kết quả
-                  </Button>
+                  <p className="text-sm text-ink">
+                    Lần gần nhất: <b className="text-primary">{bai.diem}/{bai.diem_toi_da} điểm</b>
+                    {bai.lam_trong_giay != null && (
+                      <> · Làm trong <b>{dinhDangThoiGian(bai.lam_trong_giay)}</b></>
+                    )}
+                    {bai.nop_luc && (
+                      <> · Ngày <b>{new Date(bai.nop_luc).toLocaleDateString('vi-VN')}</b></>
+                    )}
+                  </p>
                 )}
-              </div>
-            </CardBody>
-          </Card>
-        )
-      })}
+                <div className="flex gap-2 mt-1">
+                  {bai?.trang_thai === 'dang_thi' ? (
+                    <Button className="flex-1" variant="warning" onClick={() => onVaoThi(de.id)}>
+                      Làm tiếp (đang thi dở)
+                    </Button>
+                  ) : (
+                    <Button className="flex-1" onClick={() => onVaoThi(de.id)}>
+                      {bai ? 'Thi lại' : 'Vào thi'}
+                    </Button>
+                  )}
+                  {bai?.trang_thai === 'da_nop' && (
+                    <Button className="flex-1" variant="secondary"
+                      onClick={() => onXemKetQua(bai.bai_thi_id)}>
+                      Xem kết quả
+                    </Button>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+          )
+        })}
+      </div>
+
+      {tongTrang > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <Button size="sm" variant="secondary" disabled={trang <= 1}
+            onClick={() => setTrang((t) => t - 1)}>← Trước</Button>
+          <span className="text-sm text-muted">Trang {trang}/{tongTrang}</span>
+          <Button size="sm" variant="secondary" disabled={trang >= tongTrang}
+            onClick={() => setTrang((t) => t + 1)}>Sau →</Button>
+        </div>
+      )}
     </div>
   )
 }
