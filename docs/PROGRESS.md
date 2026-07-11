@@ -4,11 +4,32 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v89**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v92**)
 
 > Lưu ý số phiên bản: 3 mục dưới đây (chuông thông báo GV, chuông thông báo HS, fix mất focus
 > ô trả lời) ban đầu dự tính tách thành v89/v90/v91 riêng, nhưng thực tế được gộp chung 1 lần
 > "đưa lên github" — tag thật trên GitHub là **v89** cho cả 3. Đánh số lại cho khớp thực tế.
+
+- **🔧 (v90) Giảm chu kỳ polling chuông thông báo 60s → 8s** — `ChuongThongBao.jsx`. HS/GV
+  thấy số thông báo mới trong tối đa 8s, không cần F5. Không dùng WebSocket/SSE (đã cân nhắc,
+  chọn polling nhanh hơn cho đơn giản/rủi ro thấp, phù hợp quy mô lớp học hiện tại).
+
+- **✨ (v91) Bấm thông báo "Nhiệm vụ mới" / "Đề thi mới" → chuyển thẳng tới đúng mục.**
+  - `nhiem_vu_service.py` đã sẵn `lien_ket_loai="nhiem_vu"` từ trước — chỉ nối dây frontend.
+  - `de_thi_service.py` (`dat_phat_hanh`) TRƯỚC ĐÂY không hề gửi thông báo khi GV phát hành đề
+    — thêm mới: gửi cho đúng tập HS trong phạm vi (tất cả lớp GV hoặc tuỳ chọn đã giao),
+    `lien_ket_loai="de_thi"`. Tái dùng `LoaiThongBao.nhiem_vu` (không thêm enum mới) để tránh
+    `ALTER TYPE` trên Postgres production.
+  - `HocSinhApp.jsx`/`NhiemVu.jsx`/`ThiThu.jsx`: nhận `focusId` từ chuông, cuộn tới + làm nổi
+    bật (ring 3s), tương tự cơ chế `focusYc` đã làm ở v89.
+  - Test mới `test_phat_hanh_gui_thong_bao` (backend, đã xác nhận fail trên code cũ qua
+    `git stash`). `pytest` 422/422.
+
+- **✨ (v92) Trang chủ HS luôn hiện 2 thẻ "Nhận xét"/"Thầy·cô đã trả lời"** (trước đây ẩn hẳn
+  khi rỗng) — rỗng thì hiện dòng trạng thái rõ ràng thay vì biến mất. **Phân trang**:
+  `ChonBai.jsx` (chọn bài, 20/trang), `NhiemVu.jsx` (10/trang), `ThiThu.jsx` danh sách đề
+  (10/trang) — đổi bộ lọc tự quay về trang 1; hiệu ứng focus-từ-thông-báo (v91) tự tính đúng
+  trang chứa mục cần cuộn tới.
 
 - **✨ TÍNH NĂNG (v89): bấm thông báo "Học sinh nhờ trợ giúp" (bên GV) → chuyển
   thẳng đến đúng yêu cầu ở "Hỗ trợ học sinh".** Đối xứng với tính năng HS bấm thông báo "Thầy/
