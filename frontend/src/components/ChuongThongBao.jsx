@@ -45,10 +45,11 @@ export default function ChuongThongBao({ onMoLienKet } = {}) {
     api.thongBaoChuaDoc().then((r) => setSoChuaDoc(r.so_luong || 0)).catch(() => {})
   }
 
-  // Đếm chưa đọc khi mở app + định kỳ mỗi 60s.
+  // Đếm chưa đọc khi mở app + định kỳ mỗi 8s — đủ nhanh để HS/GV thấy thông báo mới mà
+  // không cần F5, không cần hạ tầng real-time (WebSocket/SSE) cho quy mô lớp học hiện tại.
   useEffect(() => {
     taiSo()
-    const id = setInterval(taiSo, 60000)
+    const id = setInterval(taiSo, 8000)
     return () => clearInterval(id)
   }, [])
 
