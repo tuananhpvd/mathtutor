@@ -4,7 +4,38 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v100**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v101**)
+
+- **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
+  từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**
+  - **Tự sửa lại kết luận sai (lần 2 trong cùng đợt review)**: mục "#10 thiếu `render.yaml`"
+    trong bảng đề xuất ban đầu là SAI — `render.yaml` (+ `backend/runtime.txt`) đã có sẵn từ
+    trước, tài liệu hóa rất kỹ, có cảnh báo rõ "KHÔNG tự động áp dụng". Không có gì để sửa.
+  - **Phát hiện rủi ro thật, nghiêm trọng hơn mục review ban đầu ("#9 bcrypt ghim <4.0")**: đọc
+    lại lịch sử thấy log deploy Render từng cho thấy đang chạy **Python 3.14.3** — quá mới so
+    với `pyproject.toml` (nhắm `py311`) và ghim `bcrypt<4.0`. `backend/runtime.txt` đã thêm
+    trước đó để sửa, nhưng tra cứu thì `runtime.txt` KHÔNG phải cơ chế chính thức đáng tin cậy
+    của Render (cộng đồng report "not working") — cơ chế đúng, ưu tiên cao hơn là file
+    `.python-version`. Thêm `backend/.python-version` = `3.11.9` để ghim chắc chắn. ⚠️ Khác
+    `render.yaml`, file này CÓ tác dụng thật ngay lần deploy kế tiếp (không chỉ tài liệu) —
+    cần xem log deploy tiếp theo để xác nhận đúng Python 3.11.9.
+  - **Cố tình KHÔNG di chuyển `passlib`→gọi `bcrypt` trực tiếp** dù đây là cách "sửa triệt để"
+    #9: thư viện `bcrypt` giới hạn mật khẩu tối đa 72 byte — bản mới (bcrypt≥5) sẽ **crash**
+    thay vì tự cắt bớt như `passlib` đang làm. App dùng tiếng Việt có dấu (mỗi dấu chiếm 2-3
+    byte) nên mật khẩu ~25-30 ký tự có dấu đã có thể vượt 72 byte — nếu migrate ẩu, người dùng
+    thật đang có mật khẩu dài kiểu này trên production có thể bị khóa không đăng nhập được.
+    Giữ nguyên `passlib` + ghim `bcrypt<4.0` (đã an toàn, đang chạy đúng), chỉ thêm
+    `test_bcrypt_ghim_duoi_4_0` (`test_auth.py`) canh gác — CI báo đỏ ngay nếu sau này ai lỡ
+    nới ghim, thay vì để sập âm thầm lúc đăng nhập trên production.
+  - **#11 — sửa xong, thuần frontend, không đụng API/DB/deploy**: 401 giờ chuyển MỀM về màn
+    đăng nhập (`auth.js`: `dangKyPhienHetHan()`/`baoPhienHetHan()`, App.jsx đăng ký lúc mount →
+    `setPage('login')`) thay vì `window.location.reload()` cứng như trước — tránh xóa sạch dữ
+    liệu HS/GV đang nhập dở ở phần KHÁC của trang (vd GV đang soạn dở 1 câu hỏi dài) chỉ vì 1
+    request khác vừa hết phiên. Có lưới an toàn: chưa kịp đăng ký handler thì vẫn tự reload như
+    cũ, không bao giờ kẹt màn hình.
+  - `pytest` 469/469 (+1), `vitest` 23/23 (+1), `eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v100)
 
 - **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
   vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ
@@ -37,7 +68,7 @@
     đổi logic; cập nhật `AISinhCauHoi.jsx` trỏ theo import mới.
   - `pytest` 468/468, `eslint`/`vitest`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v99)
+## 1b. Trạng thái trước đó (v99)
 
 - **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
   - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi
@@ -54,7 +85,7 @@
     hỏi đã duyệt/chờ duyệt" → "Câu hỏi đã duyệt/chờ duyệt".
   - Không đổi logic — chỉ thêm prop tùy chọn + đổi className/thứ tự hiển thị.
 
-## 1b. Trạng thái trước đó (v98)
+## 1c. Trạng thái trước đó (v98)
 
 - **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
   - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"
@@ -82,7 +113,7 @@
   - Test mới: `test_hs.py` (mặc định 3 bước, admin sửa → HS đọc đúng bản mới). `pytest`
     464/464, `ruff`/`eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v97)
+## 1d. Trạng thái trước đó (v97)
 
 - **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
   - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
@@ -97,7 +128,7 @@
   - Lưu ý: các phiên TN4PA làm **trước** bản vá này vẫn còn bong bóng trống khi xem lại (dữ
     liệu cũ đã lưu rỗng, không hồi tố được) — chỉ ảnh hưởng lịch sử cũ, bài mới đều đúng.
 
-## 1d. Trạng thái trước đó (v96)
+## 1e. Trạng thái trước đó (v96)
 
 - **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
   items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
@@ -113,8 +144,6 @@
     lại đúng cặp cao bằng nhau ("Người dùng & Lớp học" + "Phiên học"), tách "Câu hỏi" (đổi
     "Theo loại câu"/"Theo độ khó" từ 2 cột ngang sang xếp dọc để gọn theo chiều cao) ghép
     cùng "Cờ theo dõi & Hệ thống" ở cột phải.
-
-## 1e. Trạng thái trước đó (v95)
 
 - **✨ (v95) Tái thiết giao diện responsive + bảng màu mới — toàn bộ frontend, KHÔNG đụng
   logic/backend.** Làm theo 6 bậc trên nhánh riêng `giao-dien-moi` (đã merge `--no-ff` vào
