@@ -4,7 +4,42 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-11, phiên bản **v94**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v95**)
+
+- **✨ (v95) Tái thiết giao diện responsive + bảng màu mới — toàn bộ frontend, KHÔNG đụng
+  logic/backend.** Làm theo 6 bậc trên nhánh riêng `giao-dien-moi` (đã merge `--no-ff` vào
+  `main`, xóa nhánh sau khi merge sạch):
+  - **Bậc 1 — vỏ layout responsive** (`RoleLayout.jsx`): HS dùng thanh tab cố định đáy màn
+    hình dưới `lg` (thay vì menu ẩn tịt không có lối vào); GV/Admin sidebar 3 mốc — đầy đủ
+    chữ (`≥1024px`) → thu gọn icon (`768–1023px`, tooltip) → ẩn hẳn + drawer trượt qua nút ☰
+    (`<768px`). Thêm dependency `lucide-react` (icon menu). Bề rộng nội dung HS nới
+    `1152px→1400px`. Rà thêm & sửa 2 bug vỡ mobile cụ thể phát hiện qua ảnh chụp thật của
+    user: vòng tròn SVG kích thước pixel cứng trong lưới 3 cột (`ThongKeTienDo.jsx`) và
+    khung sửa câu hỏi ép cứng `min-width:620px` (`QuanLyCauHoi.jsx`).
+  - **Bậc 2 — bảng màu mới** (`theme.css`): user tự thiết kế bảng màu đầy đủ (Indigo #3B36CC
+    chủ đạo/điều hướng, Cam #FF5A1F CTA, Tím #8B5CF6 điểm nhấn AI, 3 màu trạng thái riêng
+    Đúng/Sai/Chưa-chắc, chữ #181430 nền #F6F6FC). Trước khi áp dụng, đã build 1 Artifact
+    mockup áp màu lên đúng component thật (nút/badge/nav/chat) + tính tương phản WCAG thật
+    (không áng chừng) cho user duyệt — phát hiện chữ trắng trên nút "Chưa chắc" vàng cam chỉ
+    đạt 2.2:1 (gần như không đọc được), đã sửa dùng `--color-warning-ink` (#7A4E06, đạt
+    8.3:1). Button "primary" (Lưu/Gửi/Đăng nhập...) tách riêng dùng token `--color-cta`,
+    không dùng chung `--color-primary` (giờ chỉ còn cho điều hướng/nhận diện) — quyết định
+    kiến trúc quan trọng để nút hành động và menu không cùng 1 màu.
+  - **Bậc 3 — 6 primitive UI** (`components/ui/*`): bo góc mềm hơn, vùng chạm to hơn cho
+    mobile, hover/focus mượt hơn — giữ nguyên props API, không trang nào cần sửa theo.
+  - **Bậc 4 — chuẩn hóa modal**: 19 modal/dialog rà lại — thêm giới hạn chiều cao + cuộn
+    riêng cho các modal chưa có, bỏ hết `bg-white` hardcode sang token `bg-surface`. Rà ra
+    thêm 3 nút tự ghi đè `className` bỏ qua hệ thống `variant` của Button (1 trong đó dính
+    đúng lỗi tương phản vàng cam ở Bậc 2 vì không đi qua token trung tâm) — chuyển hết sang
+    dùng `variant` chuẩn.
+  - **Bậc 5 — rà lưới responsive toàn repo**: quét toàn bộ `grid-cols` cứng, SVG kích thước
+    cố định, `min-width` pixel ép cứng, bảng rộng không cuộn ngang — thêm `overflow-x-auto`
+    cho 4 bảng còn thiếu (Import tài khoản/học sinh/từ khóa, Kết quả nộp đề thi).
+  - **Bậc 6**: xóa `App.css` (rác template Vite, không nơi nào import).
+  - Build-test-fix xanh sau mỗi bậc (`eslint` + `vite build`); môi trường dev nhiều lần OOM
+    (máy còn <150MB RAM trống) khi build — không phải lỗi code, đã retry qua khi RAM hồi.
+
+## 1b. Trạng thái trước đó (v94)
 
 - **✨ (v94) Admin tự quản lý từ khóa lọc an toàn (3 tầng) — không cần sửa code.**
   - Tận dụng cơ chế cấu hình key-value có sẵn (`CauHinh`) — KHÔNG bảng mới, KHÔNG migration.
