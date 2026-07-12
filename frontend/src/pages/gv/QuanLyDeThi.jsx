@@ -457,6 +457,7 @@ function KetQuaLop({ deId, ten, onDong }) {
           {error && <p className="text-sm text-danger">{error}</p>}
           {ds && ds.length === 0 && <p className="text-sm text-muted">Chưa có học sinh nào nộp bài.</p>}
           {ds && ds.length > 0 && (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="text-muted text-xs border-b border-border">
@@ -487,6 +488,7 @@ function KetQuaLop({ deId, ten, onDong }) {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </CardBody>
       </Card>

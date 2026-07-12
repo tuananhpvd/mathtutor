@@ -1,13 +1,20 @@
 /*
- * RoleLayout — khung bố cục theo vai trò (UIUX mục 5).
- * - HS: topbar mỏng, nội dung trung tâm rộng, ít menu.
- * - GV/Admin: sidebar trái điều hướng + topbar tiêu đề; nội dung thiên bảng/biểu đồ.
+ * RoleLayout — khung bố cục theo vai trò (UIUX mục 5), responsive cho mọi cỡ màn hình.
+ * - HS: topbar mỏng; menu chính là thanh pill trên desktop (≥lg), thanh tab cố định đáy
+ *   màn hình trên điện thoại/tablet (<lg) — luôn thấy đủ mục, bấm 1 chạm.
+ * - GV/Admin: sidebar đầy đủ chữ trên desktop (≥lg), thu gọn còn icon trên tablet
+ *   (md–lg), ẩn hẳn + mở bằng nút hamburger (drawer trượt) trên điện thoại (<md).
  *
- * Props: vai_tro ('hs'|'gv'|'admin'), ho_ten, nav [{key,label,icon?}],
+ * Props: vai_tro ('hs'|'gv'|'admin'), ho_ten, nav [{key,label}],
  *        active, onNavigate(key), onLogout, title, children.
  */
 
 import { useEffect, useRef, useState } from 'react'
+import {
+  BookOpen, Building2, ClipboardList, FileText, Flag, FolderKanban, GraduationCap,
+  Home, LayoutDashboard, Layers, LifeBuoy, ListChecks, Menu, ScrollText, Settings,
+  Sparkles, Target, TrendingUp, User, Users, X,
+} from 'lucide-react'
 import ChuongThongBao from './ChuongThongBao'
 
 const ACCENT = {
@@ -16,15 +23,48 @@ const ACCENT = {
   admin: { ten: 'Quản trị', mau: 'text-admin', vach: 'border-admin' },
 }
 
-function Brand({ vai_tro, compact = false }) {
+// Icon theo key mục menu — thuần trình bày, không ảnh hưởng nav/logic điều hướng.
+// Cùng 1 key có thể lặp ở nhiều vai trò (vd "tai_khoan", "nhiem_vu") — dùng chung icon
+// hợp lý cho cả hai là đủ, không cần tách theo vai trò.
+const ICON_MAP = {
+  trang_chu: Home,
+  nhiem_vu: ClipboardList,
+  muc_tieu: Target,
+  chon_bai: BookOpen,
+  thi_thu: FileText,
+  tien_do: TrendingUp,
+  tien_bo: TrendingUp,
+  tai_khoan: User,
+  tong_quan: LayoutDashboard,
+  dashboard: LayoutDashboard,
+  danh_muc: Layers,
+  cau_hoi: ListChecks,
+  ai_sinh: Sparkles,
+  co: Flag,
+  ho_tro: LifeBuoy,
+  de_thi: FileText,
+  lop: Building2,
+  hoc_sinh: Users,
+  giao_vien: GraduationCap,
+  cau_hinh: Settings,
+  nhat_ky: ScrollText,
+  noi_dung_gv: FolderKanban,
+}
+
+function IconCuaMuc({ nav_key, ...props }) {
+  const Icon = ICON_MAP[nav_key] || Home
+  return <Icon {...props} />
+}
+
+function Brand({ vai_tro, compact = false, textClass = '' }) {
   const a = ACCENT[vai_tro] || ACCENT.hs
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 min-w-0">
       <img src="/icon.png" alt="MathTutor"
         className={`${compact ? 'h-9 w-9' : 'h-16 w-16'} rounded-md object-cover shrink-0`} />
-      <div className="leading-tight">
-        <p className="font-semibold text-ink">MathTutor</p>
-        <p className={`text-xs ${a.mau}`}>{a.ten}</p>
+      <div className={`leading-tight min-w-0 ${textClass}`}>
+        <p className="font-semibold text-ink truncate">MathTutor</p>
+        <p className={`text-xs truncate ${a.mau}`}>{a.ten}</p>
       </div>
     </div>
   )
@@ -123,6 +163,34 @@ function ProfileMenu({ ho_ten, dangOTrang, onMoTaiKhoan, onLogout, onMoLienKet }
   )
 }
 
+// Thanh tab cố định đáy màn hình — thay thế menu chính của HS dưới lg (điện thoại/tablet
+// đứng). Luôn thấy đủ mục, bấm 1 chạm, không cần mở/đóng gì thêm.
+function BottomTabBar({ nav, active, onNavigate }) {
+  return (
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-20 bg-surface border-t
+      border-border pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-stretch">
+        {nav.map((n) => {
+          const dangChon = active === n.key
+          return (
+            <button
+              key={n.key}
+              onClick={() => onNavigate?.(n.key)}
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5
+                px-1 py-2 text-[10.5px] leading-tight transition-colors ${
+                dangChon ? 'text-primary' : 'text-muted'
+              }`}
+            >
+              <IconCuaMuc nav_key={n.key} size={20} strokeWidth={dangChon ? 2.3 : 2} />
+              <span className="truncate max-w-full font-medium">{n.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
 function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, onMoLienKet, children }) {
   // "Tài khoản" dời vào menu avatar (dropdown) — nhường chỗ cho thanh điều hướng chính,
   // tránh phải cuộn ngang khi danh sách mục ngày càng dài.
@@ -132,7 +200,7 @@ function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, onMoLienKet,
   return (
     <div className="min-h-screen flex flex-col bg-bg">
       <header className="sticky top-0 z-10 bg-surface/90 backdrop-blur border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-3">
           <div className="shrink-0">
             <Brand vai_tro="hs" compact />
           </div>
@@ -162,40 +230,109 @@ function HSLayout({ ho_ten, nav = [], active, onNavigate, onLogout, onMoLienKet,
           </div>
         </div>
       </header>
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">{children}</main>
+      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
+        {children}
+      </main>
+      <BottomTabBar nav={navChinh} active={active} onNavigate={onNavigate} />
     </div>
   )
 }
 
+// modo="sidebar": cột thường trực — icon-only ở md (tablet), icon+chữ ở lg+ (desktop),
+//   thuần CSS responsive (cùng 1 DOM, không phụ thuộc JS đo breakpoint).
+// modo="drawer": trong drawer trượt mobile — luôn hiện đủ chữ (drawer chỉ hiện <md).
+function SidebarNavList({ nav, active, onChon, modo }) {
+  const laSidebar = modo === 'sidebar'
+  return (
+    <nav className="flex-1 p-2 lg:p-3 flex flex-col gap-1 overflow-y-auto">
+      {nav.map((n) => (
+        <button
+          key={n.key}
+          onClick={() => onChon(n.key)}
+          title={n.label}
+          className={`flex items-center gap-3 px-2.5 lg:px-3 py-2.5 rounded-md text-sm
+            transition-colors ${laSidebar ? 'justify-center lg:justify-start' : ''} ${
+            active === n.key
+              ? 'bg-primary-soft text-primary font-medium'
+              : 'text-muted hover:bg-surface-2 hover:text-ink'
+          }`}
+        >
+          <IconCuaMuc nav_key={n.key} size={19} strokeWidth={2} className="shrink-0" />
+          <span className={laSidebar ? 'hidden lg:inline truncate' : 'truncate'}>{n.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
 function SidebarLayout({ vai_tro, ho_ten, nav = [], active, onNavigate, onLogout, title, onMoLienKet, children }) {
+  const [drawerMo, setDrawerMo] = useState(false)
+
+  // Khóa cuộn nền khi drawer mobile đang mở, tránh cuộn "xuyên" ra nội dung phía sau.
+  useEffect(() => {
+    if (!drawerMo) return
+    const truoc = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = truoc }
+  }, [drawerMo])
+
+  function chonMucDrawer(key) {
+    onNavigate?.(key)
+    setDrawerMo(false)
+  }
+
   return (
     <div className="min-h-screen flex bg-bg">
-      <aside className="w-60 shrink-0 bg-surface border-r border-border flex flex-col">
-        <div className="h-14 px-4 flex items-center border-b border-border">
-          <Brand vai_tro={vai_tro} />
+      {/* Sidebar: ẩn hẳn dưới md (thay bằng drawer), thu gọn còn icon ở md–lg, đầy đủ ở lg+ */}
+      <aside className="hidden md:flex md:w-16 lg:w-60 shrink-0 bg-surface border-r
+        border-border flex-col transition-[width]">
+        <div className="h-14 px-2 lg:px-4 flex items-center justify-center lg:justify-start border-b border-border">
+          <Brand vai_tro={vai_tro} compact textClass="hidden lg:block" />
         </div>
-        <nav className="flex-1 p-3 flex flex-col gap-1">
-          {nav.map((n) => (
-            <button
-              key={n.key}
-              onClick={() => onNavigate?.(n.key)}
-              className={`text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                active === n.key
-                  ? 'bg-primary-soft text-primary font-medium'
-                  : 'text-muted hover:bg-surface-2 hover:text-ink'
-              }`}
-            >
-              {n.label}
-            </button>
-          ))}
-        </nav>
+        <SidebarNavList nav={nav} active={active} onChon={onNavigate} modo="sidebar" />
       </aside>
+
+      {/* Drawer trượt cho điện thoại (<md) */}
+      {drawerMo && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <button
+            className="absolute inset-0 bg-black/40"
+            aria-label="Đóng menu"
+            onClick={() => setDrawerMo(false)}
+          />
+          <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[82vw] bg-surface
+            border-r border-border flex flex-col shadow-[var(--shadow-pop)]">
+            <div className="h-14 px-4 flex items-center justify-between border-b border-border">
+              <Brand vai_tro={vai_tro} compact />
+              <button
+                onClick={() => setDrawerMo(false)}
+                className="p-1.5 rounded-md hover:bg-surface-2 text-muted"
+                aria-label="Đóng menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <SidebarNavList nav={nav} active={active} onChon={chonMucDrawer} modo="drawer" />
+          </aside>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-surface border-b border-border flex items-center justify-between px-6">
-          <h1 className="text-base font-semibold text-ink">{title}</h1>
+        <header className="h-14 bg-surface border-b border-border flex items-center
+          justify-between gap-3 px-4 lg:px-6">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => setDrawerMo(true)}
+              className="md:hidden p-1.5 -ml-1 rounded-md hover:bg-surface-2 text-ink shrink-0"
+              aria-label="Mở menu"
+            >
+              <Menu size={22} />
+            </button>
+            <h1 className="text-base font-semibold text-ink truncate">{title}</h1>
+          </div>
           <UserMenu ho_ten={ho_ten} onLogout={onLogout} onMoLienKet={onMoLienKet} />
         </header>
-        <main className="flex-1 p-6 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
       </div>
     </div>
   )

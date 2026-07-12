@@ -445,7 +445,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
   }
 
   return (
-    <div className="grid grid-cols-[1fr_18rem] gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-5">
       {/* Cột trái: form */}
             <div className="flex flex-col gap-4">
               <div className="grid sm:grid-cols-3 gap-3">
@@ -768,7 +768,8 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
 function KhungModal({ tieu_de, error, children, onDong }) {
   return (
     <div className="fixed inset-0 z-20 bg-black/30 flex justify-end">
-      <div className="w-2/3 min-w-[620px] bg-surface h-full overflow-y-auto p-6 shadow-[var(--shadow-pop)]">
+      <div className="w-full lg:w-2/3 lg:min-w-[620px] bg-surface h-full overflow-y-auto
+        p-4 sm:p-6 shadow-[var(--shadow-pop)]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-ink">{tieu_de}</h3>
           <button onClick={onDong} className="text-muted hover:text-ink text-lg">✕</button>
@@ -1424,7 +1425,8 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
 
       {modalXoaVV && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh]
+            overflow-y-auto p-6 flex flex-col gap-4">
             <h2 className="text-lg font-bold text-danger">⚠️ Xóa vĩnh viễn câu hỏi #{modalXoaVV.r.id}</h2>
             <p className="text-sm text-muted">
               Hành động này <strong>không thể hoàn tác</strong>. Toàn bộ dữ liệu liên quan sẽ bị xóa:
@@ -1449,9 +1451,9 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
                 Hủy
               </Button>
               <Button
+                variant="danger"
                 onClick={thucHienXoaVV}
                 disabled={!daXacNhan || dangXoaVV}
-                className="bg-danger text-white hover:bg-danger/90 disabled:opacity-40"
               >
                 {dangXoaVV ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
               </Button>

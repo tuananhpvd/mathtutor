@@ -9,8 +9,8 @@ function VongTienDo({ percent, size = 132, stroke = 13 }) {
   const c = 2 * Math.PI * r
   const off = c * (1 - percent / 100)
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <div className="relative shrink-0 w-full mx-auto" style={{ maxWidth: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto -rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none"
           stroke="var(--color-surface-2)" strokeWidth={stroke} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none"
@@ -72,6 +72,9 @@ const MUC_CFG = {
   kho: { ten: 'Khó',        bg: 'bg-danger-soft',  ring: 'var(--color-danger)',  txt: 'text-danger'  },
 }
 
+// size = kích thước Ý ĐỊNH (px) dùng để tính bán kính/tỉ lệ nét vẽ — kích thước HIỂN THỊ
+// thật sự co giãn theo bề rộng cột cha (viewBox + CSS thay vì width/height cố định), nên
+// không bao giờ ép tràn ra ngoài khi cột bị hẹp lại (điện thoại, chia nhiều cột).
 function BieuDoPie({ r, size = 110, stroke = 13 }) {
   const radius = (size - stroke) / 2
   const circ = 2 * Math.PI * radius
@@ -89,8 +92,8 @@ function BieuDoPie({ r, size = 110, stroke = 13 }) {
   })
   const htPct = pct(r.hoan_thanh, r.tong)
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <div className="relative shrink-0 w-full mx-auto" style={{ maxWidth: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto -rotate-90">
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
           stroke="var(--color-surface-2)" strokeWidth={stroke} />
         {segs.map((s, i) => s.len > 0.1 && (
@@ -223,7 +226,7 @@ export default function ThongKeTienDo({ tk }) {
         <Card className="h-full flex flex-col">
           <CardHeader title="Theo mức độ" subtitle="Tỉ lệ hoàn thành từng mức" />
           <CardBody className="flex-1 flex items-center py-6">
-            <div className="grid grid-cols-3 gap-3 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
               {tk.theo_do_kho.map((r) => (
                 <TheMucDo key={r.do_kho} r={r} size={128} />
               ))}

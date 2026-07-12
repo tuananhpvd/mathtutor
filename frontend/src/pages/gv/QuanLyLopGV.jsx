@@ -13,9 +13,9 @@ function PreviewModal({ preview, dangImport, onXacNhan, onHuy }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[80vh]">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[80vh]">
         {/* Header */}
-        <div className="px-5 pt-5 pb-3 border-b border-border">
+        <div className="px-5 pt-5 pb-3 border-b border-border shrink-0">
           <h2 className="font-bold text-lg text-ink">Xem trước danh sách lớp</h2>
           <p className="text-sm text-muted mt-0.5">
             {tenLops.length} tên từ file ·{' '}
@@ -57,7 +57,7 @@ function PreviewModal({ preview, dangImport, onXacNhan, onHuy }) {
         </div>
 
         {/* Buttons */}
-        <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+        <div className="px-5 py-4 border-t border-border flex gap-2 justify-end shrink-0">
           <Button variant="secondary" onClick={onHuy} disabled={dangImport}>
             Hủy bỏ
           </Button>

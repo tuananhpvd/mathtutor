@@ -449,7 +449,7 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">Import câu hỏi từ Excel</h2>

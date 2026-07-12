@@ -31,7 +31,7 @@ export function ConfirmProvider({ children }) {
         >
           <div className="bg-surface rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-border">
             <p className="font-semibold text-ink text-base mb-2">{state.title}</p>
-            <p className="text-ink-2 text-sm whitespace-pre-line mb-6">{state.message}</p>
+            <p className="text-ink text-sm whitespace-pre-line mb-6">{state.message}</p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => handle(false)}>{state.labelNo}</Button>
               <Button variant="primary" onClick={() => handle(true)}>{state.labelYes}</Button>
