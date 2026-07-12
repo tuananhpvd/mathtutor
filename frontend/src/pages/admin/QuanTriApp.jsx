@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession } from '../../auth'
-import Dashboard from './Dashboard'
-import QuanLyTaiKhoan from './QuanLyTaiKhoan'
-import QuanLyLop from './QuanLyLop'
-import QuanLyGiaoVien from './QuanLyGiaoVien'
-import QuanLyHocSinh from './QuanLyHocSinh'
-import CauHinh from './CauHinh'
-import NhatKy from './NhatKy'
+
+// Mỗi trang tách riêng 1 chunk (code-splitting) — chỉ tải khi Admin thật sự mở trang đó.
+const Dashboard = lazy(() => import('./Dashboard'))
+const QuanLyTaiKhoan = lazy(() => import('./QuanLyTaiKhoan'))
+const QuanLyLop = lazy(() => import('./QuanLyLop'))
+const QuanLyGiaoVien = lazy(() => import('./QuanLyGiaoVien'))
+const QuanLyHocSinh = lazy(() => import('./QuanLyHocSinh'))
+const CauHinh = lazy(() => import('./CauHinh'))
+const NhatKy = lazy(() => import('./NhatKy'))
 
 const NAV = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -67,13 +69,15 @@ export default function QuanTriApp({ onLogout }) {
       }}
       title={TIEU_DE[page]}
     >
-      {page === 'dashboard' && <Dashboard />}
-      {page === 'tai_khoan' && <QuanLyTaiKhoan />}
-      {page === 'lop' && <QuanLyLop />}
-      {page === 'giao_vien' && <QuanLyGiaoVien />}
-      {page === 'hoc_sinh' && <QuanLyHocSinh />}
-      {page === 'cau_hinh' && <CauHinh />}
-      {page === 'nhat_ky' && <NhatKy />}
+      <Suspense fallback={<p className="text-muted text-sm">Đang tải...</p>}>
+        {page === 'dashboard' && <Dashboard />}
+        {page === 'tai_khoan' && <QuanLyTaiKhoan />}
+        {page === 'lop' && <QuanLyLop />}
+        {page === 'giao_vien' && <QuanLyGiaoVien />}
+        {page === 'hoc_sinh' && <QuanLyHocSinh />}
+        {page === 'cau_hinh' && <CauHinh />}
+        {page === 'nhat_ky' && <NhatKy />}
+      </Suspense>
     </RoleLayout>
   )
 }

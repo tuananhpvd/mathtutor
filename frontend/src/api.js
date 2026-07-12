@@ -1,11 +1,29 @@
 const BASE = '/api'
+// Request thường (CRUD) — mạng chập chờn lúc thi không nên treo vô hạn.
+const TIMEOUT_MAC_DINH_MS = 30000
+// Lệnh gọi có LLM (chat, sinh câu hỏi, đọc ảnh đề, phân tích năng lực...) — LLM tự thử
+// lại vài lần khi lỗi tạm thời nên cần nhiều thời gian hơn hẳn 1 request CRUD thường.
+const TIMEOUT_AI_MS = 90000
 
-async function request(path, options = {}) {
+async function request(path, { timeoutMs = TIMEOUT_MAC_DINH_MS, ...options } = {}) {
   const token = sessionStorage.getItem('token')
   const headers = { 'Content-Type': 'application/json', ...options.headers }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(BASE + path, { ...options, headers })
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  let res
+  try {
+    res = await fetch(BASE + path, { ...options, headers, signal: controller.signal })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Máy chủ phản hồi quá lâu, vui lòng thử lại.', { cause: err })
+    }
+    throw new Error('Không kết nối được máy chủ, kiểm tra mạng và thử lại.', { cause: err })
+  } finally {
+    clearTimeout(timer)
+  }
+
   const data = await res.json().catch(() => ({}))
   if (res.status === 401) {
     // Token hết hạn hoặc không hợp lệ — xóa session và reload về trang đăng nhập
@@ -19,8 +37,8 @@ async function request(path, options = {}) {
   return data
 }
 
-const post = (path, body) =>
-  request(path, { method: 'POST', body: JSON.stringify(body || {}) })
+const post = (path, body, timeoutMs) =>
+  request(path, { method: 'POST', body: JSON.stringify(body || {}), timeoutMs })
 
 export const api = {
   // Chung
@@ -34,14 +52,14 @@ export const api = {
   getSession: (id) => request(`/sessions/${id}`),
   getDangDo: () => request('/sessions/dang-do'),
   getPhienCuaToi: () => request('/sessions/cua-toi'),
-  sendMessage: (sessionId, body) => post(`/sessions/${sessionId}/message`, body),
+  sendMessage: (sessionId, body) => post(`/sessions/${sessionId}/message`, body, TIMEOUT_AI_MS),
   xemLaiPhien: (sessionId) => request(`/sessions/${sessionId}/xem-lai`),
 
   // Học sinh — tiến độ
   getProgressMe: () => request('/progress/me'),
   getThongKeMe: () => request('/progress/me/thong-ke'),
   getPhanTichMe: () => request('/progress/me/phan-tich'),
-  capNhatPhanTichMe: () => post('/progress/me/phan-tich/cap-nhat'),
+  capNhatPhanTichMe: () => post('/progress/me/phan-tich/cap-nhat', null, TIMEOUT_AI_MS),
 
   // Học sinh — hồ sơ cá nhân
   hsHoSo: () => request('/hs/ho-so'),
@@ -53,11 +71,11 @@ export const api = {
   getTongHopLop: () => request('/progress/lop/tong-hop'),
   getThongKeHocSinh: (id) => request(`/progress/students/${id}/thong-ke`),
   getPhanTichHocSinh: (id) => request(`/progress/students/${id}/phan-tich`),
-  capNhatPhanTichHocSinh: (id) => post(`/progress/students/${id}/phan-tich/cap-nhat`),
-  genQuestions: (body) => post('/questions-ai/generate', body),
-  taoBuocGoiY: (body) => post('/questions-ai/tao-buoc-goi-y', body),
+  capNhatPhanTichHocSinh: (id) => post(`/progress/students/${id}/phan-tich/cap-nhat`, null, TIMEOUT_AI_MS),
+  genQuestions: (body) => post('/questions-ai/generate', body, TIMEOUT_AI_MS),
+  taoBuocGoiY: (body) => post('/questions-ai/tao-buoc-goi-y', body, TIMEOUT_AI_MS),
   luuBuocGoiY: (cau) => post('/questions-ai/tao-buoc-goi-y/luu', { cau }),
-  docDeTuAnh: (body) => post('/questions-ai/doc-de-tu-anh', body),
+  docDeTuAnh: (body) => post('/questions-ai/doc-de-tu-anh', body, TIMEOUT_AI_MS),
   listChoDuyet: () => request('/questions-ai/cho-duyet'),
   duyetCau: (id, hanh_dong) => post(`/questions-ai/${id}/duyet`, { hanh_dong }),
   uploadHinh: async (file) => {
@@ -164,7 +182,7 @@ export const api = {
     request('/admin/config', { method: 'PATCH', body: JSON.stringify({ khoa, gia_tri }) }),
   trangThaiBaoTri: (ma) =>
     request('/trang-thai-bao-tri' + (ma ? `?ma=${encodeURIComponent(ma)}` : '')),
-  adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST' }),
+  adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST', timeoutMs: TIMEOUT_AI_MS }),
   adminLLMSuDung: () => request('/admin/llm-su-dung'),
   adminTuKhoaThu: (van_ban) => post('/admin/tu-khoa-thu', { van_ban }),
   // Đề ôn thi THPT (C1)
@@ -216,7 +234,7 @@ export const api = {
   thongBaoDaDoc: (id) => post(`/thong-bao/${id}/da-doc`),
   thongBaoDocHet: () => post('/thong-bao/doc-het'),
   // GV gửi nhận xét cho HS
-  gvNhanXetNhap: (hs_id) => request(`/gv/hoc-sinh/${hs_id}/nhan-xet-nhap`),
+  gvNhanXetNhap: (hs_id) => request(`/gv/hoc-sinh/${hs_id}/nhan-xet-nhap`, { timeoutMs: TIMEOUT_AI_MS }),
   gvGuiNhanXet: (hs_id, noi_dung) => post(`/gv/hoc-sinh/${hs_id}/nhan-xet`, { noi_dung }),
 
   // Nhờ thầy/cô (A2)

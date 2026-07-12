@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession, updateHoTen } from '../../auth'
 import { useConfirm } from '../../components/ui'
-import TrangChu from './TrangChu'
-import ChonBai from './ChonBai'
-import PhongHoc from './PhongHoc'
-import TienDo from './TienDo'
-import NhiemVu from './NhiemVu'
-import MucTieu from './MucTieu'
-import ThiThu from './ThiThu'
-import TaiKhoanCaNhan from './TaiKhoanCaNhan'
+
+// Mỗi trang tách riêng 1 chunk (code-splitting) — chỉ tải khi HS thật sự mở trang đó.
+const TrangChu = lazy(() => import('./TrangChu'))
+const ChonBai = lazy(() => import('./ChonBai'))
+const PhongHoc = lazy(() => import('./PhongHoc'))
+const TienDo = lazy(() => import('./TienDo'))
+const NhiemVu = lazy(() => import('./NhiemVu'))
+const MucTieu = lazy(() => import('./MucTieu'))
+const ThiThu = lazy(() => import('./ThiThu'))
+const TaiKhoanCaNhan = lazy(() => import('./TaiKhoanCaNhan'))
 
 const NAV = [
   { key: 'trang_chu', label: 'Trang chủ' },
@@ -144,34 +146,36 @@ export default function HocSinhApp({ onLogout }) {
       }}
       onMoLienKet={moTuThongBao}
     >
-      {page === 'trang_chu' && (
-        <TrangChu onChonBai={() => dieuHuong('chon_bai')} onLamTiep={lamTiep} />
-      )}
-      {page === 'chon_bai' && (
-        <ChonBai onChon={moBaiMoi} onLamTiep={lamTiep} locBanDau={locBai} />
-      )}
-      {page === 'phong_hoc' && phongHoc && (
-        <PhongHoc
-          // key: ép mount lại hoàn toàn khi chuyển thẳng từ phòng học này sang phòng học
-          // khác (vd bấm thông báo trả lời trong lúc đang làm dở bài khác) — tránh sót lại
-          // state UI phụ (hộp "nhờ thầy/cô" đang mở, ảnh đang zoom...) của bài trước.
-          key={phongHoc.sessionId || phongHoc.problemId || 'moi'}
-          problemId={phongHoc.problemId}
-          sessionId={phongHoc.sessionId}
-          onTrangChu={() => dieuHuong('trang_chu')}
-          onChonBai={() => dieuHuong('chon_bai')}
-          onSid={setActiveSid}
-        />
-      )}
-      {page === 'nhiem_vu' && (
-        <NhiemVu onChon={moBaiMoi} focusId={focusNv} onFocusDone={() => setFocusNv(null)} />
-      )}
-      {page === 'thi_thu' && (
-        <ThiThu onLuyenBai={moBaiMoi} focusId={focusDeThi} onFocusDone={() => setFocusDeThi(null)} />
-      )}
-      {page === 'muc_tieu' && <MucTieu />}
-      {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}
-      {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}
+      <Suspense fallback={<p className="text-muted text-sm">Đang tải...</p>}>
+        {page === 'trang_chu' && (
+          <TrangChu onChonBai={() => dieuHuong('chon_bai')} onLamTiep={lamTiep} />
+        )}
+        {page === 'chon_bai' && (
+          <ChonBai onChon={moBaiMoi} onLamTiep={lamTiep} locBanDau={locBai} />
+        )}
+        {page === 'phong_hoc' && phongHoc && (
+          <PhongHoc
+            // key: ép mount lại hoàn toàn khi chuyển thẳng từ phòng học này sang phòng học
+            // khác (vd bấm thông báo trả lời trong lúc đang làm dở bài khác) — tránh sót lại
+            // state UI phụ (hộp "nhờ thầy/cô" đang mở, ảnh đang zoom...) của bài trước.
+            key={phongHoc.sessionId || phongHoc.problemId || 'moi'}
+            problemId={phongHoc.problemId}
+            sessionId={phongHoc.sessionId}
+            onTrangChu={() => dieuHuong('trang_chu')}
+            onChonBai={() => dieuHuong('chon_bai')}
+            onSid={setActiveSid}
+          />
+        )}
+        {page === 'nhiem_vu' && (
+          <NhiemVu onChon={moBaiMoi} focusId={focusNv} onFocusDone={() => setFocusNv(null)} />
+        )}
+        {page === 'thi_thu' && (
+          <ThiThu onLuyenBai={moBaiMoi} focusId={focusDeThi} onFocusDone={() => setFocusDeThi(null)} />
+        )}
+        {page === 'muc_tieu' && <MucTieu />}
+        {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}
+        {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}
+      </Suspense>
     </RoleLayout>
   )
 }

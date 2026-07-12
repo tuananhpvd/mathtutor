@@ -54,6 +54,17 @@ def db():
         Base.metadata.drop_all(bind=engine_test)
 
 
+@pytest.fixture(autouse=True)
+def _xoa_cache_cau_hinh():
+    """lay_cau_hinh() cache trong tiến trình (module-level) — mỗi test có DB riêng (bảng
+    tạo/xóa lại từ đầu) nhưng cache thì sống chung cả tiến trình pytest, nên PHẢI xóa trước
+    mỗi test, nếu không test sau có thể đọc nhầm cấu hình cache lại từ test trước."""
+    import app.services.admin_service as admin_service
+    admin_service._cau_hinh_cache = None
+    yield
+    admin_service._cau_hinh_cache = None
+
+
 @pytest.fixture(scope="function")
 def client(db):
     def override_get_db():

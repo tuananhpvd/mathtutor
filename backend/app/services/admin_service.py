@@ -2,6 +2,8 @@
 Admin service: thống kê tổng, quản lý tài khoản, cấu hình hệ thống.
 """
 
+import time
+
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
@@ -444,12 +446,32 @@ def doi_trang_thai_tai_khoan(db: Session, user_id: int, trang_thai: str) -> User
     return user
 
 
+# Cache trong tiến trình (TTL ngắn) — bảng cấu hình gần như không đổi nhưng lay_cau_hinh()
+# nằm trên đường nóng nhất (mỗi tin nhắn chat, mỗi lượt tạo phiên đều gọi), quét toàn bảng
+# mỗi lần là lãng phí. dat_cau_hinh() xóa cache ngay khi ghi nên admin sửa xong thấy hiệu
+# lực tức thì; TTL chỉ là lưới an toàn nếu lỡ có đường ghi nào quên xóa cache.
+_CAU_HINH_TTL_GIAY = 30
+_cau_hinh_cache: dict | None = None
+_cau_hinh_cache_luc: float = 0.0
+
+
 def lay_cau_hinh(db: Session) -> dict:
     """Cấu hình ĐẦY ĐỦ (gồm khóa API nguyên văn) — chỉ dùng nội bộ phía server."""
+    global _cau_hinh_cache, _cau_hinh_cache_luc
+    now = time.monotonic()
+    if _cau_hinh_cache is not None and (now - _cau_hinh_cache_luc) < _CAU_HINH_TTL_GIAY:
+        return _cau_hinh_cache
     ket_qua = dict(CAU_HINH_MAC_DINH)
     for row in db.query(CauHinh).all():
         ket_qua[row.khoa] = row.gia_tri.get("v", row.gia_tri)
+    _cau_hinh_cache = ket_qua
+    _cau_hinh_cache_luc = now
     return ket_qua
+
+
+def _xoa_cache_cau_hinh() -> None:
+    global _cau_hinh_cache
+    _cau_hinh_cache = None
 
 
 def lay_cau_hinh_an_toan(db: Session) -> dict:
@@ -499,6 +521,7 @@ def dat_cau_hinh(db: Session, khoa: str, gia_tri) -> dict:
     else:
         row.gia_tri = {"v": gia_tri}
     db.commit()
+    _xoa_cache_cau_hinh()
     return lay_cau_hinh(db)
 
 

@@ -247,6 +247,55 @@ def test_cau_hinh_khoa_khong_hop_le(db, client):
     assert r.status_code == 400
 
 
+# ----- Cache lay_cau_hinh (hiệu năng) -----
+
+def test_cau_hinh_cache_tra_cung_object_trong_ttl(db):
+    """Gọi 2 lần liên tiếp trong TTL phải trả về ĐÚNG cùng 1 object (từ cache), không phải
+    2 dict mới tạo từ truy vấn DB — chứng minh cache thật sự hoạt động, không chỉ giá trị
+    giống nhau mà trùng identity."""
+    from app.services.admin_service import lay_cau_hinh
+
+    c1 = lay_cau_hinh(db)
+    c2 = lay_cau_hinh(db)
+    assert c1 is c2
+
+
+def test_cau_hinh_cache_xoa_khi_ghi(db, client):
+    """Sửa cấu hình xong phải thấy hiệu lực NGAY (không đợi hết TTL) — dat_cau_hinh phải
+    chủ động xóa cache."""
+    from app.services.admin_service import lay_cau_hinh
+
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    assert lay_cau_hinh(db)["nguong_co_khong_hieu"] == 3  # mặc định, nạp vào cache
+
+    client.patch("/api/admin/config", headers=h,
+                 json={"khoa": "nguong_co_khong_hieu", "gia_tri": 7})
+    assert lay_cau_hinh(db)["nguong_co_khong_hieu"] == 7  # không phải giá trị cache cũ
+
+
+def test_cau_hinh_cache_buoc_1_lam_ban_cache(db):
+    """Cặp với test ngay sau. Cố tình "làm bẩn" cache bằng giá trị không phải mặc định,
+    KHÔNG qua dat_cau_hinh (hàm đó tự xóa cache khi ghi nên không mô phỏng được tình huống
+    cần kiểm — cache còn sót lại từ 1 request/test TRƯỚC mà không ai chủ động dọn)."""
+    import time
+
+    import app.services.admin_service as admin_service
+
+    admin_service._cau_hinh_cache = {**admin_service.CAU_HINH_MAC_DINH, "llm_provider": "GIA_LAP_RO_RI"}
+    admin_service._cau_hinh_cache_luc = time.monotonic()
+
+
+def test_cau_hinh_cache_buoc_2_khong_ro_ri_sang_test_khac(db):
+    """DB test này hoàn toàn mới (fixture 'db' tạo lại bảng từ đầu), nhưng cache
+    lay_cau_hinh() là biến toàn tiến trình Python — nếu không có gì chủ động dọn giữa các
+    test, giá trị "bẩn" gài ở test trước sẽ rò rỉ sang đây dù DB này chưa hề ghi gì. Fixture
+    autouse `_xoa_cache_cau_hinh` (conftest.py) phải chặn đúng việc này."""
+    from app.services.admin_service import lay_cau_hinh
+
+    assert lay_cau_hinh(db)["llm_provider"] == "gemini"
+
+
 def test_users_list_admin(db, client):
     _seed(db)
     h = {"Authorization": f"Bearer {_login(client, 'admin')}"}

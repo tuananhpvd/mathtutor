@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession, updateHoTen } from '../../auth'
-import TongQuan from './TongQuan'
-import QuanLyCauHoi from './QuanLyCauHoi'
-import QuanLyDanhMuc from './QuanLyDanhMuc'
-import AISinhCauHoi from './AISinhCauHoi'
-import QuanLyCo from './QuanLyCo'
-import TheoDoiTienBo from './TheoDoiTienBo'
-import TaiKhoanCaNhan from './TaiKhoanCaNhan'
-import QuanLyLopGV from './QuanLyLopGV'
-import QuanLyHocSinhGV from './QuanLyHocSinhGV'
-import HoTroHocSinh from './HoTroHocSinh'
-import GiaoNhiemVu from './GiaoNhiemVu'
-import QuanLyDeThi from './QuanLyDeThi'
-import QuanLyNoiDungGV from './QuanLyNoiDungGV'
+
+// Mỗi trang tách riêng 1 chunk (code-splitting) — chỉ tải khi GV thật sự mở trang đó.
+const TongQuan = lazy(() => import('./TongQuan'))
+const QuanLyCauHoi = lazy(() => import('./QuanLyCauHoi'))
+const QuanLyDanhMuc = lazy(() => import('./QuanLyDanhMuc'))
+const AISinhCauHoi = lazy(() => import('./AISinhCauHoi'))
+const QuanLyCo = lazy(() => import('./QuanLyCo'))
+const TheoDoiTienBo = lazy(() => import('./TheoDoiTienBo'))
+const TaiKhoanCaNhan = lazy(() => import('./TaiKhoanCaNhan'))
+const QuanLyLopGV = lazy(() => import('./QuanLyLopGV'))
+const QuanLyHocSinhGV = lazy(() => import('./QuanLyHocSinhGV'))
+const HoTroHocSinh = lazy(() => import('./HoTroHocSinh'))
+const GiaoNhiemVu = lazy(() => import('./GiaoNhiemVu'))
+const QuanLyDeThi = lazy(() => import('./QuanLyDeThi'))
+const QuanLyNoiDungGV = lazy(() => import('./QuanLyNoiDungGV'))
 
 const NAV = [
   { key: 'tong_quan', label: 'Tổng quan' },
@@ -118,23 +120,25 @@ export default function GiaoVienApp({ onLogout }) {
       title={TIEU_DE[page]}
       onMoLienKet={moTuThongBao}
     >
-      {page === 'noi_dung_gv' && <QuanLyNoiDungGV />}
-      {page === 'tong_quan' && <TongQuan onNavigate={navigate} />}
-      {page === 'danh_muc' && <QuanLyDanhMuc />}
-      {page === 'cau_hoi' && <QuanLyCauHoi />}
-      {page === 'ai_sinh' && <AISinhCauHoi />}
-      {page === 'co' && (
-        <QuanLyCo focusId={focusCo} onFocusDone={() => setFocusCo(null)} />
-      )}
-      {page === 'ho_tro' && (
-        <HoTroHocSinh focusYc={focusYc} onFocusDone={() => setFocusYc(null)} />
-      )}
-      {page === 'nhiem_vu' && <GiaoNhiemVu />}
-      {page === 'de_thi' && <QuanLyDeThi />}
-      {page === 'tien_bo' && <TheoDoiTienBo />}
-      {page === 'lop' && <QuanLyLopGV />}
-      {page === 'hoc_sinh' && <QuanLyHocSinhGV />}
-      {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}
+      <Suspense fallback={<p className="text-muted text-sm">Đang tải...</p>}>
+        {page === 'noi_dung_gv' && <QuanLyNoiDungGV />}
+        {page === 'tong_quan' && <TongQuan onNavigate={navigate} />}
+        {page === 'danh_muc' && <QuanLyDanhMuc />}
+        {page === 'cau_hoi' && <QuanLyCauHoi />}
+        {page === 'ai_sinh' && <AISinhCauHoi />}
+        {page === 'co' && (
+          <QuanLyCo focusId={focusCo} onFocusDone={() => setFocusCo(null)} />
+        )}
+        {page === 'ho_tro' && (
+          <HoTroHocSinh focusYc={focusYc} onFocusDone={() => setFocusYc(null)} />
+        )}
+        {page === 'nhiem_vu' && <GiaoNhiemVu />}
+        {page === 'de_thi' && <QuanLyDeThi />}
+        {page === 'tien_bo' && <TheoDoiTienBo />}
+        {page === 'lop' && <QuanLyLopGV />}
+        {page === 'hoc_sinh' && <QuanLyHocSinhGV />}
+        {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}
+      </Suspense>
     </RoleLayout>
   )
 }

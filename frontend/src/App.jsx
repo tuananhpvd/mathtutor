@@ -1,13 +1,24 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import Login from './pages/auth/Login'
-import HocSinhApp from './pages/hs/HocSinhApp'
-import GiaoVienApp from './pages/gv/GiaoVienApp'
-import QuanTriApp from './pages/admin/QuanTriApp'
 import { getSession } from './auth'
 import { ConfirmProvider } from './components/ui'
 import { api } from './api'
 
+// Tách riêng theo vai trò (code-splitting) — HS không tải code của GV/Admin và ngược lại,
+// giảm đáng kể dung lượng tải lần đầu (mỗi vai trò chỉ tải đúng phần mình dùng).
+const HocSinhApp = lazy(() => import('./pages/hs/HocSinhApp'))
+const GiaoVienApp = lazy(() => import('./pages/gv/GiaoVienApp'))
+const QuanTriApp = lazy(() => import('./pages/admin/QuanTriApp'))
+
 const KHOA_XEM_TRUOC = 'mt_xem_truoc'
+
+function DangTaiToanTrang() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg">
+      <p className="text-muted text-sm">Đang tải...</p>
+    </div>
+  )
+}
 
 function getPage(vai_tro) {
   if (vai_tro === 'admin') return 'admin'
@@ -71,9 +82,11 @@ export default function App() {
   return (
     <ConfirmProvider>
       {page === 'login' && <Login onLogin={handleLogin} />}
-      {page === 'hs' && <HocSinhApp onLogout={handleLogout} />}
-      {page === 'gv' && <GiaoVienApp onLogout={handleLogout} />}
-      {page === 'admin' && <QuanTriApp onLogout={handleLogout} />}
+      <Suspense fallback={<DangTaiToanTrang />}>
+        {page === 'hs' && <HocSinhApp onLogout={handleLogout} />}
+        {page === 'gv' && <GiaoVienApp onLogout={handleLogout} />}
+        {page === 'admin' && <QuanTriApp onLogout={handleLogout} />}
+      </Suspense>
     </ConfirmProvider>
   )
 }
