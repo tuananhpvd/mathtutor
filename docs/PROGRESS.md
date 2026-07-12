@@ -4,7 +4,24 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v98**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v99**)
+
+- **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
+  - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi
+    dùng: Admin Dashboard, GV Tổng quan, nên sửa 1 chỗ áp dụng cả 2 trang): thêm prop `icon`
+    tùy chọn (icon lucide-react đặt trong khối màu theo `accent`), **số liệu lên trên (to,
+    đậm, `text-3xl font-bold`), nhãn chữ xuống dưới** — số liệu luôn giữ màu chữ trung tính
+    (`text-ink`), chỉ icon mang màu, đúng quy tắc "màu theo icon/nhãn, không theo chữ số".
+  - Thêm 2 component cục bộ trong Dashboard.jsx: `MiniStat` (icon + số vừa, dùng cho nhóm chỉ
+    số phụ) và `ONho` (không icon, nhỏ gọn nhất — dùng cho chi tiết "Theo loại câu/độ khó"),
+    tạo thứ bậc rõ: tổng quan (to) → chi tiết (nhỏ dần), đúng nguyên tắc UI "tổng quan trước,
+    chi tiết sau". "Theo độ khó" tô màu Dễ/TB/Khó = xanh/vàng/đỏ khớp quy ước ở trang Tiến độ;
+    "Theo loại câu" và "Theo độ khó" xếp cùng 1 hàng (trước xếp chồng).
+  - Sửa nhãn GV Tổng quan bị cắt chữ (`truncate` + nhãn quá dài trong ô 3 cột hẹp): "Số câu
+    hỏi đã duyệt/chờ duyệt" → "Câu hỏi đã duyệt/chờ duyệt".
+  - Không đổi logic — chỉ thêm prop tùy chọn + đổi className/thứ tự hiển thị.
+
+## 1a. Trạng thái trước đó (v98)
 
 - **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
   - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"
@@ -32,7 +49,7 @@
   - Test mới: `test_hs.py` (mặc định 3 bước, admin sửa → HS đọc đúng bản mới). `pytest`
     464/464, `ruff`/`eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v97)
+## 1b. Trạng thái trước đó (v97)
 
 - **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
   - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
@@ -47,7 +64,7 @@
   - Lưu ý: các phiên TN4PA làm **trước** bản vá này vẫn còn bong bóng trống khi xem lại (dữ
     liệu cũ đã lưu rỗng, không hồi tố được) — chỉ ảnh hưởng lịch sử cũ, bài mới đều đúng.
 
-## 1b. Trạng thái trước đó (v96)
+## 1c. Trạng thái trước đó (v96)
 
 - **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
   items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
@@ -64,7 +81,7 @@
     "Theo loại câu"/"Theo độ khó" từ 2 cột ngang sang xếp dọc để gọn theo chiều cao) ghép
     cùng "Cờ theo dõi & Hệ thống" ở cột phải.
 
-## 1c. Trạng thái trước đó (v95)
+## 1d. Trạng thái trước đó (v95)
 
 - **✨ (v95) Tái thiết giao diện responsive + bảng màu mới — toàn bộ frontend, KHÔNG đụng
   logic/backend.** Làm theo 6 bậc trên nhánh riêng `giao-dien-moi` (đã merge `--no-ff` vào
@@ -99,7 +116,7 @@
   - Build-test-fix xanh sau mỗi bậc (`eslint` + `vite build`); môi trường dev nhiều lần OOM
     (máy còn <150MB RAM trống) khi build — không phải lỗi code, đã retry qua khi RAM hồi.
 
-## 1d. Trạng thái trước đó (v94)
+## 1e. Trạng thái trước đó (v94)
 
 - **✨ (v94) Admin tự quản lý từ khóa lọc an toàn (3 tầng) — không cần sửa code.**
   - Tận dụng cơ chế cấu hình key-value có sẵn (`CauHinh`) — KHÔNG bảng mới, KHÔNG migration.
