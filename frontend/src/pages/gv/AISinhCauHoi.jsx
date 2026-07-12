@@ -2,7 +2,10 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
-import { ThanCauHoiForm, SuaCauHoi, BangCongThuc, TexField } from './QuanLyCauHoi'
+import { ThanCauHoiForm } from './quanLyCauHoi/ThanCauHoiForm'
+import { SuaCauHoi } from './quanLyCauHoi/SuaTaoCauHoi'
+import { BangCongThuc } from './quanLyCauHoi/BangCongThuc'
+import { TexField } from './quanLyCauHoi/TexField'
 import { chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN } from '../../utils/cauHoi'
 
 function renderTex(text) {
