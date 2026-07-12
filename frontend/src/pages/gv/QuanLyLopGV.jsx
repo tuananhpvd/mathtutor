@@ -271,7 +271,7 @@ export default function QuanLyLopGV() {
         <CardHeader title="Lớp của tôi" subtitle={`${loc.length}/${lops.length} lớp`} />
         <CardBody className="flex flex-col gap-3">
           <Input label="Tìm lớp" placeholder="Tên lớp..." value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="flex flex-col gap-2">
+          <div className="grid lg:grid-cols-2 gap-3 items-start">
             {loc.map((l) => (
               <div key={l.id} className="rounded-lg border border-border">
                 {suaLop?.id === l.id ? (

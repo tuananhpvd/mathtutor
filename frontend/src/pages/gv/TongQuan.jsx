@@ -60,22 +60,24 @@ export default function TongQuan() {
 
   return (
     <div className="flex flex-col gap-5">
-      <NhomThongKe
-        title="Lớp & học sinh"
-        items={[
-          { label: 'Số lớp phụ trách', value: tk.so_lop, accent: 'primary' },
-          { label: 'Tổng số học sinh', value: tk.tong_hoc_sinh, accent: 'primary' },
-          { label: 'Số học sinh bị khóa', value: tk.hoc_sinh_khoa, accent: 'danger' },
-        ]}
-      />
-      <NhomThongKe
-        title="Câu hỏi"
-        items={[
-          { label: 'Tổng số câu hỏi', value: tk.tong_cau_hoi, accent: 'primary' },
-          { label: 'Số câu hỏi đã duyệt', value: tk.cau_hoi_da_duyet, accent: 'success' },
-          { label: 'Số câu hỏi chờ duyệt', value: tk.cau_hoi_cho_duyet, accent: 'warning' },
-        ]}
-      />
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <NhomThongKe
+          title="Lớp & học sinh"
+          items={[
+            { label: 'Số lớp phụ trách', value: tk.so_lop, accent: 'primary' },
+            { label: 'Tổng số học sinh', value: tk.tong_hoc_sinh, accent: 'primary' },
+            { label: 'Số học sinh bị khóa', value: tk.hoc_sinh_khoa, accent: 'danger' },
+          ]}
+        />
+        <NhomThongKe
+          title="Câu hỏi"
+          items={[
+            { label: 'Tổng số câu hỏi', value: tk.tong_cau_hoi, accent: 'primary' },
+            { label: 'Số câu hỏi đã duyệt', value: tk.cau_hoi_da_duyet, accent: 'success' },
+            { label: 'Số câu hỏi chờ duyệt', value: tk.cau_hoi_cho_duyet, accent: 'warning' },
+          ]}
+        />
+      </div>
       <NhomThongKe
         title="Cờ theo dõi"
         items={[
@@ -85,7 +87,7 @@ export default function TongQuan() {
         ]}
       />
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
         <BangXepHang
           title="Dạng bài học sinh mất nhiều thời gian"
           subtitle="Tối đa 3 dạng — theo tổng thời gian hoàn thành"

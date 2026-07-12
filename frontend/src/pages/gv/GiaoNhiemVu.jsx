@@ -486,10 +486,12 @@ export default function GiaoNhiemVu() {
 
       <Card>
         <CardHeader title="Nhiệm vụ đã giao" subtitle={`${nhiemVus.length} nhiệm vụ`} />
-        <CardBody className="flex flex-col gap-3">
+        <CardBody>
           {nhiemVus.length === 0 ? (
             <p className="text-sm text-muted">Chưa giao nhiệm vụ nào.</p>
-          ) : nhiemVus.map((nv) => (
+          ) : (
+          <div className="grid lg:grid-cols-2 gap-3 items-start">
+          {nhiemVus.map((nv) => (
             <div key={nv.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
               {/* Tiêu đề + nút */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -702,6 +704,8 @@ export default function GiaoNhiemVu() {
               )}
             </div>
           ))}
+          </div>
+          )}
         </CardBody>
       </Card>
     </div>

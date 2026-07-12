@@ -220,55 +220,57 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
       {danhMuc.length === 0 ? (
         <Card><CardBody className="py-8 text-center text-muted">Chưa có chuyên đề nào.</CardBody></Card>
       ) : (
-        danhMuc.map((cd) => (
-          <Card key={cd.id}>
-            <CardBody className="pt-4 flex flex-col gap-3">
-              {/* Header chuyên đề */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <TenChuyenDe cd={cd} onSua={suaCD} />
-                  <p className="text-xs text-muted mt-0.5">{cd.dang_list.length} dạng</p>
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          {danhMuc.map((cd) => (
+            <Card key={cd.id}>
+              <CardBody className="pt-4 flex flex-col gap-3">
+                {/* Header chuyên đề */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <TenChuyenDe cd={cd} onSua={suaCD} />
+                    <p className="text-xs text-muted mt-0.5">{cd.dang_list.length} dạng</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="secondary" onClick={() => setMoCD(moCD === cd.id ? null : cd.id)}>
+                      {moCD === cd.id ? 'Thu gọn' : 'Quản lý dạng'}
+                    </Button>
+                    <button
+                      onClick={() => xoaCD(cd)}
+                      className="text-sm text-danger hover:underline disabled:opacity-40"
+                      disabled={cd.dang_list.length > 0}
+                      title={cd.dang_list.length > 0 ? 'Còn dạng, không thể xóa' : 'Xóa chuyên đề'}
+                    >
+                      Xóa
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <Button size="sm" variant="secondary" onClick={() => setMoCD(moCD === cd.id ? null : cd.id)}>
-                    {moCD === cd.id ? 'Thu gọn' : 'Quản lý dạng'}
-                  </Button>
-                  <button
-                    onClick={() => xoaCD(cd)}
-                    className="text-sm text-danger hover:underline disabled:opacity-40"
-                    disabled={cd.dang_list.length > 0}
-                    title={cd.dang_list.length > 0 ? 'Còn dạng, không thể xóa' : 'Xóa chuyên đề'}
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </div>
 
-              {/* Expand: list dạng + form thêm dạng */}
-              {moCD === cd.id && (
-                <div className="border-t border-border pt-3 flex flex-col gap-2">
-                  {cd.dang_list.length === 0 ? (
-                    <p className="text-xs text-muted">Chưa có dạng nào.</p>
-                  ) : (
-                    cd.dang_list.map((d) => (
-                      <DangRow key={d.id} dang={d} onXoa={xoaDang} onSua={suaDang} />
-                    ))
-                  )}
-                  {/* Form thêm dạng — ẩn với tài khoản Quản lý */}
-                  {!toanQuyen && (
-                    <div className="grid sm:grid-cols-3 gap-2 mt-1 items-end">
-                      <FormInput label="Tên dạng mới" value={tenDang} onChange={setTenDang} placeholder="VD: Xét đơn điệu" />
-                      <FormInput label="Mô tả (tùy chọn)" value={moTaDang} onChange={setMoTaDang} placeholder="" />
-                      <Button size="sm" onClick={() => themDang(cd.id)} disabled={!tenDang.trim() || dangThemDang}>
-                        {dangThemDang ? 'Đang thêm...' : '+ Thêm dạng'}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        ))
+                {/* Expand: list dạng + form thêm dạng */}
+                {moCD === cd.id && (
+                  <div className="border-t border-border pt-3 flex flex-col gap-2">
+                    {cd.dang_list.length === 0 ? (
+                      <p className="text-xs text-muted">Chưa có dạng nào.</p>
+                    ) : (
+                      cd.dang_list.map((d) => (
+                        <DangRow key={d.id} dang={d} onXoa={xoaDang} onSua={suaDang} />
+                      ))
+                    )}
+                    {/* Form thêm dạng — ẩn với tài khoản Quản lý */}
+                    {!toanQuyen && (
+                      <div className="grid sm:grid-cols-3 gap-2 mt-1 items-end">
+                        <FormInput label="Tên dạng mới" value={tenDang} onChange={setTenDang} placeholder="VD: Xét đơn điệu" />
+                        <FormInput label="Mô tả (tùy chọn)" value={moTaDang} onChange={setMoTaDang} placeholder="" />
+                        <Button size="sm" onClick={() => themDang(cd.id)} disabled={!tenDang.trim() || dangThemDang}>
+                          {dangThemDang ? 'Đang thêm...' : '+ Thêm dạng'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   )

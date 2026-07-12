@@ -17,6 +17,7 @@ export default function MucTieu() {
         taiDeXuat={api.hsMucTieuDeXuat}
         taoMt={api.hsTaoMucTieu}
         xoaMt={api.xoaMucTieu}
+        haiCot
       />
     </div>
   )

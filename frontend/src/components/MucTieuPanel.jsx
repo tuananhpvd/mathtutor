@@ -20,8 +20,12 @@ function ThanhTienDo({ hien_tai, chi_tieu_so, da_dat }) {
 /**
  * Panel mục tiêu dùng chung cho HS và GV.
  * Props: taiDs(), taiDeXuat(), taoMt(body), xoaMt(id), tieuDe, phụ đề.
+ * haiCot: true → danh sách mục tiêu chia 2 cột trái/phải (chỉ HS dùng, GV giữ nguyên 1 cột
+ * vì panel này còn nhúng trong khung hẹp ở trang Theo dõi tiến bộ).
  */
-export default function MucTieuPanel({ taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, phuDe, choPhepThem = true }) {
+export default function MucTieuPanel({
+  taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, phuDe, choPhepThem = true, haiCot = false,
+}) {
   const confirm = useConfirm()
   const [ds, setDs] = useState([])
   const [danhMuc, setDanhMuc] = useState([])
@@ -157,25 +161,29 @@ export default function MucTieuPanel({ taiDs, taiDeXuat, taoMt, xoaMt, tieuDe, p
         {/* Danh sách */}
         {ds.length === 0 ? (
           <p className="text-sm text-muted">Chưa có mục tiêu nào.</p>
-        ) : dsSapXep.map((mt) => (
-          <div key={mt.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink">{mt.tieu_de}</p>
-                <p className="text-xs text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
-                  <Badge tone="primary">{NHAN_LOAI[mt.loai] || mt.loai}</Badge>
-                  <span>{NHAN_NGUON[mt.nguon] || mt.nguon}</span>
-                  {mt.han && <span>· hạn {new Date(mt.han).toLocaleDateString('vi-VN')}</span>}
-                </p>
+        ) : (
+          <div className={haiCot ? 'grid lg:grid-cols-2 gap-3 items-start' : 'flex flex-col gap-3'}>
+            {dsSapXep.map((mt) => (
+              <div key={mt.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink">{mt.tieu_de}</p>
+                    <p className="text-xs text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <Badge tone="primary">{NHAN_LOAI[mt.loai] || mt.loai}</Badge>
+                      <span>{NHAN_NGUON[mt.nguon] || mt.nguon}</span>
+                      {mt.han && <span>· hạn {new Date(mt.han).toLocaleDateString('vi-VN')}</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {mt.da_dat && <Badge tone="success">✓ Đạt</Badge>}
+                    <button onClick={() => xoa(mt)} className="text-xs text-danger hover:underline">Xóa</button>
+                  </div>
+                </div>
+                <ThanhTienDo hien_tai={mt.hien_tai} chi_tieu_so={mt.chi_tieu_so} da_dat={mt.da_dat} />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {mt.da_dat && <Badge tone="success">✓ Đạt</Badge>}
-                <button onClick={() => xoa(mt)} className="text-xs text-danger hover:underline">Xóa</button>
-              </div>
-            </div>
-            <ThanhTienDo hien_tai={mt.hien_tai} chi_tieu_so={mt.chi_tieu_so} da_dat={mt.da_dat} />
+            ))}
           </div>
-        ))}
+        )}
       </CardBody>
     </Card>
   )
