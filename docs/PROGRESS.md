@@ -4,7 +4,37 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v101**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v102**)
+
+- **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập — đỏ chỉ còn nghĩa "sai/lỗi/nguy
+  hiểm", không rò rỉ sang dữ liệu trung tính.** User đưa 1 bản đánh giá giao diện từ bên ngoài
+  (7 ảnh chụp thật) chỉ ra: quá nhiều màu không hệ thống, đỏ dùng sai vai trò semantic, nút
+  không nhất quán, badge/card tô màu tùy tiện. Đối chiếu từng điểm với code thật trước khi sửa
+  (không sửa máy móc theo bản đánh giá):
+  - **Xác nhận đúng — lỗi nặng nhất**: `ThongKeTienDo.jsx`, `TrangChu.jsx` tô **đỏ** cho trạng
+    thái **"Chưa làm"** (donut, progress bar, card, chú thích) — với học sinh đang ôn thi, nhìn
+    biểu đồ tiến độ toàn đỏ dễ hiểu nhầm "đang thất bại" dù chỉ là chưa luyện tới.
+  - **Bác bỏ 1 phần**: bản đánh giá kết luận "badge loại câu hỏi pastel ngẫu nhiên, không hệ
+    thống" — sai; code thực ra rất nhất quán (loại câu luôn `tone="primary"`, độ khó luôn theo
+    bảng `TONE_KHO` cố định). "Hồng nhạt" nhìn thấy chính là `danger-soft` của độ khó "Khó" —
+    quay lại đúng gốc rễ ở trên, không phải lỗi badge.
+  - **Quyết định giữ nguyên có chủ đích (đã hỏi ý kiến user trước khi làm)**: đỏ/vàng/xanh vẫn
+    dùng cho thang thứ bậc **Dễ/TB/Khó** (không đổi sang thang đơn sắc) — vì đây là thang thứ
+    bậc hiếm khi đứng cùng khung với thanh tiến độ, khác hẳn trường hợp "chưa làm".
+  - **Sửa**: thêm token `--color-idle`/`--color-idle-soft` (xám đậm, KHÁC xám nhạt `surface-2`
+    để vẫn nổi rõ trên donut) — dùng cho MỌI trạng thái "chưa" (chưa làm, đã ẩn). Nút "Nộp bài"
+    đỏ→cam (hành động tích cực, không phải hủy bỏ), "Làm lại" xanh→cam (đồng bộ "Bắt đầu"). So
+    sánh min/max (chậm nhất, thấp nhất): vế "kém hơn" chuyển sang `text-muted` thay vì đỏ —
+    không phải lỗi, chỉ là 1 trong 2 cực của dải so sánh.
+  - **Xác minh riêng (không chỉ đánh giá bằng mắt)**: kiểm tra `HieuQuaPhuongPhap.jsx` +
+    `BanDoNangLuc.jsx` (2 màn dùng nhiều tím nhất) bằng `validate_palette.js` của dataviz
+    skill + tính tay contrast WCAG cho từng ô heatmap — xác nhận đây là **sequential encoding
+    đúng chuẩn** cho dữ liệu magnitude/thứ bậc (1 tông tím nhạt→đậm, "chưa đủ dữ liệu" đã tách
+    bạch bằng xám từ trước), KHÔNG cần sửa — chỉ 1 điểm tương phản cực nhỏ (4.41:1 so với chuẩn
+    4.5:1, không đáng kể) được ghi nhận nhưng không sửa vì user không yêu cầu.
+  - `eslint`/`vitest` 23/23/`vite build` sạch — thuần đổi class/token CSS, không đụng logic.
+
+## 1a. Trạng thái trước đó (v101)
 
 - **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
   từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**
@@ -35,7 +65,7 @@
     cũ, không bao giờ kẹt màn hình.
   - `pytest` 469/469 (+1), `vitest` 23/23 (+1), `eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v100)
+## 1b. Trạng thái trước đó (v100)
 
 - **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
   vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ
@@ -68,7 +98,7 @@
     đổi logic; cập nhật `AISinhCauHoi.jsx` trỏ theo import mới.
   - `pytest` 468/468, `eslint`/`vitest`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v99)
+## 1c. Trạng thái trước đó (v99)
 
 - **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
   - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi
@@ -85,7 +115,7 @@
     hỏi đã duyệt/chờ duyệt" → "Câu hỏi đã duyệt/chờ duyệt".
   - Không đổi logic — chỉ thêm prop tùy chọn + đổi className/thứ tự hiển thị.
 
-## 1c. Trạng thái trước đó (v98)
+## 1d. Trạng thái trước đó (v98)
 
 - **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
   - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"
@@ -113,7 +143,7 @@
   - Test mới: `test_hs.py` (mặc định 3 bước, admin sửa → HS đọc đúng bản mới). `pytest`
     464/464, `ruff`/`eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v97)
+## 1e. Trạng thái trước đó (v97)
 
 - **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
   - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
@@ -127,8 +157,6 @@
     lẫn khi xem lại, không cần caption dự phòng nữa.
   - Lưu ý: các phiên TN4PA làm **trước** bản vá này vẫn còn bong bóng trống khi xem lại (dữ
     liệu cũ đã lưu rỗng, không hồi tố được) — chỉ ảnh hưởng lịch sử cũ, bài mới đều đúng.
-
-## 1e. Trạng thái trước đó (v96)
 
 - **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
   items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
