@@ -1,17 +1,29 @@
 import { useEffect, useState } from 'react'
+import {
+  AlertTriangle, Building2, CheckCircle2, Clock, Flag, ListChecks, Lock, Users,
+} from 'lucide-react'
 import { api } from '../../api'
 import { Card, CardBody, CardHeader, StatCard } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
 
 const NHAN_LOAI = { TN4PA: 'Trắc nghiệm ABCD', TNDS: 'Đúng/Sai 4 ý', TLN: 'Trả lời ngắn' }
 
-function NhomThongKe({ title, items }) {
+function TieuDeThe({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Icon size={18} strokeWidth={2.2} className="text-primary" />
+      {children}
+    </span>
+  )
+}
+
+function NhomThongKe({ title, icon, items }) {
   return (
     <Card>
-      <CardHeader title={title} />
+      <CardHeader title={icon ? <TieuDeThe icon={icon}>{title}</TieuDeThe> : title} />
       <CardBody className="grid sm:grid-cols-3 gap-4">
         {items.map((it) => (
-          <StatCard key={it.label} label={it.label} value={it.value} accent={it.accent} />
+          <StatCard key={it.label} icon={it.icon} label={it.label} value={it.value} accent={it.accent} />
         ))}
       </CardBody>
     </Card>
@@ -63,27 +75,30 @@ export default function TongQuan() {
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <NhomThongKe
           title="Lớp & học sinh"
+          icon={Users}
           items={[
-            { label: 'Số lớp phụ trách', value: tk.so_lop, accent: 'primary' },
-            { label: 'Tổng số học sinh', value: tk.tong_hoc_sinh, accent: 'primary' },
-            { label: 'Số học sinh bị khóa', value: tk.hoc_sinh_khoa, accent: 'danger' },
+            { label: 'Số lớp phụ trách', value: tk.so_lop, accent: 'primary', icon: Building2 },
+            { label: 'Tổng số học sinh', value: tk.tong_hoc_sinh, accent: 'primary', icon: Users },
+            { label: 'Số học sinh bị khóa', value: tk.hoc_sinh_khoa, accent: 'danger', icon: Lock },
           ]}
         />
         <NhomThongKe
           title="Câu hỏi"
+          icon={ListChecks}
           items={[
-            { label: 'Tổng số câu hỏi', value: tk.tong_cau_hoi, accent: 'primary' },
-            { label: 'Số câu hỏi đã duyệt', value: tk.cau_hoi_da_duyet, accent: 'success' },
-            { label: 'Số câu hỏi chờ duyệt', value: tk.cau_hoi_cho_duyet, accent: 'warning' },
+            { label: 'Tổng số câu hỏi', value: tk.tong_cau_hoi, accent: 'primary', icon: ListChecks },
+            { label: 'Câu hỏi đã duyệt', value: tk.cau_hoi_da_duyet, accent: 'success', icon: CheckCircle2 },
+            { label: 'Câu hỏi chờ duyệt', value: tk.cau_hoi_cho_duyet, accent: 'warning', icon: Clock },
           ]}
         />
       </div>
       <NhomThongKe
         title="Cờ theo dõi"
+        icon={Flag}
         items={[
-          { label: 'Tổng số cờ theo dõi', value: tk.tong_co, accent: 'primary' },
-          { label: 'Số cờ đã xử lý', value: tk.co_da_xu_ly, accent: 'success' },
-          { label: 'Số cờ chưa xử lý', value: tk.co_chua_xu_ly, accent: 'warning' },
+          { label: 'Tổng số cờ theo dõi', value: tk.tong_co, accent: 'primary', icon: Flag },
+          { label: 'Số cờ đã xử lý', value: tk.co_da_xu_ly, accent: 'success', icon: CheckCircle2 },
+          { label: 'Số cờ chưa xử lý', value: tk.co_chua_xu_ly, accent: 'warning', icon: AlertTriangle },
         ]}
       />
 

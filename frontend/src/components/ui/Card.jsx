@@ -26,17 +26,27 @@ export function CardBody({ className = '', children }) {
   return <div className={`px-5 pb-5 ${className}`}>{children}</div>
 }
 
-export function StatCard({ label, value, hint, accent = 'primary' }) {
-  const accentColor = {
-    primary: 'text-primary',
-    success: 'text-success',
-    warning: 'text-warning',
-    danger: 'text-danger',
-  }[accent]
+const STAT_TEXT = { primary: 'text-primary', success: 'text-success', warning: 'text-warning', danger: 'text-danger', accent: 'text-accent' }
+const STAT_BG = { primary: 'bg-primary-soft', success: 'bg-success-soft', warning: 'bg-warning-soft', danger: 'bg-danger-soft', accent: 'bg-accent-soft' }
+
+// icon (tùy chọn): component icon (vd từ lucide-react) — đặt trong khối màu theo accent,
+// mang màu sắc thay cho chữ số (số liệu luôn giữ màu chữ trung tính, đúng quy ước "màu theo
+// icon/nhãn, không theo chữ số" dùng nhất quán trong toàn app).
+export function StatCard({ label, value, hint, accent = 'primary', icon: Icon }) {
   return (
     <Card className="px-5 py-4">
-      <p className="text-sm text-muted">{label}</p>
-      <p className={`text-3xl font-semibold mt-1 ${accentColor}`}>{value}</p>
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <div className={`h-11 w-11 rounded-lg grid place-items-center shrink-0
+            ${STAT_TEXT[accent]} ${STAT_BG[accent]}`}>
+            <Icon size={22} strokeWidth={2} />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-3xl font-bold text-ink leading-tight">{value}</p>
+          <p className="text-sm text-muted truncate mt-0.5">{label}</p>
+        </div>
+      </div>
       {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
     </Card>
   )

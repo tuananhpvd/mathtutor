@@ -1,20 +1,50 @@
 import { useEffect, useState } from 'react'
+import {
+  Activity, AlertTriangle, Building2, CheckCircle2, Clock, Cpu, EyeOff, Flag, GraduationCap,
+  ListChecks, Users,
+} from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Card, CardBody, CardHeader, StatCard } from '../../components/ui'
 
 const LOAI_LABEL = { TN4PA: 'Trắc nghiệm 4 PA', TNDS: 'Đúng/Sai', TLN: 'Tự luận ngắn' }
 const DO_KHO_LABEL = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
+const DO_KHO_TONE = { de: 'success', tb: 'warning', kho: 'danger' }
 
-function MiniStat({ label, value, tone }) {
-  const color =
-    tone === 'success' ? 'text-success' :
-    tone === 'warning' ? 'text-warning' :
-    tone === 'danger' ? 'text-danger' : 'text-ink'
+const TONE_TEXT = { primary: 'text-primary', success: 'text-success', warning: 'text-warning', danger: 'text-danger', accent: 'text-accent' }
+const TONE_BG = { primary: 'bg-primary-soft', success: 'bg-success-soft', warning: 'bg-warning-soft', danger: 'bg-danger-soft', accent: 'bg-accent-soft' }
+
+// Icon trong khối màu + số liệu lớn, đậm — nhấn mạnh con số thay vì chỉ chữ thường như trước.
+function MiniStat({ icon: Icon, label, value, tone = 'primary' }) {
   return (
-    <div className="rounded-lg bg-surface-2 px-4 py-3 min-w-[80px] text-center">
-      <p className="text-xs text-muted mb-1">{label}</p>
-      <p className={`text-xl font-semibold ${color}`}>{value}</p>
+    <div className="flex items-center gap-3 rounded-lg bg-surface-2 px-4 py-3 flex-1 min-w-[140px]">
+      <div className={`h-10 w-10 rounded-lg grid place-items-center shrink-0 ${TONE_TEXT[tone]} ${TONE_BG[tone]}`}>
+        <Icon size={20} strokeWidth={2} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-2xl font-bold text-ink leading-tight">{value}</p>
+        <p className="text-xs text-muted truncate mt-0.5">{label}</p>
+      </div>
     </div>
+  )
+}
+
+// Ô số liệu phụ, nhỏ gọn hơn MiniStat — dùng cho phần chi tiết (theo loại/độ khó) đứng dưới
+// nhóm chỉ số chính, đúng thứ bậc "tổng quan trước, chi tiết sau".
+function ONho({ label, value, tone }) {
+  return (
+    <div className={`rounded-lg px-3 py-2 text-center min-w-[64px] ${tone ? TONE_BG[tone] : 'bg-surface-2'}`}>
+      <p className={`text-lg font-semibold ${tone ? TONE_TEXT[tone] : 'text-ink'}`}>{value}</p>
+      <p className={`text-[11px] leading-tight mt-0.5 ${tone ? TONE_TEXT[tone] : 'text-muted'}`}>{label}</p>
+    </div>
+  )
+}
+
+function TieuDeThe({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Icon size={18} strokeWidth={2.2} className="text-primary" />
+      {children}
+    </span>
   )
 }
 
@@ -33,21 +63,21 @@ export default function Dashboard() {
     <div className="flex flex-col gap-5">
       {/* Hàng chỉ số tổng quan */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Tổng người dùng" value={stats.so_nguoi_dung} accent="primary" />
-        <StatCard label="Câu hỏi hoạt động" value={stats.so_cau_hoi} accent="primary" />
-        <StatCard label="Tổng phiên học" value={stats.so_phien} accent="success" />
-        <StatCard label="Cờ chưa xử lý" value={stats.so_co_chua_xu_ly} accent="warning" />
+        <StatCard icon={Users} label="Tổng người dùng" value={stats.so_nguoi_dung} accent="primary" />
+        <StatCard icon={ListChecks} label="Câu hỏi hoạt động" value={stats.so_cau_hoi} accent="primary" />
+        <StatCard icon={Activity} label="Tổng phiên học" value={stats.so_phien} accent="success" />
+        <StatCard icon={AlertTriangle} label="Cờ chưa xử lý" value={stats.so_co_chua_xu_ly} accent="warning" />
       </div>
 
       {/* Người dùng & Lớp + Phiên học — 2 thẻ cao xấp xỉ nhau nên ghép cùng hàng */}
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Card>
-          <CardHeader title="Người dùng & Lớp học" />
+          <CardHeader title={<TieuDeThe icon={Users}>Người dùng & Lớp học</TieuDeThe>} />
           <CardBody>
-            <div className="flex gap-4 flex-wrap">
-              <MiniStat label="Giáo viên" value={stats.so_giao_vien} />
-              <MiniStat label="Học sinh" value={stats.so_hoc_sinh} />
-              <MiniStat label="Lớp học" value={stats.so_lop} />
+            <div className="flex gap-3 flex-wrap">
+              <MiniStat icon={GraduationCap} label="Giáo viên" value={stats.so_giao_vien} />
+              <MiniStat icon={Users} label="Học sinh" value={stats.so_hoc_sinh} />
+              <MiniStat icon={Building2} label="Lớp học" value={stats.so_lop} />
             </div>
           </CardBody>
         </Card>
@@ -56,8 +86,8 @@ export default function Dashboard() {
           <CardHeader title="Phiên học" />
           <CardBody>
             <div className="flex gap-4 flex-wrap">
-              <MiniStat label="Đang học" value={stats.so_phien_dang_lam} tone="success" />
-              <MiniStat label="Hoàn thành" value={stats.so_phien_hoan_thanh} />
+              <MiniStat icon={Clock} label="Đang học" value={stats.so_phien_dang_lam} tone="success" />
+              <MiniStat icon={CheckCircle2} label="Hoàn thành" value={stats.so_phien_hoan_thanh} />
             </div>
           </CardBody>
         </Card>
@@ -66,22 +96,20 @@ export default function Dashboard() {
       {/* Câu hỏi (trái) + Cờ theo dõi & Hệ thống (phải) */}
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Card>
-          <CardHeader title="Câu hỏi" subtitle={`${stats.so_cau_hoi} đang hoạt động · ${stats.so_cau_an || 0} đã ẩn`} />
+          <CardHeader title={<TieuDeThe icon={CheckCircle2}>Câu hỏi</TieuDeThe>}
+            subtitle={`${stats.so_cau_hoi} đang hoạt động · ${stats.so_cau_an || 0} đã ẩn`} />
           <CardBody className="flex flex-col gap-4">
             <div className="flex gap-3 flex-wrap">
-              <MiniStat label="Đã duyệt" value={stats.so_cau_da_duyet} tone="success" />
-              <MiniStat label="Chờ duyệt" value={stats.so_cau_cho_duyet} tone="warning" />
-              <MiniStat label="Đã ẩn" value={stats.so_cau_an || 0} tone="danger" />
+              <MiniStat icon={CheckCircle2} label="Đã duyệt" value={stats.so_cau_da_duyet} tone="success" />
+              <MiniStat icon={Clock} label="Chờ duyệt" value={stats.so_cau_cho_duyet} tone="warning" />
+              <MiniStat icon={EyeOff} label="Đã ẩn" value={stats.so_cau_an || 0} tone="danger" />
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Theo loại câu</p>
                 <div className="flex gap-2 flex-wrap">
                   {Object.entries(stats.cau_theo_loai || {}).map(([k, v]) => (
-                    <div key={k} className="rounded-lg bg-surface-2 px-3 py-2 text-center">
-                      <p className="text-[11px] text-muted leading-tight">{LOAI_LABEL[k] || k}</p>
-                      <p className="text-lg font-semibold text-ink">{v}</p>
-                    </div>
+                    <ONho key={k} label={LOAI_LABEL[k] || k} value={v} />
                   ))}
                 </div>
               </div>
@@ -89,10 +117,7 @@ export default function Dashboard() {
                 <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Theo độ khó</p>
                 <div className="flex gap-2 flex-wrap">
                   {Object.entries(stats.cau_theo_do_kho || {}).map(([k, v]) => (
-                    <div key={k} className="rounded-lg bg-surface-2 px-3 py-2 text-center min-w-[64px]">
-                      <p className="text-[11px] text-muted leading-tight">{DO_KHO_LABEL[k] || k}</p>
-                      <p className="text-lg font-semibold text-ink">{v}</p>
-                    </div>
+                    <ONho key={k} label={DO_KHO_LABEL[k] || k} value={v} tone={DO_KHO_TONE[k]} />
                   ))}
                 </div>
               </div>
@@ -101,19 +126,20 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader title="Cờ theo dõi & Hệ thống" />
-          <CardBody className="flex flex-wrap gap-6 items-start">
-            <div>
-              <p className="text-sm text-muted">Tổng cờ</p>
-              <p className="text-2xl font-semibold text-ink">{stats.so_co_tong}</p>
+          <CardHeader title={<TieuDeThe icon={Flag}>Cờ theo dõi & Hệ thống</TieuDeThe>} />
+          <CardBody className="flex flex-col gap-4">
+            <div className="flex gap-3 flex-wrap">
+              <MiniStat icon={Flag} label="Tổng cờ" value={stats.so_co_tong} />
+              <MiniStat icon={AlertTriangle} label="Chờ xử lý" value={stats.so_co_chua_xu_ly} tone="warning" />
             </div>
-            <div>
-              <p className="text-sm text-muted">Chờ xử lý</p>
-              <p className="text-2xl font-semibold text-warning">{stats.so_co_chua_xu_ly}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted mb-1">Nhà cung cấp LLM</p>
-              <Badge tone="primary">{stats.llm_provider}</Badge>
+            <div className="flex items-center gap-3 rounded-lg bg-surface-2 px-4 py-3">
+              <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 text-accent bg-accent-soft">
+                <Cpu size={20} strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-xs text-muted mb-1">Nhà cung cấp LLM</p>
+                <Badge tone="primary">{stats.llm_provider}</Badge>
+              </div>
             </div>
           </CardBody>
         </Card>
