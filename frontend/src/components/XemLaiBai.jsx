@@ -189,9 +189,6 @@ export default function XemLaiBai({ sessionId, onDong }) {
                         )}
                         <ChatBubble vai_tro={t.vai_tro}>
                           {renderVanBan(t.noi_dung)}
-                          {t.dap_an_nhap && (
-                            <p className="text-xs opacity-80 mt-1">↳ đáp án nhập: {t.dap_an_nhap}</p>
-                          )}
                         </ChatBubble>
                       </div>
                     ))}

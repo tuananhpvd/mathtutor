@@ -28,7 +28,8 @@ export default function AnswerInputTN4PA({ phuong_an = {}, onGui, dang_gui }) {
           </button>
         ))}
       </div>
-      <Button disabled={!chon || dang_gui} onClick={() => onGui({ dap_an_nhap: chon })}>
+      <Button disabled={!chon || dang_gui}
+        onClick={() => onGui({ dap_an_nhap: chon, noi_dung: `Em chọn: ${chon}` })}>
         Gửi đáp án
       </Button>
     </div>
