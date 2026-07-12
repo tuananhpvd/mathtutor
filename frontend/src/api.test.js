@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from './api'
+import { dangKyPhienHetHan } from './auth'
 
 function jsonResponse(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body }
@@ -9,6 +10,9 @@ describe('api request()', () => {
   beforeEach(() => {
     sessionStorage.clear()
     globalThis.fetch = vi.fn()
+    // auth.js giữ handler ở biến module-level (sống chung cả tiến trình vitest) — phải xóa
+    // trước mỗi test để test này không đăng ký "leak" sang test khác chạy sau nó.
+    dangKyPhienHetHan(null)
   })
 
   afterEach(() => {
@@ -70,10 +74,13 @@ describe('api request()', () => {
     await assertion
   })
 
-  it('xóa session và báo hết phiên khi status 401', async () => {
+  it('xóa session và gọi handler phiên hết hạn (chuyển mềm về đăng nhập) khi status 401', async () => {
     sessionStorage.setItem('token', 'abc123')
     sessionStorage.setItem('vai_tro', 'hs')
     sessionStorage.setItem('ho_ten', 'Nguyễn Văn A')
+    sessionStorage.setItem('la_quan_ly', '1')
+    const handler = vi.fn()
+    dangKyPhienHetHan(handler)
     // jsdom không cho redefine window.location.reload trực tiếp — thay cả object location.
     const originalLocation = window.location
     const reload = vi.fn()
@@ -89,6 +96,27 @@ describe('api request()', () => {
       expect(sessionStorage.getItem('token')).toBeNull()
       expect(sessionStorage.getItem('vai_tro')).toBeNull()
       expect(sessionStorage.getItem('ho_ten')).toBeNull()
+      expect(sessionStorage.getItem('la_quan_ly')).toBeNull()
+      expect(handler).toHaveBeenCalled()
+      // Có handler đăng ký rồi thì KHÔNG reload cứng cả trang — tránh mất dữ liệu HS/GV
+      // đang nhập dở ở những phần khác của trang chưa kịp lưu.
+      expect(reload).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
+    }
+  })
+
+  it('lưới an toàn: reload cứng nếu 401 xảy ra mà CHƯA có handler đăng ký', async () => {
+    const originalLocation = window.location
+    const reload = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...originalLocation, reload },
+    })
+    globalThis.fetch.mockResolvedValue(jsonResponse({}, 401))
+
+    try {
+      await expect(api.health()).rejects.toThrow('Phiên đăng nhập hết hạn')
       expect(reload).toHaveBeenCalled()
     } finally {
       Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })

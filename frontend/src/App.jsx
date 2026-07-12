@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import Login from './pages/auth/Login'
-import { getSession } from './auth'
+import { dangKyPhienHetHan, getSession } from './auth'
 import { ConfirmProvider } from './components/ui'
 import { api } from './api'
 
@@ -75,6 +75,10 @@ export default function App() {
   function handleLogout() {
     setPage('login')
   }
+
+  useEffect(() => {
+    dangKyPhienHetHan(() => setPage('login'))
+  }, [])
 
   if (dangKiemTra) return null
   if (baoTri) return <TrangBaoTri noiDung={noiDungBaoTri} />

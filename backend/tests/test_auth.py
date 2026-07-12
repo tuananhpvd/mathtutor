@@ -1,4 +1,6 @@
 
+import bcrypt
+
 from app.auth.security import hash_password
 from app.models.lop import Lop
 from app.models.user import User, VaiTro
@@ -100,3 +102,16 @@ def test_role_block_gv_from_hs_route(client, db):
 def test_no_token_returns_403_or_401(client):
     r = client.get("/api/admin/ping")
     assert r.status_code in (401, 403)
+
+
+def test_bcrypt_ghim_duoi_4_0():
+    """`passlib` 1.7.4 (chưa có bản vá chính thức) crash với bcrypt>=4.0 (mất
+    thuộc tính `__about__` nội bộ mà passlib dựa vào) — pyproject.toml đang ghim
+    cứng `bcrypt>=3.2,<4.0` để tránh việc này. Test này canh gác: nếu dependency
+    resolver lỡ nới ghim (vd 1 gói khác đòi bcrypt>=4), CI báo lỗi NGAY ở đây
+    thay vì để sập âm thầm ngay tại chỗ đăng nhập/đăng ký trên production."""
+    major = int(bcrypt.__version__.split(".")[0])
+    assert major < 4, (
+        f"bcrypt {bcrypt.__version__} — passlib 1.7.4 không tương thích bcrypt>=4.0, "
+        "kiểm tra lại ghim 'bcrypt>=3.2,<4.0' trong pyproject.toml trước khi deploy."
+    )

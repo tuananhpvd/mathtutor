@@ -26,3 +26,20 @@ export function getSession() {
     la_quan_ly: sessionStorage.getItem('la_quan_ly') === '1',
   }
 }
+
+let phienHetHanHandler = null
+
+// App.jsx đăng ký hàm này 1 lần lúc mount — cho phép api.js báo "phiên hết hạn" bằng
+// cách chuyển state React về màn đăng nhập (setPage('login')) thay vì window.location.reload()
+// cứng, tránh xóa sạch dữ liệu HS/GV đang nhập dở ở những phần khác của trang chưa kịp lưu.
+export function dangKyPhienHetHan(handler) {
+  phienHetHanHandler = handler
+}
+
+export function baoPhienHetHan() {
+  clearSession()
+  if (phienHetHanHandler) phienHetHanHandler()
+  // Lưới an toàn: nếu chưa kịp đăng ký (vd lỗi 401 xảy ra rất sớm lúc App vừa tải), vẫn
+  // đảm bảo đưa được người dùng về màn đăng nhập.
+  else window.location.reload()
+}

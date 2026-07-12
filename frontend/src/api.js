@@ -1,3 +1,5 @@
+import { baoPhienHetHan } from './auth'
+
 const BASE = '/api'
 // Request thường (CRUD) — mạng chập chờn lúc thi không nên treo vô hạn.
 const TIMEOUT_MAC_DINH_MS = 30000
@@ -26,11 +28,10 @@ async function request(path, { timeoutMs = TIMEOUT_MAC_DINH_MS, ...options } = {
 
   const data = await res.json().catch(() => ({}))
   if (res.status === 401) {
-    // Token hết hạn hoặc không hợp lệ — xóa session và reload về trang đăng nhập
-    sessionStorage.removeItem('token')
-    sessionStorage.removeItem('vai_tro')
-    sessionStorage.removeItem('ho_ten')
-    window.location.reload()
+    // Token hết hạn hoặc không hợp lệ — chuyển mềm về màn đăng nhập (setPage('login') ở
+    // App.jsx) thay vì reload cứng cả trang, tránh xóa sạch dữ liệu đang nhập dở ở những
+    // phần KHÁC của trang chưa kịp lưu (vd GV đang soạn dở 1 câu hỏi dài ở dialog khác).
+    baoPhienHetHan()
     throw new Error('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại')
   }
   if (!res.ok) throw new Error(data.detail || `Lỗi ${res.status}`)
