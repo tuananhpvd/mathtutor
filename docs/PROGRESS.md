@@ -4,7 +4,40 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v99**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v100**)
+
+- **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
+  vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ
+  phủ test), chia 3 đợt làm lần lượt:
+  - **Đợt A — hiệu năng:** code-splitting theo vai trò/trang bằng `React.lazy` + `Suspense`
+    (mỗi trang HS/GV/Admin tách chunk riêng, `xlsx` 421KB tự động ra khỏi bundle chính vì
+    không còn import tĩnh); cache trong tiến trình cho `admin_service.lay_cau_hinh()` (TTL 30s,
+    tự xóa cache ngay khi `dat_cau_hinh()` ghi) — bảng cấu hình gần như không đổi nhưng hàm này
+    nằm trên đường nóng nhất (mọi tin nhắn chat, mọi phiên đều gọi); timeout cho `fetch()` ở
+    `api.js` (`AbortController`, 30s CRUD thường / 90s các lệnh gọi LLM) kèm thông báo tiếng
+    Việt rõ ràng thay vì treo vô hạn khi mạng chập chờn.
+  - **Bài học vận hành (Đợt A)**: cache module-level (biến toàn cục Python) SỐNG CHUNG cả tiến
+    trình pytest dù mỗi test có DB SQLite riêng — phải thêm fixture `autouse` xóa cache trước/
+    sau mỗi test (`conftest.py`), nếu không dữ liệu từ test này rò sang test khác. Đã tự viết
+    lại 1 test kiểm tra rò rỉ ban đầu bị sai (pass giả do thứ tự chạy tình cờ che mất lỗi) —
+    dùng `git stash` xác nhận test MỚI thật sự bắt được lỗi trước khi tin.
+  - **Đợt B — bảo mật + CI:** vá lỗ hổng `xlsx` (Prototype Pollution + ReDoS, gói npm công khai
+    bị bỏ vá) bằng cách trỏ `package.json` sang bản 0.20.3 phân phối trực tiếp từ CDN chính chủ
+    SheetJS (cùng API, không sửa code, `npm audit` 0 vulnerabilities); bỏ `continue-on-error`
+    ở bước lint frontend trong CI — giờ chặn thật giống backend, không chỉ cảnh báo.
+  - **Phát hiện qua đó**: review ban đầu báo nhầm "chưa có CI/CD" — thực ra `.github/workflows/
+    ci.yml` đã có sẵn từ trước (thêm ở 1 commit trước đó), do lệnh kiểm tra chạy nhầm thư mục
+    làm việc lúc review. Đã sửa lại kết luận, không tạo trùng workflow.
+  - **Đợt C — test frontend + tách file lớn:** thêm hạ tầng test frontend (trước đây CHƯA CÓ
+    test nào) — `vitest` + `@testing-library/react`, 22 test cho logic thuần (`utils/cauHoi.js`,
+    `utils/format.js`, `api.js`: gắn token, tự đăng xuất khi 401, lỗi mạng, hết timeout, lỗi
+    HTTP), thêm bước `npm run test` vào CI. Tách `QuanLyCauHoi.jsx` (1466 dòng → còn ~280 dòng)
+    thành `pages/gv/quanLyCauHoi/*` theo trách nhiệm (form nhập câu hỏi, bảng công thức, chuyển
+    đổi LaTeX→SymPy, modal sửa/tạo, thống kê ngân hàng câu hỏi) — thuần di chuyển code, không
+    đổi logic; cập nhật `AISinhCauHoi.jsx` trỏ theo import mới.
+  - `pytest` 468/468, `eslint`/`vitest`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v99)
 
 - **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
   - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi
@@ -21,7 +54,7 @@
     hỏi đã duyệt/chờ duyệt" → "Câu hỏi đã duyệt/chờ duyệt".
   - Không đổi logic — chỉ thêm prop tùy chọn + đổi className/thứ tự hiển thị.
 
-## 1a. Trạng thái trước đó (v98)
+## 1b. Trạng thái trước đó (v98)
 
 - **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
   - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"
@@ -49,7 +82,7 @@
   - Test mới: `test_hs.py` (mặc định 3 bước, admin sửa → HS đọc đúng bản mới). `pytest`
     464/464, `ruff`/`eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v97)
+## 1c. Trạng thái trước đó (v97)
 
 - **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
   - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
@@ -64,7 +97,7 @@
   - Lưu ý: các phiên TN4PA làm **trước** bản vá này vẫn còn bong bóng trống khi xem lại (dữ
     liệu cũ đã lưu rỗng, không hồi tố được) — chỉ ảnh hưởng lịch sử cũ, bài mới đều đúng.
 
-## 1c. Trạng thái trước đó (v96)
+## 1d. Trạng thái trước đó (v96)
 
 - **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
   items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
@@ -81,7 +114,7 @@
     "Theo loại câu"/"Theo độ khó" từ 2 cột ngang sang xếp dọc để gọn theo chiều cao) ghép
     cùng "Cờ theo dõi & Hệ thống" ở cột phải.
 
-## 1d. Trạng thái trước đó (v95)
+## 1e. Trạng thái trước đó (v95)
 
 - **✨ (v95) Tái thiết giao diện responsive + bảng màu mới — toàn bộ frontend, KHÔNG đụng
   logic/backend.** Làm theo 6 bậc trên nhánh riêng `giao-dien-moi` (đã merge `--no-ff` vào
@@ -115,8 +148,6 @@
   - **Bậc 6**: xóa `App.css` (rác template Vite, không nơi nào import).
   - Build-test-fix xanh sau mỗi bậc (`eslint` + `vite build`); môi trường dev nhiều lần OOM
     (máy còn <150MB RAM trống) khi build — không phải lỗi code, đã retry qua khi RAM hồi.
-
-## 1e. Trạng thái trước đó (v94)
 
 - **✨ (v94) Admin tự quản lý từ khóa lọc an toàn (3 tầng) — không cần sửa code.**
   - Tận dụng cơ chế cấu hình key-value có sẵn (`CauHinh`) — KHÔNG bảng mới, KHÔNG migration.
