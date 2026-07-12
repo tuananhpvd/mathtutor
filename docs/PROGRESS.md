@@ -4,7 +4,24 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v95**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v96**)
+
+- **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
+  items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
+  bằng nhau — ghép an toàn), GV Danh mục (danh sách chuyên đề), GV Giao nhiệm vụ (nhiệm vụ đã
+  giao), GV Quản lý lớp (lớp của tôi), HS Nhiệm vụ, HS Mục tiêu (thêm prop `haiCot` cho
+  `MucTieuPanel` — component dùng chung với GV/TheoDoiTienBo, GV giữ nguyên 1 cột vì đang
+  nhúng trong khung hẹp, chỉ HS bật `haiCot`), Admin Dashboard.
+  - **Bài học rút ra (đã áp dụng luôn cho Dashboard)**: ghép 2 cột chỉ an toàn khi 2 thẻ cao
+    **xấp xỉ nhau** hoặc là **danh sách lặp lại** (cao khác nhau giữa các phần tử là bình
+    thường, như thư viện ảnh). Ghép 2 mục cố định khác cấu trúc, khác chiều cao (vd thẻ ngắn
+    cạnh thẻ có nhiều nhóm con) tạo khoảng trắng lớn giữa các hàng — do CSS Grid lấy chiều
+    cao hàng theo ô cao nhất mà `items-start` không cho ô thấp giãn ra. Dashboard: đã ghép
+    lại đúng cặp cao bằng nhau ("Người dùng & Lớp học" + "Phiên học"), tách "Câu hỏi" (đổi
+    "Theo loại câu"/"Theo độ khó" từ 2 cột ngang sang xếp dọc để gọn theo chiều cao) ghép
+    cùng "Cờ theo dõi & Hệ thống" ở cột phải.
+
+## 1b. Trạng thái trước đó (v95)
 
 - **✨ (v95) Tái thiết giao diện responsive + bảng màu mới — toàn bộ frontend, KHÔNG đụng
   logic/backend.** Làm theo 6 bậc trên nhánh riêng `giao-dien-moi` (đã merge `--no-ff` vào
@@ -39,7 +56,7 @@
   - Build-test-fix xanh sau mỗi bậc (`eslint` + `vite build`); môi trường dev nhiều lần OOM
     (máy còn <150MB RAM trống) khi build — không phải lỗi code, đã retry qua khi RAM hồi.
 
-## 1b. Trạng thái trước đó (v94)
+## 1c. Trạng thái trước đó (v94)
 
 - **✨ (v94) Admin tự quản lý từ khóa lọc an toàn (3 tầng) — không cần sửa code.**
   - Tận dụng cơ chế cấu hình key-value có sẵn (`CauHinh`) — KHÔNG bảng mới, KHÔNG migration.
