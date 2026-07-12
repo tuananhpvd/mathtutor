@@ -12,7 +12,7 @@ export default function Table({ columns, rows, rowKey, rowId, rowClassName, empt
         <thead>
           <tr className="bg-surface-2 text-left text-muted">
             {columns.map((c) => (
-              <th key={c.key} className={`px-4 py-2.5 font-medium ${c.className || ''}`}>
+              <th key={c.key} className={`px-4 py-3 font-medium ${c.className || ''}`}>
                 {c.header}
               </th>
             ))}
@@ -30,11 +30,11 @@ export default function Table({ columns, rows, rowKey, rowId, rowClassName, empt
               <tr
                 key={rowKey ? rowKey(row) : i}
                 id={rowId ? rowId(row) : undefined}
-                className={`border-t border-border bg-surface hover:bg-surface-2/60
-                  ${rowClassName ? rowClassName(row) : ''}`}
+                className={`border-t border-border bg-surface transition-colors
+                  hover:bg-surface-2/60 ${rowClassName ? rowClassName(row) : ''}`}
               >
                 {columns.map((c) => (
-                  <td key={c.key} className={`px-4 py-2.5 text-ink ${c.className || ''}`}>
+                  <td key={c.key} className={`px-4 py-3 text-ink ${c.className || ''}`}>
                     {c.render ? c.render(row) : row[c.key]}
                   </td>
                 ))}

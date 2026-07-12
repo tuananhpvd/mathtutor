@@ -140,7 +140,7 @@ export default function ImportTuKhoaDialog({ cfg, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[88vh]">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[88vh]">
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">Import từ khóa an toàn</h2>
           <p className="text-sm text-muted mt-0.5">
@@ -173,7 +173,7 @@ export default function ImportTuKhoaDialog({ cfg, onClose, onSaved }) {
                   <> · <span className="text-danger font-medium">{soLoi} bỏ qua</span></>
                 )}
               </p>
-              <div className="rounded-lg border border-border overflow-hidden max-h-72 overflow-y-auto">
+              <div className="rounded-lg border border-border max-h-72 overflow-auto">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0">
                     <tr className="bg-surface-2 border-b border-border">

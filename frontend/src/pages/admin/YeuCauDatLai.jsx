@@ -125,7 +125,8 @@ export default function YeuCauDatLai() {
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh]
+            overflow-y-auto p-6 flex flex-col gap-4">
             <h2 className={`text-lg font-bold ${modal.hanh_dong === 'duyet' ? 'text-success' : 'text-danger'}`}>
               {modal.hanh_dong === 'duyet' ? '✅ Duyệt yêu cầu đặt lại' : '❌ Từ chối yêu cầu'}
             </h2>
@@ -140,7 +141,7 @@ export default function YeuCauDatLai() {
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium">Ghi chú (tùy chọn)</label>
               <textarea
-                className="border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                className="border border-border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                 rows={2}
                 placeholder="Ghi chú cho GV..."
                 value={ghiChu}
@@ -150,11 +151,9 @@ export default function YeuCauDatLai() {
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setModal(null)}>Hủy</Button>
               <Button
+                variant={modal.hanh_dong === 'duyet' ? 'success' : 'danger'}
                 onClick={xuLy}
                 disabled={dangXuLy}
-                className={modal.hanh_dong === 'duyet'
-                  ? 'bg-success text-white hover:bg-success/90'
-                  : 'bg-danger text-white hover:bg-danger/90'}
               >
                 {dangXuLy ? 'Đang xử lý...' : modal.hanh_dong === 'duyet' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
               </Button>

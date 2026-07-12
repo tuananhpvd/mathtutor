@@ -12,10 +12,10 @@ export default function Card({ className = '', children, ...props }) {
 
 export function CardHeader({ title, subtitle, action }) {
   return (
-    <div className="flex items-start justify-between px-5 pt-5 pb-3">
-      <div>
-        <h3 className="text-base font-semibold text-black">{title}</h3>
-        {subtitle && <p className="text-sm text-black/90 mt-0.5">{subtitle}</p>}
+    <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold text-ink">{title}</h3>
+        {subtitle && <p className="text-sm text-muted mt-0.5">{subtitle}</p>}
       </div>
       {action}
     </div>

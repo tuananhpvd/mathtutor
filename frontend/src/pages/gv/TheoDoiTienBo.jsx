@@ -109,9 +109,11 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
       style={{ background: 'rgba(0,0,0,0.45)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onDong() }}
     >
-      <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-7xl flex flex-col">
+      <div className="bg-surface rounded-2xl shadow-2xl border border-border w-full max-w-7xl
+        max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-border">
+        <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b
+          border-border shrink-0">
           <div>
             <p className="text-xl font-bold text-ink">Thống kê lớp {tenLop}</p>
             <p className="text-sm text-muted mt-0.5">{coData}/{tongHs} học sinh có dữ liệu</p>
@@ -119,14 +121,14 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
           <button onClick={onDong} className="text-muted hover:text-ink text-2xl leading-none">✕</button>
         </div>
 
-        {/* Body — 2 cột */}
-        <div className="p-8 grid grid-cols-2 gap-8">
+        {/* Body — 2 cột (xếp chồng trên màn hình nhỏ) */}
+        <div className="p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 overflow-y-auto flex-1">
           {/* Cột trái */}
           <div className="flex flex-col gap-7">
             {/* 1. Tổng quan */}
             <section>
               <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Tổng quan</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
                   { label: 'Học sinh', val: tongHs },
                   { label: 'Bài đã làm', val: tongBaiLam },
@@ -146,7 +148,7 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
             {/* 3. Mức độ hoạt động */}
             <section>
               <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Mức độ hoạt động</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-xl bg-surface-2 px-4 py-4">
                   <p className="text-sm text-muted mb-2">Tích cực nhất</p>
                   {tichCuc.length === 0
@@ -216,7 +218,7 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
             {/* 4. Chuyên đề */}
             <section>
               <p className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">Chuyên đề</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-xl bg-surface-2 px-4 py-4">
                   <p className="text-sm text-muted mb-2">Được học nhiều nhất</p>
                   {cdNhieu.length === 0
@@ -258,7 +260,7 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
           </div>
         </div>
 
-        <div className="px-8 pb-6 pt-4 flex justify-end border-t border-border">
+        <div className="px-4 sm:px-8 pb-4 sm:pb-6 pt-4 flex justify-end border-t border-border shrink-0">
           <Button variant="secondary" onClick={onDong}>Đóng</Button>
         </div>
       </div>
@@ -599,15 +601,15 @@ export default function TheoDoiTienBo() {
 
       {gcSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md flex flex-col">
-            <div className="px-5 pt-5 pb-3 border-b border-border">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh] flex flex-col">
+            <div className="px-5 pt-5 pb-3 border-b border-border shrink-0">
               <h2 className="font-bold text-lg text-ink">🚩 Gắn cờ thủ công</h2>
               <p className="text-sm text-muted mt-0.5">
                 {gcSession.ho_ten ? `${gcSession.ho_ten} · ` : ''}
                 {gcSession.chuyen_de || `Phiên #${gcSession.session_id}`}
               </p>
             </div>
-            <div className="px-5 py-4">
+            <div className="px-5 py-4 overflow-y-auto flex-1">
               <label className="text-sm font-medium text-ink">Ghi chú (tùy chọn)</label>
               <textarea
                 value={gcGhiChu}
@@ -621,7 +623,7 @@ export default function TheoDoiTienBo() {
                 Cờ sẽ xuất hiện ở mục "Cờ theo dõi" để xử lý sau.
               </p>
             </div>
-            <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+            <div className="px-5 py-4 border-t border-border flex gap-2 justify-end shrink-0">
               <Button variant="secondary" onClick={() => setGcSession(null)} disabled={gcDangGui}>
                 Hủy
               </Button>

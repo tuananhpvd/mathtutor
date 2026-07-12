@@ -37,15 +37,15 @@ export default function GuiNhanXetModal({ hsId, hoTen, onClose, onSent }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col">
-        <div className="px-5 pt-5 pb-3 border-b border-border">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg max-h-[88vh] flex flex-col">
+        <div className="px-5 pt-5 pb-3 border-b border-border shrink-0">
           <h2 className="font-bold text-lg text-ink">Gửi nhận xét cho {hoTen}</h2>
           <p className="text-sm text-muted mt-0.5">
             Lời nhắn sẽ hiện trên Trang chủ của học sinh kèm thông báo.
           </p>
         </div>
 
-        <div className="px-5 py-4 flex flex-col gap-3">
+        <div className="px-5 py-4 flex flex-col gap-3 overflow-y-auto flex-1">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-ink">Nội dung nhận xét</label>
             <Button size="sm" variant="secondary" onClick={goiYAi} disabled={dangNhap || dangGui}>
@@ -63,7 +63,7 @@ export default function GuiNhanXetModal({ hsId, hoTen, onClose, onSent }) {
           {loi && <p className="text-sm text-danger">{loi}</p>}
         </div>
 
-        <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+        <div className="px-5 py-4 border-t border-border flex gap-2 justify-end shrink-0">
           <Button variant="secondary" onClick={onClose} disabled={dangGui}>Hủy</Button>
           <Button onClick={gui} disabled={dangGui || !noiDung.trim()}>
             {dangGui ? 'Đang gửi...' : 'Gửi nhận xét'}

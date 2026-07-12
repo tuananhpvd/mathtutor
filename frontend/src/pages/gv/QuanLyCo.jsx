@@ -171,15 +171,15 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
 
       {xuLy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md flex flex-col">
-            <div className="px-5 pt-5 pb-3 border-b border-border">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh] flex flex-col">
+            <div className="px-5 pt-5 pb-3 border-b border-border shrink-0">
               <h2 className="font-bold text-lg text-ink">Xử lý cờ & nhắn học sinh</h2>
               <p className="text-sm text-muted mt-0.5">
                 {xuLy.hoc_sinh_ten ? `${xuLy.hoc_sinh_ten} · ` : ''}
                 {xuLy.chuyen_de || `Phiên #${xuLy.session_id}`}
               </p>
             </div>
-            <div className="px-5 py-4">
+            <div className="px-5 py-4 overflow-y-auto flex-1">
               <label className="text-sm font-medium text-ink">Lời nhắn cho học sinh (tùy chọn)</label>
               <textarea
                 value={loiNhan}
@@ -193,7 +193,7 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
                 Để trống nếu chỉ muốn đánh dấu đã xử lý mà không nhắn HS.
               </p>
             </div>
-            <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
+            <div className="px-5 py-4 border-t border-border flex gap-2 justify-end shrink-0">
               <Button variant="secondary" onClick={() => setXuLy(null)} disabled={dangGui}>Hủy</Button>
               <Button onClick={xacNhanXuLy} disabled={dangGui}>
                 {dangGui ? 'Đang lưu...' : (loiNhan.trim() ? 'Xử lý & gửi lời nhắn' : 'Đánh dấu đã xử lý')}

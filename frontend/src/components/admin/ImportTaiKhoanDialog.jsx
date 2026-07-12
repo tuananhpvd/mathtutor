@@ -136,7 +136,7 @@ export default function ImportTaiKhoanDialog({ onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[88vh]">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[88vh]">
         {/* Header */}
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">Import danh sách tài khoản</h2>
@@ -185,7 +185,7 @@ export default function ImportTaiKhoanDialog({ onClose, onSaved }) {
                   <> · <span className="text-danger font-medium">{soLoi} lỗi (bỏ qua)</span></>
                 )}
               </p>
-              <div className="rounded-lg border border-border overflow-hidden">
+              <div className="rounded-lg border border-border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-surface border-b border-border">

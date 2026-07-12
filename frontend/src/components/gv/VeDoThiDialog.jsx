@@ -168,7 +168,7 @@ export default function VeDoThiDialog({ initialSpec, onDong, onXongHinh }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">Vẽ đồ thị từ hàm số</h2>
           <p className="text-xs text-muted mt-0.5">

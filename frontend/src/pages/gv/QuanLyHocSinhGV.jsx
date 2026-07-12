@@ -168,7 +168,8 @@ export default function QuanLyHocSinhGV() {
 
       {modalDatLai && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+          <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh]
+            overflow-y-auto p-6 flex flex-col gap-4">
             <h2 className="text-lg font-bold text-warning">⚠️ Đặt lại tiến độ: {modalDatLai.ho_ten}</h2>
             <p className="text-sm text-muted">
               Sau khi xác nhận, các thông tin sau sẽ bị ẩn đi và <strong>không thể hoàn tác</strong>:
@@ -182,9 +183,9 @@ export default function QuanLyHocSinhGV() {
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setModalDatLai(null)}>Hủy</Button>
               <Button
+                variant="warning"
                 onClick={datLai}
                 disabled={dangDatLai}
-                className="bg-warning text-white hover:bg-warning/90 disabled:opacity-40"
               >
                 {dangDatLai ? 'Đang đặt lại...' : 'Xác nhận đặt lại'}
               </Button>

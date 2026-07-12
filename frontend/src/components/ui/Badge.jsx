@@ -22,7 +22,7 @@ export default function Badge({ trang_thai, tone, children, className = '' }) {
   const text = children ?? preset?.label ?? trang_thai
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
         ${cls} ${className}`}
     >
       {text}
