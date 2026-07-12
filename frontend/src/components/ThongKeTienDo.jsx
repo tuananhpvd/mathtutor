@@ -26,14 +26,14 @@ function VongTienDo({ percent, size = 132, stroke = 13 }) {
   )
 }
 
-// Thanh tiến độ phân đoạn: hoàn thành (xanh) · đang dở (vàng) · chưa làm (đỏ).
+// Thanh tiến độ phân đoạn: hoàn thành (xanh) · đang dở (vàng) · chưa làm (xám, không đỏ).
 function ThanhPhanDoan({ ht, dl, cl, tong }) {
   const w = (n) => (tong > 0 ? `${(n / tong) * 100}%` : '0%')
   return (
     <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
       <div className="bg-success h-full" style={{ width: w(ht), transition: 'width .5s ease' }} />
       <div className="bg-warning h-full" style={{ width: w(dl), transition: 'width .5s ease' }} />
-      <div className="bg-danger h-full" style={{ width: w(cl), transition: 'width .5s ease' }} />
+      <div className="bg-idle h-full" style={{ width: w(cl), transition: 'width .5s ease' }} />
     </div>
   )
 }
@@ -60,7 +60,7 @@ function HangTienDo({ ten, r }) {
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
         <Cham color="bg-success">Hoàn thành {r.hoan_thanh} ({pct(r.hoan_thanh, r.tong)}%)</Cham>
         <Cham color="bg-warning">Đang dở {r.dang_lam} ({pct(r.dang_lam, r.tong)}%)</Cham>
-        <Cham color="bg-danger">Chưa làm {r.chua_lam} ({pct(r.chua_lam, r.tong)}%)</Cham>
+        <Cham color="bg-idle">Chưa làm {r.chua_lam} ({pct(r.chua_lam, r.tong)}%)</Cham>
       </div>
     </div>
   )
@@ -81,7 +81,7 @@ function BieuDoPie({ r, size = 110, stroke = 13 }) {
   const parts = [
     { n: r.hoan_thanh, color: 'var(--color-success)' },
     { n: r.dang_lam,   color: 'var(--color-warning)' },
-    { n: r.chua_lam,   color: 'var(--color-danger)'  },
+    { n: r.chua_lam,   color: 'var(--color-idle)'  },
   ]
   let cum = 0
   const segs = parts.map(({ n, color }) => {
@@ -128,7 +128,7 @@ function TheMucDo({ r, size }) {
           <b className="text-ink">{r.dang_lam}</b>
         </div>
         <div className="flex items-center justify-between text-[11px]">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger inline-block" />Chưa làm</span>
+          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-idle inline-block" />Chưa làm</span>
           <b className="text-ink">{r.chua_lam}</b>
         </div>
         <p className="text-center text-[10px] text-muted mt-0.5">Tổng {r.tong} bài</p>
@@ -187,9 +187,9 @@ export default function ThongKeTienDo({ tk }) {
                   {tq.dang_lam} <span className="text-base font-semibold">({pct(tq.dang_lam, tq.tong)}%)</span>
                 </p>
               </div>
-              <div className="rounded-lg bg-danger-soft px-4 py-3">
-                <p className="text-xs text-danger">Chưa làm</p>
-                <p className="text-2xl font-bold text-danger">
+              <div className="rounded-lg bg-idle-soft px-4 py-3">
+                <p className="text-xs text-idle">Chưa làm</p>
+                <p className="text-2xl font-bold text-idle">
                   {tq.chua_lam} <span className="text-base font-semibold">({pct(tq.chua_lam, tq.tong)}%)</span>
                 </p>
               </div>
@@ -214,7 +214,7 @@ export default function ThongKeTienDo({ tk }) {
                     <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '—'}</b>
                   </div>
                   <div className="flex items-center justify-between text-sm mt-0.5">
-                    <span className="inline-flex items-center gap-1 text-danger">🐢 Chậm nhất</span>
+                    <span className="inline-flex items-center gap-1 text-muted">🐢 Chậm nhất</span>
                     <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '—'}</b>
                   </div>
                 </div>

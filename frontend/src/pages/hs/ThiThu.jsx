@@ -211,7 +211,7 @@ function ManLamBai({ bai, onNopXong }) {
             gapGio ? 'bg-danger-soft text-danger' : 'bg-surface-2 text-ink'}`}>
             ⏱ {dinhDangThoiGian(Math.max(0, conLai))}
           </span>
-          <Button variant="danger" onClick={nop} disabled={dangNop}>
+          <Button variant="primary" onClick={nop} disabled={dangNop}>
             {dangNop ? 'Đang nộp...' : 'Nộp bài'}
           </Button>
         </div>

@@ -205,7 +205,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
                   </Button>
                 ) : daXong ? (
                   <div className="flex gap-2 mt-1">
-                    <Button className="flex-1" variant="success" onClick={() => onChon(b.id)}>
+                    <Button className="flex-1" variant="primary" onClick={() => onChon(b.id)}>
                       Làm lại
                     </Button>
                     <Button className="flex-1" variant="secondary"

@@ -35,6 +35,13 @@
   --color-danger: #e11d48;
   --color-danger-soft: #fbe4e9;
 
+  /* Trạng thái "chưa" (chưa làm / chưa đủ dữ liệu / chưa bắt đầu) — xám trung tính ĐẬM đủ để
+     thấy rõ trên donut & thanh tiến độ. TÁCH khỏi đỏ: đỏ CHỈ dành cho "sai"/lỗi/xóa và bậc
+     "Khó"/"Yếu" của thang thứ bậc. Học sinh nhìn biểu đồ "chưa làm" màu xám (trung tính) thay
+     vì đỏ (báo động) — không tạo cảm giác "đang thất bại" khi thực chất chỉ là chưa luyện tới. */
+  --color-idle: #6f6b86;
+  --color-idle-soft: #ebeaf1;
+
   /* Chữ & viền */
   --color-ink: #181430;
   --color-muted: #6b6785;

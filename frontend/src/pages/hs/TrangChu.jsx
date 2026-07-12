@@ -42,7 +42,8 @@ function TheTongQuan({ label, value, sub, tone }) {
     primary: 'bg-surface-2 text-ink',
     success: 'bg-success-soft text-success',
     warning: 'bg-warning-soft text-warning',
-    danger: 'bg-danger-soft text-danger',
+    // "idle" — "Chưa làm": xám trung tính, KHÔNG đỏ (tránh cảm giác "đang thất bại").
+    idle: 'bg-idle-soft text-idle',
   }[tone]
   return (
     <div className={`rounded-xl px-4 py-4 ${cls}`}>
@@ -60,7 +61,8 @@ function TheThoiGian({ icon, label, value, tone }) {
   const cls = {
     primary: 'from-primary/10 to-primary/5 text-primary',
     success: 'from-success/15 to-success/5 text-success',
-    danger: 'from-danger/15 to-danger/5 text-danger',
+    // "neutral" — vế "chậm nhất" của so sánh min/max: xám trung tính, KHÔNG đỏ (không phải lỗi).
+    neutral: 'from-muted/10 to-muted/5 text-muted',
   }[tone]
   return (
     <div className={`rounded-xl bg-gradient-to-br ${cls} px-4 py-3.5 flex items-center gap-3`}>
@@ -245,7 +247,7 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
                     <TheThoiGian icon="⚡" label="Hoàn thành nhanh nhất"
                       value={dinhDangThoiGian(nhanhNhat)} tone="success" />
                     <TheThoiGian icon="🐢" label="Hoàn thành chậm nhất"
-                      value={dinhDangThoiGian(chamNhat)} tone="danger" />
+                      value={dinhDangThoiGian(chamNhat)} tone="neutral" />
                   </div>
                 </div>
 
@@ -330,7 +332,7 @@ export default function TrangChu({ onChonBai, onLamTiep }) {
               <TheTongQuan label="Đang làm dở" value={tq.dang_lam}
                 sub={pct(tq.dang_lam, tq.tong)} tone="warning" />
               <TheTongQuan label="Chưa làm" value={tq.chua_lam}
-                sub={pct(tq.chua_lam, tq.tong)} tone="danger" />
+                sub={pct(tq.chua_lam, tq.tong)} tone="idle" />
             </div>
           )}
         </CardBody>

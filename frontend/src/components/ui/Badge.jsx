@@ -13,6 +13,8 @@ const TONE = {
   success: 'bg-success-soft text-success',
   warning: 'bg-warning-soft text-warning',
   danger: 'bg-danger-soft text-danger',
+  // "idle" — trạng thái "chưa" (chưa làm / chưa có dữ liệu): xám đủ đậm, KHÔNG dùng đỏ.
+  idle: 'bg-idle-soft text-idle',
   neutral: 'bg-surface-2 text-muted',
 }
 

@@ -10,8 +10,8 @@ const LOAI_LABEL = { TN4PA: 'Trắc nghiệm 4 PA', TNDS: 'Đúng/Sai', TLN: 'T�
 const DO_KHO_LABEL = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
 const DO_KHO_TONE = { de: 'success', tb: 'warning', kho: 'danger' }
 
-const TONE_TEXT = { primary: 'text-primary', success: 'text-success', warning: 'text-warning', danger: 'text-danger', accent: 'text-accent' }
-const TONE_BG = { primary: 'bg-primary-soft', success: 'bg-success-soft', warning: 'bg-warning-soft', danger: 'bg-danger-soft', accent: 'bg-accent-soft' }
+const TONE_TEXT = { primary: 'text-primary', success: 'text-success', warning: 'text-warning', danger: 'text-danger', accent: 'text-accent', idle: 'text-idle' }
+const TONE_BG = { primary: 'bg-primary-soft', success: 'bg-success-soft', warning: 'bg-warning-soft', danger: 'bg-danger-soft', accent: 'bg-accent-soft', idle: 'bg-idle-soft' }
 
 // Icon trong khối màu + số liệu lớn, đậm — nhấn mạnh con số thay vì chỉ chữ thường như trước.
 function MiniStat({ icon: Icon, label, value, tone = 'primary' }) {
@@ -102,7 +102,7 @@ export default function Dashboard() {
             <div className="flex gap-3 flex-wrap">
               <MiniStat icon={CheckCircle2} label="Đã duyệt" value={stats.so_cau_da_duyet} tone="success" />
               <MiniStat icon={Clock} label="Chờ duyệt" value={stats.so_cau_cho_duyet} tone="warning" />
-              <MiniStat icon={EyeOff} label="Đã ẩn" value={stats.so_cau_an || 0} tone="danger" />
+              <MiniStat icon={EyeOff} label="Đã ẩn" value={stats.so_cau_an || 0} tone="idle" />
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>

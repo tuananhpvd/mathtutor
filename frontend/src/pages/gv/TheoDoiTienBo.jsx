@@ -173,7 +173,7 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
                   {chuaLam.length === 0
                     ? <p className="text-sm text-success">Tất cả đã làm 👍</p>
                     : chuaLam.slice(0, 3).map((h) => (
-                      <p key={h.hoc_sinh_id} className="text-sm text-danger leading-relaxed">{h.ho_ten}</p>
+                      <p key={h.hoc_sinh_id} className="text-sm text-ink leading-relaxed">{h.ho_ten}</p>
                     ))}
                   {chuaLam.length > 3 && <p className="text-xs text-muted mt-1">+{chuaLam.length - 3} khác</p>}
                 </div>
@@ -251,7 +251,7 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
                   <p className="text-sm text-muted mb-2">Tỉ lệ đúng thấp nhất</p>
                   {cdThapNhat
                     ? <p className="text-sm text-ink leading-relaxed">
-                        {cdThapNhat.ten} <span className="text-danger font-medium">({Math.round(cdThapNhat.tlTB * 100)}%)</span>
+                        {cdThapNhat.ten} <span className="text-muted font-medium">({Math.round(cdThapNhat.tlTB * 100)}%)</span>
                       </p>
                     : <p className="text-sm text-muted">Chưa có</p>}
                 </div>
