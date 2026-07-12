@@ -4,7 +4,35 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v97**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v98**)
+
+- **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
+  - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"
+    (nền cam CTA) ngay cạnh "← Chọn bài khác", bấm xem lại bao nhiêu lần tùy ý; popup thêm
+    nút "← Quay lại" (giữ "Tiếp →"). Dọn nốt endpoint chết `POST
+    /api/hs/da-xem-huong-dan-phong-hoc` (không còn ai gọi) — giữ nguyên cột DB, chỉ bỏ route.
+  - **Nội dung hướng dẫn chuyển vào Admin → Cấu hình** (khóa `huong_dan_phong_hoc`, tái dùng
+    đúng cơ chế `CauHinh` — không bảng mới) — Admin sửa Icon/Tiêu đề/Mô tả từng bước, thêm/xóa
+    bước, qua giao diện **dạng tab** (chọn bước nào chỉ hiện đúng bước đó, tránh dàn trải hết
+    ra chiếm diện tích). HS đọc qua `GET /api/hs/huong-dan-phong-hoc`; frontend có nội dung
+    mặc định dự phòng nếu chưa tải kịp/lỗi mạng.
+  - **Bài học vận hành**: sau khi thêm endpoint mới, HS vẫn thấy 404 và Admin thấy trống —
+    hóa ra `uvicorn --reload` bị kẹt không tự nạp lại code dù file đã đổi (tiến trình cũ vẫn
+    sống, chỉ WatchFiles không kích hoạt) → phải tắt hẳn tiến trình cũ rồi khởi động lại mới
+    thấy code mới. Nhắc nhở: khi sửa backend mà API không phản ánh đúng thay đổi, **kiểm tra
+    log server có dòng lỗi 404/cũ hay không** trước khi nghi ngờ code.
+  - **Admin → Cấu hình chia 2 cột** — dùng CSS `columns-2` (masonry) thay vì `grid-cols-2`,
+    vì 8 thẻ ở trang này cao thấp rất khác nhau (tránh lặp lại lỗi khoảng trống đã gặp ở
+    Dashboard v96 khi ghép 2 thẻ lệch cao bằng lưới cứng).
+  - **Nhật ký cờ**: cột "Trạng thái" hiện "Chờ xử lý"/"Đã xử lý"/"Bỏ qua" thay vì
+    `cho_xu_ly`/`da_xu_ly`/`bo_qua` thô (dùng lại đúng nhãn đã có ở "Cờ theo dõi" của GV).
+  - **HS Nhiệm vụ**: danh sách bài trong mỗi thẻ nhiệm vụ giới hạn cao ~3 câu
+    (`max-h-[340px]`), cuộn riêng nếu nhiều hơn — tránh 1 nhiệm vụ nhiều bài kéo thẻ dài mất
+    cân đối với thẻ bên cạnh (đang xếp 2 cột từ v96).
+  - Test mới: `test_hs.py` (mặc định 3 bước, admin sửa → HS đọc đúng bản mới). `pytest`
+    464/464, `ruff`/`eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v97)
 
 - **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
   - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
@@ -19,7 +47,7 @@
   - Lưu ý: các phiên TN4PA làm **trước** bản vá này vẫn còn bong bóng trống khi xem lại (dữ
     liệu cũ đã lưu rỗng, không hồi tố được) — chỉ ảnh hưởng lịch sử cũ, bài mới đều đúng.
 
-## 1a. Trạng thái trước đó (v96)
+## 1b. Trạng thái trước đó (v96)
 
 - **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
   items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
@@ -36,7 +64,7 @@
     "Theo loại câu"/"Theo độ khó" từ 2 cột ngang sang xếp dọc để gọn theo chiều cao) ghép
     cùng "Cờ theo dõi & Hệ thống" ở cột phải.
 
-## 1b. Trạng thái trước đó (v95)
+## 1c. Trạng thái trước đó (v95)
 
 - **✨ (v95) Tái thiết giao diện responsive + bảng màu mới — toàn bộ frontend, KHÔNG đụng
   logic/backend.** Làm theo 6 bậc trên nhánh riêng `giao-dien-moi` (đã merge `--no-ff` vào
@@ -71,7 +99,7 @@
   - Build-test-fix xanh sau mỗi bậc (`eslint` + `vite build`); môi trường dev nhiều lần OOM
     (máy còn <150MB RAM trống) khi build — không phải lỗi code, đã retry qua khi RAM hồi.
 
-## 1c. Trạng thái trước đó (v94)
+## 1d. Trạng thái trước đó (v94)
 
 - **✨ (v94) Admin tự quản lý từ khóa lọc an toàn (3 tầng) — không cần sửa code.**
   - Tận dụng cơ chế cấu hình key-value có sẵn (`CauHinh`) — KHÔNG bảng mới, KHÔNG migration.
