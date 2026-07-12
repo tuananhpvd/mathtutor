@@ -51,9 +51,8 @@ jobs:
       - name: Cài dependencies
         run: npm ci
 
+      - name: Lint (eslint)
+        run: npm run lint
+
       - name: Build
         run: npm run build
-
-      - name: Lint (không chặn — còn nợ kỹ thuật cũ, xem PROGRESS.md)
-        run: npm run lint
-        continue-on-error: true
