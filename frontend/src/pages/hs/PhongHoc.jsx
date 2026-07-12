@@ -147,6 +147,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
   })
   const [dangGui, setDangGui] = useState(false)
   const [zoomHinh, setZoomHinh] = useState(null)
+  const [hienHuongDan, setHienHuongDan] = useState(false)
   const chatRef = useRef(null)
   // Hỏi tự do (chat với gia sư — không kèm đáp án): câu hỏi khái niệm, "vì sao", bối rối...
   const [cauHoi, setCauHoi] = useState('')
@@ -323,7 +324,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
 
   return (
     <div className="flex flex-col gap-4">
-      <HuongDanPhongHoc />
+      <HuongDanPhongHoc open={hienHuongDan} onClose={() => setHienHuongDan(false)} />
       {zoomHinh && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 cursor-zoom-out"
@@ -333,10 +334,16 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
         </div>
       )}
       <div>
-        <Button onClick={onChonBai} variant="secondary" size="sm"
-          className="mb-2 bg-warning-soft border-warning/20 shadow-[var(--shadow-card)]">
-          ← Chọn bài khác
-        </Button>
+        <div className="flex gap-2 mb-2">
+          <Button onClick={onChonBai} variant="secondary" size="sm"
+            className="bg-warning-soft border-warning/20 shadow-[var(--shadow-card)]">
+            ← Chọn bài khác
+          </Button>
+          <Button onClick={() => setHienHuongDan(true)} variant="secondary" size="sm"
+            className="bg-cta-soft border-cta/20 shadow-[var(--shadow-card)]">
+            📖 Hướng dẫn
+          </Button>
+        </div>
         <div className="rounded-lg border border-primary/20 bg-primary-soft px-4 py-3">
           <p className="text-base sm:text-lg font-bold text-primary mb-1.5">
             {problem.chuyen_de}

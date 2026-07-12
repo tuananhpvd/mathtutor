@@ -1,14 +1,16 @@
 /*
- * HuongDanPhongHoc — hướng dẫn 3 bước hiện đúng 1 LẦN cho HS khi vào phòng học, lưu trạng thái
- * "đã xem" ở server (User.da_xem_huong_dan_phong_hoc) chứ không dùng localStorage, để hướng
- * dẫn không hiện lại dù HS đổi máy/trình duyệt và không mất khi xóa dữ liệu trình duyệt.
+ * HuongDanPhongHoc — hướng dẫn nhiều bước cách dùng phòng học. KHÔNG tự hiện — HS tự bấm nút
+ * "Hướng dẫn" (PhongHoc.jsx) để mở bất cứ khi nào cần, xem lại được nhiều lần (trước đây tự
+ * hiện 1 lần rồi biến mất khiến HS khó nhớ).
+ * Nội dung các bước tải từ server (Admin chỉnh qua trang Cấu hình, không cần sửa code) —
+ * dùng MAC_DINH bên dưới làm dự phòng khi chưa tải xong / lỗi mạng.
  */
 
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { Button } from './ui'
 
-const BUOC = [
+const MAC_DINH = [
   {
     icon: '🧭',
     tieu_de: 'Gia sư dẫn dắt, không cho đáp án',
@@ -29,35 +31,37 @@ const BUOC = [
   },
 ]
 
-export default function HuongDanPhongHoc() {
-  const [hien, setHien] = useState(false)
+// open/onClose: điều khiển bởi PhongHoc.jsx (nút "Hướng dẫn").
+export default function HuongDanPhongHoc({ open, onClose }) {
+  const [cacBuoc, setCacBuoc] = useState(MAC_DINH)
   const [buoc, setBuoc] = useState(0)
+  const [openTruoc, setOpenTruoc] = useState(open)
 
   useEffect(() => {
-    let con = true
-    api.hsHoSo()
-      .then((ho_so) => {
-        if (con && !ho_so.da_xem_huong_dan_phong_hoc) setTimeout(() => setHien(true), 0)
-      })
+    api.hsHuongDanPhongHoc()
+      .then((ds) => { if (ds?.length) setCacBuoc(ds) })
       .catch(() => {})
-    return () => { con = false }
   }, [])
 
-  function dong() {
-    setHien(false)
-    api.hsDaXemHuongDanPhongHoc().catch(() => {})
+  // Mỗi lần mở lại, quay về bước 1 — xem lại từ đầu cho dễ theo dõi. Chỉnh state ngay
+  // trong lúc render (không dùng effect) — đúng cách React khuyến nghị để reset state
+  // theo prop đổi, tránh render lồng thêm 1 nhịp.
+  if (open !== openTruoc) {
+    setOpenTruoc(open)
+    if (open) setBuoc(0)
   }
 
-  if (!hien) return null
+  if (!open) return null
 
-  const b = BUOC[buoc]
-  const cuoi = buoc === BUOC.length - 1
+  const b = cacBuoc[buoc]
+  const dau = buoc === 0
+  const cuoi = buoc === cacBuoc.length - 1
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="bg-surface rounded-xl shadow-xl max-w-sm w-full p-5 flex flex-col gap-4">
         <div className="flex gap-1.5 justify-center">
-          {BUOC.map((_, i) => (
+          {cacBuoc.map((_, i) => (
             <span key={i}
               className={`h-1.5 w-6 rounded-full transition-colors ${i === buoc ? 'bg-primary' : 'bg-surface-2'}`} />
           ))}
@@ -68,12 +72,19 @@ export default function HuongDanPhongHoc() {
           <p className="text-sm text-muted leading-relaxed">{b.mo_ta}</p>
         </div>
         <div className="flex justify-between gap-2">
-          <Button variant="secondary" size="sm" onClick={dong}>Bỏ qua</Button>
-          {cuoi ? (
-            <Button size="sm" onClick={dong}>Bắt đầu học</Button>
-          ) : (
-            <Button size="sm" onClick={() => setBuoc((n) => n + 1)}>Tiếp →</Button>
-          )}
+          <Button variant="secondary" size="sm" onClick={onClose}>Đóng</Button>
+          <div className="flex gap-2">
+            {!dau && (
+              <Button variant="secondary" size="sm" onClick={() => setBuoc((n) => n - 1)}>
+                ← Quay lại
+              </Button>
+            )}
+            {cuoi ? (
+              <Button size="sm" onClick={onClose}>Đã hiểu</Button>
+            ) : (
+              <Button size="sm" onClick={() => setBuoc((n) => n + 1)}>Tiếp →</Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

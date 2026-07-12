@@ -13,6 +13,7 @@ const NHAN_CO = {
   thu_cong: 'Gắn thủ công',
 }
 const TONE = { cho_xu_ly: 'warning', da_xu_ly: 'success', bo_qua: 'neutral' }
+const NHAN_TT = { cho_xu_ly: 'Chờ xử lý', da_xu_ly: 'Đã xử lý', bo_qua: 'Bỏ qua' }
 
 export default function NhatKy() {
   const [flags, setFlags] = useState([])
@@ -84,7 +85,7 @@ export default function NhatKy() {
               {
                 key: 'trang_thai',
                 header: 'Trạng thái',
-                render: (r) => <Badge tone={TONE[r.trang_thai]}>{r.trang_thai}</Badge>,
+                render: (r) => <Badge tone={TONE[r.trang_thai]}>{NHAN_TT[r.trang_thai] || r.trang_thai}</Badge>,
               },
             ]}
             rows={flags}

@@ -150,6 +150,111 @@ function KhoiTuKhoa({ khoa, items, onDoi }) {
   )
 }
 
+// items: [{icon, tieu_de, mo_ta}] — nội dung nút "Hướng dẫn" trong Phòng học của HS.
+// onCapNhatCfg(cfg_moi): đồng bộ lại state cfg ở component cha sau khi lưu thành công.
+function KhoiHuongDan({ items, onCapNhatCfg }) {
+  const [ds, setDs] = useState(items)
+  const [itemsTruoc, setItemsTruoc] = useState(items)
+  const [tab, setTab] = useState(0)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+  const [dangLuu, setDangLuu] = useState(false)
+
+  // Đồng bộ lại nếu cfg tải mới từ server (vd sau khi trang load xong) — chỉnh state ngay
+  // trong lúc render (không dùng effect) theo đúng khuyến nghị của React.
+  if (items !== itemsTruoc) {
+    setItemsTruoc(items)
+    setDs(items)
+    setTab(0)
+  }
+
+  function suaBuoc(i, field, val) {
+    setDs((d) => d.map((b, idx) => (idx === i ? { ...b, [field]: val } : b)))
+  }
+  function xoaBuoc(i) {
+    setDs((d) => d.filter((_, idx) => idx !== i))
+    setTab((t) => Math.max(0, t >= i ? t - 1 : t))
+  }
+  function themBuoc() {
+    setTab(ds.length)
+    setDs((d) => [...d, { icon: '✨', tieu_de: '', mo_ta: '' }])
+  }
+
+  async function luu() {
+    setMsg(''); setErr(''); setDangLuu(true)
+    try {
+      const c = await api.adminSetConfig('huong_dan_phong_hoc', ds)
+      onCapNhatCfg(c)
+      setMsg('Đã lưu.')
+    } catch (e) {
+      setErr(e.message)
+    } finally {
+      setDangLuu(false)
+    }
+  }
+
+  const b = ds[tab]
+
+  return (
+    <div className="flex flex-col gap-3">
+      {ds.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {ds.map((s, i) => (
+            <button key={i} type="button" onClick={() => setTab(i)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                i === tab
+                  ? 'bg-primary-soft text-primary'
+                  : 'bg-surface-2 text-muted hover:text-ink'
+              }`}>
+              {s.icon} Bước {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {b ? (
+        <div className="rounded-lg border border-border p-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted">Bước {tab + 1}</p>
+            <button type="button" onClick={() => xoaBuoc(tab)}
+              className="text-xs text-danger hover:underline">
+              Xóa bước
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <Input label="Icon" value={b.icon} className="w-20"
+              onChange={(e) => suaBuoc(tab, 'icon', e.target.value)} />
+            <Input label="Tiêu đề" value={b.tieu_de} className="flex-1"
+              onChange={(e) => suaBuoc(tab, 'tieu_de', e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1">Mô tả</label>
+            <textarea
+              value={b.mo_ta}
+              onChange={(e) => suaBuoc(tab, 'mo_ta', e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm
+                text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40
+                focus:border-primary resize-y"
+            />
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">Chưa có bước hướng dẫn nào.</p>
+      )}
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <Button variant="secondary" size="sm" onClick={themBuoc}>+ Thêm bước</Button>
+        <Button size="sm" onClick={luu} disabled={dangLuu}>
+          {dangLuu ? 'Đang lưu...' : 'Lưu hướng dẫn'}
+        </Button>
+        {msg && <span className="text-sm text-success">{msg}</span>}
+        {err && <span className="text-sm text-danger">{err}</span>}
+      </div>
+    </div>
+  )
+}
+
 export default function CauHinh() {
   const [cfg, setCfg] = useState(null)
   const [nguong, setNguong] = useState('')
@@ -343,8 +448,8 @@ export default function CauHinh() {
     : ''
 
   return (
-    <div className="flex flex-col gap-5">
-      <Card>
+    <div className="columns-1 lg:columns-2 gap-5">
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="Chế độ bảo trì"
           subtitle="Khi bật, người ngoài truy cập trang chỉ thấy dòng thông báo. Người có đúng mã xem trước (mở qua đường dẫn bên dưới) vẫn dùng bình thường, kể cả đăng nhập GV/HS/Admin." />
         <CardBody className="flex flex-col gap-4">
@@ -389,7 +494,7 @@ export default function CauHinh() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="Ngưỡng & LLM" subtitle="Áp dụng cho toàn hệ thống" />
         <CardBody className="grid sm:grid-cols-2 gap-4 items-end">
           <div className="flex items-end gap-2">
@@ -440,7 +545,7 @@ export default function CauHinh() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="Từ khóa lọc an toàn"
           subtitle="Tự thêm/bật/tắt từ khóa mà không cần sửa code — áp dụng ngay cho ô chat hỏi gia sư và 'Nhờ thầy/cô'. Từ khóa mặc định (🔒) chỉ tắt được, không xóa được, để giữ nền an toàn."
           action={
@@ -480,7 +585,7 @@ export default function CauHinh() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="AI sinh câu hỏi"
           subtitle="Chọn nhà cung cấp & nhập khóa API. Khóa được lưu phía máy chủ, không hiển thị lại." />
         <CardBody className="flex flex-col gap-4">
@@ -546,7 +651,7 @@ export default function CauHinh() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="Giới hạn lượt AI mỗi ngày (phanh chi phí)"
           subtitle="Vượt ngưỡng: hội thoại chuyển sang lời gợi ý mẫu (học sinh vẫn học bình thường); sinh câu hỏi/phân tích tạm dừng đến ngày mai. 0 = không giới hạn." />
         <CardBody className="flex flex-col gap-4">
@@ -584,7 +689,7 @@ export default function CauHinh() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="Tự động phân tích năng lực (AI)"
           subtitle="Hệ thống tự tái sinh nhận định AI cho học sinh đến hạn — GV/HS không cần bấm tay." />
         <CardBody className="flex flex-col gap-4">
@@ -620,7 +725,7 @@ export default function CauHinh() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="break-inside-avoid mb-5">
         <CardHeader title="Số gợi ý mặc định theo độ khó" subtitle="Giá trị khởi tạo khi tạo/AI sinh bài" />
         <CardBody className="flex flex-col gap-4">
           <div className="flex gap-4 items-end flex-wrap">
@@ -646,6 +751,14 @@ export default function CauHinh() {
               </>
             )}
           </div>
+        </CardBody>
+      </Card>
+
+      <Card className="break-inside-avoid mb-5">
+        <CardHeader title="Hướng dẫn Phòng học"
+          subtitle="Nội dung hiện khi học sinh bấm nút 'Hướng dẫn' trong phòng học — sửa ở đây, không cần sửa code." />
+        <CardBody>
+          <KhoiHuongDan items={cfg.huong_dan_phong_hoc || []} onCapNhatCfg={setCfg} />
         </CardBody>
       </Card>
 

@@ -110,31 +110,35 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
               />
               <CardBody className="flex flex-col gap-2">
                 {nv.mo_ta && <p className="text-sm text-muted">{nv.mo_ta}</p>}
-                {nv.bai.map((b) => (
-                  <div key={b.problem_id}
-                    className="rounded-lg border border-border px-3 py-2.5 flex flex-col gap-1.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-muted truncate">
-                          {b.chuyen_de}{b.dang_ten ? ` › ${b.dang_ten}` : ''}
-                        </p>
-                        <p className="text-sm text-ink leading-snug mt-0.5 line-clamp-2">
-                          {renderDeBai(b.de_bai)}
-                        </p>
+                {/* Giới hạn chiều cao ~3 câu, cuộn riêng nếu nhiều hơn — tránh thẻ bị kéo dài
+                    mất cân đối với thẻ bên cạnh khi GV giao nhiều bài trong 1 nhiệm vụ. */}
+                <div className="flex flex-col gap-2 max-h-[340px] overflow-y-auto pr-1">
+                  {nv.bai.map((b) => (
+                    <div key={b.problem_id}
+                      className="rounded-lg border border-border px-3 py-2.5 flex flex-col gap-1.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-muted truncate">
+                            {b.chuyen_de}{b.dang_ten ? ` › ${b.dang_ten}` : ''}
+                          </p>
+                          <p className="text-sm text-ink leading-snug mt-0.5 line-clamp-2">
+                            {renderDeBai(b.de_bai)}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          {b.da_hoan_thanh ? (
+                            <Badge tone="success">✓ Hoàn thành</Badge>
+                          ) : (
+                            <Button size="sm" onClick={() => onChon?.(b.problem_id)}>Làm bài</Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="shrink-0">
-                        {b.da_hoan_thanh ? (
-                          <Badge tone="success">✓ Hoàn thành</Badge>
-                        ) : (
-                          <Button size="sm" onClick={() => onChon?.(b.problem_id)}>Làm bài</Button>
-                        )}
-                      </div>
+                      <p className="text-xs">
+                        <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
+                      </p>
                     </div>
-                    <p className="text-xs">
-                      <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </CardBody>
             </Card>
           )

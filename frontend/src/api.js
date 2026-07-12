@@ -46,7 +46,7 @@ export const api = {
   // Học sinh — hồ sơ cá nhân
   hsHoSo: () => request('/hs/ho-so'),
   hsCapNhatHoSo: (body) => request('/hs/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
-  hsDaXemHuongDanPhongHoc: () => post('/hs/da-xem-huong-dan-phong-hoc'),
+  hsHuongDanPhongHoc: () => request('/hs/huong-dan-phong-hoc'),
 
   // Giáo viên / Admin (Phase 9–10)
   getProgressStudents: () => request('/progress/students'),

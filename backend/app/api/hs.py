@@ -29,6 +29,14 @@ def chuoi_ngay(current_user: CurrentUser, db: Session = Depends(get_db)):
     return chuoi_ngay_service.ho_so_chuoi_va_moc(db, current_user.id)
 
 
+@router.get("/huong-dan-phong-hoc", dependencies=_HS)
+def huong_dan_phong_hoc(db: Session = Depends(get_db)):
+    """Nội dung hướng dẫn 3 bước hiện trong Phòng học — Admin chỉnh qua Cấu hình hệ thống."""
+    from app.services.admin_service import lay_cau_hinh
+
+    return lay_cau_hinh(db).get("huong_dan_phong_hoc", [])
+
+
 @router.post("/da-xem-huong-dan-phong-hoc", dependencies=_HS)
 def da_xem_huong_dan_phong_hoc(current_user: CurrentUser, db: Session = Depends(get_db)):
     """Đánh dấu HS đã xem hướng dẫn 3 bước lúc vào phòng học — chỉ hiện 1 lần/tài khoản."""

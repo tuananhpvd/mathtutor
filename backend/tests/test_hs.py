@@ -59,3 +59,28 @@ def test_gv_khong_goi_duoc_api_hs(db, client):
                 mat_khau_hash=hash_password("password")))
     db.commit()
     assert client.get("/api/hs/ho-so", headers=_h(client, "gvx")).status_code == 403
+
+
+def test_hs_huong_dan_phong_hoc_mac_dinh(db, client):
+    """Chưa có admin chỉnh gì → trả đúng 3 bước mặc định trong code."""
+    _seed(db)
+    r = client.get("/api/hs/huong-dan-phong-hoc", headers=_h(client, "hs1"))
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 3
+    assert all({"icon", "tieu_de", "mo_ta"} <= set(b.keys()) for b in data)
+
+
+def test_hs_huong_dan_phong_hoc_theo_dung_admin_chinh(db, client):
+    """Admin sửa nội dung qua Cấu hình → HS đọc thấy đúng bản mới, không cần sửa code."""
+    _seed(db)
+    db.add(User(vai_tro=VaiTro.admin, ho_ten="Admin", dang_nhap="admin1",
+                mat_khau_hash=hash_password("password")))
+    db.commit()
+    moi = [{"icon": "🚀", "tieu_de": "Bước mới", "mo_ta": "Nội dung tự chỉnh."}]
+    r = client.patch("/api/admin/config", headers=_h(client, "admin1"),
+                     json={"khoa": "huong_dan_phong_hoc", "gia_tri": moi})
+    assert r.status_code == 200
+
+    r2 = client.get("/api/hs/huong-dan-phong-hoc", headers=_h(client, "hs1"))
+    assert r2.json() == moi

@@ -72,6 +72,31 @@ CAU_HINH_MAC_DINH: dict = {
         {"tu_khoa": t, "kich_hoat": True, "la_mac_dinh": True}
         for t in TU_KHOA_NGOAI_PHAM_VI_MAC_DINH
     ],
+    # Hướng dẫn 3 bước cho HS khi vào Phòng học (nút "Hướng dẫn") — Admin chỉnh nội dung
+    # qua trang Cấu hình, không cần sửa code. Mỗi phần tử: {icon, tieu_de, mo_ta}.
+    "huong_dan_phong_hoc": [
+        {
+            "icon": "🧭",
+            "tieu_de": "Gia sư dẫn dắt, không cho đáp án",
+            "mo_ta": "Gia sư sẽ đặt câu hỏi gợi mở để em tự tìm ra cách làm — đúng/sai do máy "
+                     "chấm (CAS), không phải AI tự quyết định, và đáp án luôn được khóa tới khi "
+                     "em hoàn thành.",
+        },
+        {
+            "icon": "💡",
+            "tieu_de": "Gợi ý có giới hạn, tăng dần",
+            "mo_ta": "Nút \"Gợi ý\" hiện rõ số lượt còn lại (vd 2/3) — gợi ý sau cụ thể hơn gợi ý "
+                     "trước. Hết gợi ý mà vẫn chưa hiểu, em bấm \"Nhờ thầy/cô\" để được hỗ trợ "
+                     "trực tiếp.",
+        },
+        {
+            "icon": "✍️",
+            "tieu_de": "Nhập công thức & hỏi tự do",
+            "mo_ta": "Bấm vào bảng ký hiệu dưới ô trả lời để chèn phân số, căn, lũy thừa... Em "
+                     "cũng có thể gõ câu hỏi tự do (vd \"vì sao lại làm vậy ạ?\") vào ô chat để "
+                     "gia sư giải thích ngắn.",
+        },
+    ],
 }
 
 # Các khóa cấu hình là bí mật (KHÔNG trả nguyên văn về giao diện).
