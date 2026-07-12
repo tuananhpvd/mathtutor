@@ -4,7 +4,22 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v96**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-12, phiên bản **v97**)
+
+- **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
+  - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
+    TNDS/TLN nó chỉ lặp lại y hệt nội dung bong bóng chat đã hiện (TLN còn hiện thô LaTeX
+    chưa render, nhìn rối).
+  - **Phát hiện qua đó**: `AnswerInputTN4PA.jsx` (chọn A/B/C/D) là component DUY NHẤT trong 3
+    loại câu không tự gửi `noi_dung` kèm `dap_an_nhap` (TNDS/TLN đã làm đúng từ trước) — nên
+    trước đây "sống nhờ" đúng dòng caption vừa bỏ, bỏ xong thì bong bóng TN4PA trống hẳn. Đã
+    sửa tại gốc: `onGui({ dap_an_nhap: chon, noi_dung: "Em chọn: ${chon}" })`, khớp đúng pattern
+    2 loại câu kia — bong bóng chat TN4PA giờ luôn hiện rõ phương án đã chọn, cả lúc đang học
+    lẫn khi xem lại, không cần caption dự phòng nữa.
+  - Lưu ý: các phiên TN4PA làm **trước** bản vá này vẫn còn bong bóng trống khi xem lại (dữ
+    liệu cũ đã lưu rỗng, không hồi tố được) — chỉ ảnh hưởng lịch sử cũ, bài mới đều đúng.
+
+## 1a. Trạng thái trước đó (v96)
 
 - **✨ (v96) Bố cục thẻ 2 cột cho một số trang danh sách.** Áp `grid lg:grid-cols-2 gap-N
   items-start` (tự về 1 cột dưới `lg`) cho: GV Tổng quan (2 nhóm thống kê cùng khuôn nên cao
