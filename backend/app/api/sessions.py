@@ -2,13 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sympy import latex as sympy_latex
 
-from app.api.problems import _chuyen_de_ten, _lay_dang_cd_map, _strip_answers
+from app.api.problems import (
+    _chuyen_de_ten,
+    _lay_dang_cd_map,
+    _strip_answers,
+    hs_duoc_truy_cap_bai,
+)
 from app.auth.deps import CurrentUser, require_role
 from app.core.guard.safety import kiem_tra_an_toan
 from app.core.matching.cas import parse_bieu_thuc_an_toan
 from app.db.session import get_db
 from app.llm.client import get_llm_client
-from app.models.problem import Problem, TrangThaiDuyet
+from app.models.problem import Problem
 from app.models.session import Session as SessionModel
 from app.models.session import TrangThaiSession
 from app.models.turn import Turn
@@ -110,7 +115,10 @@ def tao_phien_moi(
     db: Session = Depends(get_db),
 ):
     problem = db.get(Problem, body.problem_id)
-    if problem is None or problem.trang_thai_duyet != TrangThaiDuyet.da_duyet:
+    # Kiểm quyền truy cập ĐẦY ĐỦ như GET /problems/{id}: không đủ nếu chỉ 'đã duyệt' —
+    # phải là bài của GV chủ nhiệm HOẶC được giao nhiệm vụ, và không bị ẩn. Chặn IDOR:
+    # HS đoán problem_id của bài GV/lớp khác vẫn không tạo được phiên.
+    if problem is None or not hs_duoc_truy_cap_bai(db, current_user, problem):
         raise HTTPException(status_code=404, detail="Bài không tồn tại hoặc chưa được duyệt")
 
     cau_hinh = lay_cau_hinh(db)

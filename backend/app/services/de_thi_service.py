@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from app.auth.deps import co_toan_quyen
 from app.core.matching.cas import KetQuaSoKhop
 from app.core.matching.matcher import so_khop
 from app.models.de_thi import BaiThi, DeThi, DeThiCau, DeThiHocSinh, PhamViDeThi, TrangThaiBaiThi
@@ -119,15 +120,21 @@ def tao_de(
     return de, canh_bao
 
 
-def _de_cua_gv(db: Session, gv_id: int, de_id: int) -> DeThi:
+def _quyen_tren_de(actor: User, de: DeThi) -> bool:
+    """Được quản trị/kiểm tra đề nếu là chủ đề HOẶC có toàn quyền (Admin/Quản lý).
+    Mirror `_quyen_tren_bai` ở problems — Admin toàn quyền trên đề của mọi GV."""
+    return co_toan_quyen(actor) or de.nguoi_tao_id == actor.id
+
+
+def _de_cho_thao_tac(db: Session, actor: User, de_id: int) -> DeThi:
     de = db.get(DeThi, de_id)
-    if de is None or de.nguoi_tao_id != gv_id:
+    if de is None or not _quyen_tren_de(actor, de):
         raise ValueError("Đề không tồn tại")
     return de
 
 
 def dat_phat_hanh(
-    db: Session, gv_id: int, de_id: int, phat_hanh: bool,
+    db: Session, actor: User, de_id: int, phat_hanh: bool,
     pham_vi: str | None = None,
     lop_ids: list[int] | None = None,
     hoc_sinh_ids: list[int] | None = None,
@@ -135,10 +142,15 @@ def dat_phat_hanh(
     """Phát hành/thu hồi đề. Khi phát hành với pham_vi="tuy_chon", giới hạn đề chỉ
     hiện với HS trong lop_ids + hoc_sinh_ids (gộp, mirror logic của tao_nhiem_vu).
 
+    Admin/Quản lý phát hành đề của GV khác được (toàn quyền), nhưng ĐỐI TƯỢNG nhận
+    đề luôn tính theo GV CHỦ ĐỀ (`de.nguoi_tao_id`) — lớp/HS phải thuộc GV chủ đề, và
+    thông báo gửi cho HS của GV đó; Admin không có lớp riêng.
+
     Validate TRƯỚC khi mutate — nếu raise giữa chừng sau khi đã gán de.phat_hanh,
     autoflush của các query bên dưới sẽ đẩy thay đổi dở dang xuống DB (dù chưa
     commit), khiến các đọc khác trong CÙNG transaction thấy trạng thái sai."""
-    de = _de_cua_gv(db, gv_id, de_id)
+    de = _de_cho_thao_tac(db, actor, de_id)
+    chu_de_id = de.nguoi_tao_id  # GV chủ đề — mốc kiểm quyền lớp/HS & gửi thông báo
 
     # pham_vi=None → chỉ đổi cờ phát hành, GIỮ NGUYÊN phạm vi đã cấu hình trước đó
     # (vd. GV thu hồi rồi phát hành lại nhanh không mở lại hộp thoại chọn đối tượng).
@@ -146,14 +158,14 @@ def dat_phat_hanh(
     if phat_hanh and pham_vi == PhamViDeThi.tuy_chon.value:
         hs_set = set(hoc_sinh_ids or [])
         for lid in (lop_ids or []):
-            if not _so_huu_lop(db, gv_id, lid):
+            if not _so_huu_lop(db, chu_de_id, lid):
                 raise ValueError("Không có quyền với lớp đã chọn")
             for u in db.query(User).filter(User.lop_id == lid, User.vai_tro == VaiTro.hs).all():
                 hs_set.add(u.id)
         if not hs_set:
             raise ValueError("Cần chọn ít nhất 1 học sinh hoặc 1 lớp")
         for hid in hs_set:
-            if not _so_huu_hs(db, gv_id, hid):
+            if not _so_huu_hs(db, chu_de_id, hid):
                 raise ValueError("Có học sinh không thuộc lớp của bạn")
 
     de.phat_hanh = bool(phat_hanh)
@@ -174,7 +186,7 @@ def dat_phat_hanh(
     db.refresh(de)
 
     if phat_hanh:
-        _bao_phat_hanh(db, de, gv_id)
+        _bao_phat_hanh(db, de, chu_de_id)
 
     return de
 
@@ -202,8 +214,8 @@ def _bao_phat_hanh(db: Session, de: DeThi, gv_id: int) -> None:
         )
 
 
-def xoa_de(db: Session, gv_id: int, de_id: int) -> None:
-    de = _de_cua_gv(db, gv_id, de_id)
+def xoa_de(db: Session, actor: User, de_id: int) -> None:
+    de = _de_cho_thao_tac(db, actor, de_id)
     if db.query(BaiThi).filter(BaiThi.de_thi_id == de.id).first():
         raise ValueError("Đề đã có học sinh làm — chỉ có thể thu hồi, không xóa được")
     db.delete(de)
@@ -220,9 +232,24 @@ def diem_toi_da_cua(de: DeThi) -> float:
     return round(sum(_diem_moi_cau(c) for c in de.cau_list), 2)
 
 
-def ds_de_gv(db: Session, gv_id: int) -> list[dict]:
-    des = (db.query(DeThi).filter(DeThi.nguoi_tao_id == gv_id)
-           .order_by(DeThi.tao_luc.desc()).all())
+def ds_de_gv(db: Session, actor: User, gv_id: int | None = None) -> list[dict]:
+    """Danh sách đề. GV thường: chỉ đề của mình. Admin/Quản lý: theo gv_id nếu truyền,
+    mặc định TẤT CẢ đề toàn hệ thống (mirror danh sách câu hỏi ở problems)."""
+    q = db.query(DeThi)
+    if co_toan_quyen(actor):
+        if gv_id is not None:
+            q = q.filter(DeThi.nguoi_tao_id == gv_id)
+    else:
+        q = q.filter(DeThi.nguoi_tao_id == actor.id)
+    des = q.order_by(DeThi.tao_luc.desc()).all()
+    # Tên GV chủ đề — để Quản lý/Admin xem đề của mọi GV biết đề của ai (1 query, tránh N+1).
+    ten_gv: dict[int, str] = {}
+    owner_ids = {de.nguoi_tao_id for de in des}
+    if owner_ids:
+        ten_gv = {
+            u.id: u.ho_ten
+            for u in db.query(User).filter(User.id.in_(owner_ids)).all()
+        }
     ket = []
     for de in des:
         so_nop = db.query(BaiThi).filter(
@@ -232,6 +259,8 @@ def ds_de_gv(db: Session, gv_id: int) -> list[dict]:
             "id": de.id, "ten": de.ten, "thoi_gian_phut": de.thoi_gian_phut,
             "phat_hanh": de.phat_hanh, "so_cau": len(de.cau_list),
             "diem_toi_da": diem_toi_da_cua(de), "so_bai_nop": so_nop,
+            "nguoi_tao_id": de.nguoi_tao_id,
+            "nguoi_tao_ten": ten_gv.get(de.nguoi_tao_id),
             "tao_luc": de.tao_luc.isoformat(),
             "phat_hanh_luc": de.phat_hanh_luc.isoformat() if de.phat_hanh_luc else None,
             "thu_hoi_luc": de.thu_hoi_luc.isoformat() if de.thu_hoi_luc else None,
@@ -244,8 +273,8 @@ def ds_de_gv(db: Session, gv_id: int) -> list[dict]:
     return ket
 
 
-def ket_qua_lop(db: Session, gv_id: int, de_id: int) -> list[dict]:
-    de = _de_cua_gv(db, gv_id, de_id)
+def ket_qua_lop(db: Session, actor: User, de_id: int) -> list[dict]:
+    de = _de_cho_thao_tac(db, actor, de_id)
     bais = (
         db.query(BaiThi, User.ho_ten)
         .join(User, User.id == BaiThi.hoc_sinh_id)

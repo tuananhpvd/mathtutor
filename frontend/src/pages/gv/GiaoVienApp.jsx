@@ -35,6 +35,7 @@ const NAV = [
 // Tài khoản Quản lý: chỉ quản lý nội dung của các GV + tài khoản cá nhân.
 const NAV_QUAN_LY = [
   { key: 'noi_dung_gv', label: 'Quản lý nội dung GV' },
+  { key: 'de_thi', label: 'Đề thi thử' },
   { key: 'tai_khoan', label: 'Tài khoản cá nhân' },
 ]
 
@@ -51,6 +52,7 @@ const TIEU_DE = {
   hoc_sinh: 'Quản lý học sinh',
   tai_khoan: 'Tài khoản cá nhân',
   noi_dung_gv: 'Quản lý nội dung theo giáo viên',
+  de_thi: 'Đề thi thử',
 }
 
 export default function GiaoVienApp({ onLogout }) {
@@ -133,7 +135,7 @@ export default function GiaoVienApp({ onLogout }) {
           <HoTroHocSinh focusYc={focusYc} onFocusDone={() => setFocusYc(null)} />
         )}
         {page === 'nhiem_vu' && <GiaoNhiemVu />}
-        {page === 'de_thi' && <QuanLyDeThi />}
+        {page === 'de_thi' && <QuanLyDeThi quanLy={la_quan_ly} />}
         {page === 'tien_bo' && <TheoDoiTienBo />}
         {page === 'lop' && <QuanLyLopGV />}
         {page === 'hoc_sinh' && <QuanLyHocSinhGV />}

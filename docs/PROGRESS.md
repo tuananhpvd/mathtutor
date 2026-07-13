@@ -4,7 +4,50 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v103**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v104**)
+
+- **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
+  quyền đề thi + màn giám sát Đề thi cho Quản lý.** User đưa 1 bản review bảo mật độc lập
+  (`codex_review`, không sửa gì trước đó) — đối chiếu từng phát hiện với source thật trước khi
+  sửa (không tin máy móc), xác nhận đúng 3/6 điểm cần sửa ngay, hoãn 3 điểm còn lại (Alembic
+  migration, seed demo, tách file lớn — không cấp bách, tránh đụng DB production giữa mùa thi):
+  - **High — HS tạo được phiên học với bài GV/lớp khác nếu đoán được `problem_id`.**
+    `POST /api/sessions` trước đây chỉ kiểm bài "đã duyệt", không kiểm `bi_an`/thuộc GV chủ
+    nhiệm/được giao nhiệm vụ — trong khi `GET /api/problems/{id}` đã có đủ logic này. Rút thành
+    helper dùng chung `hs_duoc_truy_cap_bai()` (`api/problems.py`), dùng ở cả 2 nơi để không
+    còn lệch nhau. 4 test mới (`test_sessions_idor.py`): bài GV khác/bị ẩn → 404; bài được giao
+    qua nhiệm vụ (dù không thuộc GV chủ nhiệm) → vẫn tạo được, đúng nghiệp vụ.
+  - **Medium — `GET /problems/{id}/anh-huong` thiếu kiểm chủ sở hữu.** GV bất kỳ xem được số
+    phiên/HS/cờ của bài GV khác nếu biết id (các endpoint patch/xóa/khôi-phục kế bên đều đã có
+    kiểm, riêng endpoint này thiếu `current_user` + `_quyen_tren_bai()`). Đã thêm, kèm 2 test.
+  - **Medium — Admin/Quản lý vào được route đề thi (`_GV = [gv, admin]`) nhưng service khóa
+    theo `nguoi_tao_id == current_user.id`** → gọi vào chỉ nhận rỗng/404, lệch với mẫu
+    `co_toan_quyen()` đã dùng ở problems/monitor. User chọn: Admin/Quản lý TOÀN QUYỀN trên đề
+    của mọi GV. Thêm `_quyen_tren_de()`/`_de_cho_thao_tac()` (`de_thi_service.py`), `ds_de_gv`
+    hỗ trợ lọc `?gv_id=`; khi Admin phát hành đề GV khác, đối tượng nhận đề vẫn tính theo GV
+    CHỦ ĐỀ (không phải Admin) — đúng nghiệp vụ, Admin không có lớp riêng. 2 test mới xác nhận
+    Admin toàn quyền + GV khác vẫn bị chặn.
+  - **Tác dụng phụ phát hiện qua test**: check IDOR chặt hơn làm lộ **9 test cũ seed sai** —
+    `Problem` test tạo không set `nguoi_tao_id` (dựa vào lỗ hổng cũ mà không biết), sửa seed ở
+    6 file (`test_progress`, `test_tro_giup`, `test_muc_tieu`, `test_nhiem_vu`,
+    `test_co_khep_vong`, `test_api_flow`) cho bài thuộc đúng GV chủ nhiệm — phản ánh đúng thực
+    tế nghiệp vụ, không phải nới lỏng check.
+  - **Màn Đề thi mới cho Quản lý** (trước đây KHÔNG TỒN TẠI — review ban đầu tưởng đã có, tự
+    kiểm lại trước khi báo cáo): tận dụng quyền Admin/Quản lý toàn quyền ở trên, thêm mục nav
+    "Đề thi thử" cho `NAV_QUAN_LY`. `QuanLyDeThi.jsx` nhận prop `quanLy` → bản CHỈ XEM (ẩn
+    Tạo/Trộn/Phát hành/Thu hồi/Xóa — Quản lý không có ngân hàng câu/lớp riêng nên các thao tác
+    soạn thảo không áp dụng được), hiện tên GV chủ đề trên mỗi thẻ + bộ lọc theo GV, giữ Kết
+    quả lớp + Chi tiết bài làm. Backend `ds_de_gv` trả thêm `nguoi_tao_ten` (1 query gộp, không
+    N+1). GV thường không đổi gì (prop mặc định `false`).
+  - **Bài học vận hành tái diễn**: sau khi sửa xong, user test thấy màn Quản lý trống dù GV đã
+    có đề — do backend/frontend dev server đang chạy từ TRƯỚC lúc sửa code (không phải do
+    `--reload` kẹt lần này), phải kill sạch tiến trình cũ + khởi động lại mới thấy đúng. Nhắc
+    lại bài học từ v98: khi API không phản ánh đúng thay đổi, luôn nghi ngờ server chưa nạp code
+    mới trước tiên.
+  - Thuần thêm code/kiểm tra, KHÔNG đụng schema/DB. `pytest` 477/477, `vitest` 23/23, `ruff`/
+    `eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v103)
 
 - **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
   Trang cũ: logo phóng to 288px lệch hẳn tỉ lệ form, form dính lên đỉnh màn hình (không căn
@@ -29,7 +72,7 @@
     hardcode bằng gradient indigo + hoạ tiết toán + `ThuongHieu` dùng chung.
   - Thuần frontend, không đụng logic đăng nhập/API/token. `eslint`/`vitest` 23/23/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v102)
+## 1b. Trạng thái trước đó (v102)
 
 - **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập — đỏ chỉ còn nghĩa "sai/lỗi/nguy
   hiểm", không rò rỉ sang dữ liệu trung tính.** User đưa 1 bản đánh giá giao diện từ bên ngoài
@@ -59,7 +102,7 @@
     4.5:1, không đáng kể) được ghi nhận nhưng không sửa vì user không yêu cầu.
   - `eslint`/`vitest` 23/23/`vite build` sạch — thuần đổi class/token CSS, không đụng logic.
 
-## 1b. Trạng thái trước đó (v101)
+## 1c. Trạng thái trước đó (v101)
 
 - **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
   từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**
@@ -90,7 +133,7 @@
     cũ, không bao giờ kẹt màn hình.
   - `pytest` 469/469 (+1), `vitest` 23/23 (+1), `eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v100)
+## 1d. Trạng thái trước đó (v100)
 
 - **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
   vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ
@@ -123,7 +166,7 @@
     đổi logic; cập nhật `AISinhCauHoi.jsx` trỏ theo import mới.
   - `pytest` 468/468, `eslint`/`vitest`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v99)
+## 1e. Trạng thái trước đó (v99)
 
 - **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
   - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi
@@ -139,8 +182,6 @@
   - Sửa nhãn GV Tổng quan bị cắt chữ (`truncate` + nhãn quá dài trong ô 3 cột hẹp): "Số câu
     hỏi đã duyệt/chờ duyệt" → "Câu hỏi đã duyệt/chờ duyệt".
   - Không đổi logic — chỉ thêm prop tùy chọn + đổi className/thứ tự hiển thị.
-
-## 1e. Trạng thái trước đó (v98)
 
 - **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
   - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"

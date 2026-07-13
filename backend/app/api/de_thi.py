@@ -69,11 +69,13 @@ def tao_de(body: TaoDeRequest, current_user: CurrentUser, db: Session = Depends(
 
 
 @router.get("", dependencies=[require_role(VaiTro.gv, VaiTro.admin, VaiTro.hs)])
-def danh_sach_de(current_user: CurrentUser, db: Session = Depends(get_db)):
+def danh_sach_de(current_user: CurrentUser, gv_id: int | None = None,
+                 db: Session = Depends(get_db)):
     if current_user.vai_tro == VaiTro.hs:
         hs = db.get(User, current_user.id)
         return svc.ds_de_hs(db, hs)
-    return svc.ds_de_gv(db, current_user.id)
+    # gv_id chỉ có tác dụng với Admin/Quản lý (lọc đề theo 1 GV); GV thường luôn thấy đề mình.
+    return svc.ds_de_gv(db, current_user, gv_id)
 
 
 @router.post("/tron", dependencies=_GV)
@@ -91,7 +93,7 @@ def tron_de(body: TronDeRequest, current_user: CurrentUser, db: Session = Depend
 @router.get("/{de_id}/chi-tiet-gv", dependencies=_GV)
 def chi_tiet_de_gv(de_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
     de = db.get(DeThi, de_id)
-    if de is None or de.nguoi_tao_id != current_user.id:
+    if de is None or not svc._quyen_tren_de(current_user, de):
         raise HTTPException(status_code=404, detail="Đề không tồn tại")
     problems = {p.id: p for p in db.query(Problem).filter(
         Problem.id.in_([c.problem_id for c in de.cau_list])).all()}
@@ -112,7 +114,7 @@ def phat_hanh(de_id: int, body: PhatHanhRequest, current_user: CurrentUser,
               db: Session = Depends(get_db)):
     try:
         de = svc.dat_phat_hanh(
-            db, current_user.id, de_id, body.phat_hanh,
+            db, current_user, de_id, body.phat_hanh,
             pham_vi=body.pham_vi, lop_ids=body.lop_ids, hoc_sinh_ids=body.hoc_sinh_ids,
         )
     except ValueError as e:
@@ -123,7 +125,7 @@ def phat_hanh(de_id: int, body: PhatHanhRequest, current_user: CurrentUser,
 @router.delete("/{de_id}", dependencies=_GV)
 def xoa_de(de_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:
-        svc.xoa_de(db, current_user.id, de_id)
+        svc.xoa_de(db, current_user, de_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return {"da_xoa": True}
@@ -132,7 +134,7 @@ def xoa_de(de_id: int, current_user: CurrentUser, db: Session = Depends(get_db))
 @router.get("/{de_id}/ket-qua-lop", dependencies=_GV)
 def ket_qua_lop(de_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:
-        return svc.ket_qua_lop(db, current_user.id, de_id)
+        return svc.ket_qua_lop(db, current_user, de_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -253,7 +255,7 @@ def chi_tiet_bai_gv(bai_id: int, current_user: CurrentUser, db: Session = Depend
     if bai is None:
         raise HTTPException(status_code=404, detail="Bài thi không tồn tại")
     try:
-        de = svc._de_cua_gv(db, current_user.id, bai.de_thi_id)
+        de = svc._de_cho_thao_tac(db, current_user, bai.de_thi_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     if bai.trang_thai != TrangThaiBaiThi.da_nop:

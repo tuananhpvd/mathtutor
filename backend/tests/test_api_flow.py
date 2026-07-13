@@ -175,10 +175,11 @@ def test_thoi_gian_chan_nghi_khi_quay_lai_lam_sau(client, db):
 
 
 def _seed_tn4pa(db, bat_buoc: bool):
+    gv = db.query(User).filter_by(dang_nhap="gv_test").first()  # GV chủ nhiệm từ seed_all
     p = Problem(
         chuyen_de="Test", loai_cau="TN4PA", do_kho="de",
         de_bai="Hàm số đồng biến trên khoảng nào?", loai_dap_an_nhap="chon_phuong_an",
-        trang_thai_duyet=TrangThaiDuyet.da_duyet,
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=gv.id,
         meta={"phuong_an": {"A": "1", "B": "2", "C": "3", "D": "4"},
               "dap_an_dung": "B", "bat_buoc_suy_luan": bat_buoc},
     )
@@ -239,10 +240,11 @@ def test_tn4pa_chon_ngay_hai_pha(client, db):
 
 
 def _seed_tnds(db):
+    gv = db.query(User).filter_by(dang_nhap="gv_test").first()  # GV chủ nhiệm từ seed_all
     p = Problem(
         chuyen_de="Test", loai_cau="TNDS", do_kho="tb",
         de_bai="Xét đúng/sai các mệnh đề.", loai_dap_an_nhap="dung_sai_4y",
-        trang_thai_duyet=TrangThaiDuyet.da_duyet,
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=gv.id,
         meta={"y": [
             {"ky_hieu": "a", "noi_dung_y": "ý a", "dap_an": "Dung", "bat_buoc_suy_luan": True},
             {"ky_hieu": "b", "noi_dung_y": "ý b", "dap_an": "Sai", "bat_buoc_suy_luan": False},

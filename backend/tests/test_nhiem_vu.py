@@ -128,7 +128,7 @@ def test_de_xuat_theo_diem_yeu(db, client):
     db.add(dang)
     db.flush()
     # Nhiều bài cùng dạng để HS làm yếu + còn bài chưa làm để đề xuất
-    bais = [_bai(db, "Khảo sát hàm số", dang_id=dang.id) for _ in range(4)]
+    bais = [_bai(db, "Khảo sát hàm số", dang_id=dang.id, nguoi_tao_id=gv.id) for _ in range(4)]
     db.commit()
 
     h_hs = _h(client, "hs1")

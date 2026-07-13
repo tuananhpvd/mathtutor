@@ -679,18 +679,29 @@ function ChiTietBaiGV({ baiId, onDong }) {
 
 /* ─────────────── Trang chính ─────────────── */
 
-export default function QuanLyDeThi() {
+export default function QuanLyDeThi({ quanLy = false }) {
   const [ds, setDs] = useState(null)
   const [taoMo, setTaoMo] = useState(false)
   const [ketQua, setKetQua] = useState(null) // {id, ten}
   const [chonDoiTuong, setChonDoiTuong] = useState(null) // đề đang chọn đối tượng phát hành
   const [error, setError] = useState('')
   const [thongBao, setThongBao] = useState('')
+  const [locGv, setLocGv] = useState('') // Quản lý: lọc đề theo tên GV chủ đề ('' = tất cả)
 
   function tai() {
     api.deThiDs().then(setDs).catch((e) => setError(e.message))
   }
   useEffect(tai, [])
+
+  // Quản lý xem đề của MỌI GV → cho lọc theo GV (client-side, từ chính danh sách trả về).
+  const dsGv = useMemo(
+    () => [...new Set((ds || []).map((d) => d.nguoi_tao_ten).filter(Boolean))].sort(),
+    [ds]
+  )
+  const dsHienThi = useMemo(
+    () => (quanLy && locGv ? (ds || []).filter((d) => d.nguoi_tao_ten === locGv) : ds),
+    [ds, quanLy, locGv]
+  )
 
   async function thuHoi(de) {
     setError('')
@@ -714,8 +725,22 @@ export default function QuanLyDeThi() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-black">Đề thi thử THPT</h2>
-        {!taoMo && <Button onClick={() => setTaoMo(true)}>+ Tạo đề mới</Button>}
+        <div>
+          <h2 className="text-2xl font-bold text-black">Đề thi thử THPT</h2>
+          {quanLy && (
+            <p className="text-sm text-muted mt-0.5">
+              Giám sát đề thi của mọi giáo viên (chỉ xem kết quả &amp; chi tiết bài làm).
+            </p>
+          )}
+        </div>
+        {!quanLy && !taoMo && <Button onClick={() => setTaoMo(true)}>+ Tạo đề mới</Button>}
+        {quanLy && dsGv.length > 1 && (
+          <select value={locGv} onChange={(e) => setLocGv(e.target.value)}
+            className="rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40">
+            <option value="">Tất cả giáo viên ({dsGv.length})</option>
+            {dsGv.map((ten) => <option key={ten} value={ten}>{ten}</option>)}
+          </select>
+        )}
       </div>
 
       {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
@@ -746,13 +771,22 @@ export default function QuanLyDeThi() {
       {ds && ds.length === 0 && !taoMo && (
         <Card>
           <CardBody className="py-10 text-center text-muted">
-            Chưa có đề nào — bấm "Tạo đề mới" để ghép đề đầu tiên từ ngân hàng câu hỏi.
+            {quanLy
+              ? 'Chưa có giáo viên nào tạo đề thi thử.'
+              : 'Chưa có đề nào — bấm "Tạo đề mới" để ghép đề đầu tiên từ ngân hàng câu hỏi.'}
           </CardBody>
         </Card>
       )}
-      {ds && ds.length > 0 && (
+      {ds && ds.length > 0 && dsHienThi.length === 0 && (
+        <Card>
+          <CardBody className="py-10 text-center text-muted">
+            Không có đề nào của giáo viên đã chọn.
+          </CardBody>
+        </Card>
+      )}
+      {dsHienThi && dsHienThi.length > 0 && (
         <div className="grid md:grid-cols-2 gap-3">
-          {ds.map((de) => (
+          {dsHienThi.map((de) => (
             <Card key={de.id}>
               <CardBody className="pt-4 flex flex-col gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -761,6 +795,9 @@ export default function QuanLyDeThi() {
                     ? <Badge tone="success">Đang phát hành</Badge>
                     : <Badge tone="neutral">Nháp</Badge>}
                 </div>
+                {quanLy && de.nguoi_tao_ten && (
+                  <p className="text-xs text-muted">Giáo viên: <b className="text-ink">{de.nguoi_tao_ten}</b></p>
+                )}
                 <div className="flex gap-2 flex-wrap text-sm">
                   <Badge tone="primary">{de.so_cau} câu</Badge>
                   <Badge tone="neutral">{de.thoi_gian_phut} phút</Badge>
@@ -784,18 +821,18 @@ export default function QuanLyDeThi() {
                   )}
                 </p>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  {de.phat_hanh ? (
+                  {!quanLy && (de.phat_hanh ? (
                     <Button size="sm" variant="warning" onClick={() => thuHoi(de)}>Thu hồi</Button>
                   ) : (
                     <Button size="sm" variant="success" onClick={() => setChonDoiTuong(de)}>
                       Phát hành
                     </Button>
-                  )}
+                  ))}
                   <Button size="sm" variant="secondary"
                     onClick={() => setKetQua({ id: de.id, ten: de.ten })}>
                     Kết quả ({de.so_bai_nop})
                   </Button>
-                  {de.so_bai_nop === 0 && (
+                  {!quanLy && de.so_bai_nop === 0 && (
                     <Button size="sm" variant="danger" onClick={() => xoa(de)}>Xóa</Button>
                   )}
                 </div>

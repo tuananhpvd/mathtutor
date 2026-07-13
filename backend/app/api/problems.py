@@ -42,6 +42,31 @@ def _gv_id_cua_lop_hs(db: Session, hs: User) -> int | None:
     return lop.gv_id if lop else None
 
 
+def hs_duoc_truy_cap_bai(db: Session, hs: User, p: Problem) -> bool:
+    """HS có quyền truy cập (xem chi tiết / tạo phiên học) bài này không.
+
+    Nguồn sự thật DUY NHẤT cho mọi cổng vào của HS — dùng chung ở `chi_tiet_bai`
+    (GET /problems/{id}) và `tao_phien_moi` (POST /sessions) để hai nơi không lệch
+    nhau, tránh IDOR: HS chỉ được đụng bài ĐÃ DUYỆT, KHÔNG bị ẩn, VÀ hoặc là bài của
+    GV chủ nhiệm lớp mình HOẶC được giao qua nhiệm vụ.
+    """
+    if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
+        return False
+    if p.nguoi_tao_id == _gv_id_cua_lop_hs(db, hs):
+        return True
+    from app.models.nhiem_vu import NhiemVuBai, NhiemVuHocSinh
+    assigned = (
+        db.query(NhiemVuBai)
+        .join(NhiemVuHocSinh, NhiemVuBai.nhiem_vu_id == NhiemVuHocSinh.nhiem_vu_id)
+        .filter(
+            NhiemVuBai.problem_id == p.id,
+            NhiemVuHocSinh.hoc_sinh_id == hs.id,
+        )
+        .first()
+    )
+    return assigned is not None
+
+
 def _bao_quan_ly(db: Session, actor: User, owner_id: int | None, hanh_dong: str, mo_ta: str) -> None:
     """Quản lý sửa/xóa nội dung của GV khác → gửi thông báo cho chủ sở hữu."""
     if owner_id is None or owner_id == actor.id:
@@ -201,23 +226,10 @@ def chi_tiet_bai(problem_id: int, current_user: CurrentUser, db: Session = Depen
     if p is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài")
     if current_user.vai_tro == VaiTro.hs:
-        if p.trang_thai_duyet != TrangThaiDuyet.da_duyet or p.bi_an:
+        # HS được truy cập nếu bài đã duyệt, không bị ẩn, VÀ của GV chủ nhiệm lớp mình
+        # HOẶC được giao qua nhiệm vụ (logic dùng chung với tao_phien_moi để không lệch).
+        if not hs_duoc_truy_cap_bai(db, current_user, p):
             raise HTTPException(status_code=404, detail="Không tìm thấy bài")
-        # HS được truy cập nếu bài của GV chủ nhiệm lớp mình HOẶC được giao qua nhiệm vụ.
-        cho_phep = p.nguoi_tao_id == _gv_id_cua_lop_hs(db, current_user)
-        if not cho_phep:
-            from app.models.nhiem_vu import NhiemVuBai, NhiemVuHocSinh
-            assigned = (
-                db.query(NhiemVuBai)
-                .join(NhiemVuHocSinh, NhiemVuBai.nhiem_vu_id == NhiemVuHocSinh.nhiem_vu_id)
-                .filter(
-                    NhiemVuBai.problem_id == problem_id,
-                    NhiemVuHocSinh.hoc_sinh_id == current_user.id,
-                )
-                .first()
-            )
-            if not assigned:
-                raise HTTPException(status_code=404, detail="Không tìm thấy bài")
         dang_cd = _lay_dang_cd_map(db)
         return _strip_answers(p, dang_cd)
     # GV thường chỉ xem bài của mình; Quản lý/Admin xem mọi bài.
@@ -351,7 +363,14 @@ def khoi_phuc_bai(problem_id: int, current_user: CurrentUser, db: Session = Depe
 
 
 @router.get("/{problem_id}/anh-huong", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def xem_anh_huong(problem_id: int, db: Session = Depends(get_db)):
+def xem_anh_huong(problem_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    # Cùng chốt chủ sở hữu như patch/xóa/khôi-phục kế bên — GV chỉ xem ảnh hưởng bài
+    # của mình; Admin/Quản lý toàn quyền. Tránh rò rỉ số phiên/HS/cờ của bài GV khác.
+    p = db.get(Problem, problem_id)
+    if p is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy câu hỏi")
+    if not _quyen_tren_bai(current_user, p):
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xem câu hỏi này")
     try:
         return anh_huong_xoa_vinh_vien(db, problem_id)
     except ValueError as e:

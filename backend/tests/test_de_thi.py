@@ -481,3 +481,57 @@ def test_quyen_bai_thi(db, client):
     # GV khác không xem được kết quả lớp của đề GV này
     r = client.get(f"/api/de-thi/{de_id}/ket-qua-lop", headers=_h(_login(client, "gv2_de")))
     assert r.status_code == 404
+
+
+def test_admin_toan_quyen_de_gv_khac(db, client):
+    """#3 — Admin/Quản lý TOÀN QUYỀN trên đề của mọi GV (mirror problems): thấy trong
+    danh sách, xem chi tiết, xem kết quả lớp, phát hành/thu hồi, xóa. Trong khi GV khác
+    (không phải chủ, không toàn quyền) vẫn bị chặn."""
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    admin = User(vai_tro=VaiTro.admin, ho_ten="Admin", dang_nhap="admin_de",
+                 mat_khau_hash=hash_password("pass"))
+    db.add(admin)
+    db.commit()
+    h_gv = _h(_login(client, "gv_de"))
+    h_admin = _h(_login(client, "admin_de"))
+    h_gv2 = _h(_login(client, "gv2_de"))
+
+    de_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln).json()["id"]
+
+    # Admin thấy đề trong danh sách toàn hệ thống; lọc theo gv_id
+    ds = client.get("/api/de-thi", headers=h_admin).json()
+    assert de_id in [d["id"] for d in ds]
+    ds_loc = client.get(f"/api/de-thi?gv_id={gv.id}", headers=h_admin).json()
+    assert de_id in [d["id"] for d in ds_loc]
+    ds_khac = client.get(f"/api/de-thi?gv_id={gv2.id}", headers=h_admin).json()
+    assert de_id not in [d["id"] for d in ds_khac]
+
+    # Admin xem chi tiết + phát hành + xem kết quả lớp đề của GV
+    assert client.get(f"/api/de-thi/{de_id}/chi-tiet-gv", headers=h_admin).status_code == 200
+    r = client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_admin, json={"phat_hanh": True})
+    assert r.status_code == 200 and r.json()["phat_hanh"] is True
+    assert client.get(f"/api/de-thi/{de_id}/ket-qua-lop", headers=h_admin).status_code == 200
+
+    # GV khác (không toàn quyền) vẫn bị chặn ở mọi thao tác
+    assert client.get(f"/api/de-thi/{de_id}/chi-tiet-gv", headers=h_gv2).status_code == 404
+    assert client.get(f"/api/de-thi/{de_id}/ket-qua-lop", headers=h_gv2).status_code == 404
+    assert client.patch(f"/api/de-thi/{de_id}/phat-hanh", headers=h_gv2,
+                        json={"phat_hanh": False}).status_code == 400
+
+    # GV khác chỉ thấy đề của MÌNH trong danh sách (không thấy đề của gv)
+    ds_gv2 = client.get("/api/de-thi", headers=h_gv2).json()
+    assert de_id not in [d["id"] for d in ds_gv2]
+
+
+def test_admin_xoa_de_gv_khac(db, client):
+    """Admin xóa được đề (chưa có bài làm) của GV khác."""
+    gv, gv2, hs, p_tn, p_ds, p_tln, p_gv2 = _seed(db)
+    admin = User(vai_tro=VaiTro.admin, ho_ten="Admin", dang_nhap="admin_de2",
+                 mat_khau_hash=hash_password("pass"))
+    db.add(admin)
+    db.commit()
+    h_gv = _h(_login(client, "gv_de"))
+    h_admin = _h(_login(client, "admin_de2"))
+    de_id = _tao_de(client, h_gv, p_tn, p_ds, p_tln).json()["id"]
+    r = client.delete(f"/api/de-thi/{de_id}", headers=h_admin)
+    assert r.status_code == 200 and r.json()["da_xoa"] is True

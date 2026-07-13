@@ -25,11 +25,12 @@ def _seed(db):
               mat_khau_hash=hash_password("password"), lop_id=lop.id)
     db.add(hs)
 
-    # Bài TLN 2 bước đã duyệt
+    # Bài TLN 2 bước đã duyệt, thuộc GV chủ nhiệm lớp HS (điều kiện HS tự luyện)
     p = Problem(
         chuyen_de="Khảo sát hàm số", loai_cau="TLN", do_kho="tb",
         de_bai="Tìm x.", loai_dap_an_nhap="gia_tri",
-        trang_thai_duyet=TrangThaiDuyet.da_duyet, meta={"dap_an_cuoi": "5"},
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=gv.id,
+        meta={"dap_an_cuoi": "5"},
     )
     db.add(p)
     db.flush()

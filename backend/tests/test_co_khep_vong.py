@@ -31,7 +31,8 @@ def _seed(db):
     p = Problem(
         chuyen_de="Khảo sát hàm số", loai_cau="TLN", do_kho="tb",
         de_bai="Tìm x.", loai_dap_an_nhap="gia_tri",
-        trang_thai_duyet=TrangThaiDuyet.da_duyet, meta={"dap_an_cuoi": "5"},
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=gv.id,
+        meta={"dap_an_cuoi": "5"},
     )
     db.add(p)
     db.flush()

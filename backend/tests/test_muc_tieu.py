@@ -17,11 +17,12 @@ def _h(client, dn):
     return {"Authorization": f"Bearer {_login(client, dn)}"}
 
 
-def _bai(db, chuyen_de, dang_id=None):
+def _bai(db, chuyen_de, dang_id=None, nguoi_tao_id=None):
     p = Problem(
         chuyen_de=chuyen_de, dang_id=dang_id, loai_cau="TLN", do_kho="tb",
         de_bai="Tìm x.", loai_dap_an_nhap="gia_tri",
-        trang_thai_duyet=TrangThaiDuyet.da_duyet, meta={"dap_an_cuoi": "5"},
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=nguoi_tao_id,
+        meta={"dap_an_cuoi": "5"},
     )
     db.add(p)
     db.flush()
@@ -48,8 +49,8 @@ def _seed(db):
     dang = Dang(chuyen_de_id=cd.id, ten="Cực trị", thu_tu=1)
     db.add(dang)
     db.flush()
-    p1 = _bai(db, "Khảo sát hàm số", dang_id=dang.id)
-    p2 = _bai(db, "Khảo sát hàm số", dang_id=dang.id)
+    p1 = _bai(db, "Khảo sát hàm số", dang_id=dang.id, nguoi_tao_id=gv.id)
+    p2 = _bai(db, "Khảo sát hàm số", dang_id=dang.id, nguoi_tao_id=gv.id)
     db.commit()
     return {"hs": hs.id, "dang": dang.id, "p1": p1.id, "p2": p2.id}
 

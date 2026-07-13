@@ -308,6 +308,35 @@ def test_import_tln_dap_an_cuoi_sai_bi_bao_loi(client, db):
     assert "4 ký tự" in res["loi"][0]["ly_do"]
 
 
+def test_anh_huong_gv_khac_bi_chan(client, db):
+    """IDOR: GV khác KHÔNG được xem ảnh hưởng (số phiên/HS/cờ) bài của GV khác nếu biết id.
+    Trước khi vá, endpoint /anh-huong không kiểm chủ sở hữu như patch/xóa kế bên."""
+    from app.models.user import User, VaiTro
+    _, gv, _, p = seed_all(db)
+    gv2 = User(vai_tro=VaiTro.gv, ho_ten="GV2", dang_nhap="gv2_ah",
+               mat_khau_hash=hash_password("pass"))
+    db.add(gv2)
+    db.commit()
+    r = client.get(f"/api/problems/{p.id}/anh-huong", headers=_h(_token(client, "gv2_ah")))
+    assert r.status_code == 403
+
+
+def test_anh_huong_quan_ly_xem_duoc_bai_gv_khac(client, db):
+    """Quản lý/Admin toàn quyền → vẫn xem được ảnh hưởng bài của GV khác."""
+    from app.models.user import User, VaiTro
+    _, gv, _, p = seed_all(db)
+    ql = User(vai_tro=VaiTro.gv, ho_ten="Quản lý", dang_nhap="ql_ah",
+              mat_khau_hash=hash_password("pass"), la_quan_ly=True)
+    db.add(ql)
+    db.commit()
+    # /anh-huong yêu cầu bài đã ẩn trước; DELETE chỉ soft-delete khi bài đã có phiên học
+    # → HS tạo phiên, GV chủ ẩn bài, rồi Quản lý xem ảnh hưởng.
+    client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(_token(client, "hs_test")))
+    client.delete(f"/api/problems/{p.id}", headers=_h(_token(client, "gv_test")))
+    r = client.get(f"/api/problems/{p.id}/anh-huong", headers=_h(_token(client, "ql_ah")))
+    assert r.status_code == 200
+
+
 def test_xoa_vinh_vien_yeu_cau_bi_an_truoc(client, db):
     """Không thể xóa vĩnh viễn câu hỏi chưa qua bước ẩn."""
     _, gv, _, p = seed_all(db)
