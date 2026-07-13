@@ -4,7 +4,32 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v102**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v103**)
+
+- **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
+  Trang cũ: logo phóng to 288px lệch hẳn tỉ lệ form, form dính lên đỉnh màn hình (không căn
+  giữa), phẳng, không có nút hiện/ẩn mật khẩu, không nói rõ sản phẩm là gì ngay từ màn đầu.
+  - **Component dùng chung mới** `components/ThuongHieu.jsx`: logo trong "chip" trắng bo tròn
+    (đảm bảo logo màu luôn nổi rõ dù nền tối/sáng) + wordmark "MathTutor", 3 cỡ (sm/md/lg).
+  - **Login split-screen**: cột trái (từ `lg`) nền gradient indigo + hoạ tiết toán mờ (∫∑√π,
+    thuần chữ không ảnh) + logo + "Gia sư Toán 12" + 3 điểm mạnh (Dẫn dắt tự tìm đáp án không
+    đưa lời giải sẵn / Chấm chính xác từng bước làm / Bám sát nội dung chương trình); cột phải
+    là form. Điện thoại: panel trái ẩn, thay bằng header thương hiệu gọn phía trên form.
+  - **Form**: thêm nút hiện/ẩn mật khẩu (dựng inline, KHÔNG đụng primitive `Input` dùng chung
+    toàn app — tránh hồi quy chỗ khác), `autoComplete`, nút Đăng nhập có spinner lúc chờ, dòng
+    "Quên mật khẩu? Liên hệ giáo viên hoặc quản trị viên" (đúng luồng thật của app, không bịa
+    tính năng tự reset).
+  - **Lặp theo phản hồi trực quan của user** (2 vòng chỉnh sau khi xem thật trên trình duyệt —
+    Claude không có trình duyệt để tự kiểm): (1) bỏ dòng phụ đề "Phương pháp gợi mở (Socratic)"
+    thừa; (2) khung ban đầu bổ đôi TOÀN VIEWPORT (`grid min-h-screen lg:grid-cols-2`) khiến màn
+    rộng trống trải — sửa thành 1 "card" giới hạn `max-w-4xl` bo góc/đổ bóng căn giữa trên nền
+    trung tính (pattern login SaaS chuẩn); (3) nới `max-w-4xl→max-w-5xl` + giảm padding panel
+    trái để câu điểm mạnh dài nhất không bị xuống dòng.
+  - **Trang Bảo trì** (`App.jsx`) đồng bộ cùng ngôn ngữ hình ảnh: thay `bg-white`/`text-gray-800`
+    hardcode bằng gradient indigo + hoạ tiết toán + `ThuongHieu` dùng chung.
+  - Thuần frontend, không đụng logic đăng nhập/API/token. `eslint`/`vitest` 23/23/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v102)
 
 - **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập — đỏ chỉ còn nghĩa "sai/lỗi/nguy
   hiểm", không rò rỉ sang dữ liệu trung tính.** User đưa 1 bản đánh giá giao diện từ bên ngoài
@@ -34,7 +59,7 @@
     4.5:1, không đáng kể) được ghi nhận nhưng không sửa vì user không yêu cầu.
   - `eslint`/`vitest` 23/23/`vite build` sạch — thuần đổi class/token CSS, không đụng logic.
 
-## 1a. Trạng thái trước đó (v101)
+## 1b. Trạng thái trước đó (v101)
 
 - **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
   từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**
@@ -65,7 +90,7 @@
     cũ, không bao giờ kẹt màn hình.
   - `pytest` 469/469 (+1), `vitest` 23/23 (+1), `eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v100)
+## 1c. Trạng thái trước đó (v100)
 
 - **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
   vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ
@@ -98,7 +123,7 @@
     đổi logic; cập nhật `AISinhCauHoi.jsx` trỏ theo import mới.
   - `pytest` 468/468, `eslint`/`vitest`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v99)
+## 1d. Trạng thái trước đó (v99)
 
 - **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
   - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi
@@ -115,7 +140,7 @@
     hỏi đã duyệt/chờ duyệt" → "Câu hỏi đã duyệt/chờ duyệt".
   - Không đổi logic — chỉ thêm prop tùy chọn + đổi className/thứ tự hiển thị.
 
-## 1d. Trạng thái trước đó (v98)
+## 1e. Trạng thái trước đó (v98)
 
 - **✨ (v98) Nút "Hướng dẫn Phòng học" + nội dung quản lý qua Admin + rà tiếp giao diện.**
   - Popup hướng dẫn HS **không tự hiện 1 lần rồi biến mất** nữa — thêm nút "📖 Hướng dẫn"
@@ -142,8 +167,6 @@
     cân đối với thẻ bên cạnh (đang xếp 2 cột từ v96).
   - Test mới: `test_hs.py` (mặc định 3 bước, admin sửa → HS đọc đúng bản mới). `pytest`
     464/464, `ruff`/`eslint`/`vite build` sạch.
-
-## 1e. Trạng thái trước đó (v97)
 
 - **✨ (v97) Sửa nội dung hiển thị của HS trong ô chat.**
   - `XemLaiBai.jsx`: bỏ dòng caption "↳ đáp án nhập: ..." trong khung "Xem lại bài" — với
