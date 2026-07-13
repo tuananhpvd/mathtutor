@@ -4,7 +4,34 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v104**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v105**)
+
+- **✨ (v105) Sửa lỗi tính năng "AI đọc đề từ ảnh" chết hẳn trên production (Gemini từ chối
+  enum rỗng).** User báo lỗi thật trên Render: dán ảnh đề → "Đọc ảnh đề bài thất bại sau 3 lần:
+  400 INVALID_ARGUMENT ... response_schema.properties[loai_cau_nhan_dang].enum[3]: cannot be...".
+  - **Nguyên nhân gốc** (đọc source xác minh, không đoán): `prompts.py::schema_doc_de_tu_anh()`
+    khai báo `"loai_cau_nhan_dang": {"enum": ["TN4PA","TNDS","TLN",""]}` — Gemini structured-
+    output (constrained decoding) TỪ CHỐI giá trị enum rỗng `""` → trả 400 TRƯỚC cả khi sinh nội
+    dung → cả 3 lần thử lại đều dính cùng lỗi. `enum[3]` = phần tử thứ 4 = `""`.
+  - **Vì sao lọt tới production**: mọi test dùng `StubLLMClient`/`_LLMFakeAnh` — chúng BỎ QUA
+    `response_schema`, không đẩy lên Gemini. Chỉ `GeminiLLMClient` thật trên Render mới bị từ
+    chối. Đây đúng loại lỗi "stub che mất, chỉ lộ trên production".
+  - **Sửa**: (1) bỏ `""` khỏi enum → `["TN4PA","TNDS","TLN"]`; (2) sửa lời system prompt (trước
+    bảo model "để trống '' nếu không đọc được ảnh" — mâu thuẫn schema mới) thành "chọn loại gần
+    nhất + giải thích qua `ly_do_khong_khop`". Đã rà mọi nơi tiêu thụ `loai_cau_nhan_dang` (parse
+    `or ""`, frontend fallback `'không rõ'`, API) — không nơi nào dựa vào `== ""` làm tín hiệu
+    điều khiển; tín hiệu "không khớp/không đọc được" nằm ở `khop_loai_cau` + `ly_do_khong_khop`.
+  - **Regression test mới** (`test_doc_de_tu_anh.py::test_schema_gemini_khong_co_enum_rong`):
+    quét đệ quy MỌI schema gửi Gemini (`schema_doc_de_tu_anh` + `schema_sinh_cau_hoi`, cả 3 loại
+    câu), chặn enum rỗng tái phát — lấp đúng lỗ hổng test đã để lọt lỗi. Đã tự kiểm walker BẮT
+    ĐƯỢC schema cũ (trả `.properties.loai_cau_nhan_dang`) và pass schema mới trước khi tin.
+  - **Giới hạn xác minh (nói thẳng)**: server local chạy stub nên KHÔNG tự kiểm chứng được Gemini
+    thật chấp nhận schema mới — chỉ xác nhận cuối cùng sau khi deploy Render + thử ảnh thật. Bằng
+    chứng gián tiếp: schema mới không còn enum rỗng (unit test) + thông báo 400 của user khớp 100%.
+  - Thuần sửa schema/prompt LLM + thêm test, KHÔNG đụng DB. `pytest` 478/478, `ruff` sạch; backend
+    dev tự reload code mới (log WatchFiles xác nhận).
+
+## 1a. Trạng thái trước đó (v104)
 
 - **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
   quyền đề thi + màn giám sát Đề thi cho Quản lý.** User đưa 1 bản review bảo mật độc lập
@@ -47,7 +74,7 @@
   - Thuần thêm code/kiểm tra, KHÔNG đụng schema/DB. `pytest` 477/477, `vitest` 23/23, `ruff`/
     `eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v103)
+## 1b. Trạng thái trước đó (v103)
 
 - **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
   Trang cũ: logo phóng to 288px lệch hẳn tỉ lệ form, form dính lên đỉnh màn hình (không căn
@@ -72,7 +99,7 @@
     hardcode bằng gradient indigo + hoạ tiết toán + `ThuongHieu` dùng chung.
   - Thuần frontend, không đụng logic đăng nhập/API/token. `eslint`/`vitest` 23/23/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v102)
+## 1c. Trạng thái trước đó (v102)
 
 - **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập — đỏ chỉ còn nghĩa "sai/lỗi/nguy
   hiểm", không rò rỉ sang dữ liệu trung tính.** User đưa 1 bản đánh giá giao diện từ bên ngoài
@@ -102,7 +129,7 @@
     4.5:1, không đáng kể) được ghi nhận nhưng không sửa vì user không yêu cầu.
   - `eslint`/`vitest` 23/23/`vite build` sạch — thuần đổi class/token CSS, không đụng logic.
 
-## 1c. Trạng thái trước đó (v101)
+## 1d. Trạng thái trước đó (v101)
 
 - **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
   từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**
@@ -133,7 +160,7 @@
     cũ, không bao giờ kẹt màn hình.
   - `pytest` 469/469 (+1), `vitest` 23/23 (+1), `eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v100)
+## 1e. Trạng thái trước đó (v100)
 
 - **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
   vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ
@@ -165,8 +192,6 @@
     đổi LaTeX→SymPy, modal sửa/tạo, thống kê ngân hàng câu hỏi) — thuần di chuyển code, không
     đổi logic; cập nhật `AISinhCauHoi.jsx` trỏ theo import mới.
   - `pytest` 468/468, `eslint`/`vitest`/`vite build` sạch.
-
-## 1e. Trạng thái trước đó (v99)
 
 - **✨ (v99) Nâng cấp giao diện thống kê Dashboard — Admin & GV Tổng quan.**
   - Nâng cấp thẳng vào component dùng chung `StatCard` (`components/ui/Card.jsx` — chỉ 2 nơi

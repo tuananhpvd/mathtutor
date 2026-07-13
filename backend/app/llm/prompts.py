@@ -330,7 +330,10 @@ def schema_doc_de_tu_anh(loai_cau_ky_vong: str) -> dict:
         "type": "OBJECT",
         "properties": {
             "khop_loai_cau": {"type": "BOOLEAN"},
-            "loai_cau_nhan_dang": {"type": "STRING", "enum": ["TN4PA", "TNDS", "TLN", ""]},
+            # KHÔNG để "" trong enum: Gemini structured-output từ chối giá trị enum rỗng (lỗi 400
+            # "enum cannot be empty"). Khi không đọc được ảnh, model vẫn chọn loại gần nhất và báo
+            # qua khop_loai_cau=false + ly_do_khong_khop (xem SYSTEM_DOC_DE_TU_ANH).
+            "loai_cau_nhan_dang": {"type": "STRING", "enum": ["TN4PA", "TNDS", "TLN"]},
             "de_bai": {"type": "STRING"},
             "meta_nhap": meta_nhap,
             "ly_do_khong_khop": {"type": "STRING", "nullable": True},
@@ -474,9 +477,10 @@ So sánh loại thực tế đọc được trong ảnh với loại giáo viên
 - Nếu KHỚP: "khop_loai_cau": true, trích "de_bai" (+ "phuong_an" nếu TN4PA / "y" nếu TNDS vào
   "meta_nhap"), giữ NGUYÊN VĂN chữ và công thức đọc được, không thêm/bớt.
 - Nếu KHÔNG KHỚP (hoặc ảnh mờ/không đọc được nội dung Toán): "khop_loai_cau": false,
-  "loai_cau_nhan_dang" là loại thực tế đọc được (để trống "" nếu không đọc được ảnh),
-  "ly_do_khong_khop" giải thích ngắn gọn 1 câu bằng tiếng Việt. Khi đó KHÔNG cần điền
-  "de_bai"/"meta_nhap" (để rỗng).
+  "loai_cau_nhan_dang" là loại thực tế đọc được; nếu KHÔNG đọc được ảnh thì chọn giá trị gần
+  nhất bạn nghĩ tới (bắt buộc là một trong TN4PA/TNDS/TLN — KHÔNG được để trống),
+  "ly_do_khong_khop" giải thích ngắn gọn 1 câu bằng tiếng Việt (kể cả lý do "không đọc được
+  ảnh"). Khi đó KHÔNG cần điền "de_bai"/"meta_nhap" (để rỗng).
 
 Công thức toán trong "de_bai"/nội dung phương án/ý viết bằng LaTeX trong cặp $...$.
 CHỈ trả JSON, không kèm chữ giải thích nào khác ngoài JSON.

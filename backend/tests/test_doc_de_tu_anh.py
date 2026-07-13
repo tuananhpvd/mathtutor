@@ -163,6 +163,38 @@ def test_gemini_doc_de_tu_anh_goi_dung_va_parse(monkeypatch):
     ]
 
 
+# ---------- Regression: schema Gemini KHÔNG được chứa enum rỗng ----------
+
+def _thu_enum_rong(node, duong_dan=""):
+    """Duyệt đệ quy 1 JSON-schema, trả danh sách đường dẫn các enum có chứa "" (chuỗi rỗng)."""
+    loi = []
+    if isinstance(node, dict):
+        if isinstance(node.get("enum"), list) and "" in node["enum"]:
+            loi.append(duong_dan or "<root>")
+        for k, v in node.items():
+            loi.extend(_thu_enum_rong(v, f"{duong_dan}.{k}"))
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            loi.extend(_thu_enum_rong(v, f"{duong_dan}[{i}]"))
+    return loi
+
+
+def test_schema_gemini_khong_co_enum_rong():
+    """Gemini structured-output từ chối giá trị enum rỗng (400 'enum cannot be empty') — từng
+    làm SẬP tính năng 'đọc đề từ ảnh' trên production (enum ["TN4PA","TNDS","TLN",""]). Test này
+    quét MỌI schema gửi Gemini để chặn tái phát khi thêm schema/enum mới. Stub/fake trong các
+    test khác KHÔNG đẩy schema lên Gemini nên không bắt được lỗi này — phải kiểm schema trực tiếp."""
+    from app.llm.prompts import schema_doc_de_tu_anh, schema_sinh_cau_hoi
+
+    schemas = (
+        [schema_doc_de_tu_anh(lc) for lc in ("TN4PA", "TNDS", "TLN")]
+        + [schema_sinh_cau_hoi(lc) for lc in ("TN4PA", "TNDS", "TLN")]
+    )
+    for sch in schemas:
+        loi = _thu_enum_rong(sch)
+        assert not loi, f"Schema chứa enum rỗng (Gemini sẽ trả 400) tại: {loi}"
+
+
 # ---------- API /questions-ai/doc-de-tu-anh (E2E, dùng Stub mặc định trong test) ----------
 
 def _seed_gv_hs(db):
