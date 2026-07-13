@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import Login from './pages/auth/Login'
 import { dangKyPhienHetHan, getSession } from './auth'
 import { ConfirmProvider } from './components/ui'
+import ThuongHieu from './components/ThuongHieu'
 import { api } from './api'
 
 // Tách riêng theo vai trò (code-splitting) — HS không tải code của GV/Admin và ngược lại,
@@ -29,11 +30,22 @@ function getPage(vai_tro) {
 
 function TrangBaoTri({ noiDung }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-white p-8">
-      <img src="/logomt.png" alt="MathTutor" className="h-40 w-40 rounded-lg object-cover" />
-      <p className="max-w-3xl whitespace-pre-wrap text-center text-2xl font-bold text-gray-800 md:text-3xl mt-6">
-        {noiDung || 'SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!'}
-      </p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden
+      bg-gradient-to-br from-primary to-primary-hover px-6 py-16 text-white">
+      {/* Hoạ tiết toán mờ — đồng bộ với panel thương hiệu trang Đăng nhập */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 select-none opacity-[0.07]
+        font-serif text-[8rem] leading-none">
+        <span className="absolute left-8 top-10">∫</span>
+        <span className="absolute bottom-16 right-12">∑</span>
+        <span className="absolute right-1/4 top-1/3">π</span>
+        <span className="absolute bottom-24 left-1/4">√</span>
+      </div>
+      <div className="relative flex flex-col items-center gap-6">
+        <ThuongHieu size="lg" onDark />
+        <p className="max-w-3xl whitespace-pre-wrap text-center text-2xl font-bold md:text-3xl">
+          {noiDung || 'SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!'}
+        </p>
+      </div>
     </div>
   )
 }
