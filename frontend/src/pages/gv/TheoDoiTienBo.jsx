@@ -300,6 +300,7 @@ export default function TheoDoiTienBo() {
   const [gcSession, setGcSession] = useState(null) // {session_id, ho_ten} đang gắn cờ thủ công
   const [gcGhiChu, setGcGhiChu] = useState('')
   const [gcDangGui, setGcDangGui] = useState(false)
+  const [banDoLopId, setBanDoLopId] = useState('') // '' = gộp mọi lớp GV phụ trách (mặc định)
   const MOI_TRANG = 5
   const MOI_TRANG_LOP = 5
 
@@ -363,6 +364,23 @@ export default function TheoDoiTienBo() {
     return ten.map((t) => ({ value: t, label: t }))
   }, [students])
 
+  // Danh sách lớp theo lop_id (cho bộ lọc "Bản đồ năng lực lớp" — backend cần id, không phải tên,
+  // và 1 GV có thể có nhiều lớp cùng tên trùng lặp ở trường khác nên id mới xác định đúng 1 lớp).
+  const lopOptionsById = useMemo(() => {
+    const map = new Map()
+    for (const s of students) {
+      if (s.lop_id != null) map.set(s.lop_id, s.lop_ten)
+    }
+    return [...map.entries()]
+      .sort((a, b) => (a[1] || '').localeCompare(b[1] || ''))
+      .map(([id, ten]) => ({ value: String(id), label: ten }))
+  }, [students])
+  // GV chỉ có đúng 1 lớp → coi như đã chọn lớp đó (không cần bấm), vẫn hiện rõ tên lớp trong
+  // subtitle. Suy ra thuần từ state hiện có (không setState trong effect — tránh render thừa).
+  const banDoLopIdHieuLuc =
+    banDoLopId || (lopOptionsById.length === 1 ? lopOptionsById[0].value : '')
+  const tenLopBanDo = lopOptionsById.find((o) => o.value === banDoLopIdHieuLuc)?.label
+
   // Danh sách lớp kèm số HS (cho card thống kê lớp)
   const lopDsThongKe = useMemo(() => {
     const ten = [...new Set(students.map((s) => s.lop_ten).filter(Boolean))].sort()
@@ -385,12 +403,62 @@ export default function TheoDoiTienBo() {
 
   return (
     <div className="flex flex-col gap-4">
-      <BaoCaoPhuHuynh students={students} />
+      <Card>
+        <CardHeader title="Nhật ký hoàn thành"
+          subtitle={`${nhatKy.length} bài đã làm xong (kèm thời gian)`} />
+        <CardBody className="pt-0">
+          <Table
+            columns={[
+              { key: 'ho_ten', header: 'Học sinh' },
+              { key: 'chuyen_de', header: 'Chuyên đề' },
+              { key: 'loai_cau', header: 'Loại', render: (r) => <Badge tone="primary">{r.loai_cau}</Badge> },
+              { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '—') },
+              { key: 'tg', header: 'Thời gian', render: (r) => dinhDangThoiGian(r.thoi_gian_giay) },
+              {
+                key: 'luc',
+                header: 'Hoàn thành lúc',
+                render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
+              },
+              {
+                key: 'gan_co',
+                header: '',
+                render: (r) => (
+                  <Button size="sm" variant="secondary"
+                    onClick={() => { setGcSession(r); setGcGhiChu('') }}>
+                    🚩 Gắn cờ
+                  </Button>
+                ),
+              },
+            ]}
+            rows={nkTrang}
+            rowKey={(r) => r.session_id}
+            empty="Chưa có bài nào hoàn thành."
+          />
+          <PhanTrang trang={trangNkAt} tong={tongTrangNk}
+            onLui={() => setTrangNk((t) => Math.max(1, t - 1))}
+            onToi={() => setTrangNk((t) => Math.min(tongTrangNk, t + 1))} />
+        </CardBody>
+      </Card>
 
-      <HieuQuaPhuongPhap />
-
-      <BanDoNangLuc taiDuLieu={api.getBanDoLop} tieu_de="Bản đồ năng lực lớp"
-        subtitle="Gộp phiên của mọi học sinh — nhìn 1 lần biết lớp vững/yếu ở chuyên đề × độ khó nào; ô xám = chưa đủ dữ liệu." />
+      <BanDoNangLuc
+        taiDuLieu={() => api.getBanDoLop(banDoLopIdHieuLuc)}
+        khoa={banDoLopIdHieuLuc || 'tat_ca'}
+        tieu_de="Bản đồ năng lực lớp"
+        subtitle={
+          tenLopBanDo
+            ? `Lớp ${tenLopBanDo} — nhìn 1 lần biết lớp vững/yếu ở chuyên đề × độ khó nào; ô xám = chưa đủ dữ liệu.`
+            : lopOptionsById.length > 1
+              ? 'Gộp phiên của mọi lớp bạn phụ trách — chọn 1 lớp cụ thể ở góc phải để xem riêng.'
+              : 'Chưa được phân lớp nào.'
+        }
+        action={lopOptionsById.length > 0 && (
+          <Select value={banDoLopIdHieuLuc} onChange={(e) => setBanDoLopId(e.target.value)}
+            options={lopOptionsById.length > 1
+              ? [{ value: '', label: 'Tất cả các lớp' }, ...lopOptionsById]
+              : lopOptionsById}
+            className="w-44 shrink-0" />
+        )}
+      />
 
       {tongHop && (tongHop.dang_yeu_chung.length > 0 || tongHop.hoc_sinh_can_chu_y.length > 0) && (
         <Card>
@@ -472,43 +540,6 @@ export default function TheoDoiTienBo() {
       )}
 
       <Card>
-        <CardHeader title="Nhật ký hoàn thành"
-          subtitle={`${nhatKy.length} bài đã làm xong (kèm thời gian)`} />
-        <CardBody className="pt-0">
-          <Table
-            columns={[
-              { key: 'ho_ten', header: 'Học sinh' },
-              { key: 'chuyen_de', header: 'Chuyên đề' },
-              { key: 'loai_cau', header: 'Loại', render: (r) => <Badge tone="primary">{r.loai_cau}</Badge> },
-              { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '—') },
-              { key: 'tg', header: 'Thời gian', render: (r) => dinhDangThoiGian(r.thoi_gian_giay) },
-              {
-                key: 'luc',
-                header: 'Hoàn thành lúc',
-                render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
-              },
-              {
-                key: 'gan_co',
-                header: '',
-                render: (r) => (
-                  <Button size="sm" variant="secondary"
-                    onClick={() => { setGcSession(r); setGcGhiChu('') }}>
-                    🚩 Gắn cờ
-                  </Button>
-                ),
-              },
-            ]}
-            rows={nkTrang}
-            rowKey={(r) => r.session_id}
-            empty="Chưa có bài nào hoàn thành."
-          />
-          <PhanTrang trang={trangNkAt} tong={tongTrangNk}
-            onLui={() => setTrangNk((t) => Math.max(1, t - 1))}
-            onToi={() => setTrangNk((t) => Math.min(tongTrangNk, t + 1))} />
-        </CardBody>
-      </Card>
-
-      <Card>
         <CardHeader title="Học sinh lớp của tôi"
           subtitle={`${dsLoc.length}/${students.length} học sinh`} />
         <CardBody className="pt-0 flex flex-col gap-3">
@@ -544,7 +575,7 @@ export default function TheoDoiTienBo() {
                     header: '',
                     render: (r) => (
                       <Button size="sm" variant="secondary" onClick={() => xemHs(r.hoc_sinh_id)}>
-                        Xem biểu đồ
+                        Xem tiến độ
                       </Button>
                     ),
                   },
@@ -561,26 +592,19 @@ export default function TheoDoiTienBo() {
         </CardBody>
       </Card>
 
-      {thongBaoOk && (
-        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5">
-          ✓ {thongBaoOk}
-        </div>
-      )}
-
-      {!hsChon && !loading && (
-        <p className="text-sm text-muted text-center py-4">
-          Bấm "Xem biểu đồ" ở 1 học sinh trong bảng trên để xem tiến độ chi tiết.
-        </p>
-      )}
-
       {hsChon && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary-soft/40 p-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h3 className="text-lg font-bold text-ink">Tiến độ chi tiết: {hsChon.ho_ten}</h3>
-            <Button size="sm"
-              onClick={() => setNhanXetHs({ id: hsChon.hoc_sinh_id, ho_ten: hsChon.ho_ten })}>
-              💬 Gửi nhận xét
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm"
+                onClick={() => setNhanXetHs({ id: hsChon.hoc_sinh_id, ho_ten: hsChon.ho_ten })}>
+                💬 Gửi nhận xét
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setChon(null)}>
+                ✕ Thu gọn
+              </Button>
+            </div>
           </div>
           {dangTaiTk ? (
             <p className="text-sm text-muted">Đang tải thống kê...</p>
@@ -602,6 +626,16 @@ export default function TheoDoiTienBo() {
               <ThongKeTienDo tk={tkChon} />
             </>
           )}
+        </div>
+      )}
+
+      <BaoCaoPhuHuynh students={students} />
+
+      <HieuQuaPhuongPhap />
+
+      {thongBaoOk && (
+        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5">
+          ✓ {thongBaoOk}
         </div>
       )}
 

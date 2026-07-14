@@ -71,12 +71,23 @@ def ban_do_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
 
 
 @router.get("/ban-do/lop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def ban_do_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
-    """C3 — bản đồ năng lực gộp cả lớp (dồn chung phiên của mọi HS thuộc GV)."""
+def ban_do_lop(current_user: CurrentUser, lop_id: int | None = None,
+               db: Session = Depends(get_db)):
+    """C3 — bản đồ năng lực lớp. lop_id=None (mặc định, tương thích ngược) → dồn chung phiên
+    của MỌI lớp GV phụ trách; có lop_id → CHỈ lớp đó (phải thuộc GV, trừ Admin xem lớp nào cũng
+    được) — cho GV nhiều lớp xem tách riêng từng lớp thay vì luôn bị trộn chung."""
     from app.models.lop import Lop
     from app.models.user import User
 
-    lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == current_user.id).all()]
+    if lop_id is not None:
+        lop = db.get(Lop, lop_id)
+        if lop is None:
+            raise HTTPException(status_code=404, detail="Không tìm thấy lớp")
+        if current_user.vai_tro == VaiTro.gv and lop.gv_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
+        lop_ids = [lop_id]
+    else:
+        lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == current_user.id).all()]
     hs_ids = (
         [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
         if lop_ids else []

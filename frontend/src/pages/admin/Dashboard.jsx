@@ -63,9 +63,9 @@ export default function Dashboard() {
     <div className="flex flex-col gap-5">
       {/* Hàng chỉ số tổng quan */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Tổng người dùng" value={stats.so_nguoi_dung} accent="primary" />
-        <StatCard icon={ListChecks} label="Câu hỏi hoạt động" value={stats.so_cau_hoi} accent="primary" />
-        <StatCard icon={Activity} label="Tổng phiên học" value={stats.so_phien} accent="success" />
+        <StatCard icon={Users} label="Người dùng" value={stats.so_nguoi_dung} accent="primary" />
+        <StatCard icon={ListChecks} label="Câu hỏi" value={stats.so_cau_hoi} accent="primary" />
+        <StatCard icon={Activity} label="Phiên học" value={stats.so_phien} accent="success" />
         <StatCard icon={AlertTriangle} label="Cờ chưa xử lý" value={stats.so_co_chua_xu_ly} accent="warning" />
       </div>
 

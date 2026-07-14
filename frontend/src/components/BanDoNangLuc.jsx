@@ -55,7 +55,9 @@ function O({ o, chuyen_de, dk }) {
 
 // `khoa`: giá trị đổi khi cần tải lại (vd id HS đang xem) — tránh phụ thuộc identity
 // của hàm taiDuLieu (arrow mới mỗi render sẽ gây vòng lặp refetch).
-export default function BanDoNangLuc({ taiDuLieu, khoa = 'mac_dinh', tieu_de = 'Bản đồ năng lực', subtitle }) {
+export default function BanDoNangLuc({
+  taiDuLieu, khoa = 'mac_dinh', tieu_de = 'Bản đồ năng lực', subtitle, action,
+}) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
@@ -78,7 +80,7 @@ export default function BanDoNangLuc({ taiDuLieu, khoa = 'mac_dinh', tieu_de = '
 
   return (
     <Card>
-      <CardHeader title={tieu_de}
+      <CardHeader title={tieu_de} action={action}
         subtitle={subtitle || 'Điểm thành thạo 0–100 theo chuyên đề × độ khó — ô càng đậm càng vững; ô xám là chưa đủ dữ liệu (khác ô yếu).'} />
       <CardBody className="flex flex-col gap-3">
         {data.hang.length === 0 ? (

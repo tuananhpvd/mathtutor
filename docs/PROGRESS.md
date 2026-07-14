@@ -4,7 +4,39 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v106**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-14, phiên bản **v107**)
+
+- **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan.**
+  Chuỗi cải tiến nhỏ liên tiếp từ phản hồi trực tiếp trên UI đang chạy:
+  - **Bộ lọc chọn lớp cho "Bản đồ năng lực lớp"**: trước đây luôn gộp chung mọi lớp GV phụ
+    trách, không hiện tên lớp nào — GV không biết đang xem dữ liệu của lớp nào. Backend
+    `GET /progress/ban-do/lop` thêm tham số `lop_id` tùy chọn (kiểm sở hữu: GV phải chủ nhiệm,
+    Admin bypass; không truyền = hành vi cũ, tương thích ngược). Frontend: GV chỉ 1 lớp tự hiểu
+    luôn là lớp đó (không cần bấm) và luôn hiện rõ tên lớp trong subtitle; GV nhiều lớp có thêm
+    dropdown chọn "Tất cả các lớp" hoặc từng lớp riêng. 4 test mới (`test_ban_do.py`).
+  - **Sắp xếp lại thứ tự card** trang Theo dõi tiến bộ theo yêu cầu user: Nhật ký hoàn thành →
+    Bản đồ năng lực lớp → Tổng hợp lớp → Lớp của tôi → Học sinh lớp của tôi → Xuất báo cáo cho
+    phụ huynh → Hiệu quả phương pháp gợi mở.
+  - **Rút gọn nhãn thống kê** cho đỡ tràn chữ trên nhiều kích thước màn hình (thuần đổi chuỗi
+    `label`, không đổi `value`/nguồn dữ liệu): Admin Dashboard (Tổng người dùng→Người dùng, Câu
+    hỏi hoạt động→Câu hỏi, Tổng phiên học→Phiên học); GV Tổng quan (Số lớp phụ trách→Lớp phụ
+    trách, Tổng số học sinh→Học sinh, Số học sinh bị khóa→Bị khóa, Tổng số câu hỏi→Câu hỏi, Câu
+    hỏi đã duyệt→Đã duyệt, Câu hỏi chờ duyệt→Chờ duyệt).
+  - **Tối ưu luồng xem chi tiết 1 HS**: đổi "Xem biểu đồ"→"Xem tiến độ"; khối "Tiến độ chi
+    tiết" chuyển từ cuối trang (phải cuộn qua nhiều card) lên **ngay dưới card "Học sinh lớp
+    của tôi"** (nơi GV vừa bấm) + khung viền nhấn để dễ nhận ra; thêm nút "✕ Thu gọn" để ẩn hẳn
+    khi không xem nữa, giữ trang gọn — bỏ luôn dòng gợi ý tĩnh khi chưa chọn HS (đúng tinh thần
+    "gọn trang": không chọn thì không chiếm chỗ).
+  - **Bài học vận hành (tái diễn, đã ghi rõ vào bộ nhớ)**: trong lúc verify LIVE, phát hiện *5
+    tiến trình supervisor `dev-servers.ps1` chạy trùng lặp* (tự khởi động nhiều lần trong 1
+    phiên dài không kiểm tra trước) gây tiến trình `multiprocessing.spawn` orphan giữ cổng 8000
+    chạy code cũ; `netstat`/`Get-NetTCPConnection` báo "vẫn LISTENING" trễ tới hơn 1 phút sau
+    khi kill — phải xác minh qua `Get-CimInstance` (PID còn tồn tại thật hay không) chứ không
+    tin ngay. Dọn sạch, giữ đúng 1 supervisor.
+  - Thuần frontend + 1 tham số backend an toàn (không đổi hành vi mặc định). `pytest` 487/487,
+    `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v106)
 
 - **✨ (v106) Xuất báo cáo kết quả học tập cho phụ huynh (Mô hình C — GV tự in ra PDF, KHÔNG
   gửi tự động qua email/SMS) + fix lỗi in PDF.** Tiếp nối phân tích trước đó (đã cân nhắc 3 mô
@@ -38,7 +70,7 @@
     trên server dev (không chỉ tin test): gọi trực tiếp endpoint với token admin/GV thật, xác
     nhận gate 403 hoạt động đúng khi tắt cấu hình.
 
-## 1a. Trạng thái trước đó (v105)
+## 1b. Trạng thái trước đó (v105)
 
 - **✨ (v105) Sửa lỗi tính năng "AI đọc đề từ ảnh" chết hẳn trên production (Gemini từ chối
   enum rỗng).** User báo lỗi thật trên Render: dán ảnh đề → "Đọc ảnh đề bài thất bại sau 3 lần:
@@ -65,7 +97,7 @@
   - Thuần sửa schema/prompt LLM + thêm test, KHÔNG đụng DB. `pytest` 478/478, `ruff` sạch; backend
     dev tự reload code mới (log WatchFiles xác nhận).
 
-## 1b. Trạng thái trước đó (v104)
+## 1c. Trạng thái trước đó (v104)
 
 - **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
   quyền đề thi + màn giám sát Đề thi cho Quản lý.** User đưa 1 bản review bảo mật độc lập
@@ -108,7 +140,7 @@
   - Thuần thêm code/kiểm tra, KHÔNG đụng schema/DB. `pytest` 477/477, `vitest` 23/23, `ruff`/
     `eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v103)
+## 1d. Trạng thái trước đó (v103)
 
 - **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
   Trang cũ: logo phóng to 288px lệch hẳn tỉ lệ form, form dính lên đỉnh màn hình (không căn
@@ -133,37 +165,15 @@
     hardcode bằng gradient indigo + hoạ tiết toán + `ThuongHieu` dùng chung.
   - Thuần frontend, không đụng logic đăng nhập/API/token. `eslint`/`vitest` 23/23/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v102)
+## 1e. Trạng thái trước đó (v102)
 
-- **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập — đỏ chỉ còn nghĩa "sai/lỗi/nguy
-  hiểm", không rò rỉ sang dữ liệu trung tính.** User đưa 1 bản đánh giá giao diện từ bên ngoài
-  (7 ảnh chụp thật) chỉ ra: quá nhiều màu không hệ thống, đỏ dùng sai vai trò semantic, nút
-  không nhất quán, badge/card tô màu tùy tiện. Đối chiếu từng điểm với code thật trước khi sửa
-  (không sửa máy móc theo bản đánh giá):
-  - **Xác nhận đúng — lỗi nặng nhất**: `ThongKeTienDo.jsx`, `TrangChu.jsx` tô **đỏ** cho trạng
-    thái **"Chưa làm"** (donut, progress bar, card, chú thích) — với học sinh đang ôn thi, nhìn
-    biểu đồ tiến độ toàn đỏ dễ hiểu nhầm "đang thất bại" dù chỉ là chưa luyện tới.
-  - **Bác bỏ 1 phần**: bản đánh giá kết luận "badge loại câu hỏi pastel ngẫu nhiên, không hệ
-    thống" — sai; code thực ra rất nhất quán (loại câu luôn `tone="primary"`, độ khó luôn theo
-    bảng `TONE_KHO` cố định). "Hồng nhạt" nhìn thấy chính là `danger-soft` của độ khó "Khó" —
-    quay lại đúng gốc rễ ở trên, không phải lỗi badge.
-  - **Quyết định giữ nguyên có chủ đích (đã hỏi ý kiến user trước khi làm)**: đỏ/vàng/xanh vẫn
-    dùng cho thang thứ bậc **Dễ/TB/Khó** (không đổi sang thang đơn sắc) — vì đây là thang thứ
-    bậc hiếm khi đứng cùng khung với thanh tiến độ, khác hẳn trường hợp "chưa làm".
-  - **Sửa**: thêm token `--color-idle`/`--color-idle-soft` (xám đậm, KHÁC xám nhạt `surface-2`
-    để vẫn nổi rõ trên donut) — dùng cho MỌI trạng thái "chưa" (chưa làm, đã ẩn). Nút "Nộp bài"
-    đỏ→cam (hành động tích cực, không phải hủy bỏ), "Làm lại" xanh→cam (đồng bộ "Bắt đầu"). So
-    sánh min/max (chậm nhất, thấp nhất): vế "kém hơn" chuyển sang `text-muted` thay vì đỏ —
-    không phải lỗi, chỉ là 1 trong 2 cực của dải so sánh.
-  - **Xác minh riêng (không chỉ đánh giá bằng mắt)**: kiểm tra `HieuQuaPhuongPhap.jsx` +
-    `BanDoNangLuc.jsx` (2 màn dùng nhiều tím nhất) bằng `validate_palette.js` của dataviz
-    skill + tính tay contrast WCAG cho từng ô heatmap — xác nhận đây là **sequential encoding
-    đúng chuẩn** cho dữ liệu magnitude/thứ bậc (1 tông tím nhạt→đậm, "chưa đủ dữ liệu" đã tách
-    bạch bằng xám từ trước), KHÔNG cần sửa — chỉ 1 điểm tương phản cực nhỏ (4.41:1 so với chuẩn
-    4.5:1, không đáng kể) được ghi nhận nhưng không sửa vì user không yêu cầu.
-  - `eslint`/`vitest` 23/23/`vite build` sạch — thuần đổi class/token CSS, không đụng logic.
-
-## 1e. Trạng thái trước đó (v101)
+- **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập.** Đối chiếu 1 bản đánh giá giao diện
+  từ bên ngoài với code thật trước khi sửa (không sửa máy móc): xác nhận đúng lỗi nặng nhất —
+  đỏ dùng cho trạng thái "Chưa làm" (dễ hiểu nhầm "đang thất bại") — thêm token
+  `--color-idle`/`--color-idle-soft` riêng cho mọi trạng thái "chưa"; bác bỏ 1 phần đánh giá
+  (badge loại câu thực ra đã nhất quán); giữ nguyên có chủ đích thang màu Dễ/TB/Khó. Xác minh
+  riêng bằng `validate_palette.js` + tính tay contrast WCAG cho 2 màn dùng nhiều tím nhất — xác
+  nhận đúng chuẩn sequential encoding, không cần sửa. `eslint`/`vitest`/`vite build` sạch.
 
 - **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
   từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**

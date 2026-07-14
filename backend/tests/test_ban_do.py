@@ -112,3 +112,53 @@ def test_api_ban_do_quyen(db, client):
     r = client.get(f"/api/progress/students/{hs.id}/ban-do",
                    headers=_h(_login(client, "gv2_bd")))
     assert r.status_code == 403
+
+
+def test_ban_do_lop_loc_theo_lop_id(db, client):
+    """GV nhiều lớp: lop_id lọc đúng lớp đó, không trộn với lớp khác của cùng GV."""
+    gv, hs, hs2, p_de, p_kho, p_tb = _seed(db)
+    lop2 = Lop(ten="12BD2", gv_id=gv.id)
+    db.add(lop2)
+    db.flush()
+    hs3 = User(vai_tro=VaiTro.hs, ho_ten="HS BD3", dang_nhap="hs3_bd",
+               mat_khau_hash=hash_password("pass"), lop_id=lop2.id)
+    db.add(hs3)
+    db.commit()
+    _phien(db, hs.id, p_de.id)   # lớp 1 (12BD)
+    _phien(db, hs3.id, p_tb.id)  # lớp 2 (12BD2)
+
+    h_gv = _h(_login(client, "gv_bd"))
+    lop1 = db.query(Lop).filter_by(ten="12BD").first()
+
+    r = client.get(f"/api/progress/ban-do/lop?lop_id={lop1.id}", headers=h_gv)
+    assert r.status_code == 200
+    ten_cd = {h["chuyen_de"] for h in r.json()["hang"]}
+    assert ten_cd == {"Đạo hàm"}  # chỉ dữ liệu lớp 1, không lẫn "Tích phân" của lớp 2
+
+    r2 = client.get(f"/api/progress/ban-do/lop?lop_id={lop2.id}", headers=h_gv)
+    assert r2.status_code == 200
+    ten_cd2 = {h["chuyen_de"] for h in r2.json()["hang"]}
+    assert ten_cd2 == {"Tích phân"}
+
+    # Không truyền lop_id → hành vi cũ, gộp cả 2 lớp
+    r3 = client.get("/api/progress/ban-do/lop", headers=h_gv)
+    assert {h["chuyen_de"] for h in r3.json()["hang"]} == {"Đạo hàm", "Tích phân"}
+
+
+def test_ban_do_lop_id_khong_thuoc_gv_bi_chan(db, client):
+    gv, hs, hs2, p_de, p_kho, p_tb = _seed(db)
+    gv2 = User(vai_tro=VaiTro.gv, ho_ten="GV2", dang_nhap="gv3_bd",
+               mat_khau_hash=hash_password("pass"))
+    db.add(gv2)
+    db.commit()
+    lop1 = db.query(Lop).filter_by(ten="12BD").first()
+    r = client.get(f"/api/progress/ban-do/lop?lop_id={lop1.id}",
+                   headers=_h(_login(client, "gv3_bd")))
+    assert r.status_code == 403
+
+
+def test_ban_do_lop_id_khong_ton_tai(db, client):
+    gv, hs, hs2, p_de, p_kho, p_tb = _seed(db)
+    r = client.get("/api/progress/ban-do/lop?lop_id=999999",
+                   headers=_h(_login(client, "gv_bd")))
+    assert r.status_code == 404

@@ -77,18 +77,18 @@ export default function TongQuan() {
           title="Lớp & học sinh"
           icon={Users}
           items={[
-            { label: 'Số lớp phụ trách', value: tk.so_lop, accent: 'primary', icon: Building2 },
-            { label: 'Tổng số học sinh', value: tk.tong_hoc_sinh, accent: 'primary', icon: Users },
-            { label: 'Số học sinh bị khóa', value: tk.hoc_sinh_khoa, accent: 'danger', icon: Lock },
+            { label: 'Lớp phụ trách', value: tk.so_lop, accent: 'primary', icon: Building2 },
+            { label: 'Học sinh', value: tk.tong_hoc_sinh, accent: 'primary', icon: Users },
+            { label: 'Bị khóa', value: tk.hoc_sinh_khoa, accent: 'danger', icon: Lock },
           ]}
         />
         <NhomThongKe
           title="Câu hỏi"
           icon={ListChecks}
           items={[
-            { label: 'Tổng số câu hỏi', value: tk.tong_cau_hoi, accent: 'primary', icon: ListChecks },
-            { label: 'Câu hỏi đã duyệt', value: tk.cau_hoi_da_duyet, accent: 'success', icon: CheckCircle2 },
-            { label: 'Câu hỏi chờ duyệt', value: tk.cau_hoi_cho_duyet, accent: 'warning', icon: Clock },
+            { label: 'Câu hỏi', value: tk.tong_cau_hoi, accent: 'primary', icon: ListChecks },
+            { label: 'Đã duyệt', value: tk.cau_hoi_da_duyet, accent: 'success', icon: CheckCircle2 },
+            { label: 'Chờ duyệt', value: tk.cau_hoi_cho_duyet, accent: 'warning', icon: Clock },
           ]}
         />
       </div>

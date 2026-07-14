@@ -220,7 +220,8 @@ export const api = {
     request(`/de-thi/bai/${baiId}/luu`, { method: 'PATCH', body: JSON.stringify({ bai_lam }) }),
   deThiNop: (baiId, bai_lam) => post(`/de-thi/bai/${baiId}/nop`, { bai_lam }),
   getBanDoCuaToi: () => request('/progress/me/ban-do'),
-  getBanDoLop: () => request('/progress/ban-do/lop'),
+  getBanDoLop: (lopId) =>
+    request('/progress/ban-do/lop' + (lopId ? `?lop_id=${lopId}` : '')),
   getBanDoHocSinh: (id) => request(`/progress/students/${id}/ban-do`),
   getHieuQuaLop: () => request('/progress/hieu-qua/lop'),
   getHieuQuaHocSinh: (id) => request(`/progress/students/${id}/hieu-qua`),
