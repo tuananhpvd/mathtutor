@@ -1,5 +1,7 @@
 """API tiến độ học tập (Phase 6)."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from app.db.session import get_db
 from app.llm.client import get_llm_client
 from app.models.user import VaiTro
 from app.services.admin_service import lay_cau_hinh
+from app.services.bao_cao_service import bao_cao_hoc_sinh, bao_cao_lop
 from app.services.hieu_qua_service import csv_hieu_qua_lop, hieu_qua_hs, hieu_qua_lop
 from app.services.llm_quota_service import LOAI_PHAN_TICH, LOI_HET_QUOTA, ap_quota_tac_vu
 from app.services.phan_tich_service import (
@@ -158,3 +161,68 @@ def cap_nhat_phan_tich_hoc_sinh(hoc_sinh_id: int, current_user: CurrentUser,
     if llm is None:
         raise HTTPException(status_code=429, detail=LOI_HET_QUOTA)
     return cap_nhat_phan_tich(db, hoc_sinh_id, llm)
+
+
+# ---------- Xuất báo cáo kết quả cho phụ huynh (GV in ra PDF) ----------
+
+def _cho_phep_xuat(db: Session, current_user) -> bool:
+    """Admin luôn được; GV phụ thuộc cấu hình 'cho_phep_gv_xuat_bao_cao'."""
+    if current_user.vai_tro == VaiTro.admin:
+        return True
+    return bool(lay_cau_hinh(db).get("cho_phep_gv_xuat_bao_cao"))
+
+
+def _chan_neu_tat(db: Session, current_user) -> None:
+    if not _cho_phep_xuat(db, current_user):
+        raise HTTPException(status_code=403, detail="Tính năng xuất báo cáo đang tắt")
+
+
+def _parse_ngay(s: str | None, cuoi_ngay: bool = False) -> datetime | None:
+    """Chuỗi 'YYYY-MM-DD' → datetime; cuoi_ngay=True lấy cuối ngày (bao trọn ngày den_ngay)."""
+    if not s:
+        return None
+    try:
+        d = datetime.strptime(s, "%Y-%m-%d")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Ngày không hợp lệ (cần YYYY-MM-DD)") from e
+    return d.replace(hour=23, minute=59, second=59) if cuoi_ngay else d
+
+
+@router.get("/bao-cao/cho-phep", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def bao_cao_cho_phep(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """FE hỏi trước để ẩn/hiện nút xuất (backend vẫn chốt lại 403 ở các endpoint dưới)."""
+    return {"cho_phep": _cho_phep_xuat(db, current_user)}
+
+
+@router.get("/students/{hoc_sinh_id}/bao-cao",
+            dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def bao_cao_hoc_sinh_api(hoc_sinh_id: int, current_user: CurrentUser,
+                         tu_ngay: str | None = None, den_ngay: str | None = None,
+                         db: Session = Depends(get_db)):
+    _chan_neu_tat(db, current_user)
+    if current_user.vai_tro == VaiTro.gv and not hoc_sinh_thuoc_gv(
+        db, current_user.id, hoc_sinh_id
+    ):
+        raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
+    try:
+        return bao_cao_hoc_sinh(db, hoc_sinh_id,
+                                _parse_ngay(tu_ngay), _parse_ngay(den_ngay, cuoi_ngay=True))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.get("/lop/{lop_id}/bao-cao",
+            dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def bao_cao_lop_api(lop_id: int, current_user: CurrentUser,
+                    tu_ngay: str | None = None, den_ngay: str | None = None,
+                    db: Session = Depends(get_db)):
+    from app.models.lop import Lop
+
+    _chan_neu_tat(db, current_user)
+    lop = db.get(Lop, lop_id)
+    if lop is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy lớp")
+    if current_user.vai_tro == VaiTro.gv and lop.gv_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
+    return bao_cao_lop(db, lop_id,
+                       _parse_ngay(tu_ngay), _parse_ngay(den_ngay, cuoi_ngay=True))

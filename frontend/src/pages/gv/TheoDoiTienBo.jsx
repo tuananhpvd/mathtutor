@@ -9,6 +9,7 @@ import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
 import BanDoNangLuc from '../../components/BanDoNangLuc'
 import HieuQuaPhuongPhap from '../../components/gv/HieuQuaPhuongPhap'
 import MucTieuPanel from '../../components/MucTieuPanel'
+import BaoCaoPhuHuynh from '../../components/gv/BaoCaoPhuHuynh'
 
 /* ── Tính thống kê lớp từ danh sách HS ───────────────────────────── */
 function tinhThongKeLop(hsLop) {
@@ -305,10 +306,7 @@ export default function TheoDoiTienBo() {
   useEffect(() => {
     api
       .getProgressStudents()
-      .then((s) => {
-        setStudents(s)
-        if (s.length) xemHs(s[0].hoc_sinh_id)
-      })
+      .then(setStudents)
       .catch(() => {})
       .finally(() => setLoading(false))
     api.listSessionsHoanThanh().then(setNhatKy).catch(() => {})
@@ -387,6 +385,8 @@ export default function TheoDoiTienBo() {
 
   return (
     <div className="flex flex-col gap-4">
+      <BaoCaoPhuHuynh students={students} />
+
       <HieuQuaPhuongPhap />
 
       <BanDoNangLuc taiDuLieu={api.getBanDoLop} tieu_de="Bản đồ năng lực lớp"
@@ -565,6 +565,12 @@ export default function TheoDoiTienBo() {
         <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5">
           ✓ {thongBaoOk}
         </div>
+      )}
+
+      {!hsChon && !loading && (
+        <p className="text-sm text-muted text-center py-4">
+          Bấm "Xem biểu đồ" ở 1 học sinh trong bảng trên để xem tiến độ chi tiết.
+        </p>
       )}
 
       {hsChon && (

@@ -303,6 +303,8 @@ export default function CauHinh() {
   const [baoTriMa, setBaoTriMa] = useState('')
   const [baoTriNoiDung, setBaoTriNoiDung] = useState('')
   const [msgBaoTri, setMsgBaoTri] = useState('')
+  const [choPhepXuat, setChoPhepXuat] = useState(false)
+  const [msgXuat, setMsgXuat] = useState('')
 
   function nap() {
     api.adminLLMSuDung().then(setSuDung).catch(() => setSuDung(null))
@@ -325,6 +327,7 @@ export default function CauHinh() {
       setBaoTriBat(c.bao_tri_bat === true)
       setBaoTriMa(c.bao_tri_ma ?? '')
       setBaoTriNoiDung(c.bao_tri_noi_dung ?? '')
+      setChoPhepXuat(c.cho_phep_gv_xuat_bao_cao === true)
     }).catch((e) => setError(e.message))
   }
   useEffect(nap, [])
@@ -337,6 +340,15 @@ export default function CauHinh() {
       await api.adminSetConfig('bao_tri_noi_dung', baoTriNoiDung.trim())
       nap()
       setMsgBaoTri('Đã lưu.')
+    } catch (e) { setError(e.message) }
+  }
+
+  async function luuChoPhepXuat() {
+    setMsgXuat(''); setError('')
+    try {
+      await api.adminSetConfig('cho_phep_gv_xuat_bao_cao', choPhepXuat)
+      nap()
+      setMsgXuat('Đã lưu.')
     } catch (e) { setError(e.message) }
   }
 
@@ -490,6 +502,25 @@ export default function CauHinh() {
           <div className="flex items-center gap-3">
             <Button onClick={luuBaoTri}>Lưu</Button>
             {msgBaoTri && <span className="text-sm text-success">{msgBaoTri}</span>}
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card className="break-inside-avoid mb-5">
+        <CardHeader title="Báo cáo kết quả cho phụ huynh"
+          subtitle="Khi bật, giáo viên có thể xuất báo cáo kết quả học tập của học sinh (in ra PDF để gửi phụ huynh) ở mục Theo dõi tiến bộ. Mặc định tắt." />
+        <CardBody className="flex flex-col gap-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" className="h-4 w-4 accent-primary"
+              checked={choPhepXuat} onChange={(e) => setChoPhepXuat(e.target.checked)} />
+            <span className="text-sm text-ink">Cho phép giáo viên xuất báo cáo kết quả</span>
+            {cfg.cho_phep_gv_xuat_bao_cao === true
+              ? <Badge tone="success">Đang cho phép</Badge>
+              : <Badge tone="neutral">Đang tắt</Badge>}
+          </label>
+          <div className="flex items-center gap-3">
+            <Button onClick={luuChoPhepXuat}>Lưu</Button>
+            {msgXuat && <span className="text-sm text-success">{msgXuat}</span>}
           </div>
         </CardBody>
       </Card>

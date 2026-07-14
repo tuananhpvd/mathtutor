@@ -4,7 +4,41 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v105**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-13, phiên bản **v106**)
+
+- **✨ (v106) Xuất báo cáo kết quả học tập cho phụ huynh (Mô hình C — GV tự in ra PDF, KHÔNG
+  gửi tự động qua email/SMS) + fix lỗi in PDF.** Tiếp nối phân tích trước đó (đã cân nhắc 3 mô
+  hình: gửi email/SMS = lặp lại rủi ro đã hủy trước đây [[quyet-dinh-khong-lam-email-reset-mat-khau]];
+  tài khoản phụ huynh riêng = quá nặng, đổi phân quyền lõi; chọn **Mô hình C: báo cáo chia sẻ
+  được, không lưu liên hệ phụ huynh**) — nhẹ nhất, an toàn nhất cho dữ liệu HS vị thành niên.
+  - **Backend (thuần thêm, KHÔNG đụng schema DB)**: config mới `cho_phep_gv_xuat_bao_cao`
+    (**mặc định TẮT** — Admin phải chủ động bật). `ho_so_nang_luc()` thêm `tu_ngay/den_ngay`
+    tùy chọn (lọc phiên theo `bat_dau_luc`, caller cũ không đổi) + `so_phien`. Service mới
+    `bao_cao_service.py` (`bao_cao_hoc_sinh`/`bao_cao_lop`, tái dùng dữ liệu phân tích sẵn có,
+    KHÔNG chứa trường đáp án). 3 endpoint mới ở `progress.py`, gate cấu hình (GV tắt→403, admin
+    bypass) + kiểm sở hữu HS/lớp.
+  - **Frontend**: Admin → Cấu hình có toggle bật/tắt. GV → Theo dõi tiến bộ có card **"Xuất báo
+    cáo cho phụ huynh"** ĐỘC LẬP với phần chọn HS/lớp phía dưới trang (sau khi user phản hồi UX
+    — lúc đầu phụ thuộc `hsChon`/`fLop` chung, chỉ xuất được 1 HS đang chọn) — GV tự chọn lớp
+    trong card → hiện checkbox từng HS (mặc định tick cả lớp, bỏ bớt tùy ý) → chọn khoảng thời
+    gian → xuất. Nội dung Pha 1: tổng quan (số buổi/hoàn thành/tỉ lệ, xu hướng) + mạnh/yếu theo
+    dạng — KHÔNG gồm ghi chú GV (chưa có hạ tầng lưu nhận xét theo HS, quyết định bỏ thay vì
+    thêm bảng mới) và KHÔNG gồm đề thi thử (để Pha 2).
+  - **Trang "Theo dõi tiến bộ" đổi UX theo yêu cầu user**: bỏ tự động chọn + hiện "Tiến độ chi
+    tiết" của HS đầu tiên lúc vào trang — giờ chỉ hiện khi GV chủ động bấm "Xem biểu đồ" ở 1 HS.
+  - **Bug in PDF (2 lỗi user báo, cùng 1 gốc) — đã sửa triệt để, không vá chắp**: modal báo cáo
+    dùng `position: fixed` (Tailwind `fixed`) lồng trong cây app → **Chrome lặp lại y hệt mọi
+    phần tử `fixed` trên TỪNG TRANG khi in** (hành vi chuẩn trình duyệt) → 1 HS dài hơn 1 trang
+    bị in lặp lại chính nó; nhiều HS bị dính/lồng vào nhau vì nội dung không "chảy" qua trang
+    theo `break-before: page`. Sửa gốc: modal render qua **React Portal thẳng ra
+    `document.body`** (thoát cây `#root`) + CSS in ẩn hẳn `#root` (`display:none`, không phải
+    trick `visibility` cũ) và đưa modal về `position: static; overflow: visible` khi in — khôi
+    phục luồng tài liệu bình thường để ngắt trang đúng theo từng HS.
+  - `pytest` 484/484 (+6), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch. Đã xác nhận LIVE
+    trên server dev (không chỉ tin test): gọi trực tiếp endpoint với token admin/GV thật, xác
+    nhận gate 403 hoạt động đúng khi tắt cấu hình.
+
+## 1a. Trạng thái trước đó (v105)
 
 - **✨ (v105) Sửa lỗi tính năng "AI đọc đề từ ảnh" chết hẳn trên production (Gemini từ chối
   enum rỗng).** User báo lỗi thật trên Render: dán ảnh đề → "Đọc ảnh đề bài thất bại sau 3 lần:
@@ -31,7 +65,7 @@
   - Thuần sửa schema/prompt LLM + thêm test, KHÔNG đụng DB. `pytest` 478/478, `ruff` sạch; backend
     dev tự reload code mới (log WatchFiles xác nhận).
 
-## 1a. Trạng thái trước đó (v104)
+## 1b. Trạng thái trước đó (v104)
 
 - **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
   quyền đề thi + màn giám sát Đề thi cho Quản lý.** User đưa 1 bản review bảo mật độc lập
@@ -74,7 +108,7 @@
   - Thuần thêm code/kiểm tra, KHÔNG đụng schema/DB. `pytest` 477/477, `vitest` 23/23, `ruff`/
     `eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v103)
+## 1c. Trạng thái trước đó (v103)
 
 - **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
   Trang cũ: logo phóng to 288px lệch hẳn tỉ lệ form, form dính lên đỉnh màn hình (không căn
@@ -99,7 +133,7 @@
     hardcode bằng gradient indigo + hoạ tiết toán + `ThuongHieu` dùng chung.
   - Thuần frontend, không đụng logic đăng nhập/API/token. `eslint`/`vitest` 23/23/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v102)
+## 1d. Trạng thái trước đó (v102)
 
 - **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập — đỏ chỉ còn nghĩa "sai/lỗi/nguy
   hiểm", không rò rỉ sang dữ liệu trung tính.** User đưa 1 bản đánh giá giao diện từ bên ngoài
@@ -129,7 +163,7 @@
     4.5:1, không đáng kể) được ghi nhận nhưng không sửa vì user không yêu cầu.
   - `eslint`/`vitest` 23/23/`vite build` sạch — thuần đổi class/token CSS, không đụng logic.
 
-## 1d. Trạng thái trước đó (v101)
+## 1e. Trạng thái trước đó (v101)
 
 - **✨ (v101) Sửa các mục ưu tiên thấp còn sót lại từ đợt review tối ưu (v100) — kiểm chứng kỹ
   từng mục thay vì sửa máy móc, có mục cố tình KHÔNG sửa vì rủi ro cao hơn lợi ích.**
@@ -141,26 +175,13 @@
     với `pyproject.toml` (nhắm `py311`) và ghim `bcrypt<4.0`. `backend/runtime.txt` đã thêm
     trước đó để sửa, nhưng tra cứu thì `runtime.txt` KHÔNG phải cơ chế chính thức đáng tin cậy
     của Render (cộng đồng report "not working") — cơ chế đúng, ưu tiên cao hơn là file
-    `.python-version`. Thêm `backend/.python-version` = `3.11.9` để ghim chắc chắn. ⚠️ Khác
-    `render.yaml`, file này CÓ tác dụng thật ngay lần deploy kế tiếp (không chỉ tài liệu) —
-    cần xem log deploy tiếp theo để xác nhận đúng Python 3.11.9.
-  - **Cố tình KHÔNG di chuyển `passlib`→gọi `bcrypt` trực tiếp** dù đây là cách "sửa triệt để"
-    #9: thư viện `bcrypt` giới hạn mật khẩu tối đa 72 byte — bản mới (bcrypt≥5) sẽ **crash**
-    thay vì tự cắt bớt như `passlib` đang làm. App dùng tiếng Việt có dấu (mỗi dấu chiếm 2-3
-    byte) nên mật khẩu ~25-30 ký tự có dấu đã có thể vượt 72 byte — nếu migrate ẩu, người dùng
-    thật đang có mật khẩu dài kiểu này trên production có thể bị khóa không đăng nhập được.
-    Giữ nguyên `passlib` + ghim `bcrypt<4.0` (đã an toàn, đang chạy đúng), chỉ thêm
-    `test_bcrypt_ghim_duoi_4_0` (`test_auth.py`) canh gác — CI báo đỏ ngay nếu sau này ai lỡ
-    nới ghim, thay vì để sập âm thầm lúc đăng nhập trên production.
-  - **#11 — sửa xong, thuần frontend, không đụng API/DB/deploy**: 401 giờ chuyển MỀM về màn
-    đăng nhập (`auth.js`: `dangKyPhienHetHan()`/`baoPhienHetHan()`, App.jsx đăng ký lúc mount →
-    `setPage('login')`) thay vì `window.location.reload()` cứng như trước — tránh xóa sạch dữ
-    liệu HS/GV đang nhập dở ở phần KHÁC của trang (vd GV đang soạn dở 1 câu hỏi dài) chỉ vì 1
-    request khác vừa hết phiên. Có lưới an toàn: chưa kịp đăng ký handler thì vẫn tự reload như
-    cũ, không bao giờ kẹt màn hình.
-  - `pytest` 469/469 (+1), `vitest` 23/23 (+1), `eslint`/`vite build` sạch.
-
-## 1e. Trạng thái trước đó (v100)
+    `.python-version`. Thêm `backend/.python-version` = `3.11.9` để ghim chắc chắn.
+  - **Cố tình KHÔNG di chuyển `passlib`→gọi `bcrypt` trực tiếp**: thư viện `bcrypt` giới hạn
+    mật khẩu tối đa 72 byte — bản mới (bcrypt≥5) sẽ **crash** thay vì tự cắt bớt như `passlib`
+    đang làm; mật khẩu tiếng Việt có dấu ~25-30 ký tự đã có thể vượt 72 byte. Giữ `passlib` +
+    ghim `bcrypt<4.0`, chỉ thêm test canh gác `test_bcrypt_ghim_duoi_4_0`.
+  - **#11**: 401 chuyển MỀM về màn đăng nhập thay vì `window.location.reload()` cứng.
+  - `pytest` 469/469, `vitest` 23/23 sạch.
 
 - **✨ (v100) Tối ưu hiệu năng dự án — Đợt A/B/C (nhánh `toi-uu-hieu-nang`, đã merge fast-forward
   vào `main`).** Xuất phát từ 1 lượt review toàn bộ dự án (backend, frontend, bảo mật, CI/CD, độ

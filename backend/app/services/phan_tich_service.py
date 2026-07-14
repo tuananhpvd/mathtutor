@@ -70,14 +70,26 @@ def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
     return row
 
 
-def ho_so_nang_luc(db: Session, hoc_sinh_id: int) -> dict:
-    """Hồ sơ năng lực + đề xuất theo luật cho 1 học sinh."""
-    sessions = (
-        db.query(SessionModel).filter(
-            SessionModel.hoc_sinh_id == hoc_sinh_id,
-            SessionModel.bi_an == False,  # noqa: E712
-        ).all()
+def ho_so_nang_luc(
+    db: Session,
+    hoc_sinh_id: int,
+    tu_ngay: datetime | None = None,
+    den_ngay: datetime | None = None,
+) -> dict:
+    """Hồ sơ năng lực + đề xuất theo luật cho 1 học sinh.
+
+    tu_ngay/den_ngay (tùy chọn): chỉ tính các phiên BẮT ĐẦU trong khoảng — dùng cho
+    báo cáo theo mốc thời gian. Không truyền → tính toàn bộ (hành vi cũ, các caller
+    khác không đổi)."""
+    q = db.query(SessionModel).filter(
+        SessionModel.hoc_sinh_id == hoc_sinh_id,
+        SessionModel.bi_an == False,  # noqa: E712
     )
+    if tu_ngay is not None:
+        q = q.filter(SessionModel.bat_dau_luc >= tu_ngay)
+    if den_ngay is not None:
+        q = q.filter(SessionModel.bat_dau_luc <= den_ngay)
+    sessions = q.all()
     p_ids = {s.problem_id for s in sessions}
     problems = (
         {p.id: p for p in db.query(Problem).filter(Problem.id.in_(p_ids)).all()}
@@ -137,6 +149,7 @@ def ho_so_nang_luc(db: Session, hoc_sinh_id: int) -> dict:
     )
 
     return {
+        "so_phien": len(sessions),
         "tong_hoan_thanh": tong_hoan_thanh,
         "du_lieu_du": du_lieu_du,
         "do_tin_cay": do_tin_cay,

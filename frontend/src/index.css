@@ -9,6 +9,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Khi in báo cáo phụ huynh: ẩn toàn bộ app (#root), chỉ in modal báo cáo — modal được
+   render qua React Portal thẳng ra document.body (xem BaoCaoPhuHuynh.jsx) nên KHÔNG còn
+   nằm trong cây #root, và #root display:none không ảnh hưởng tới nó.
+   Modal đưa về position:static/overflow:visible khi in — bắt buộc, vì Chrome LẶP LẠI y
+   hệt mọi phần tử `position: fixed` trên TỪNG TRANG khi in nhiều trang (đây là nguyên nhân
+   gốc gây lỗi "1 HS bị lặp nhiều trang" và "nhiều HS dính/lồng vào nhau" trước đây) — đưa
+   về luồng tài liệu bình thường (static) thì mỗi .bao-cao-trang mới ngắt trang đúng theo
+   break-before: page thay vì bị đóng khung lại mỗi trang. */
+@media print {
+  #root { display: none !important; }
+  .khong-in { display: none !important; }
+  .bao-cao-overlay {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    display: block !important;
+  }
+  .bao-cao-card {
+    box-shadow: none !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  .bao-cao-in { display: block !important; }
+  .bao-cao-trang { break-inside: avoid; }
+  .bao-cao-trang + .bao-cao-trang { break-before: page; }
+  @page { margin: 1.4cm; }
+}
+
 /* Vùng công thức dài: cho cuộn ngang riêng, không vỡ layout (UIUX mục 6) */
 .katex-display {
   overflow-x: auto;

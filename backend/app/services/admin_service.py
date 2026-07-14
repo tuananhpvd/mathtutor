@@ -59,6 +59,9 @@ CAU_HINH_MAC_DINH: dict = {
     "bao_tri_bat": False,
     "bao_tri_ma": "xem-truoc-mt79",
     "bao_tri_noi_dung": "SẢN PHẨM ĐANG HOÀN THIỆN. HÃY QUAY LẠI SAU NGÀY 08/08/2026!",
+    # Cho phép GV xuất báo cáo kết quả học tập của HS (để in/gửi phụ huynh). MẶC ĐỊNH TẮT —
+    # xuất dữ liệu HS vị thành niên là hành động có chủ đích, Admin bật khi cần.
+    "cho_phep_gv_xuat_bao_cao": False,
     # Từ khóa lọc an toàn (3 tầng) — Admin quản lý qua trang Cấu hình, KHÔNG cần sửa code
     # để thêm từ mới. Mỗi phần tử: {tu_khoa, kich_hoat, la_mac_dinh}. Từ khóa mặc định
     # (la_mac_dinh=True) chỉ được TẮT (kich_hoat=False), không thể xóa khỏi danh sách —

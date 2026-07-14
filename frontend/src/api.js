@@ -41,6 +41,15 @@ async function request(path, { timeoutMs = TIMEOUT_MAC_DINH_MS, ...options } = {
 const post = (path, body, timeoutMs) =>
   request(path, { method: 'POST', body: JSON.stringify(body || {}), timeoutMs })
 
+// Query string cho khoảng thời gian báo cáo (bỏ tham số rỗng).
+function _qsKhoang(tuNgay, denNgay) {
+  const p = new URLSearchParams()
+  if (tuNgay) p.set('tu_ngay', tuNgay)
+  if (denNgay) p.set('den_ngay', denNgay)
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+
 export const api = {
   // Chung
   login: (dang_nhap, mat_khau) => post('/auth/login', { dang_nhap, mat_khau }),
@@ -73,6 +82,12 @@ export const api = {
   getThongKeHocSinh: (id) => request(`/progress/students/${id}/thong-ke`),
   getPhanTichHocSinh: (id) => request(`/progress/students/${id}/phan-tich`),
   capNhatPhanTichHocSinh: (id) => post(`/progress/students/${id}/phan-tich/cap-nhat`, null, TIMEOUT_AI_MS),
+  // Báo cáo kết quả cho phụ huynh (GV in ra PDF) — tuNgay/denNgay dạng 'YYYY-MM-DD' (tùy chọn).
+  getBaoCaoChoPhep: () => request('/progress/bao-cao/cho-phep'),
+  getBaoCaoHocSinh: (id, tuNgay, denNgay) =>
+    request(`/progress/students/${id}/bao-cao${_qsKhoang(tuNgay, denNgay)}`),
+  getBaoCaoLop: (lopId, tuNgay, denNgay) =>
+    request(`/progress/lop/${lopId}/bao-cao${_qsKhoang(tuNgay, denNgay)}`),
   genQuestions: (body) => post('/questions-ai/generate', body, TIMEOUT_AI_MS),
   taoBuocGoiY: (body) => post('/questions-ai/tao-buoc-goi-y', body, TIMEOUT_AI_MS),
   luuBuocGoiY: (cau) => post('/questions-ai/tao-buoc-goi-y/luu', { cau }),
