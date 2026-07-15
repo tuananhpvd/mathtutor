@@ -4,7 +4,49 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-15, phiên bản **v109**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v112**)
+
+- **✨ (v112) Đợt cải tiến "nhìn thấy xu hướng/tiến bộ" trên giao diện thống kê (4 nhóm, user
+  chốt làm cả 4 sau 1 lượt phân tích) + đổi biểu đồ tuần sang combo chart theo mẫu user chọn.**
+  - **Sửa gốc thước đo xu hướng** (`phan_tich_service._xu_huong`): đo bằng `diem_qua_trinh`
+    (đã lưu sẵn mỗi phiên: trừ dần theo số lần sai + lượt cần gợi ý), fallback `diem` cho
+    phiên cũ. Trước đo bằng `diem` vốn LUÔN = 1.0 với TLN/TN4PA hoàn thành (chỉ TNDS có bậc
+    thang) → xu hướng gần như mù với 2/3 loại câu. Test chứng minh: điểm toàn 1.0 nhưng quá
+    trình 0.5→0.9 phải ra `tien_bo`.
+  - **2 "tài sản bị bỏ rơi" được đưa ra UI**: trường `xu_huong` backend tính sẵn nhưng
+    `PhanTichNangLuc.jsx` chưa từng render → thêm badge ↗/→/↘ ở header (cả HS lẫn GV);
+    endpoint `/students/{id}/hieu-qua` + `api.getHieuQuaHocSinh` khai báo sẵn mà không nơi
+    nào gọi → thành nguồn dữ liệu biểu đồ tuần. Thêm `xu_huong` riêng từng dạng trong
+    `theo_dang` (≥4 bài/dạng) + mũi tên nhỏ cạnh tên dạng.
+  - **So sánh 7 ngày qua vs 7 ngày trước** (`thong_ke_chi_tiet.so_sanh_7_ngay`): số bài,
+    thời gian TB/bài, lượt cần gợi ý TB/bài (`so_lan_khong_hieu`) — backend trả số THÔ 2 kỳ,
+    FE quyết màu/mũi tên (▲/▼ cỡ lớn nền màu + mức chênh, xanh = chiều tốt: bài tăng, thời
+    gian/gợi ý giảm; sau phản hồi "mũi tên phải to nét nổi bật").
+  - **`BieuDoTuan.jsx` (mới) — combo chart** cột + đường CHUNG 1 trục tung theo ảnh mẫu user
+    gửi, có lưới ngang + tooltip + chú giải. Chủ động KHÁC mẫu 1 điểm: không vẽ "mức gợi ý
+    TB" (thang 0-3) đè trục "số bài" (dual-axis = lỗi đọc sai kinh điển) — đổi đường thành
+    **"số bài tự làm không cần gợi ý"** (`so_tu_lam` mới trong chuỗi tuần, cùng đơn vị bài;
+    đường bám sát cột = tự lập hơn). Trục tung bước "đẹp" tự động (1/2/5/10..., ≤5 khoảng,
+    trần = bội số ≥ max thực tế, không đệm cố định).
+  - **Tuần TƯƠNG ĐỐI theo mốc riêng từng HS** (`_moc_bat_dau` + `_chuoi_tuan_theo_moc`):
+    "Tuần 1" = 7 ngày đầu kể từ 0h ngày có phiên luyện tập ĐẦU TIÊN — phương án A đã chốt
+    với user, vì bảng `users` KHÔNG lưu mốc đăng nhập nào (kể cả ngày tạo), thêm cột thì HS
+    production bị reset "tuần 1" sai; phiên đầu tiên đúng ngược về quá khứ. Không tính phiên
+    đã ẩn (GV đặt lại lịch sử → đồng hồ tuần tính lại). HS mới học 2 tuần → biểu đồ 2 cột;
+    biểu đồ tuần CẢ LỚP (Hiệu quả phương pháp) giữ tuần lịch — mỗi em một "Tuần 1", không
+    gộp trục tương đối được. Endpoint mới `GET /progress/me/hieu-qua` cho HS tự xem.
+  - Gắn vào: trang Tiến độ (HS) + panel "Tiến độ chi tiết" (GV). `pytest` 505/505 (+6 test
+    qua 2 đợt), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
+- **✨ (v111) Bổ sung "mất nhiều thời gian" per-HS vào Tiến độ chi tiết** — sau phân tích
+  chỉ ra 2 card cùng tên ở Tổng quan là SUM cộng dồn CẢ LỚP (lệch theo số lượt làm, không
+  chẩn đoán được từng em): thêm `dang/loai_mat_thoi_gian` (top 3, riêng 1 HS) vào
+  `thong_ke_chi_tiet`, component dùng chung `BangXepHangThoiGian.jsx`, card Tổng quan ghi rõ
+  "cộng dồn CẢ LỚP" — 2 góc nhìn bổ trợ, không thay thế.
+- **✨ (v110) RTE lý thuyết: tự bọc `$...$` khi GV chèn công thức** — `SoanRichText.jsx` đổi
+  `BangCongThuc` (bắt GV tự gõ dấu $) sang `MathPalette` (cùng component ô "Nhờ thầy/cô" của
+  HS) qua adapter `getMf()` chèn thẳng `$latex$` vào TipTap tại con trỏ.
+
+## 1a. Trạng thái trước đó (v109)
 
 - **✨ (v109) Pha 2 tính năng "Tóm tắt lý thuyết" — khối 3 liên kết trong khung chat HS khi hết
   gợi ý (Xem lại lý thuyết / Nhờ Thầy-Cô / Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup.**
@@ -27,7 +69,7 @@
     trình duyệt/Playwright để tự click-test trực quan — đã xác nhận `dev-check.ps1 -Fix -Wait`
     LIVE, chờ user tự kiểm trên trình duyệt trước khi merge sang việc khác.
 
-## 1a. Trạng thái trước đó (v108)
+## 1b. Trạng thái trước đó (v108)
 
 - **✨ (v108) Tính năng mới: Tóm tắt lý thuyết (Pha 1) — GV soạn, HS xem lại — kèm Rich Text
   Editor thật (TipTap) sau 2 vòng chỉnh theo phản hồi trực tiếp trên UI.**
@@ -69,7 +111,7 @@
     trong khung chat khi hết gợi ý: Xem lại lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) CHƯA làm — đúng
     phạm vi Pha 1 user đã chốt.
 
-## 1b. Trạng thái trước đó (v107)
+## 1c. Trạng thái trước đó (v107)
 
 - **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan.**
   Chuỗi cải tiến nhỏ liên tiếp từ phản hồi trực tiếp trên UI đang chạy:
@@ -101,7 +143,7 @@
   - Thuần frontend + 1 tham số backend an toàn (không đổi hành vi mặc định). `pytest` 487/487,
     `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v106)
+## 1d. Trạng thái trước đó (v106)
 
 - **✨ (v106) Xuất báo cáo kết quả học tập cho phụ huynh (Mô hình C — GV tự in ra PDF, KHÔNG
   gửi tự động qua email/SMS) + fix lỗi in PDF.** Tiếp nối phân tích trước đó (đã cân nhắc 3 mô
@@ -135,34 +177,12 @@
     trên server dev (không chỉ tin test): gọi trực tiếp endpoint với token admin/GV thật, xác
     nhận gate 403 hoạt động đúng khi tắt cấu hình.
 
-## 1d. Trạng thái trước đó (v105)
+## 1e. Trạng thái trước đó (v105)
 
-- **✨ (v105) Sửa lỗi tính năng "AI đọc đề từ ảnh" chết hẳn trên production (Gemini từ chối
-  enum rỗng).** User báo lỗi thật trên Render: dán ảnh đề → "Đọc ảnh đề bài thất bại sau 3 lần:
-  400 INVALID_ARGUMENT ... response_schema.properties[loai_cau_nhan_dang].enum[3]: cannot be...".
-  - **Nguyên nhân gốc** (đọc source xác minh, không đoán): `prompts.py::schema_doc_de_tu_anh()`
-    khai báo `"loai_cau_nhan_dang": {"enum": ["TN4PA","TNDS","TLN",""]}` — Gemini structured-
-    output (constrained decoding) TỪ CHỐI giá trị enum rỗng `""` → trả 400 TRƯỚC cả khi sinh nội
-    dung → cả 3 lần thử lại đều dính cùng lỗi. `enum[3]` = phần tử thứ 4 = `""`.
-  - **Vì sao lọt tới production**: mọi test dùng `StubLLMClient`/`_LLMFakeAnh` — chúng BỎ QUA
-    `response_schema`, không đẩy lên Gemini. Chỉ `GeminiLLMClient` thật trên Render mới bị từ
-    chối. Đây đúng loại lỗi "stub che mất, chỉ lộ trên production".
-  - **Sửa**: (1) bỏ `""` khỏi enum → `["TN4PA","TNDS","TLN"]`; (2) sửa lời system prompt (trước
-    bảo model "để trống '' nếu không đọc được ảnh" — mâu thuẫn schema mới) thành "chọn loại gần
-    nhất + giải thích qua `ly_do_khong_khop`". Đã rà mọi nơi tiêu thụ `loai_cau_nhan_dang` (parse
-    `or ""`, frontend fallback `'không rõ'`, API) — không nơi nào dựa vào `== ""` làm tín hiệu
-    điều khiển; tín hiệu "không khớp/không đọc được" nằm ở `khop_loai_cau` + `ly_do_khong_khop`.
-  - **Regression test mới** (`test_doc_de_tu_anh.py::test_schema_gemini_khong_co_enum_rong`):
-    quét đệ quy MỌI schema gửi Gemini (`schema_doc_de_tu_anh` + `schema_sinh_cau_hoi`, cả 3 loại
-    câu), chặn enum rỗng tái phát — lấp đúng lỗ hổng test đã để lọt lỗi. Đã tự kiểm walker BẮT
-    ĐƯỢC schema cũ (trả `.properties.loai_cau_nhan_dang`) và pass schema mới trước khi tin.
-  - **Giới hạn xác minh (nói thẳng)**: server local chạy stub nên KHÔNG tự kiểm chứng được Gemini
-    thật chấp nhận schema mới — chỉ xác nhận cuối cùng sau khi deploy Render + thử ảnh thật. Bằng
-    chứng gián tiếp: schema mới không còn enum rỗng (unit test) + thông báo 400 của user khớp 100%.
-  - Thuần sửa schema/prompt LLM + thêm test, KHÔNG đụng DB. `pytest` 478/478, `ruff` sạch; backend
-    dev tự reload code mới (log WatchFiles xác nhận).
-
-## 1e. Trạng thái trước đó (v104)
+- **✨ (v105) Sửa lỗi "AI đọc đề từ ảnh" chết trên production**: Gemini structured-output
+  từ chối enum rỗng `""` trong `schema_doc_de_tu_anh` → 400 cả 3 lần thử. Bỏ `""` khỏi enum,
+  sửa system prompt cho khớp; regression test quét đệ quy MỌI schema gửi Gemini chặn enum
+  rỗng tái phát. Bài học: stub bỏ qua response_schema nên lỗi chỉ lộ trên Gemini thật.
 
 - **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
   quyền đề thi + màn giám sát Đề thi cho Quản lý.** Helper dùng chung `hs_duoc_truy_cap_bai()`

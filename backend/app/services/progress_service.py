@@ -3,7 +3,7 @@ Progress: cập nhật khi xong bài + truy vấn tiến độ HS/lớp.
 Tính lại từ các session để idempotent (không cộng dồn trùng).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -91,6 +91,33 @@ def hs_ids_cua_gv(db: Session, gv_id: int) -> list[int]:
     if not lop_ids:
         return []
     return [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
+
+
+def _so_sanh_7_ngay(sessions) -> dict:
+    """So sánh 7 ngày qua với 7 ngày liền trước (mốc = thời điểm cập nhật cuối của phiên
+    hoàn thành): số bài, thời gian TB/bài, số lượt cần gợi ý TB/bài. Trả số liệu THÔ cả
+    2 kỳ — FE tự hiện mũi tên tăng/giảm, backend không phán 'tốt/xấu'."""
+    now = datetime.now(timezone.utc)
+
+    def _utc(dt):
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
+    def _gom_ky(tu, den):
+        ky = [s for s in sessions
+              if s.trang_thai == TrangThaiSession.hoan_thanh
+              and s.cap_nhat_luc is not None and tu <= _utc(s.cap_nhat_luc) < den]
+        tg = [s.thoi_gian_giay for s in ky if s.thoi_gian_giay is not None]
+        gy = [s.so_lan_khong_hieu or 0 for s in ky]
+        return {
+            "so_bai": len(ky),
+            "thoi_gian_tb_giay": round(sum(tg) / len(tg)) if tg else None,
+            "goi_y_tb": round(sum(gy) / len(gy), 1) if gy else None,
+        }
+
+    return {
+        "ky_nay": _gom_ky(now - timedelta(days=7), now + timedelta(seconds=1)),
+        "ky_truoc": _gom_ky(now - timedelta(days=14), now - timedelta(days=7)),
+    }
 
 
 def _thoi_gian_theo_dang_loai(db: Session, hoc_sinh_id: int) -> tuple[list[dict], list[dict]]:
@@ -268,6 +295,7 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
         "muc_tieu": {"tong": so_muc_tieu, "dat": so_muc_tieu_dat},
         "dang_mat_thoi_gian": dang_mat_thoi_gian,
         "loai_mat_thoi_gian": loai_mat_thoi_gian,
+        "so_sanh_7_ngay": _so_sanh_7_ngay(sessions),
     }
 
 

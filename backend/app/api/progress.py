@@ -44,6 +44,12 @@ def phan_tich_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
     return lay_phan_tich(db, current_user.id)
 
 
+@router.get("/me/hieu-qua", dependencies=[require_role(VaiTro.hs)])
+def hieu_qua_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """HS tự xem chuỗi 8 tuần của chính mình (cùng dữ liệu GV xem qua /students/{id}/hieu-qua)."""
+    return hieu_qua_hs(db, current_user.id)
+
+
 @router.post("/me/phan-tich/cap-nhat", dependencies=[require_role(VaiTro.hs)])
 def cap_nhat_phan_tich_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
     cau_hinh = lay_cau_hinh(db)

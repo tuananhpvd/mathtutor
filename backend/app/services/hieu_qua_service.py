@@ -105,12 +105,17 @@ def _tuan_iso(dt: datetime) -> str:
 
 def _chuoi_tuan(sessions: list[SessionModel], muc_map: dict[int, int],
                 so_tuan: int = 8) -> list[dict]:
-    """Chuỗi `so_tuan` tuần gần nhất (kể cả tuần trống): bài / điểm TB / gợi ý TB."""
+    """Chuỗi `so_tuan` tuần gần nhất (kể cả tuần trống): bài / tự làm / điểm TB / gợi ý TB.
+
+    `so_tu_lam` (bài hoàn thành KHÔNG cần gợi ý — mức 0) cùng đơn vị với `so_bai` để FE vẽ
+    đường + cột chung MỘT trục tung (combo chart 1 thang đo, không dual-axis)."""
     gom: dict[str, dict] = {}
     for s in sessions:
         khoa = _tuan_iso(s.cap_nhat_luc)
-        g = gom.setdefault(khoa, {"so_bai": 0, "_diem": [], "_goi_y": []})
+        g = gom.setdefault(khoa, {"so_bai": 0, "so_tu_lam": 0, "_diem": [], "_goi_y": []})
         g["so_bai"] += 1
+        if muc_map.get(s.id, 0) == 0:
+            g["so_tu_lam"] += 1
         if s.diem is not None:
             g["_diem"].append(s.diem)
         g["_goi_y"].append(muc_map.get(s.id, 0))
@@ -123,6 +128,60 @@ def _chuoi_tuan(sessions: list[SessionModel], muc_map: dict[int, int],
         ket.append({
             "tuan": khoa,
             "so_bai": g["so_bai"] if g else 0,
+            "so_tu_lam": g["so_tu_lam"] if g else 0,
+            "diem_tb": round(sum(g["_diem"]) / len(g["_diem"]), 1) if g and g["_diem"] else None,
+            "goi_y_tb": round(sum(g["_goi_y"]) / len(g["_goi_y"]), 1) if g else None,
+        })
+    return ket
+
+
+def _moc_bat_dau(db: Session, hoc_sinh_id: int) -> datetime | None:
+    """Mốc "Tuần 1" của HS = 0h (UTC) ngày bắt đầu phiên luyện tập ĐẦU TIÊN — dùng phiên
+    đầu thay vì "đăng nhập đầu" vì users không lưu mốc đăng nhập, và phiên đầu đúng ngược
+    về quá khứ cho mọi HS đang học. Không tính phiên đã ẩn (đặt lại lịch sử → đồng hồ tuần
+    cũng tính lại). Chưa có phiên nào → None."""
+    dau = (
+        db.query(func.min(SessionModel.bat_dau_luc))
+        .filter(SessionModel.hoc_sinh_id == hoc_sinh_id, SessionModel.bi_an == False)  # noqa: E712
+        .scalar()
+    )
+    if dau is None:
+        return None
+    if dau.tzinfo is None:
+        dau = dau.replace(tzinfo=timezone.utc)
+    return dau.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _chuoi_tuan_theo_moc(sessions: list[SessionModel], muc_map: dict[int, int],
+                         moc: datetime, so_tuan: int = 8) -> list[dict]:
+    """Chuỗi tuần TƯƠNG ĐỐI theo mốc riêng từng HS: "Tuần 1" = 7 ngày đầu kể từ `moc`
+    (KHÔNG theo tuần lịch của năm). Trả tối đa `so_tuan` tuần gần nhất, HS mới học 3 tuần
+    → chỉ 3 phần tử — biểu đồ per-HS tự co lại, nhãn tuần cho biết em đã học bao lâu."""
+    def _utc(dt):
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
+    def _tuan_cua(dt) -> int:
+        return max(1, int((_utc(dt) - moc).days // 7) + 1)
+
+    gom: dict[int, dict] = {}
+    for s in sessions:
+        k = _tuan_cua(s.cap_nhat_luc)
+        g = gom.setdefault(k, {"so_bai": 0, "so_tu_lam": 0, "_diem": [], "_goi_y": []})
+        g["so_bai"] += 1
+        if muc_map.get(s.id, 0) == 0:
+            g["so_tu_lam"] += 1
+        if s.diem is not None:
+            g["_diem"].append(s.diem)
+        g["_goi_y"].append(muc_map.get(s.id, 0))
+
+    tuan_nay = _tuan_cua(datetime.now(timezone.utc))
+    ket = []
+    for k in range(max(1, tuan_nay - so_tuan + 1), tuan_nay + 1):
+        g = gom.get(k)
+        ket.append({
+            "tuan_so": k,
+            "so_bai": g["so_bai"] if g else 0,
+            "so_tu_lam": g["so_tu_lam"] if g else 0,
             "diem_tb": round(sum(g["_diem"]) / len(g["_diem"]), 1) if g and g["_diem"] else None,
             "goi_y_tb": round(sum(g["_goi_y"]) / len(g["_goi_y"]), 1) if g else None,
         })
@@ -139,15 +198,20 @@ def _hoc_sinh_cua_gv(db: Session, gv_id: int) -> tuple[list[User], dict[int, str
 
 
 def hieu_qua_hs(db: Session, hoc_sinh_id: int, so_tuan: int = 8) -> dict:
-    """Hiệu quả phương pháp cho MỘT học sinh: phân bố + xu hướng + chuỗi tuần."""
+    """Hiệu quả phương pháp cho MỘT học sinh: phân bố + xu hướng + chuỗi tuần.
+
+    Chuỗi tuần per-HS tính theo mốc RIÊNG của em đó (`tuan_so` từ 1, xem _chuoi_tuan_theo_moc);
+    chuỗi tuần CẢ LỚP (hieu_qua_lop) vẫn theo tuần lịch — mỗi em một "Tuần 1" khác nhau,
+    không gộp chung trục tương đối được."""
     sessions = _phien_hoan_thanh(db, [hoc_sinh_id])
     muc_map = _muc_goi_y_theo_phien(db, [s.id for s in sessions])
     muc_thu_tu = [muc_map.get(s.id, 0) for s in sessions]
+    moc = _moc_bat_dau(db, hoc_sinh_id)
     return {
         "hoc_sinh_id": hoc_sinh_id,
         "phan_bo_goi_y": _phan_bo(muc_thu_tu),
         "xu_huong_goi_y": _xu_huong_tu_muc(muc_thu_tu),
-        "theo_tuan": _chuoi_tuan(sessions, muc_map, so_tuan),
+        "theo_tuan": _chuoi_tuan_theo_moc(sessions, muc_map, moc, so_tuan) if moc else [],
     }
 
 

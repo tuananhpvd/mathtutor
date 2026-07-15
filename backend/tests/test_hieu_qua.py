@@ -104,8 +104,47 @@ def test_hieu_qua_hs_tinh_dung(db):
     assert pb["tong"] == 3
     assert pb["muc_0"] == 1 and pb["muc_1"] == 1 and pb["muc_2"] == 1
     assert ket["xu_huong_goi_y"]["du_du_lieu"] is False  # mới 3 bài
-    assert len(ket["theo_tuan"]) == 8
-    assert ket["theo_tuan"][-1]["so_bai"] == 3  # tuần hiện tại
+    # Chuỗi tuần TƯƠNG ĐỐI theo mốc riêng của HS: mọi phiên tạo "hôm nay" → chỉ có Tuần 1
+    # (không đệm 8 tuần lịch như trước — HS mới học 1 tuần thì biểu đồ chỉ 1 cột).
+    assert len(ket["theo_tuan"]) == 1
+    assert ket["theo_tuan"][0]["tuan_so"] == 1
+    assert ket["theo_tuan"][0]["so_bai"] == 3
+    assert ket["theo_tuan"][0]["so_tu_lam"] == 1  # 1 bài mức 0 (cho combo chart 1 trục)
+
+
+def test_hieu_qua_hs_chua_co_phien(db):
+    """HS chưa luyện bài nào → chưa có mốc 'Tuần 1' → chuỗi tuần rỗng, không lỗi."""
+    gv, gv2, hs, p = _seed(db)
+    ket = hieu_qua_hs(db, hs.id)
+    assert ket["theo_tuan"] == []
+
+
+def test_chuoi_tuan_theo_moc_ranh_gioi():
+    """Ranh giới tuần tính theo khối 7 ngày từ 0h ngày mốc: ngày 0-6 = Tuần 1, ngày 7 = Tuần 2;
+    cửa sổ chỉ lùi tối đa so_tuan tuần và không lùi quá Tuần 1."""
+    from datetime import datetime, timedelta, timezone
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from app.services import hieu_qua_service as hq
+
+    moc = datetime(2026, 7, 1, tzinfo=timezone.utc)  # 0h ngày mốc
+
+    def phien(sid, ngay, diem=1.0):
+        return SimpleNamespace(id=sid, cap_nhat_luc=moc + timedelta(days=ngay, hours=5),
+                               diem=diem)
+
+    sessions = [phien(1, 0), phien(2, 6), phien(3, 7)]  # ngày 0 & 6 → Tuần 1; ngày 7 → Tuần 2
+    muc_map = {1: 0, 2: 2, 3: 0}
+    gio_hien_tai = moc + timedelta(days=8)  # đang ở Tuần 2
+
+    with patch.object(hq, "datetime", wraps=datetime) as dt:
+        dt.now.return_value = gio_hien_tai
+        ket = hq._chuoi_tuan_theo_moc(sessions, muc_map, moc, so_tuan=8)
+
+    assert [t["tuan_so"] for t in ket] == [1, 2]  # không đệm tuần 0/âm dù so_tuan=8
+    assert ket[0]["so_bai"] == 2 and ket[0]["so_tu_lam"] == 1
+    assert ket[1]["so_bai"] == 1 and ket[1]["so_tu_lam"] == 1
 
 
 def test_hieu_qua_lop_va_csv(db):

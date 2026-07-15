@@ -4,6 +4,7 @@ import { Badge, Button, Card, CardBody, CardHeader, Select, Table } from '../../
 import { dinhDangThoiGian } from '../../utils/format'
 import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
+import BieuDoTuan from '../../components/BieuDoTuan'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
 import BanDoNangLuc from '../../components/BanDoNangLuc'
@@ -286,6 +287,7 @@ export default function TheoDoiTienBo() {
   const [chon, setChon] = useState(null)
   const [tkChon, setTkChon] = useState(null)
   const [ptChon, setPtChon] = useState(null)
+  const [hqChon, setHqChon] = useState(null)
   const [dangTaiTk, setDangTaiTk] = useState(false)
   const [dangCapNhatAi, setDangCapNhatAi] = useState(false)
   const [nhatKy, setNhatKy] = useState([])
@@ -318,9 +320,11 @@ export default function TheoDoiTienBo() {
     setChon(id)
     setTkChon(null)
     setPtChon(null)
+    setHqChon(null)
     setDangTaiTk(true)
-    Promise.all([api.getThongKeHocSinh(id), api.getPhanTichHocSinh(id)])
-      .then(([tk, pt]) => { setTkChon(tk); setPtChon(pt) })
+    Promise.all([api.getThongKeHocSinh(id), api.getPhanTichHocSinh(id),
+                 api.getHieuQuaHocSinh(id)])
+      .then(([tk, pt, hq]) => { setTkChon(tk); setPtChon(pt); setHqChon(hq) })
       .catch(() => {})
       .finally(() => setDangTaiTk(false))
   }
@@ -612,6 +616,8 @@ export default function TheoDoiTienBo() {
             <>
               <PhanTichNangLuc pt={ptChon} vaiTro="gv"
                 onCapNhat={capNhatAi} dangCapNhat={dangCapNhatAi} />
+              <BieuDoTuan data={hqChon}
+                tieu_de={`Diễn biến 8 tuần gần nhất: ${hsChon.ho_ten}`} />
               <BanDoNangLuc khoa={chon} taiDuLieu={() => api.getBanDoHocSinh(chon)}
                 tieu_de={`Bản đồ năng lực: ${hsChon.ho_ten}`} />
               <MucTieuPanel

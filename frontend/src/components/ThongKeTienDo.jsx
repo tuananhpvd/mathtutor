@@ -138,6 +138,47 @@ function TheMucDo({ r, size }) {
   )
 }
 
+/* Ô so sánh 7 ngày qua vs 7 ngày trước. totKhiTang: tăng là tốt (số bài) hay giảm là tốt
+   (thời gian, gợi ý). Backend trả số thô 2 kỳ — màu/mũi tên quyết định ở đây.
+   Mũi tên ▲/▼ cỡ lớn trong huy hiệu nền màu + kèm mức chênh lệch để nổi bật, nhìn là thấy. */
+function TheSoSanh({ nhan, nay, truoc, fmt = (v) => v, fmtDelta = null, totKhiTang = true }) {
+  const coNay = nay != null
+  const coTruoc = truoc != null
+  let mui = null
+  if (coNay && coTruoc) {
+    if (nay === truoc) {
+      mui = (
+        <span className="inline-flex items-center rounded-lg bg-surface px-2 py-0.5
+          text-muted text-lg font-black leading-none" title="Không đổi so với 7 ngày trước">
+          →
+        </span>
+      )
+    } else {
+      const tang = nay > truoc
+      const tot = tang === totKhiTang
+      const chenh = Math.abs(Math.round((nay - truoc) * 10) / 10)
+      mui = (
+        <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5
+            ${tot ? 'text-success bg-success-soft' : 'text-warning bg-warning-soft'}`}
+          title={`${tang ? 'Tăng' : 'Giảm'} so với 7 ngày trước${tot ? ' — chiều hướng tốt' : ''}`}>
+          <span className="text-2xl font-black leading-none">{tang ? '▲' : '▼'}</span>
+          <b className="text-sm">{fmtDelta ? fmtDelta(chenh) : chenh}</b>
+        </span>
+      )
+    }
+  }
+  return (
+    <div className="rounded-lg bg-surface-2 px-4 py-3 flex-1 min-w-[150px]">
+      <p className="text-xs text-muted">{nhan}</p>
+      <div className="flex items-center justify-between gap-2 flex-wrap mt-0.5">
+        <p className="text-xl font-bold text-ink">{coNay ? fmt(nay) : '—'}</p>
+        {mui}
+      </div>
+      <p className="text-[11px] text-muted mt-0.5">7 ngày trước: {coTruoc ? fmt(truoc) : '—'}</p>
+    </div>
+  )
+}
+
 function TheSo({ icon, label, value, tone = 'primary' }) {
   const toneCls = {
     primary: 'text-primary bg-primary-soft',
@@ -162,6 +203,7 @@ export default function ThongKeTienDo({ tk }) {
 
   const tq = tk.tong_quan
   const tg = tk.thoi_gian
+  const ss = tk.so_sanh_7_ngay
   const MUC = [['de', 'Dễ'], ['tb', 'Trung bình'], ['kho', 'Khó']]
 
   return (
@@ -198,6 +240,23 @@ export default function ThongKeTienDo({ tk }) {
           </CardBody>
         </div>
       </Card>
+
+      {/* 1b) SO SÁNH 7 NGÀY — nhìn nhanh chiều hướng tuần này so với tuần trước */}
+      {ss && (
+        <Card>
+          <CardHeader title="7 ngày qua so với 7 ngày trước"
+            subtitle="Làm nhiều bài hơn, nhanh hơn, ít cần gợi ý hơn = đang tiến bộ" />
+          <CardBody className="flex gap-3 flex-wrap">
+            <TheSoSanh nhan="Bài hoàn thành" nay={ss.ky_nay.so_bai} truoc={ss.ky_truoc.so_bai}
+              totKhiTang />
+            <TheSoSanh nhan="Thời gian TB mỗi bài" nay={ss.ky_nay.thoi_gian_tb_giay}
+              truoc={ss.ky_truoc.thoi_gian_tb_giay} fmt={dinhDangThoiGian}
+              fmtDelta={dinhDangThoiGian} totKhiTang={false} />
+            <TheSoSanh nhan="Lượt cần gợi ý TB mỗi bài" nay={ss.ky_nay.goi_y_tb}
+              truoc={ss.ky_truoc.goi_y_tb} totKhiTang={false} />
+          </CardBody>
+        </Card>
+      )}
 
       {/* 2) THEO THỜI GIAN (trái) + THEO MỨC ĐỘ (phải) — 2 cột cao bằng nhau */}
       <div className="grid lg:grid-cols-2 gap-6 items-stretch">

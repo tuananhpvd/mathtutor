@@ -239,6 +239,7 @@ export const api = {
   getBanDoHocSinh: (id) => request(`/progress/students/${id}/ban-do`),
   getHieuQuaLop: () => request('/progress/hieu-qua/lop'),
   getHieuQuaHocSinh: (id) => request(`/progress/students/${id}/hieu-qua`),
+  getHieuQuaMe: () => request('/progress/me/hieu-qua'),
   taiCsvHieuQua: async () => {
     // Tải file CSV (không phải JSON) — dùng fetch thô kèm token rồi kích hoạt tải về.
     const token = sessionStorage.getItem('token')

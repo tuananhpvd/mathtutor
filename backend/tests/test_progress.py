@@ -408,3 +408,80 @@ def test_progress_service_tinh_lai_idempotent(db):
     assert p1.id == p2.id
     assert p2.so_bai_lam == 1
     assert p2.so_bai_hoan_thanh == 1
+
+
+def test_xu_huong_dung_diem_qua_trinh(db):
+    """Xu hướng phải đo bằng diem_qua_trinh (ít sai/ít gợi ý hơn = tiến bộ) — vì diem của
+    TLN/TN4PA hoàn thành luôn = 1.0, đo bằng diem thì xu hướng 'mù'. Phiên cũ chưa có
+    diem_qua_trinh → fallback diem."""
+    from datetime import datetime, timedelta
+    from types import SimpleNamespace
+
+    from app.models.session import TrangThaiSession
+    from app.services.phan_tich_service import _xu_huong
+
+    t0 = datetime(2026, 7, 1)
+
+    def phien(i, diem, dqt):
+        return SimpleNamespace(trang_thai=TrangThaiSession.hoan_thanh, diem=diem,
+                               diem_qua_trinh=dqt, cap_nhat_luc=t0 + timedelta(days=i))
+
+    # diem luôn 1.0 nhưng quá trình tốt dần (0.5 → 0.9): PHẢI ra 'tien_bo' (đo diem sẽ ra on_dinh)
+    assert _xu_huong([phien(0, 1.0, 0.5), phien(1, 1.0, 0.5),
+                      phien(2, 1.0, 0.9), phien(3, 1.0, 0.9)]) == "tien_bo"
+    # quá trình kém dần → 'giam'
+    assert _xu_huong([phien(0, 1.0, 0.9), phien(1, 1.0, 0.9),
+                      phien(2, 1.0, 0.5), phien(3, 1.0, 0.5)]) == "giam"
+    # dữ liệu cũ không có diem_qua_trinh → fallback diem (TNDS bậc thang vẫn đo được)
+    assert _xu_huong([phien(0, 0.25, None), phien(1, 0.25, None),
+                      phien(2, 1.0, None), phien(3, 1.0, None)]) == "tien_bo"
+    # < 4 bài → chưa đủ
+    assert _xu_huong([phien(0, 1.0, 0.5)]) == "chua_du"
+
+
+def test_theo_dang_co_xu_huong_rieng(db, client):
+    """Mỗi nhóm dạng trong hồ sơ năng lực có xu hướng riêng (1 bài → 'chua_du')."""
+    pid = _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    r = client.get("/api/progress/me/phan-tich", headers=h).json()
+    assert all("xu_huong" in g for g in r["theo_dang"])
+    assert r["theo_dang"][0]["xu_huong"] == "chua_du"  # mới 1 bài trong dạng
+
+
+def test_so_sanh_7_ngay(db, client):
+    """Thống kê chi tiết trả so sánh 7 ngày qua vs 7 ngày trước (bài vừa xong → kỳ này)."""
+    pid = _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    r = client.get("/api/progress/me/thong-ke", headers=h).json()
+    ss = r["so_sanh_7_ngay"]
+    assert ss["ky_nay"]["so_bai"] == 1
+    assert ss["ky_nay"]["thoi_gian_tb_giay"] is not None
+    assert ss["ky_truoc"] == {"so_bai": 0, "thoi_gian_tb_giay": None, "goi_y_tb": None}
+
+
+def test_me_hieu_qua(db, client):
+    """HS tự xem chuỗi 8 tuần của mình; GV không gọi được route /me (dành riêng HS)."""
+    pid = _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'hs1')}"}
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": pid}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "2"})
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    r = client.get("/api/progress/me/hieu-qua", headers=h)
+    assert r.status_code == 200
+    d = r.json()
+    # Tuần tương đối theo mốc riêng: vừa làm bài đầu tiên hôm nay → chỉ có Tuần 1
+    assert len(d["theo_tuan"]) == 1
+    assert d["theo_tuan"][0]["tuan_so"] == 1
+    assert d["theo_tuan"][0]["so_bai"] == 1
+
+    gh = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    assert client.get("/api/progress/me/hieu-qua", headers=gh).status_code == 403

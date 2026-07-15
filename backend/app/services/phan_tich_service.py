@@ -100,6 +100,7 @@ def ho_so_nang_luc(
     theo_dang: dict[str, dict] = {}
     theo_loai: dict[str, dict] = {}
     dang_meta: dict[str, dict] = {}  # key dạng → {dang_id, chuyen_de}
+    dang_phien: dict[str, list] = {}  # key dạng → các phiên (để tính xu hướng riêng từng dạng)
 
     for s in sessions:
         p = problems.get(s.problem_id)
@@ -108,6 +109,7 @@ def ho_so_nang_luc(
         cd = p.chuyen_de or "(Chưa phân loại)"
         dang = f"{cd} › {p.dang.ten}" if p.dang else f"{cd} › (Chưa phân dạng)"
         dang_meta.setdefault(dang, {"dang_id": p.dang_id, "chuyen_de": p.chuyen_de})
+        dang_phien.setdefault(dang, []).append(s)
         loai = p.loai_cau.value
         xong = s.trang_thai == TrangThaiSession.hoan_thanh
 
@@ -125,6 +127,9 @@ def ho_so_nang_luc(
                    key=lambda r: (r["diem_thanh_thao"] is None, r["diem_thanh_thao"] or 0))
     ds_dang = sorted((_ket_nhom(k, v, dang_meta.get(k)) for k, v in theo_dang.items()),
                      key=lambda r: (r["diem_thanh_thao"] is None, r["diem_thanh_thao"] or 0))
+    for r in ds_dang:
+        # Xu hướng riêng của từng dạng (cần ≥4 bài hoàn thành trong dạng, không thì 'chua_du')
+        r["xu_huong"] = _xu_huong(dang_phien.get(r["ten"], []))
     ds_loai = sorted(
         (_ket_nhom(NHAN_LOAI.get(k, k), v, {"loai": k}) for k, v in theo_loai.items()),
         key=lambda r: (r["diem_thanh_thao"] is None, r["diem_thanh_thao"] or 0),
@@ -274,21 +279,34 @@ def tong_hop_lop_gv(db: Session, gv_id: int) -> dict:
     }
 
 
-def _xu_huong(sessions) -> str:
-    """Xu hướng tiến bộ dựa trên điểm các bài hoàn thành theo thời gian.
+def _diem_xu_huong(s) -> float | None:
+    """Giá trị dùng để đo xu hướng của 1 phiên hoàn thành.
 
-    Chia đôi (cũ/mới) theo thời điểm hoàn thành, so điểm trung bình.
+    Ưu tiên `diem_qua_trinh` (0-1, trừ dần theo số lần sai + số lần cần gợi ý) vì `diem`
+    của TLN/TN4PA hoàn thành luôn = 1.0 (chỉ TNDS có bậc thang) — so theo `diem` thì xu
+    hướng gần như "mù". Phiên cũ chưa có diem_qua_trinh → fallback `diem` (cùng thang 0-1)."""
+    if s.diem_qua_trinh is not None:
+        return s.diem_qua_trinh
+    return s.diem
+
+
+def _xu_huong(sessions) -> str:
+    """Xu hướng tiến bộ dựa trên ĐIỂM QUÁ TRÌNH các bài hoàn thành theo thời gian
+    (ít sai hơn / ít cần gợi ý hơn = tiến bộ, kể cả khi bài nào cũng làm xong).
+
+    Chia đôi (cũ/mới) theo thời điểm hoàn thành, so trung bình.
     Trả: 'tien_bo' | 'giam' | 'on_dinh' | 'chua_du'.
     """
     xong = sorted(
-        [s for s in sessions if s.trang_thai == TrangThaiSession.hoan_thanh and s.diem is not None],
+        [s for s in sessions
+         if s.trang_thai == TrangThaiSession.hoan_thanh and _diem_xu_huong(s) is not None],
         key=lambda s: s.cap_nhat_luc,
     )
     if len(xong) < 4:
         return "chua_du"
     nua = len(xong) // 2
-    cu = [s.diem for s in xong[:nua]]
-    moi = [s.diem for s in xong[nua:]]
+    cu = [_diem_xu_huong(s) for s in xong[:nua]]
+    moi = [_diem_xu_huong(s) for s in xong[nua:]]
     chenh = (sum(moi) / len(moi)) - (sum(cu) / len(cu))
     if chenh > 0.07:
         return "tien_bo"

@@ -11,12 +11,45 @@ const BAR = {
 }
 const TIN_CAY = { cao: 'Độ tin cậy cao', trung_binh: 'Độ tin cậy trung bình', thap: 'Độ tin cậy thấp' }
 
+// Xu hướng (đo bằng điểm quá trình: ít sai/ít cần gợi ý hơn = tiến bộ).
+const XU_HUONG_CFG = {
+  tien_bo: { text: '↗ Đang tiến bộ', cls: 'text-success bg-success-soft' },
+  on_dinh: { text: '→ Ổn định', cls: 'text-muted bg-surface-2' },
+  giam: { text: '↘ Cần quan tâm', cls: 'text-warning bg-warning-soft' },
+}
+
+// Badge xu hướng tổng (đặt ở header card phân tích) — 'chua_du' thì không chiếm chỗ.
+function XuHuongBadge({ xh }) {
+  const cfg = XU_HUONG_CFG[xh]
+  if (!cfg) return null
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${cfg.cls}`}
+      title="So nửa số bài gần đây với nửa trước đó, theo điểm quá trình (số lần sai + lượt cần gợi ý)">
+      {cfg.text}
+    </span>
+  )
+}
+
+// Mũi tên xu hướng nhỏ theo từng dạng (chỉ hiện khi dạng đó đủ ≥4 bài hoàn thành).
+function MuiTenXuHuong({ xh }) {
+  const cfg = XU_HUONG_CFG[xh]
+  if (!cfg) return null
+  return (
+    <span className={`text-xs font-bold shrink-0 ${cfg.cls.split(' ')[0]}`}
+      title={`Xu hướng riêng của dạng này: ${cfg.text.slice(2)}`}>
+      {cfg.text.split(' ')[0]}
+    </span>
+  )
+}
+
 function HangNhom({ r }) {
   const pct = r.diem_thanh_thao ?? 0
   return (
     <div className="py-2 border-b border-border last:border-0">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-sm text-ink truncate">{r.ten}</span>
+        <span className="text-sm text-ink truncate inline-flex items-center gap-1.5">
+          {r.ten} <MuiTenXuHuong xh={r.xu_huong} />
+        </span>
         <span className="flex items-center gap-2 shrink-0">
           <Badge tone={TONE_NHAN[r.nhan]}>{NHAN_TEXT[r.nhan]}</Badge>
           <b className="text-sm text-ink w-10 text-right">
@@ -110,6 +143,7 @@ export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapN
         <CardHeader
           title={vaiTro === 'gv' ? 'Phân tích năng lực (đề xuất cho GV)' : 'Nhận xét & gợi ý cho em'}
           subtitle={`Dựa trên ${pt.tong_hoan_thanh} bài đã hoàn thành · ${TIN_CAY[pt.do_tin_cay] || ''}`}
+          action={<XuHuongBadge xh={pt.xu_huong} />}
         />
         <CardBody className="flex flex-col gap-4">
           {!pt.du_lieu_du && (
