@@ -157,6 +157,16 @@ def _migrate_them_cot(engine) -> None:
         if "diem_qua_trinh" not in cot_s:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE sessions ADD COLUMN diem_qua_trinh FLOAT"))
+        if "so_lan_het_goi_y" not in cot_s:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE sessions ADD COLUMN so_lan_het_goi_y INTEGER DEFAULT 0 NOT NULL"
+                ))
+        if "so_lan_xem_ly_thuyet" not in cot_s:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE sessions ADD COLUMN so_lan_xem_ly_thuyet INTEGER DEFAULT 0 NOT NULL"
+                ))
     if "phan_tich_hs" in ten_bang:
         cot_pt = {c["name"] for c in insp.get_columns("phan_tich_hs")}
         if "nguon" not in cot_pt:

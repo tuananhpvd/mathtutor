@@ -467,6 +467,34 @@ def test_so_sanh_7_ngay(db, client):
     assert ss["ky_truoc"] == {"so_bai": 0, "thoi_gian_tb_giay": None, "goi_y_tb": None}
 
 
+def test_chan_doan_vat_lon_theo_dang(db):
+    """ho_so_nang_luc thêm cột chẩn đoán theo dạng/loại: số lần cạn gợi ý / xem lý thuyết /
+    nhờ thầy cô — KHÔNG đưa vào điểm thành thạo, chỉ để GV thấy hành trình vật lộn."""
+    from app.models.session import Session as SessionModel
+    from app.models.session import TrangThaiSession
+    from app.models.yeu_cau_tro_giup import YeuCauTroGiup
+    from app.services.phan_tich_service import ho_so_nang_luc
+
+    pid = _seed(db)  # bài "Khảo sát hàm số", TLN
+    hs = db.query(User).filter(User.dang_nhap == "hs1").first()
+
+    s = SessionModel(hoc_sinh_id=hs.id, problem_id=pid,
+                     trang_thai=TrangThaiSession.hoan_thanh, diem=1.0,
+                     so_lan_het_goi_y=2, so_lan_xem_ly_thuyet=3)
+    db.add(s)
+    db.flush()
+    db.add(YeuCauTroGiup(hoc_sinh_id=hs.id, session_id=s.id, problem_id=pid))
+    db.commit()
+
+    ho_so = ho_so_nang_luc(db, hs.id)
+    dang = ho_so["theo_dang"][0]
+    assert dang["so_lan_het_goi_y"] == 2
+    assert dang["so_lan_xem_ly_thuyet"] == 3
+    assert dang["so_lan_nho_thay_co"] == 1
+    # Không lẫn vào điểm thành thạo (vẫn tính như cũ, chỉ theo điểm + tỉ lệ + gợi ý TB)
+    assert "diem_thanh_thao" in dang
+
+
 def test_me_hieu_qua(db, client):
     """HS tự xem chuỗi 8 tuần của mình; GV không gọi được route /me (dành riêng HS)."""
     pid = _seed(db)

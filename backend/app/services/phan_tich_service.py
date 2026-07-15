@@ -7,12 +7,14 @@ Tính "hồ sơ năng lực" theo chuyên đề / dạng / loại câu từ lị
 
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.phan_tich import PhanTich
 from app.models.problem import Problem
 from app.models.session import Session as SessionModel
 from app.models.session import TrangThaiSession
+from app.models.yeu_cau_tro_giup import YeuCauTroGiup
 
 # Tái sinh phân tích AI khi có thêm ngần này bài, hoặc đã quá ngần này ngày.
 TAI_SINH_SAU_BAI = 5
@@ -45,7 +47,8 @@ def _phan_loai(mastery: int | None) -> str:
 
 
 def _gom() -> dict:
-    return {"so_phien": 0, "so_hoan_thanh": 0, "_diem": [], "_goi_y": [], "_tg": []}
+    return {"so_phien": 0, "so_hoan_thanh": 0, "_diem": [], "_goi_y": [], "_tg": [],
+            "het_goi_y": 0, "xem_ly_thuyet": 0, "nho_thay_co": 0}
 
 
 def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
@@ -64,6 +67,11 @@ def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
         "goi_y_tb": round(goi_y_tb, 1),
         "thoi_gian_tb_giay": tg_tb,
         "nhan": _phan_loai(mastery),
+        # Cột chẩn đoán (KHÔNG đưa vào công thức điểm thành thạo — chỉ để GV thấy hành trình
+        # vật lộn: cạn gợi ý / tự xem lại lý thuyết / nhờ thầy cô ở dạng này bao nhiêu lần).
+        "so_lan_het_goi_y": g["het_goi_y"],
+        "so_lan_xem_ly_thuyet": g["xem_ly_thuyet"],
+        "so_lan_nho_thay_co": g["nho_thay_co"],
     }
     if extra:
         row.update(extra)
@@ -102,6 +110,15 @@ def ho_so_nang_luc(
     dang_meta: dict[str, dict] = {}  # key dạng → {dang_id, chuyen_de}
     dang_phien: dict[str, list] = {}  # key dạng → các phiên (để tính xu hướng riêng từng dạng)
 
+    # Số lần "Nhờ thầy/cô" theo từng phiên (1 query gộp) — để đếm chẩn đoán theo dạng.
+    nho_rows = (
+        db.query(YeuCauTroGiup.session_id, func.count(YeuCauTroGiup.id))
+        .filter(YeuCauTroGiup.hoc_sinh_id == hoc_sinh_id)
+        .group_by(YeuCauTroGiup.session_id)
+        .all()
+    )
+    nho_map = {sid: int(n) for sid, n in nho_rows}
+
     for s in sessions:
         p = problems.get(s.problem_id)
         if p is None:
@@ -116,6 +133,11 @@ def ho_so_nang_luc(
         for key, store in ((cd, theo_cd), (dang, theo_dang), (loai, theo_loai)):
             g = store.setdefault(key, _gom())
             g["so_phien"] += 1
+            # Tín hiệu vật lộn tính cho MỌI phiên (kể cả chưa hoàn thành) — vì khó khăn xảy ra
+            # bất kể cuối cùng có xong hay không.
+            g["het_goi_y"] += s.so_lan_het_goi_y or 0
+            g["xem_ly_thuyet"] += s.so_lan_xem_ly_thuyet or 0
+            g["nho_thay_co"] += nho_map.get(s.id, 0)
             if xong:
                 g["so_hoan_thanh"] += 1
                 g["_diem"].append(s.diem if s.diem is not None else 1.0)

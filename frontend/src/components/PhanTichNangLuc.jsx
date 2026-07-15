@@ -64,6 +64,28 @@ function HangNhom({ r }) {
         Hoàn thành {r.so_hoan_thanh}/{r.so_phien} · {r.ty_le_hoan_thanh}%
         {r.goi_y_tb >= 1 ? ` · dùng gợi ý TB ${r.goi_y_tb}` : ''}
       </p>
+      <ChanDoanVatLon r={r} />
+    </div>
+  )
+}
+
+// Cột chẩn đoán "vật lộn" — chỉ hiện các dấu hiệu > 0 (không có thì không chiếm chỗ). KHÔNG
+// nằm trong điểm thành thạo, chỉ là bức tranh hành trình để GV/HS thấy chỗ cần quan tâm.
+function ChanDoanVatLon({ r }) {
+  const dau = [
+    r.so_lan_het_goi_y > 0 && { icon: '🚧', text: `cạn gợi ý ${r.so_lan_het_goi_y} lần` },
+    r.so_lan_xem_ly_thuyet > 0 && { icon: '📖', text: `xem lại lý thuyết ${r.so_lan_xem_ly_thuyet} lần` },
+    r.so_lan_nho_thay_co > 0 && { icon: '🙋', text: `nhờ thầy/cô ${r.so_lan_nho_thay_co} lần` },
+  ].filter(Boolean)
+  if (dau.length === 0) return null
+  return (
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {dau.map((d, i) => (
+        <span key={i} className="inline-flex items-center gap-1 rounded bg-warning-soft
+          text-warning text-[11px] font-medium px-1.5 py-0.5">
+          {d.icon} {d.text}
+        </span>
+      ))}
     </div>
   )
 }

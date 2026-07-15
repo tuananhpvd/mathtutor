@@ -3,8 +3,37 @@
 > File này là "trí nhớ đi theo repo" (lên GitHub). Bộ nhớ tự động của Claude Code nằm trên máy
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
+## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v113**)
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v112**)
+- **✨ (v113) Đưa tình huống "hết gợi ý → 3 liên kết" vào đánh giá năng lực (sau khi phân tích
+  phát hiện: cả 'hết gợi ý' lẫn 3 nút Xem lý thuyết/Nhờ thầy cô/Hỏi gia sư đều KHÔNG có mặt
+  trong đánh giá NL). User chốt: Tầng 1 đủ 3 tín hiệu + Tầng 2 An toàn + Tầng 3.**
+  - **2 cột mới `sessions`** (ADD COLUMN DEFAULT 0, không đụng bảng khác, đã chạy thật trên
+    dev.db): `so_lan_het_goi_y`, `so_lan_xem_ly_thuyet`.
+  - **Đếm "hết gợi ý" bằng CẠNH LÊN ở tầng service** (`tutor_service`): so `cap_goi_y_hien_tai`
+    trước/sau mỗi lượt, chỉ +1 khi bước/ý VỪA chạm mức cạn thang (cùng bước/ý) — khớp đúng
+    khoảnh khắc khối 3 liên kết hiện (`hetGoiY` FE), không đếm trùng lượt sau. CHỦ Ý KHÔNG sửa
+    lõi orchestrator (giữ 2 lõi có test) — chụp trạng thái trước dispatch vì dispatch mutate
+    cùng object.
+  - **Endpoint mới `POST /sessions/{id}/xem-ly-thuyet`**: FE `moLyThuyet` gọi đánh dấu (best-
+    effort) khi HS tự mở lý thuyết từ trong phiên — tín hiệu tự nhận thức hổng lý thuyết (trước
+    đây popup chỉ GET, không gắn phiên, tàng hình hoàn toàn).
+  - **Tầng 2 (An toàn — GIỮ NGUYÊN công thức điểm thành thạo)**: `ho_so_nang_luc` thêm 3 cột
+    CHẨN ĐOÁN theo dạng/loại — `so_lan_het_goi_y / so_lan_xem_ly_thuyet / so_lan_nho_thay_co`
+    (gộp từ session + 1 query đếm YeuCauTroGiup theo phiên). Không lẫn vào `diem_thanh_thao`,
+    chỉ để GV thấy hành trình vật lộn. FE `PhanTichNangLuc` hiện huy hiệu 🚧/📖/🙋 mỗi dạng khi >0.
+  - **Tầng 3 — siết cờ**: `_tu_dong_gan_co_khong_hieu` gắn cờ khi (số lần xin gợi ý ≥ ngưỡng)
+    HOẶC (đã cạn sạch thang gợi ý ≥ 1 lần) — lấp lỗ hổng bài Dễ (2 gợi ý) cạn sạch nhưng dưới
+    ngưỡng 3 nên trước đây không báo GV. Vẫn idempotent 1 cờ/phiên. ⚠️ Hệ quả: cờ xuất hiện
+    DÀY HƠN trên production (đúng chủ ý bắt HS bí trên bài dễ); nếu quá dày, nâng điều kiện
+    thành "cạn ≥ 2 lần".
+  - Phân tích trước khi code còn phát hiện: `goi_y_tb` (đánh giá NL) dùng `cap_goi_y_hien_tai`
+    (mức bước CUỐI, reset khi qua bước) nên khó khăn giữa chừng bị che; `so_lan_het_goi_y` là
+    thước đo "bí thật" chuẩn hơn `so_lan_khong_hieu` (vốn tính cả lần chỉ hỏi 1-2 gợi ý).
+  - `pytest` 509/509 (+4 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch; xác minh cột
+    đã thêm vào dev.db thật (không chỉ tin test in-memory).
+
+## 1a. Trạng thái trước đó (v112)
 
 - **✨ (v112) Đợt cải tiến "nhìn thấy xu hướng/tiến bộ" trên giao diện thống kê (4 nhóm, user
   chốt làm cả 4 sau 1 lượt phân tích) + đổi biểu đồ tuần sang combo chart theo mẫu user chọn.**
@@ -46,7 +75,7 @@
   `BangCongThuc` (bắt GV tự gõ dấu $) sang `MathPalette` (cùng component ô "Nhờ thầy/cô" của
   HS) qua adapter `getMf()` chèn thẳng `$latex$` vào TipTap tại con trỏ.
 
-## 1a. Trạng thái trước đó (v109)
+## 1b. Trạng thái trước đó (v109)
 
 - **✨ (v109) Pha 2 tính năng "Tóm tắt lý thuyết" — khối 3 liên kết trong khung chat HS khi hết
   gợi ý (Xem lại lý thuyết / Nhờ Thầy-Cô / Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup.**
@@ -69,7 +98,7 @@
     trình duyệt/Playwright để tự click-test trực quan — đã xác nhận `dev-check.ps1 -Fix -Wait`
     LIVE, chờ user tự kiểm trên trình duyệt trước khi merge sang việc khác.
 
-## 1b. Trạng thái trước đó (v108)
+## 1c. Trạng thái trước đó (v108)
 
 - **✨ (v108) Tính năng mới: Tóm tắt lý thuyết (Pha 1) — GV soạn, HS xem lại — kèm Rich Text
   Editor thật (TipTap) sau 2 vòng chỉnh theo phản hồi trực tiếp trên UI.**
@@ -111,7 +140,7 @@
     trong khung chat khi hết gợi ý: Xem lại lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) CHƯA làm — đúng
     phạm vi Pha 1 user đã chốt.
 
-## 1c. Trạng thái trước đó (v107)
+## 1d. Trạng thái trước đó (v107)
 
 - **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan.**
   Chuỗi cải tiến nhỏ liên tiếp từ phản hồi trực tiếp trên UI đang chạy:
@@ -143,41 +172,12 @@
   - Thuần frontend + 1 tham số backend an toàn (không đổi hành vi mặc định). `pytest` 487/487,
     `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v106)
+## 1e. Trạng thái trước đó (v106)
 
-- **✨ (v106) Xuất báo cáo kết quả học tập cho phụ huynh (Mô hình C — GV tự in ra PDF, KHÔNG
-  gửi tự động qua email/SMS) + fix lỗi in PDF.** Tiếp nối phân tích trước đó (đã cân nhắc 3 mô
-  hình: gửi email/SMS = lặp lại rủi ro đã hủy trước đây [[quyet-dinh-khong-lam-email-reset-mat-khau]];
-  tài khoản phụ huynh riêng = quá nặng, đổi phân quyền lõi; chọn **Mô hình C: báo cáo chia sẻ
-  được, không lưu liên hệ phụ huynh**) — nhẹ nhất, an toàn nhất cho dữ liệu HS vị thành niên.
-  - **Backend (thuần thêm, KHÔNG đụng schema DB)**: config mới `cho_phep_gv_xuat_bao_cao`
-    (**mặc định TẮT** — Admin phải chủ động bật). `ho_so_nang_luc()` thêm `tu_ngay/den_ngay`
-    tùy chọn (lọc phiên theo `bat_dau_luc`, caller cũ không đổi) + `so_phien`. Service mới
-    `bao_cao_service.py` (`bao_cao_hoc_sinh`/`bao_cao_lop`, tái dùng dữ liệu phân tích sẵn có,
-    KHÔNG chứa trường đáp án). 3 endpoint mới ở `progress.py`, gate cấu hình (GV tắt→403, admin
-    bypass) + kiểm sở hữu HS/lớp.
-  - **Frontend**: Admin → Cấu hình có toggle bật/tắt. GV → Theo dõi tiến bộ có card **"Xuất báo
-    cáo cho phụ huynh"** ĐỘC LẬP với phần chọn HS/lớp phía dưới trang (sau khi user phản hồi UX
-    — lúc đầu phụ thuộc `hsChon`/`fLop` chung, chỉ xuất được 1 HS đang chọn) — GV tự chọn lớp
-    trong card → hiện checkbox từng HS (mặc định tick cả lớp, bỏ bớt tùy ý) → chọn khoảng thời
-    gian → xuất. Nội dung Pha 1: tổng quan (số buổi/hoàn thành/tỉ lệ, xu hướng) + mạnh/yếu theo
-    dạng — KHÔNG gồm ghi chú GV (chưa có hạ tầng lưu nhận xét theo HS, quyết định bỏ thay vì
-    thêm bảng mới) và KHÔNG gồm đề thi thử (để Pha 2).
-  - **Trang "Theo dõi tiến bộ" đổi UX theo yêu cầu user**: bỏ tự động chọn + hiện "Tiến độ chi
-    tiết" của HS đầu tiên lúc vào trang — giờ chỉ hiện khi GV chủ động bấm "Xem biểu đồ" ở 1 HS.
-  - **Bug in PDF (2 lỗi user báo, cùng 1 gốc) — đã sửa triệt để, không vá chắp**: modal báo cáo
-    dùng `position: fixed` (Tailwind `fixed`) lồng trong cây app → **Chrome lặp lại y hệt mọi
-    phần tử `fixed` trên TỪNG TRANG khi in** (hành vi chuẩn trình duyệt) → 1 HS dài hơn 1 trang
-    bị in lặp lại chính nó; nhiều HS bị dính/lồng vào nhau vì nội dung không "chảy" qua trang
-    theo `break-before: page`. Sửa gốc: modal render qua **React Portal thẳng ra
-    `document.body`** (thoát cây `#root`) + CSS in ẩn hẳn `#root` (`display:none`, không phải
-    trick `visibility` cũ) và đưa modal về `position: static; overflow: visible` khi in — khôi
-    phục luồng tài liệu bình thường để ngắt trang đúng theo từng HS.
-  - `pytest` 484/484 (+6), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch. Đã xác nhận LIVE
-    trên server dev (không chỉ tin test): gọi trực tiếp endpoint với token admin/GV thật, xác
-    nhận gate 403 hoạt động đúng khi tắt cấu hình.
-
-## 1e. Trạng thái trước đó (v105)
+- **✨ (v106) Xuất báo cáo phụ huynh (Mô hình C — GV tự in PDF, KHÔNG email/SMS)** — chọn mô
+  hình nhẹ/an toàn nhất cho dữ liệu HS vị thành niên [[quyet-dinh-khong-lam-email-reset-mat-khau]];
+  config `cho_phep_gv_xuat_bao_cao` mặc định TẮT, service `bao_cao_service` không chứa đáp án;
+  fix lỗi Chrome in lặp `position:fixed` bằng React Portal ra `document.body`. `pytest` 484/484.
 
 - **✨ (v105) Sửa lỗi "AI đọc đề từ ảnh" chết trên production**: Gemini structured-output
   từ chối enum rỗng `""` trong `schema_doc_de_tu_anh` → 400 cả 3 lần thử. Bỏ `""` khỏi enum,

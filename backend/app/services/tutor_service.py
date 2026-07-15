@@ -40,12 +40,16 @@ def _nguong_co_khong_hieu(db: Session) -> int:
 
 
 def _tu_dong_gan_co_khong_hieu(db: Session, session: SessionModel) -> None:
-    """Tự gắn cờ 'không hiểu nhiều' khi HS xin gợi ý/bí vượt ngưỡng. Chỉ gắn MỘT lần
-    cho mỗi phiên (idempotent) để GV không bị spam cờ ở các lượt sau."""
+    """Tự gắn cờ 'không hiểu nhiều' khi HS bí vượt ngưỡng. Kích hoạt khi ONE trong hai:
+    (a) tổng số lần xin gợi ý/không hiểu ≥ ngưỡng, HOẶC (b) đã cạn SẠCH thang gợi ý ≥ 1 lần
+    — lấp lỗ hổng bài Dễ (2 gợi ý) cạn sạch nhưng dưới ngưỡng 3 nên trước đây không báo GV.
+    Chỉ gắn MỘT lần cho mỗi phiên (idempotent) để GV không bị spam cờ ở các lượt sau."""
     from app.models.flag import Flag, LoaiCo, TrangThaiCo
 
     nguong = _nguong_co_khong_hieu(db)
-    if nguong <= 0 or (session.so_lan_khong_hieu or 0) < nguong:
+    do_xin_goi_y = nguong > 0 and (session.so_lan_khong_hieu or 0) >= nguong
+    do_het_goi_y = (session.so_lan_het_goi_y or 0) >= 1
+    if not (do_xin_goi_y or do_het_goi_y):
         return
     da_co = (
         db.query(Flag)
@@ -54,12 +58,17 @@ def _tu_dong_gan_co_khong_hieu(db: Session, session: SessionModel) -> None:
     )
     if da_co is not None:
         return
+    if do_het_goi_y:
+        ghi_chu = (f"Học sinh đã dùng CẠN thang gợi ý {session.so_lan_het_goi_y} lần "
+                   f"(xin gợi ý tổng {session.so_lan_khong_hieu} lần) — nên hỗ trợ thêm.")
+    else:
+        ghi_chu = (f"Học sinh đã 'không hiểu'/xin gợi ý {session.so_lan_khong_hieu} lần "
+                   f"(ngưỡng {nguong}) — nên hỗ trợ thêm.")
     db.add(Flag(
         session_id=session.id,
         loai_co=LoaiCo.khong_hieu_nhieu,
         trang_thai=TrangThaiCo.cho_xu_ly,
-        ghi_chu=f"Học sinh đã 'không hiểu'/xin gợi ý {session.so_lan_khong_hieu} lần "
-                f"(ngưỡng {nguong}) — nên hỗ trợ thêm.",
+        ghi_chu=ghi_chu,
     ))
     _bao_hs_gap_kho(db, session)
 
@@ -300,6 +309,12 @@ def _restore_state(session: SessionModel, problem: Problem) -> TrangThaiPhien:
     )
 
 
+def _da_can_thang_goi_y(st: TrangThaiPhien) -> bool:
+    """True nếu bước/ý hiện tại đã cạn SẠCH thang gợi ý (mức gợi ý chạm trần) — cùng điều
+    kiện với `_da_het_goi_y` (orchestrator) và `hetGoiY` (frontend, nơi khối 3 liên kết hiện)."""
+    return st.cap_goi_y_hien_tai >= st.so_goi_y_buoc() - 1
+
+
 def _tinh_diem_qua_trinh(tong_so_lan_sai: int, so_lan_khong_hieu: int) -> float:
     """Điểm quá trình (0-1, chỉ để GV tham khảo — KHÔNG phải điểm chính thức của bài):
     trừ dần theo số lần sai + số lần xin gợi ý/không hiểu cả phiên, không xuống dưới 0."""
@@ -472,9 +487,20 @@ def xu_ly_luot(
             ket_qua = km.ket_qua
             ket_qua_dict = {"ket_qua": ket_qua.value, "diem": km.diem}
 
+    # Chụp mức gợi ý TRƯỚC khi dispatch (dispatch mutate cùng object) để phát hiện cạnh lên
+    # "vừa cạn sạch thang gợi ý" của đúng bước/ý này.
+    can_thang_truoc = _da_can_thang_goi_y(trang_thai)
+    buoc_y_truoc = (trang_thai.buoc_hien_tai, trang_thai.y_hien_tai)
+
     chi_thi, trang_thai_moi = _dispatch(
         trang_thai, ket_qua, noi_dung, yeu_cau_goi_y, dap_an_nhap, loai_cau, problem.meta
     )
+
+    # "Hết gợi ý" (khối 3 liên kết hiện) = bước/ý VỪA chạm mức cạn thang gợi ý, cùng bước/ý —
+    # đếm theo cạnh lên để không đếm trùng các lượt sau khi đã cạn.
+    cung_buoc_y = buoc_y_truoc == (trang_thai_moi.buoc_hien_tai, trang_thai_moi.y_hien_tai)
+    if cung_buoc_y and not can_thang_truoc and _da_can_thang_goi_y(trang_thai_moi):
+        session.so_lan_het_goi_y = (session.so_lan_het_goi_y or 0) + 1
 
     # Ý đang xét trước khi ghi đè (để dồn thời gian vào đúng ý — TNDS)
     y_truoc = session.y_hien_tai

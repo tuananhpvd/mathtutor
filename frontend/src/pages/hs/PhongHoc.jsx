@@ -167,6 +167,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     setLyThuyetMo(true)
     setLyThuyetDs(null)
     setLyThuyetError('')
+    // Đánh dấu HS tự tìm lại lý thuyết khi bí (tín hiệu chẩn đoán cho GV) — best-effort,
+    // không chặn mở popup nếu lỗi.
+    if (sid) api.danhDauXemLyThuyet(sid).catch(() => {})
     try {
       let ds = problem.dang_id
         ? await api.hsLyThuyetDs(problem.chuyen_de_id, problem.dang_id)

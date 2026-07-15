@@ -248,6 +248,20 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
     )
 
 
+@router.post("/{session_id}/xem-ly-thuyet", dependencies=[require_role(VaiTro.hs)])
+def danh_dau_xem_ly_thuyet(session_id: int, current_user: CurrentUser,
+                          db: Session = Depends(get_db)):
+    """Đánh dấu HS bấm 'Xem lại lý thuyết' từ trong phiên (khối 3 liên kết khi hết gợi ý) —
+    tín hiệu tự nhận thức hổng lý thuyết, đưa vào bức tranh năng lực theo dạng. Chỉ đếm cho
+    phiên của chính HS, không chặn học nếu lỗi (best-effort)."""
+    session = db.get(SessionModel, session_id)
+    if session is None or session.hoc_sinh_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Phiên không tồn tại")
+    session.so_lan_xem_ly_thuyet = (session.so_lan_xem_ly_thuyet or 0) + 1
+    db.commit()
+    return {"ok": True, "so_lan_xem_ly_thuyet": session.so_lan_xem_ly_thuyet}
+
+
 def _bieu_thuc_latex(expr_str: str) -> str:
     """Chuyển bieu_thuc_ket_qua (cú pháp SymPy nội bộ, dùng để CAS đối chiếu — vd
     "3*x**2-3") sang LaTeX để hiển thị đẹp ở trang Xem lại bài (vd "3x^{2}-3"). Không
