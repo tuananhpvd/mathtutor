@@ -4,7 +4,7 @@
  * - Bấm MathPalette → chèn $latex$ tại vị trí con trỏ.
  * - Preview render $...$ thành KaTeX khi có nội dung.
  */
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import Formula from './Formula'
 import MathPalette from './answer/MathPalette'
 
@@ -20,7 +20,7 @@ function renderPreview(text) {
     )
 }
 
-export default function MixedChatInput({
+const MixedChatInput = forwardRef(function MixedChatInput({
   value, onChange, placeholder = 'Nhập nội dung...', rows = 3,
   // luonHienBangCT=true (mặc định, giữ nguyên hành vi cũ ở "Nhờ thầy/cô"): bảng công thức
   // luôn hiện. false: chỉ hiện khi bấm vào ô (gọn hơn cho ô hỏi ngắn) — ẩn lại khi bấm ra
@@ -33,10 +33,14 @@ export default function MixedChatInput({
   // Nội dung hiện NGAY DƯỚI ô nhập, rộng bằng ô (vd nút Gửi) — luôn sát ô, không bị đẩy
   // xuống dưới cùng bảng công thức khi bảng hiện ra (nằm TRƯỚC phần xem trước/bảng công thức).
   duoiO = null,
-}) {
+}, ref) {
   const textareaRef = useRef(null)
   const wrapRef = useRef(null)
   const [daFocus, setDaFocus] = useState(luonHienBangCT)
+
+  useImperativeHandle(ref, () => ({
+    focus() { textareaRef.current?.focus() },
+  }))
   // Ref để adapter luôn đọc được giá trị mới nhất (tránh stale closure).
   const valueRef = useRef(value)
   useEffect(() => {
@@ -122,4 +126,6 @@ export default function MixedChatInput({
       )}
     </div>
   )
-}
+})
+
+export default MixedChatInput

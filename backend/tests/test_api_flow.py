@@ -363,3 +363,44 @@ def test_admin_endpoint_chặn_gv(client, db):
     tok = _token(client, "gv_test")
     r = client.get("/api/admin/ping", headers=_h(tok))
     assert r.status_code == 403
+
+
+def test_chuyen_de_id_va_dang_id_theo_bai_va_phien(client, db):
+    """GET /problems/{id} và GET /sessions/{id} phải trả đúng chuyen_de_id/dang_id (dùng cho
+    tính năng 'Xem lại lý thuyết' theo đúng dạng HS đang làm — cần ID, không phải tên hiển thị)."""
+    from app.models.danh_muc import ChuyenDe, Dang
+
+    hs, gv, admin, _p_cu = seed_all(db)
+    tok_gv = _token(client, "gv_test")
+    tok_hs = _token(client, "hs_test")
+
+    cd = ChuyenDe(ten="Đạo hàm", nguoi_tao_id=gv.id)
+    db.add(cd)
+    db.flush()
+    dang = Dang(chuyen_de_id=cd.id, ten="Cực trị", nguoi_tao_id=gv.id)
+    db.add(dang)
+    db.flush()
+    p = Problem(
+        chuyen_de="Đạo hàm", dang_id=dang.id, loai_cau="TLN", do_kho="tb",
+        de_bai="Tìm cực trị.", loai_dap_an_nhap="gia_tri",
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=gv.id,
+        meta={"dap_an_cuoi": "1"},
+    )
+    db.add(p)
+    db.commit()
+
+    r = client.get(f"/api/problems/{p.id}", headers=_h(tok_hs))
+    assert r.status_code == 200
+    assert r.json()["dang_id"] == dang.id
+    assert r.json()["chuyen_de_id"] == cd.id
+
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok_hs)).json()["session_id"]
+    r2 = client.get(f"/api/sessions/{sid}", headers=_h(tok_hs))
+    assert r2.status_code == 200
+    assert r2.json()["dang_id"] == dang.id
+    assert r2.json()["chuyen_de_id"] == cd.id
+
+    # Bài KHÔNG có dang_id (dữ liệu cũ/chưa gán dạng) → cả 2 trường None, không lỗi
+    r3 = client.get(f"/api/problems/{_p_cu.id}", headers=_h(tok_gv))
+    assert r3.json()["dang_id"] is None
+    assert r3.json()["chuyen_de_id"] is None

@@ -4,7 +4,30 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-15, phiên bản **v108**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-15, phiên bản **v109**)
+
+- **✨ (v109) Pha 2 tính năng "Tóm tắt lý thuyết" — khối 3 liên kết trong khung chat HS khi hết
+  gợi ý (Xem lại lý thuyết / Nhờ Thầy-Cô / Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup.**
+  - **Backend (thuần thêm trường, không đổi hành vi cũ)**: `ChiTietPhienResponse`
+    (`GET /sessions/{id}`) và `_strip_answers`/`_problem_full` (`GET /problems/{id}`) trả thêm
+    `dang_id`/`chuyen_de_id` (suy ra qua `problem.dang.chuyen_de_id`, `None` nếu bài chưa gán
+    dạng) — để FE tra đúng tóm tắt lý thuyết của dạng HS đang làm mà không cần thêm cột DB. 1
+    test mới bao cả 2 đường tải bài (làm mới/làm tiếp) + case bài chưa gán dạng.
+  - **`MixedChatInput.jsx`** bọc `forwardRef`/`useImperativeHandle` (`focus()`) để cho phép
+    focus ô "Hỏi gia sư" từ nút bên ngoài.
+  - **`PhongHoc.jsx`**: khi hết thang gợi ý của bước/ý hiện tại (`hetGoiY && !daXong`), khung
+    chat hiện khối 3 liên kết: "📖 Xem lại lý thuyết" (popup tra theo `dang_id`, tự rơi xuống
+    tra theo `chuyen_de_id` nếu dạng chưa có tóm tắt — tái dùng `NoiDungLyThuyet`), "🙋 Nhờ
+    Thầy/Cô" (mở panel có sẵn), "💬 Hỏi gia sư" (focus thẳng ô hỏi).
+  - **Đổi theo phản hồi UI ngay sau đó**: panel "Nhờ thầy/cô" trước đây hiện CỐ ĐỊNH bên dưới
+    khung chat (chiếm chỗ, đẩy layout) — đổi thành popup overlay (cùng mẫu `fixed inset-0`
+    dùng cho "Xem lại lý thuyết"/`XemLaiBai`), logic gửi (`guiNhoThayCo`/`nhoText`/`nhoDangGui`)
+    giữ nguyên hoàn toàn, chỉ đổi lớp vỏ hiển thị.
+  - `pytest` 499/499, `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch. Môi trường không có
+    trình duyệt/Playwright để tự click-test trực quan — đã xác nhận `dev-check.ps1 -Fix -Wait`
+    LIVE, chờ user tự kiểm trên trình duyệt trước khi merge sang việc khác.
+
+## 1a. Trạng thái trước đó (v108)
 
 - **✨ (v108) Tính năng mới: Tóm tắt lý thuyết (Pha 1) — GV soạn, HS xem lại — kèm Rich Text
   Editor thật (TipTap) sau 2 vòng chỉnh theo phản hồi trực tiếp trên UI.**
@@ -46,7 +69,7 @@
     trong khung chat khi hết gợi ý: Xem lại lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) CHƯA làm — đúng
     phạm vi Pha 1 user đã chốt.
 
-## 1a. Trạng thái trước đó (v107)
+## 1b. Trạng thái trước đó (v107)
 
 - **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan.**
   Chuỗi cải tiến nhỏ liên tiếp từ phản hồi trực tiếp trên UI đang chạy:
@@ -78,7 +101,7 @@
   - Thuần frontend + 1 tham số backend an toàn (không đổi hành vi mặc định). `pytest` 487/487,
     `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v106)
+## 1c. Trạng thái trước đó (v106)
 
 - **✨ (v106) Xuất báo cáo kết quả học tập cho phụ huynh (Mô hình C — GV tự in ra PDF, KHÔNG
   gửi tự động qua email/SMS) + fix lỗi in PDF.** Tiếp nối phân tích trước đó (đã cân nhắc 3 mô
@@ -112,7 +135,7 @@
     trên server dev (không chỉ tin test): gọi trực tiếp endpoint với token admin/GV thật, xác
     nhận gate 403 hoạt động đúng khi tắt cấu hình.
 
-## 1c. Trạng thái trước đó (v105)
+## 1d. Trạng thái trước đó (v105)
 
 - **✨ (v105) Sửa lỗi tính năng "AI đọc đề từ ảnh" chết hẳn trên production (Gemini từ chối
   enum rỗng).** User báo lỗi thật trên Render: dán ảnh đề → "Đọc ảnh đề bài thất bại sau 3 lần:
@@ -139,50 +162,14 @@
   - Thuần sửa schema/prompt LLM + thêm test, KHÔNG đụng DB. `pytest` 478/478, `ruff` sạch; backend
     dev tự reload code mới (log WatchFiles xác nhận).
 
-## 1d. Trạng thái trước đó (v104)
+## 1e. Trạng thái trước đó (v104)
 
 - **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
-  quyền đề thi + màn giám sát Đề thi cho Quản lý.** User đưa 1 bản review bảo mật độc lập
-  (`codex_review`, không sửa gì trước đó) — đối chiếu từng phát hiện với source thật trước khi
-  sửa (không tin máy móc), xác nhận đúng 3/6 điểm cần sửa ngay, hoãn 3 điểm còn lại (Alembic
-  migration, seed demo, tách file lớn — không cấp bách, tránh đụng DB production giữa mùa thi):
-  - **High — HS tạo được phiên học với bài GV/lớp khác nếu đoán được `problem_id`.**
-    `POST /api/sessions` trước đây chỉ kiểm bài "đã duyệt", không kiểm `bi_an`/thuộc GV chủ
-    nhiệm/được giao nhiệm vụ — trong khi `GET /api/problems/{id}` đã có đủ logic này. Rút thành
-    helper dùng chung `hs_duoc_truy_cap_bai()` (`api/problems.py`), dùng ở cả 2 nơi để không
-    còn lệch nhau. 4 test mới (`test_sessions_idor.py`): bài GV khác/bị ẩn → 404; bài được giao
-    qua nhiệm vụ (dù không thuộc GV chủ nhiệm) → vẫn tạo được, đúng nghiệp vụ.
-  - **Medium — `GET /problems/{id}/anh-huong` thiếu kiểm chủ sở hữu.** GV bất kỳ xem được số
-    phiên/HS/cờ của bài GV khác nếu biết id (các endpoint patch/xóa/khôi-phục kế bên đều đã có
-    kiểm, riêng endpoint này thiếu `current_user` + `_quyen_tren_bai()`). Đã thêm, kèm 2 test.
-  - **Medium — Admin/Quản lý vào được route đề thi (`_GV = [gv, admin]`) nhưng service khóa
-    theo `nguoi_tao_id == current_user.id`** → gọi vào chỉ nhận rỗng/404, lệch với mẫu
-    `co_toan_quyen()` đã dùng ở problems/monitor. User chọn: Admin/Quản lý TOÀN QUYỀN trên đề
-    của mọi GV. Thêm `_quyen_tren_de()`/`_de_cho_thao_tac()` (`de_thi_service.py`), `ds_de_gv`
-    hỗ trợ lọc `?gv_id=`; khi Admin phát hành đề GV khác, đối tượng nhận đề vẫn tính theo GV
-    CHỦ ĐỀ (không phải Admin) — đúng nghiệp vụ, Admin không có lớp riêng. 2 test mới xác nhận
-    Admin toàn quyền + GV khác vẫn bị chặn.
-  - **Tác dụng phụ phát hiện qua test**: check IDOR chặt hơn làm lộ **9 test cũ seed sai** —
-    `Problem` test tạo không set `nguoi_tao_id` (dựa vào lỗ hổng cũ mà không biết), sửa seed ở
-    6 file (`test_progress`, `test_tro_giup`, `test_muc_tieu`, `test_nhiem_vu`,
-    `test_co_khep_vong`, `test_api_flow`) cho bài thuộc đúng GV chủ nhiệm — phản ánh đúng thực
-    tế nghiệp vụ, không phải nới lỏng check.
-  - **Màn Đề thi mới cho Quản lý** (trước đây KHÔNG TỒN TẠI — review ban đầu tưởng đã có, tự
-    kiểm lại trước khi báo cáo): tận dụng quyền Admin/Quản lý toàn quyền ở trên, thêm mục nav
-    "Đề thi thử" cho `NAV_QUAN_LY`. `QuanLyDeThi.jsx` nhận prop `quanLy` → bản CHỈ XEM (ẩn
-    Tạo/Trộn/Phát hành/Thu hồi/Xóa — Quản lý không có ngân hàng câu/lớp riêng nên các thao tác
-    soạn thảo không áp dụng được), hiện tên GV chủ đề trên mỗi thẻ + bộ lọc theo GV, giữ Kết
-    quả lớp + Chi tiết bài làm. Backend `ds_de_gv` trả thêm `nguoi_tao_ten` (1 query gộp, không
-    N+1). GV thường không đổi gì (prop mặc định `false`).
-  - **Bài học vận hành tái diễn**: sau khi sửa xong, user test thấy màn Quản lý trống dù GV đã
-    có đề — do backend/frontend dev server đang chạy từ TRƯỚC lúc sửa code (không phải do
-    `--reload` kẹt lần này), phải kill sạch tiến trình cũ + khởi động lại mới thấy đúng. Nhắc
-    lại bài học từ v98: khi API không phản ánh đúng thay đổi, luôn nghi ngờ server chưa nạp code
-    mới trước tiên.
-  - Thuần thêm code/kiểm tra, KHÔNG đụng schema/DB. `pytest` 477/477, `vitest` 23/23, `ruff`/
-    `eslint`/`vite build` sạch.
-
-## 1e. Trạng thái trước đó (v103)
+  quyền đề thi + màn giám sát Đề thi cho Quản lý.** Helper dùng chung `hs_duoc_truy_cap_bai()`
+  chặn HS tạo phiên với bài GV/lớp khác qua đoán `problem_id`; thêm kiểm sở hữu ở
+  `/problems/{id}/anh-huong`; Admin/Quản lý toàn quyền đề thi qua `_quyen_tren_de()` + màn
+  Đề thi thử chỉ-xem cho Quản lý; sửa 9 test cũ seed thiếu `nguoi_tao_id` lộ ra do check chặt
+  hơn. `pytest` 477/477, `vitest` 23/23 sạch.
 
 - **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
   Component dùng chung mới `components/ThuongHieu.jsx` (logo trong chip trắng + wordmark).

@@ -121,6 +121,7 @@ def _problem_full(p: Problem, dang_cd: dict[int, str]) -> dict:
     return {
         "id": p.id,
         "chuyen_de": _chuyen_de_ten(p, dang_cd),
+        "chuyen_de_id": p.dang.chuyen_de_id if p.dang else None,
         "dang_id": p.dang_id,
         "dang_ten": p.dang.ten if p.dang else None,
         "loai_cau": p.loai_cau.value,
@@ -163,6 +164,7 @@ def _strip_answers(p: Problem, dang_cd: dict[int, str]) -> dict:
     return {
         "id": p.id,
         "chuyen_de": _chuyen_de_ten(p, dang_cd),
+        "chuyen_de_id": p.dang.chuyen_de_id if p.dang else None,
         "dang_id": p.dang_id,
         "dang_ten": p.dang.ten if p.dang else None,
         "loai_cau": p.loai_cau.value,

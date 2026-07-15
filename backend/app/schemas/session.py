@@ -57,6 +57,8 @@ class ChiTietPhienResponse(BaseModel):
     problem_id: int
     loai_cau: str
     chuyen_de: str
+    chuyen_de_id: int | None = None  # dùng để tra "Xem lại lý thuyết" theo đúng ID (không phải tên)
+    dang_id: int | None = None
     dang_ten: str | None = None
     de_bai: str
     hinh_anh: str | None = None

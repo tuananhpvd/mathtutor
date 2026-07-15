@@ -4,6 +4,7 @@ import { Button, Card, CardBody, ChatBubble, TypingBubble } from '../../componen
 import Formula from '../../components/Formula'
 import HuongDanPhongHoc from '../../components/HuongDanPhongHoc'
 import MixedChatInput from '../../components/MixedChatInput'
+import NoiDungLyThuyet from '../../components/NoiDungLyThuyet'
 import XemLaiBai from '../../components/XemLaiBai'
 import AnswerInputTN4PA from '../../components/answer/AnswerInputTN4PA'
 import AnswerInputTNDS from '../../components/answer/AnswerInputTNDS'
@@ -151,11 +152,33 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
   const chatRef = useRef(null)
   // Hỏi tự do (chat với gia sư — không kèm đáp án): câu hỏi khái niệm, "vì sao", bối rối...
   const [cauHoi, setCauHoi] = useState('')
+  const cauHoiRef = useRef(null)
   // Nhờ thầy/cô (A2)
   const [nhoMo, setNhoMo] = useState(false)
   const [nhoText, setNhoText] = useState('')
   const [nhoDangGui, setNhoDangGui] = useState(false)
   const [nhoOk, setNhoOk] = useState('')
+  // Xem lại lý thuyết (khi hết gợi ý) — popup đúng dạng/chuyên đề HS đang làm.
+  const [lyThuyetMo, setLyThuyetMo] = useState(false)
+  const [lyThuyetDs, setLyThuyetDs] = useState(null)
+  const [lyThuyetError, setLyThuyetError] = useState('')
+
+  async function moLyThuyet() {
+    setLyThuyetMo(true)
+    setLyThuyetDs(null)
+    setLyThuyetError('')
+    try {
+      let ds = problem.dang_id
+        ? await api.hsLyThuyetDs(problem.chuyen_de_id, problem.dang_id)
+        : []
+      if (ds.length === 0 && problem.chuyen_de_id) {
+        ds = await api.hsLyThuyetDs(problem.chuyen_de_id)
+      }
+      setLyThuyetDs(ds)
+    } catch (e) {
+      setLyThuyetError(e.message)
+    }
+  }
 
   async function guiNhoThayCo() {
     if (!sid) return
@@ -187,7 +210,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
         if (sessionId) {
           const ct = await api.getSession(sessionId)
           if (huy) return
-          setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, hinh_anh: ct.hinh_anh, meta: ct.meta, chuyen_de: ct.chuyen_de, dang_ten: ct.dang_ten })
+          setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, hinh_anh: ct.hinh_anh, meta: ct.meta, chuyen_de: ct.chuyen_de, chuyen_de_id: ct.chuyen_de_id, dang_id: ct.dang_id, dang_ten: ct.dang_ten })
           setSid(ct.session_id)
           setTurns(ct.turns.map((t) => ({ vai_tro: t.vai_tro, noi_dung: t.noi_dung })))
           setTrangThai({
@@ -213,7 +236,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
           const p = await api.getProblem(problemId)
           const phien = await api.createSession(problemId)
           if (huy) return
-          setProblem({ loai_cau: p.loai_cau, de_bai: p.de_bai, hinh_anh: p.hinh_anh, meta: p.meta, chuyen_de: p.chuyen_de, dang_ten: p.dang_ten })
+          setProblem({ loai_cau: p.loai_cau, de_bai: p.de_bai, hinh_anh: p.hinh_anh, meta: p.meta, chuyen_de: p.chuyen_de, chuyen_de_id: p.chuyen_de_id, dang_id: p.dang_id, dang_ten: p.dang_ten })
           setSid(phien.session_id)
           setTurns([{ vai_tro: 'gia_su', noi_dung: phien.van_ban }])
           setTrangThai({
@@ -405,6 +428,26 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 <ChatBubble key={i} vai_tro={t.vai_tro} text={t.noi_dung} />
               ))}
               {dangGui && <TypingBubble />}
+              {hetGoiY && !daXong && (
+                <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2.5 flex flex-col gap-2">
+                  <p className="text-sm text-ink text-center">
+                    Em đã dùng hết gợi ý cho bước này. Em có thể:
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button size="sm" variant="secondary" onClick={moLyThuyet}>
+                      📖 Xem lại lý thuyết
+                    </Button>
+                    <Button size="sm" variant="secondary"
+                      onClick={() => { setNhoMo(true); setNhoText('') }}>
+                      🙋 Nhờ Thầy/Cô
+                    </Button>
+                    <Button size="sm" variant="secondary"
+                      onClick={() => cauHoiRef.current?.focus()}>
+                      💬 Hỏi gia sư
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
             {nhoOk && (
               <div className="rounded-lg bg-success-soft text-success text-sm px-3 py-2 text-center">
@@ -414,6 +457,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
             {!daXong && (
               <div className="border-t border-border pt-3">
                 <MixedChatInput
+                  ref={cauHoiRef}
                   value={cauHoi}
                   onChange={setCauHoi}
                   placeholder="Hỏi gia sư điều em chưa hiểu (vd: vì sao lại làm vậy ạ?)... — bấm vào ô để nhập công thức"
@@ -455,35 +499,6 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
             </div>
           </CardBody>
         </Card>
-
-        {nhoMo && (
-          <Card className="lg:col-span-3 border-secondary/40 bg-secondary/5">
-            <CardBody className="flex flex-col gap-3 pt-4">
-              <div>
-                <p className="font-semibold text-sm text-ink">🙋 Nhờ thầy/cô giúp đỡ</p>
-                <p className="text-xs text-muted mt-0.5">
-                  Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong bài.
-                  Em có thể mô tả bằng chữ hoặc chèn công thức toán.
-                </p>
-              </div>
-              <MixedChatInput
-                value={nhoText}
-                onChange={setNhoText}
-                placeholder="Mô tả chỗ chưa hiểu (không bắt buộc)..."
-                rows={2}
-              />
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="secondary"
-                  onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
-                  Hủy
-                </Button>
-                <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
-                  {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        )}
 
         {/* Vùng trả lời / banner hoàn thành */}
         <Card className="lg:col-span-2">
@@ -562,6 +577,76 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
       </div>
 
       {xemLaiMo && sid && <XemLaiBai sessionId={sid} onDong={() => setXemLaiMo(false)} />}
+
+      {nhoMo && (
+        <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto flex items-start justify-center p-4">
+          <Card className="max-w-lg w-full my-8 border-secondary/40 bg-secondary/5">
+            <CardBody className="flex flex-col gap-3 pt-4">
+              <div>
+                <p className="font-semibold text-sm text-ink">🙋 Nhờ thầy/cô giúp đỡ</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong bài.
+                  Em có thể mô tả bằng chữ hoặc chèn công thức toán.
+                </p>
+              </div>
+              <MixedChatInput
+                value={nhoText}
+                onChange={setNhoText}
+                placeholder="Mô tả chỗ chưa hiểu (không bắt buộc)..."
+                rows={2}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="secondary"
+                  onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
+                  Hủy
+                </Button>
+                <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
+                  {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
+      {lyThuyetMo && (
+        <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto flex items-start justify-center p-4">
+          <Card className="max-w-2xl w-full my-8">
+            <CardBody className="flex flex-col gap-3 pt-5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-ink">📖 Xem lại lý thuyết</p>
+                <Button size="sm" variant="secondary" onClick={() => setLyThuyetMo(false)}>
+                  Đóng ✕
+                </Button>
+              </div>
+              {lyThuyetError && (
+                <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{lyThuyetError}</p>
+              )}
+              {!lyThuyetDs && !lyThuyetError && (
+                <p className="text-sm text-muted">Đang tải...</p>
+              )}
+              {lyThuyetDs && lyThuyetDs.length === 0 && (
+                <p className="text-sm text-muted text-center py-6">
+                  Thầy/cô chưa soạn tóm tắt lý thuyết cho phần này.
+                </p>
+              )}
+              {lyThuyetDs && lyThuyetDs.length > 0 && (
+                <div className="flex flex-col gap-4">
+                  {lyThuyetDs.map((tt) => (
+                    <div key={tt.id} className="border-t border-border pt-3 first:border-t-0 first:pt-0">
+                      <p className="font-semibold text-ink">{tt.tieu_de}</p>
+                      <p className="text-xs text-muted mb-2">
+                        {tt.chuyen_de_ten}{tt.dang_ten && <> › {tt.dang_ten}</>}
+                      </p>
+                      <NoiDungLyThuyet noiDung={tt.noi_dung} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
