@@ -23,6 +23,7 @@ from app.api.progress import router as progress_router
 from app.api.questions_ai import router as questions_ai_router
 from app.api.sessions import router as sessions_router
 from app.api.thong_bao import router as thong_bao_router
+from app.api.tom_tat_ly_thuyet import router as tom_tat_ly_thuyet_router
 from app.api.tro_giup import router as tro_giup_router
 from app.config import kiem_tra_an_toan_khoi_dong, settings
 from app.core.uploads import UPLOADS_DIR
@@ -79,6 +80,7 @@ app.include_router(tro_giup_router)
 app.include_router(nhiem_vu_router)
 app.include_router(muc_tieu_router)
 app.include_router(de_thi_router)
+app.include_router(tom_tat_ly_thuyet_router)
 
 
 @app.get("/api/health")

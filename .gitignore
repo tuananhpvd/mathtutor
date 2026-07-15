@@ -34,3 +34,6 @@ uploads/
 backup_data.json
 luong_chay
 upload_dulieu
+
+# PID runtime của dev-servers.ps1/dev-check.ps1 — chỉ có ý nghĩa trên máy dev đang chạy
+scripts/.pid/

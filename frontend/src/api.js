@@ -171,6 +171,20 @@ export const api = {
     request(`/danh-muc/dang/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   xoaDang: (id) => request(`/danh-muc/dang/${id}`, { method: 'DELETE' }),
 
+  // Tóm tắt lý thuyết (GV soạn; HS xem lại — Pha 1)
+  gvLyThuyetDs: () => request('/ly-thuyet/gv'),
+  taoLyThuyet: (body) => post('/ly-thuyet', body),
+  capNhatLyThuyet: (id, body) =>
+    request(`/ly-thuyet/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  xoaLyThuyet: (id) => request(`/ly-thuyet/${id}`, { method: 'DELETE' }),
+  hsLyThuyetDs: (chuyen_de_id, dang_id) => {
+    const p = new URLSearchParams()
+    if (chuyen_de_id) p.set('chuyen_de_id', chuyen_de_id)
+    if (dang_id) p.set('dang_id', dang_id)
+    const s = p.toString()
+    return request('/ly-thuyet/hs' + (s ? `?${s}` : ''))
+  },
+
   // Admin (Phase 10)
   adminStats: () => request('/admin/stats'),
   adminUsers: () => request('/admin/users'),

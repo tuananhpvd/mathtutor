@@ -16,10 +16,12 @@ const HoTroHocSinh = lazy(() => import('./HoTroHocSinh'))
 const GiaoNhiemVu = lazy(() => import('./GiaoNhiemVu'))
 const QuanLyDeThi = lazy(() => import('./QuanLyDeThi'))
 const QuanLyNoiDungGV = lazy(() => import('./QuanLyNoiDungGV'))
+const QuanLyLyThuyet = lazy(() => import('./QuanLyLyThuyet'))
 
 const NAV = [
   { key: 'tong_quan', label: 'Tổng quan' },
   { key: 'danh_muc', label: 'Danh mục' },
+  { key: 'ly_thuyet', label: 'Lý thuyết' },
   { key: 'cau_hoi', label: 'Câu hỏi' },
   { key: 'ai_sinh', label: 'AI sinh câu hỏi' },
   { key: 'co', label: 'Cờ theo dõi' },
@@ -42,6 +44,7 @@ const NAV_QUAN_LY = [
 const TIEU_DE = {
   tong_quan: 'Tổng quan',
   danh_muc: 'Quản lý danh mục chuyên đề / dạng',
+  ly_thuyet: 'Tóm tắt lý thuyết',
   cau_hoi: 'Quản lý câu hỏi',
   ai_sinh: 'AI sinh câu hỏi',
   co: 'Cờ theo dõi',
@@ -126,6 +129,7 @@ export default function GiaoVienApp({ onLogout }) {
         {page === 'noi_dung_gv' && <QuanLyNoiDungGV />}
         {page === 'tong_quan' && <TongQuan onNavigate={navigate} />}
         {page === 'danh_muc' && <QuanLyDanhMuc />}
+        {page === 'ly_thuyet' && <QuanLyLyThuyet />}
         {page === 'cau_hoi' && <QuanLyCauHoi />}
         {page === 'ai_sinh' && <AISinhCauHoi />}
         {page === 'co' && (

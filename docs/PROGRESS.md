@@ -4,7 +4,49 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-14, phiên bản **v107**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-15, phiên bản **v108**)
+
+- **✨ (v108) Tính năng mới: Tóm tắt lý thuyết (Pha 1) — GV soạn, HS xem lại — kèm Rich Text
+  Editor thật (TipTap) sau 2 vòng chỉnh theo phản hồi trực tiếp trên UI.**
+  - **Bảng mới `tom_tat_ly_thuyet`** (thuần ADD, không ALTER — bảng chưa từng deploy nên đổi
+    schema thoải mái trong lúc phát triển): `chuyen_de_id` bắt buộc, `dang_id` nullable (cấp
+    Chuyên đề hoặc Dạng cụ thể), `noi_dung` (Text — xem bên dưới), `tu_khoa`, `hien` (GV bật/tắt
+    hiện với HS). Model/service/API mới (`app/{models,schemas,services,api}/tom_tat_ly_thuyet.py`),
+    scope theo chủ sở hữu đúng mẫu `danh_muc` (Admin/Quản lý toàn quyền). 11 test.
+  - **GV → menu mới "Lý thuyết"**: danh sách 2 cột + phân trang 10/trang (giống mẫu HS), mỗi
+    thẻ mặc định CHỈ hiện thông tin cơ bản (tiêu đề/chuyên đề/dạng/từ khóa) — bấm "Xem nội dung"
+    mới hiện, đúng phản hồi user (ban đầu code hiện preview rút gọn luôn luôn, không đúng ý).
+  - **HS → menu mới "Lý thuyết"** (giữa "Mục tiêu" và "Chọn bài"): danh sách 2 cột + phân trang
+    10/trang, lọc theo chuyên đề/dạng.
+  - **Vòng lặp thiết kế ô soạn (2 lần chỉnh theo phản hồi UI thật, không đoán 1 lần đúng)**:
+    (1) bản đầu tách nội dung thành từng "khối" text/ảnh rời (thêm/xóa/sắp xếp từng khối) — user
+    phản hồi không đúng ý, muốn 1 ô soạn liền mạch kiểu Word; (2) đổi sang 1 ô văn bản tự do +
+    cú pháp `$...$`/`![]()`; (3) user yêu cầu tiếp: RTE thật, 2 cột nhập/xem trước, nút Hủy +
+    cảnh báo chưa lưu — **bản cuối**: tích hợp **TipTap** (`@tiptap/react` + `starter-kit` +
+    `extension-image`, tương thích React 19) làm RTE nhỏ gọn (đậm/nghiêng/tiêu đề/danh sách/
+    trích dẫn + chèn ảnh đúng vị trí con trỏ + bảng công thức `$...$` có sẵn dùng chung toàn
+    app). Bố cục 2 cột (trái: form + editor; phải: xem trước dính `sticky`, cập nhật realtime).
+    Nút Hủy/Đóng so trạng thái ban đầu — có thay đổi chưa lưu thì hiện `useConfirm` (không phải
+    `window.confirm` thô) trước khi đóng.
+  - **⚠️ Đổi kiến trúc lưu trữ giữa chừng, có hệ quả bảo mật phải tự xử lý ngay**: `noi_dung`
+    đổi từ text thuần sang **HTML thật** (TipTap `getHTML()`) — bắt buộc thêm `DOMPurify.sanitize()`
+    trước khi `dangerouslySetInnerHTML` ở CẢ 2 nơi hiển thị (khung xem trước GV + trang HS xem),
+    phòng trường hợp gọi thẳng API bỏ qua giao diện soạn chèn `<script>`/`onerror=`. Công thức
+    `$...$` trong HTML render bằng `katex/contrib/auto-render` (tiện ích có sẵn trong `katex` đã
+    cài, không cần thêm dependency cho việc này). Dep mới: `@tiptap/*` (3 gói) + `dompurify`.
+  - **Bài học vận hành mới — bổ sung vào memory `reload-servers-after-coding`**: viết lại 2
+    script `scripts/dev-servers.ps1` (ghi PID ra file khi khởi động, thay vì chỉ dò cổng) +
+    `scripts/dev-check.ps1` (script MỚI, kiểm tra đáng tin cậy bằng HTTP request thật + đối
+    chiếu PID đang giữ cổng với cây tiến trình được PID-file theo dõi — phát hiện chính xác
+    "HTTP chạy nhưng là tiến trình lạ/zombie → đang chạy code cũ", điều mà `netstat` một mình
+    không phát hiện được do báo trạng thái trễ). Đã tự dựng lỗi thật (zombie backend, orphan
+    frontend con của `cmd.exe`) và xác nhận `-Fix -Wait` tự sửa đúng trước khi tin. Từ nay dùng
+    1 lệnh `dev-check.ps1 -Fix -Wait` thay cho mọi chuỗi lệnh chẩn đoán rời rạc trước đây.
+  - `pytest` 498/498, `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch. Pha 2 (3 liên kết
+    trong khung chat khi hết gợi ý: Xem lại lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) CHƯA làm — đúng
+    phạm vi Pha 1 user đã chốt.
+
+## 1a. Trạng thái trước đó (v107)
 
 - **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan.**
   Chuỗi cải tiến nhỏ liên tiếp từ phản hồi trực tiếp trên UI đang chạy:
@@ -36,7 +78,7 @@
   - Thuần frontend + 1 tham số backend an toàn (không đổi hành vi mặc định). `pytest` 487/487,
     `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v106)
+## 1b. Trạng thái trước đó (v106)
 
 - **✨ (v106) Xuất báo cáo kết quả học tập cho phụ huynh (Mô hình C — GV tự in ra PDF, KHÔNG
   gửi tự động qua email/SMS) + fix lỗi in PDF.** Tiếp nối phân tích trước đó (đã cân nhắc 3 mô
@@ -70,7 +112,7 @@
     trên server dev (không chỉ tin test): gọi trực tiếp endpoint với token admin/GV thật, xác
     nhận gate 403 hoạt động đúng khi tắt cấu hình.
 
-## 1b. Trạng thái trước đó (v105)
+## 1c. Trạng thái trước đó (v105)
 
 - **✨ (v105) Sửa lỗi tính năng "AI đọc đề từ ảnh" chết hẳn trên production (Gemini từ chối
   enum rỗng).** User báo lỗi thật trên Render: dán ảnh đề → "Đọc ảnh đề bài thất bại sau 3 lần:
@@ -97,7 +139,7 @@
   - Thuần sửa schema/prompt LLM + thêm test, KHÔNG đụng DB. `pytest` 478/478, `ruff` sạch; backend
     dev tự reload code mới (log WatchFiles xác nhận).
 
-## 1c. Trạng thái trước đó (v104)
+## 1d. Trạng thái trước đó (v104)
 
 - **✨ (v104) Vá 2 lỗ hổng IDOR phát hiện qua review độc lập (Codex) + Admin/Quản lý toàn
   quyền đề thi + màn giám sát Đề thi cho Quản lý.** User đưa 1 bản review bảo mật độc lập
@@ -140,32 +182,13 @@
   - Thuần thêm code/kiểm tra, KHÔNG đụng schema/DB. `pytest` 477/477, `vitest` 23/23, `ruff`/
     `eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v103)
+## 1e. Trạng thái trước đó (v103)
 
 - **✨ (v103) Thiết kế lại trang Đăng nhập — split-screen thương hiệu, đồng bộ trang Bảo trì.**
-  Trang cũ: logo phóng to 288px lệch hẳn tỉ lệ form, form dính lên đỉnh màn hình (không căn
-  giữa), phẳng, không có nút hiện/ẩn mật khẩu, không nói rõ sản phẩm là gì ngay từ màn đầu.
-  - **Component dùng chung mới** `components/ThuongHieu.jsx`: logo trong "chip" trắng bo tròn
-    (đảm bảo logo màu luôn nổi rõ dù nền tối/sáng) + wordmark "MathTutor", 3 cỡ (sm/md/lg).
-  - **Login split-screen**: cột trái (từ `lg`) nền gradient indigo + hoạ tiết toán mờ (∫∑√π,
-    thuần chữ không ảnh) + logo + "Gia sư Toán 12" + 3 điểm mạnh (Dẫn dắt tự tìm đáp án không
-    đưa lời giải sẵn / Chấm chính xác từng bước làm / Bám sát nội dung chương trình); cột phải
-    là form. Điện thoại: panel trái ẩn, thay bằng header thương hiệu gọn phía trên form.
-  - **Form**: thêm nút hiện/ẩn mật khẩu (dựng inline, KHÔNG đụng primitive `Input` dùng chung
-    toàn app — tránh hồi quy chỗ khác), `autoComplete`, nút Đăng nhập có spinner lúc chờ, dòng
-    "Quên mật khẩu? Liên hệ giáo viên hoặc quản trị viên" (đúng luồng thật của app, không bịa
-    tính năng tự reset).
-  - **Lặp theo phản hồi trực quan của user** (2 vòng chỉnh sau khi xem thật trên trình duyệt —
-    Claude không có trình duyệt để tự kiểm): (1) bỏ dòng phụ đề "Phương pháp gợi mở (Socratic)"
-    thừa; (2) khung ban đầu bổ đôi TOÀN VIEWPORT (`grid min-h-screen lg:grid-cols-2`) khiến màn
-    rộng trống trải — sửa thành 1 "card" giới hạn `max-w-4xl` bo góc/đổ bóng căn giữa trên nền
-    trung tính (pattern login SaaS chuẩn); (3) nới `max-w-4xl→max-w-5xl` + giảm padding panel
-    trái để câu điểm mạnh dài nhất không bị xuống dòng.
-  - **Trang Bảo trì** (`App.jsx`) đồng bộ cùng ngôn ngữ hình ảnh: thay `bg-white`/`text-gray-800`
-    hardcode bằng gradient indigo + hoạ tiết toán + `ThuongHieu` dùng chung.
-  - Thuần frontend, không đụng logic đăng nhập/API/token. `eslint`/`vitest` 23/23/`vite build` sạch.
-
-## 1e. Trạng thái trước đó (v102)
+  Component dùng chung mới `components/ThuongHieu.jsx` (logo trong chip trắng + wordmark).
+  Login split-screen: cột trái gradient indigo + hoạ tiết toán mờ + 3 điểm mạnh; cột phải form
+  có nút hiện/ẩn mật khẩu. Trang Bảo trì đồng bộ cùng ngôn ngữ hình ảnh. Thuần frontend.
+  `eslint`/`vitest` 23/23/`vite build` sạch.
 
 - **✨ (v102) Sửa lại tông màu sau đánh giá UI/UX độc lập.** Đối chiếu 1 bản đánh giá giao diện
   từ bên ngoài với code thật trước khi sửa (không sửa máy móc): xác nhận đúng lỗi nặng nhất —

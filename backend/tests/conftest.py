@@ -22,6 +22,7 @@ import app.models.progress  # noqa: F401
 import app.models.session  # noqa: F401
 import app.models.solution_step  # noqa: F401
 import app.models.thong_bao  # noqa: F401
+import app.models.tom_tat_ly_thuyet  # noqa: F401
 import app.models.turn  # noqa: F401
 import app.models.user  # noqa: F401
 import app.models.yeu_cau_tro_giup  # noqa: F401

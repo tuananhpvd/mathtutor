@@ -10,6 +10,7 @@ const PhongHoc = lazy(() => import('./PhongHoc'))
 const TienDo = lazy(() => import('./TienDo'))
 const NhiemVu = lazy(() => import('./NhiemVu'))
 const MucTieu = lazy(() => import('./MucTieu'))
+const LyThuyet = lazy(() => import('./LyThuyet'))
 const ThiThu = lazy(() => import('./ThiThu'))
 const TaiKhoanCaNhan = lazy(() => import('./TaiKhoanCaNhan'))
 
@@ -17,6 +18,7 @@ const NAV = [
   { key: 'trang_chu', label: 'Trang chủ' },
   { key: 'nhiem_vu', label: 'Nhiệm vụ' },
   { key: 'muc_tieu', label: 'Mục tiêu' },
+  { key: 'ly_thuyet', label: 'Lý thuyết' },
   { key: 'chon_bai', label: 'Chọn bài' },
   { key: 'thi_thu', label: 'Thi thử' },
   { key: 'tien_do', label: 'Tiến độ' },
@@ -173,6 +175,7 @@ export default function HocSinhApp({ onLogout }) {
           <ThiThu onLuyenBai={moBaiMoi} focusId={focusDeThi} onFocusDone={() => setFocusDeThi(null)} />
         )}
         {page === 'muc_tieu' && <MucTieu />}
+        {page === 'ly_thuyet' && <LyThuyet />}
         {page === 'tien_do' && <TienDo onLuyenDang={luyenDang} />}
         {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}
       </Suspense>
