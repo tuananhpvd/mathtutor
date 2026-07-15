@@ -1,5 +1,6 @@
 import { Card, CardBody, CardHeader } from './ui'
-import { dinhDangThoiGian } from '../utils/format'
+import BangXepHangThoiGian from './BangXepHangThoiGian'
+import { NHAN_LOAI_MAT_THOI_GIAN, dinhDangThoiGian } from '../utils/format'
 
 const pct = (n, t) => (t > 0 ? Math.round((n / t) * 100) : 0)
 
@@ -256,6 +257,27 @@ export default function ThongKeTienDo({ tk }) {
           </div>
         </CardBody>
       </Card>
+
+      {/* 4) MẤT NHIỀU THỜI GIAN — riêng của HS này (KHÔNG cộng dồn với HS khác), khác với
+          card cùng tên ở trang Tổng quan (GV, cộng dồn cả lớp). */}
+      {(tk.dang_mat_thoi_gian?.length > 0 || tk.loai_mat_thoi_gian?.length > 0) && (
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          <BangXepHangThoiGian
+            title="Dạng bài mất nhiều thời gian"
+            subtitle="Tối đa 3 dạng — theo tổng thời gian hoàn thành"
+            rows={tk.dang_mat_thoi_gian || []}
+            nhan={(r) => r.ten}
+            empty="Chưa có dữ liệu hoàn thành."
+          />
+          <BangXepHangThoiGian
+            title="Loại câu hỏi mất nhiều thời gian"
+            subtitle="Theo tổng thời gian hoàn thành"
+            rows={tk.loai_mat_thoi_gian || []}
+            nhan={(r) => NHAN_LOAI_MAT_THOI_GIAN[r.loai] || r.loai}
+            empty="Chưa có dữ liệu hoàn thành."
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -93,6 +93,39 @@ def hs_ids_cua_gv(db: Session, gv_id: int) -> list[int]:
     return [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
 
 
+def _thoi_gian_theo_dang_loai(db: Session, hoc_sinh_id: int) -> tuple[list[dict], list[dict]]:
+    """Top 3 dạng/loại câu MÌNH HS này mất nhiều thời gian nhất — SUM thời gian hoạt động của
+    các phiên đã hoàn thành CỦA RIÊNG HS ĐÓ (không cộng dồn với HS khác), để phản ánh đúng khó
+    khăn cá nhân thay vì bị lệch bởi số lượt làm của cả lớp (khác với
+    gv_service.tong_quan_gv — cùng công thức nhưng scope cả lớp, dùng cho góc nhìn tổng quan)."""
+    sess = (
+        db.query(SessionModel)
+        .filter(SessionModel.hoc_sinh_id == hoc_sinh_id,
+                SessionModel.trang_thai == TrangThaiSession.hoan_thanh)
+        .all()
+    )
+    if not sess:
+        return [], []
+    pids = {s.problem_id for s in sess}
+    p_cache = {p.id: p for p in db.query(Problem).filter(Problem.id.in_(pids)).all()}
+    tg_dang: dict[str, int] = {}
+    tg_loai: dict[str, int] = {}
+    for s in sess:
+        p = p_cache.get(s.problem_id)
+        if p is None:
+            continue
+        t = s.thoi_gian_giay or 0
+        ten_dang = f"{p.chuyen_de} › {p.dang.ten}" if p.dang else p.chuyen_de
+        tg_dang[ten_dang] = tg_dang.get(ten_dang, 0) + t
+        tg_loai[p.loai_cau.value] = tg_loai.get(p.loai_cau.value, 0) + t
+    dang_top = sorted(tg_dang.items(), key=lambda x: x[1], reverse=True)[:3]
+    loai_top = sorted(tg_loai.items(), key=lambda x: x[1], reverse=True)[:3]
+    return (
+        [{"ten": k, "thoi_gian_giay": v} for k, v in dang_top],
+        [{"loai": k, "thoi_gian_giay": v} for k, v in loai_top],
+    )
+
+
 def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
     """Thống kê tiến độ chi tiết của HS trên toàn bộ bài đã duyệt.
 
@@ -220,6 +253,8 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
             1 for mt in muc_tieu_list if _tien_do(mt, comp) >= mt.chi_tieu_so
         )
 
+    dang_mat_thoi_gian, loai_mat_thoi_gian = _thoi_gian_theo_dang_loai(db, hoc_sinh_id)
+
     return {
         "tong_quan": tong_quan,
         "thoi_gian": {
@@ -231,6 +266,8 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
         "theo_dang": theo_dang,
         "nhiem_vu": {"tong": so_nhiem_vu, "hoan_thanh": so_nhiem_vu_hoan_thanh},
         "muc_tieu": {"tong": so_muc_tieu, "dat": so_muc_tieu_dat},
+        "dang_mat_thoi_gian": dang_mat_thoi_gian,
+        "loai_mat_thoi_gian": loai_mat_thoi_gian,
     }
 
 

@@ -70,6 +70,15 @@ def test_thong_ke_chi_tiet(db, client):
     assert r["theo_dang"][0]["chuyen_de"] == "Khảo sát hàm số"
     assert r["theo_dang"][0]["dang"][0]["hoan_thanh"] == 1
 
+    # Mất nhiều thời gian (Pha per-HS, không cộng dồn với HS khác — bài chưa gán dạng nên
+    # ten = tên chuyên đề).
+    assert r["dang_mat_thoi_gian"] == [
+        {"ten": "Khảo sát hàm số", "thoi_gian_giay": r["thoi_gian"]["tong_thoi_gian_giay"]}
+    ]
+    assert r["loai_mat_thoi_gian"] == [
+        {"loai": "TLN", "thoi_gian_giay": r["thoi_gian"]["tong_thoi_gian_giay"]}
+    ]
+
 
 def test_phan_tich_nang_luc_hs_va_gv(db, client):
     pid = _seed(db)

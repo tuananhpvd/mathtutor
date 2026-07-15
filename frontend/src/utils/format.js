@@ -25,3 +25,10 @@ export const NHAN_LOAI_CAU = {
   TNDS: 'ĐÚNG/SAI',
   TN4PA: 'TRẮC NGHIỆM',
 }
+
+// Nhãn loại câu đầy đủ — dùng ở các bảng "mất nhiều thời gian" (Tổng quan GV, Tiến độ chi tiết).
+export const NHAN_LOAI_MAT_THOI_GIAN = {
+  TN4PA: 'Trắc nghiệm ABCD',
+  TNDS: 'Đúng/Sai 4 ý',
+  TLN: 'Trả lời ngắn',
+}
