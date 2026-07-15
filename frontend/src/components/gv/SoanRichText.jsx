@@ -4,7 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import { Bold, Italic, Heading2, List, ListOrdered, Quote, ImagePlus } from 'lucide-react'
 import { api } from '../../api'
-import { BangCongThuc } from '../../pages/gv/quanLyCauHoi/BangCongThuc'
+import MathPalette from '../answer/MathPalette'
 
 /* Trình soạn thảo văn bản (Rich Text Editor) nhỏ gọn — TipTap + StarterKit + Image.
    Công thức toán vẫn gõ trong cặp $...$ (dạng chữ thường trong nội dung, không phải node
@@ -62,11 +62,23 @@ export default function SoanRichText({ value, onChange }) {
     }
   }
 
-  function chenCongThuc(snippet, back) {
-    if (!editor) return
-    const { from } = editor.state.selection
-    editor.chain().focus().insertContent(snippet).run()
-    if (back) editor.commands.setTextSelection(from + snippet.length - back)
+  // Adapter cho MathPalette (cùng kiểu getMf() dùng ở MixedChatInput — ô "Nhờ thầy/cô"):
+  // mỗi lần chèn tự bọc $...$ quanh công thức, GV không cần tự gõ dấu $.
+  function getMf() {
+    if (!editor) return null
+    return {
+      focus() { editor.commands.focus() },
+      insert(latex) {
+        const clean = latex.replace(/\\placeholder\{\}/g, '')
+        editor.chain().focus().insertContent(`$${clean}$`).run()
+      },
+      executeCommand(cmd) {
+        if (cmd !== 'deleteBackward') return
+        const { from } = editor.state.selection
+        if (from <= 0) return
+        editor.chain().focus().deleteRange({ from: from - 1, to: from }).run()
+      },
+    }
   }
 
   if (!editor) return null
@@ -94,7 +106,10 @@ export default function SoanRichText({ value, onChange }) {
       </div>
       <EditorContent editor={editor} />
       <div className="mt-2">
-        <BangCongThuc onChen={chenCongThuc} />
+        <p className="text-[11px] text-muted mb-1.5">
+          Bấm ký hiệu để chèn công thức — tự động bọc trong <b>$...$</b>.
+        </p>
+        <MathPalette getMf={getMf} onInserted={() => {}} />
       </div>
     </div>
   )
