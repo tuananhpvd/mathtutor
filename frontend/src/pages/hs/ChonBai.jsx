@@ -57,14 +57,19 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
     load()
   }, [])
 
-  // Áp bộ lọc ban đầu (vd từ "Luyện ngay" của trang Tiến độ): chọn sẵn chuyên đề + dạng.
+  // Áp bộ lọc ban đầu (vd từ "Luyện ngay" trang Tiến độ: chuyên đề + dạng; hoặc từ "Tiếp tục
+  // làm" trang chủ: trạng thái "Đang làm dở"). trang_thai áp ngay, không đợi danh mục tải.
   useEffect(() => {
-    if (!locBanDau || danhMuc.length === 0) return
-    setTimeout(() => {
-      const cd = danhMuc.find((c) => c.ten === locBanDau.chuyen_de)
-      if (cd) setFChuyenDeId(String(cd.id))
-      if (locBanDau.dang_id) setFDangId(String(locBanDau.dang_id))
+    if (!locBanDau) return
+    const t = setTimeout(() => {
+      if (locBanDau.trang_thai) setFTrangThai(locBanDau.trang_thai)
+      if (danhMuc.length > 0) {
+        const cd = danhMuc.find((c) => c.ten === locBanDau.chuyen_de)
+        if (cd) setFChuyenDeId(String(cd.id))
+        if (locBanDau.dang_id) setFDangId(String(locBanDau.dang_id))
+      }
     }, 0)
+    return () => clearTimeout(t)
   }, [danhMuc, locBanDau])
 
   // Dạng của chuyên đề đang chọn

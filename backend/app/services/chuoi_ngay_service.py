@@ -102,6 +102,24 @@ def tinh_chuoi_ngay(db: Session, hs_id: int) -> int:
     return chuoi
 
 
+def dem_ngay_hoc(db: Session, hs_id: int) -> int:
+    """Tổng SỐ NGÀY (distinct) HS có hoạt động học — khác chuỗi liên tiếp (tinh_chuoi_ngay).
+    Dùng cho lời chào trang chủ 'Em đã học được X ngày, trong đó có Y ngày liên tiếp'."""
+    rows = (
+        db.query(SessionModel.cap_nhat_luc)
+        .filter(
+            SessionModel.hoc_sinh_id == hs_id,
+            SessionModel.bi_an == False,  # noqa: E712
+        )
+        .all()
+    )
+    ngay_hoc: set[date] = set()
+    for (dt,) in rows:
+        if dt is not None:
+            ngay_hoc.add(dt.date() if hasattr(dt, "date") else dt)
+    return len(ngay_hoc)
+
+
 def dem_bai_hoan_thanh(db: Session, hs_id: int) -> int:
     return (
         db.query(SessionModel)
@@ -154,6 +172,7 @@ def kiem_tra_va_cap_nhat_cot_moc(db: Session, hs_id: int) -> None:
 
 def ho_so_chuoi_va_moc(db: Session, hs_id: int) -> dict:
     chuoi = tinh_chuoi_ngay(db, hs_id)
+    so_ngay = dem_ngay_hoc(db, hs_id)
     tong_bai = dem_bai_hoan_thanh(db, hs_id)
 
     cot_moc_list = (
@@ -165,6 +184,7 @@ def ho_so_chuoi_va_moc(db: Session, hs_id: int) -> dict:
 
     return {
         "chuoi_ngay": chuoi,
+        "so_ngay_hoc": so_ngay,
         "tong_bai_hoan_thanh": tong_bai,
         "cot_moc_da_dat": [
             {

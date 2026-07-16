@@ -3,7 +3,34 @@
 > File này là "trí nhớ đi theo repo" (lên GitHub). Bộ nhớ tự động của Claude Code nằm trên máy
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
-## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v113**)
+
+## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v114**)
+
+- **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
+  qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
+  để duyệt").**
+  - **Hero (1 vùng nổi bật duy nhất)**: bỏ dải streak/cột mốc + nút to "BẮT ĐẦU LÀM BÀI MỚI";
+    lời chào "Chào em, [tên]! Em đã học được X ngày, trong đó có Y ngày liên tiếp. Hãy giữ
+    nhịp nhé!" (tự thích ứng khi X=0 hoặc đứt chuỗi — không phản cảm) + 2 mini-card không tiêu
+    đề: bài đang làm dở → "Tiếp tục làm", bài chưa làm → "Bắt đầu làm".
+  - **3 card**: Nhiệm vụ (nhiem_vu) · Mục tiêu (muc_tieu) · Luyện đề (suy từ deThiDs: đếm
+    bai_gan_nhat.trang_thai='da_nop'/tổng) — mỗi card CTA điều hướng sang trang tương ứng.
+  - **Kỷ luật màu CTA (sau khi user hỏi "nhiều nút cam có chói không")**: Phương án A — 2 nút
+    hero giữ cam đặc (hành động cốt lõi), 3 nút card đổi sang `secondary` (viền) vì thực chất
+    là lối tắt điều hướng → hết "bức tường cam", phân tầng rõ.
+  - **Gỡ trùng**: card "Thành tích của em" bỏ 2 ô Nhiệm vụ/Mục tiêu (đã có 3 card riêng), giữ
+    Thời gian + Số bài theo mức độ. Các phần dưới khác giữ nguyên.
+  - **Backend (thuần thêm field)**: `chuoi_ngay_service` thêm `dem_ngay_hoc()` (số ngày học
+    distinct) → field `so_ngay_hoc` cho lời chào; deThiDs đã có sẵn trạng thái nộp nên KHÔNG
+    cần backend cho Luyện đề.
+  - **Bug tự gây & tự sửa khi wiring "Tiếp tục làm"**: đổi hash sang chon_bai kích hoạt
+    `onHashChange` luôn `setLocBai(null)` → xóa filter trước khi ChonBai áp. Sửa gốc bằng ref
+    cờ `giuLocBai` cho onHashChange bỏ qua đúng 1 lần reset khi ta chủ động đặt filter (vá kèm
+    lỗi tiềm ẩn tương tự của "Luyện ngay" khi danh mục tải trễ). ChonBai mở rộng `locBanDau`
+    nhận thêm `trang_thai`.
+  - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa tình huống "hết gợi ý → 3 liên kết" vào đánh giá năng lực (sau khi phân tích
   phát hiện: cả 'hết gợi ý' lẫn 3 nút Xem lý thuyết/Nhờ thầy cô/Hỏi gia sư đều KHÔNG có mặt
@@ -33,7 +60,7 @@
   - `pytest` 509/509 (+4 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch; xác minh cột
     đã thêm vào dev.db thật (không chỉ tin test in-memory).
 
-## 1a. Trạng thái trước đó (v112)
+## 1b. Trạng thái trước đó (v112)
 
 - **✨ (v112) Đợt cải tiến "nhìn thấy xu hướng/tiến bộ" trên giao diện thống kê (4 nhóm, user
   chốt làm cả 4 sau 1 lượt phân tích) + đổi biểu đồ tuần sang combo chart theo mẫu user chọn.**
@@ -75,7 +102,7 @@
   `BangCongThuc` (bắt GV tự gõ dấu $) sang `MathPalette` (cùng component ô "Nhờ thầy/cô" của
   HS) qua adapter `getMf()` chèn thẳng `$latex$` vào TipTap tại con trỏ.
 
-## 1b. Trạng thái trước đó (v109)
+## 1c. Trạng thái trước đó (v109)
 
 - **✨ (v109) Pha 2 tính năng "Tóm tắt lý thuyết" — khối 3 liên kết trong khung chat HS khi hết
   gợi ý (Xem lại lý thuyết / Nhờ Thầy-Cô / Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup.**
@@ -98,7 +125,7 @@
     trình duyệt/Playwright để tự click-test trực quan — đã xác nhận `dev-check.ps1 -Fix -Wait`
     LIVE, chờ user tự kiểm trên trình duyệt trước khi merge sang việc khác.
 
-## 1c. Trạng thái trước đó (v108)
+## 1d. Trạng thái trước đó (v108)
 
 - **✨ (v108) Tính năng mới: Tóm tắt lý thuyết (Pha 1) — GV soạn, HS xem lại — kèm Rich Text
   Editor thật (TipTap) sau 2 vòng chỉnh theo phản hồi trực tiếp trên UI.**
@@ -140,7 +167,12 @@
     trong khung chat khi hết gợi ý: Xem lại lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) CHƯA làm — đúng
     phạm vi Pha 1 user đã chốt.
 
-## 1d. Trạng thái trước đó (v107)
+## 1e. Trạng thái trước đó (v107)
+
+- **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan:**
+  bộ lọc chọn lớp cho Bản đồ năng lực (backend thêm `lop_id` tùy chọn, kiểm sở hữu); sắp lại
+  thứ tự card; rút gọn nhãn thống kê; đổi "Xem biểu đồ"→"Xem tiến độ" + dời khối chi tiết lên
+  ngay dưới card HS + nút thu gọn. `pytest` 487/487, `vitest` 23/23 sạch.
 
 - **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan.**
   Chuỗi cải tiến nhỏ liên tiếp từ phản hồi trực tiếp trên UI đang chạy:
@@ -171,8 +203,6 @@
     tin ngay. Dọn sạch, giữ đúng 1 supervisor.
   - Thuần frontend + 1 tham số backend an toàn (không đổi hành vi mặc định). `pytest` 487/487,
     `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
-
-## 1e. Trạng thái trước đó (v106)
 
 - **✨ (v106) Xuất báo cáo phụ huynh (Mô hình C — GV tự in PDF, KHÔNG email/SMS)** — chọn mô
   hình nhẹ/an toàn nhất cho dữ liệu HS vị thành niên [[quyet-dinh-khong-lam-email-reset-mat-khau]];

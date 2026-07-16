@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import RoleLayout from '../../components/RoleLayout'
 import { getSession, clearSession, updateHoTen } from '../../auth'
 import { useConfirm } from '../../components/ui'
@@ -60,6 +60,9 @@ export default function HocSinhApp({ onLogout }) {
     return null
   })
   const [locBai, setLocBai] = useState(null) // bộ lọc ban đầu cho ChonBai
+  // Cờ giữ locBai qua đúng 1 lần hashchange do CHÍNH ta đổi hash (luyenDang/tiepTucLam) —
+  // nếu không, onHashChange sẽ setLocBai(null) và xóa mất filter trước khi ChonBai kịp áp.
+  const giuLocBai = useRef(false)
 
   function moBaiMoi(problemId) {
     const state = { problemId }
@@ -77,6 +80,15 @@ export default function HocSinhApp({ onLogout }) {
   }
   function luyenDang(r) {
     setLocBai({ chuyen_de: r.chuyen_de, dang_id: r.dang_id })
+    giuLocBai.current = true
+    window.location.hash = 'chon_bai'
+    setPage('chon_bai')
+  }
+
+  // "Tiếp tục làm" ở trang chủ → mở Chọn bài lọc sẵn trạng thái "Đang làm dở" để HS tự chọn.
+  function tiepTucLam() {
+    setLocBai({ trang_thai: 'dang_lam' })
+    giuLocBai.current = true
     window.location.hash = 'chon_bai'
     setPage('chon_bai')
   }
@@ -124,7 +136,9 @@ export default function HocSinhApp({ onLogout }) {
   useEffect(() => {
     function onHashChange() {
       const newPage = pageFromHash()
-      setLocBai(null)
+      // Giữ locBai nếu lần đổi hash này do chính ta chủ động đặt filter; ngược lại xóa như cũ.
+      if (giuLocBai.current) giuLocBai.current = false
+      else setLocBai(null)
       if (newPage !== 'phong_hoc') {
         sessionStorage.removeItem(PHONG_HOC_KEY)
         setPhongHoc(null)
@@ -150,7 +164,12 @@ export default function HocSinhApp({ onLogout }) {
     >
       <Suspense fallback={<p className="text-muted text-sm">Đang tải...</p>}>
         {page === 'trang_chu' && (
-          <TrangChu onChonBai={() => dieuHuong('chon_bai')} onLamTiep={lamTiep} />
+          <TrangChu
+            onChonBai={() => dieuHuong('chon_bai')}
+            onLamTiep={lamTiep}
+            onTiepTucLam={tiepTucLam}
+            onDieuHuong={dieuHuong}
+          />
         )}
         {page === 'chon_bai' && (
           <ChonBai onChon={moBaiMoi} onLamTiep={lamTiep} locBanDau={locBai} />

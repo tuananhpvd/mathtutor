@@ -9,6 +9,7 @@ from app.models.user import User, VaiTro
 from app.services.chuoi_ngay_service import (
     DINH_NGHIA_COT_MOC,
     dem_bai_hoan_thanh,
+    dem_ngay_hoc,
     ho_so_chuoi_va_moc,
     kiem_tra_va_cap_nhat_cot_moc,
     tinh_chuoi_ngay,
@@ -96,6 +97,27 @@ def test_dem_bai_hoan_thanh(db):
     _session(db, hs.id, trang_thai=TrangThaiSession.dang_lam)
     db.commit()
     assert dem_bai_hoan_thanh(db, hs.id) == 1
+
+
+def test_dem_ngay_hoc_distinct(db):
+    """Số ngày học = số ngày distinct có hoạt động (khác chuỗi liên tiếp): 2 phiên cùng
+    ngày → 1 ngày; các ngày cách quãng vẫn đếm đủ; phiên ẩn không tính."""
+    hs = _user(db)
+    _session(db, hs.id, ngay_truoc=0)   # hôm nay
+    _session(db, hs.id, ngay_truoc=0)   # cùng hôm nay → không cộng thêm
+    _session(db, hs.id, ngay_truoc=2)   # cách quãng, vẫn tính
+    _session(db, hs.id, ngay_truoc=5)
+    an = _session(db, hs.id, ngay_truoc=9)
+    an.bi_an = True
+    db.commit()
+    assert dem_ngay_hoc(db, hs.id) == 3           # 3 ngày distinct (bỏ trùng + bỏ ẩn)
+    assert tinh_chuoi_ngay(db, hs.id) == 1        # chuỗi liên tiếp chỉ có hôm nay
+    assert ho_so_chuoi_va_moc(db, hs.id)["so_ngay_hoc"] == 3
+
+
+def test_dem_ngay_hoc_rong(db):
+    hs = _user(db)
+    assert dem_ngay_hoc(db, hs.id) == 0
 
 
 # --- Cột mốc ---
