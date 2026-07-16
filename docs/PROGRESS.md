@@ -4,7 +4,17 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v115**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v116**)
+
+- **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
+  (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
+  trang xử lý.** Thuần frontend, dùng lại 2 API sẵn có (`gvTongQuan`, `gvTroGiup(true)`),
+  không đụng backend. Số "cần xử lý" tô vàng khớp màu badge "Chờ duyệt"/"Cờ chưa xử lý" đã
+  dùng sẵn ở phần dưới trang; nút CTA cam đồng nhất. Các nhóm cũ (Lớp & học sinh, Câu hỏi, Cờ
+  theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
+  `vitest` 23/23 sạch.
+
+## 1a. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -36,7 +46,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v114)
+## 1b. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -62,7 +72,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v113)
+## 1c. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa tình huống "hết gợi ý → 3 liên kết" vào đánh giá năng lực (sau khi phân tích
   phát hiện: cả 'hết gợi ý' lẫn 3 nút Xem lý thuyết/Nhờ thầy cô/Hỏi gia sư đều KHÔNG có mặt
@@ -92,7 +102,7 @@
   - `pytest` 509/509 (+4 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch; xác minh cột
     đã thêm vào dev.db thật (không chỉ tin test in-memory).
 
-## 1c. Trạng thái trước đó (v112)
+## 1d. Trạng thái trước đó (v112)
 
 - **✨ (v112) Đợt cải tiến "nhìn thấy xu hướng/tiến bộ" trên giao diện thống kê (4 nhóm, user
   chốt làm cả 4 sau 1 lượt phân tích) + đổi biểu đồ tuần sang combo chart theo mẫu user chọn.**
@@ -134,7 +144,11 @@
   `BangCongThuc` (bắt GV tự gõ dấu $) sang `MathPalette` (cùng component ô "Nhờ thầy/cô" của
   HS) qua adapter `getMf()` chèn thẳng `$latex$` vào TipTap tại con trỏ.
 
-## 1d. Trạng thái trước đó (v109)
+## 1e. Trạng thái trước đó (v109)
+
+- **✨ (v109) Pha 2 Tóm tắt lý thuyết — khối 3 liên kết trong chat HS khi hết gợi ý** (Xem
+  lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup. `dang_id`/`chuyen_de_id`
+  thêm vào response phiên/bài để FE tra đúng lý thuyết theo dạng. `pytest` 499/499.
 
 - **✨ (v109) Pha 2 tính năng "Tóm tắt lý thuyết" — khối 3 liên kết trong khung chat HS khi hết
   gợi ý (Xem lại lý thuyết / Nhờ Thầy-Cô / Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup.**
@@ -156,8 +170,6 @@
   - `pytest` 499/499, `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch. Môi trường không có
     trình duyệt/Playwright để tự click-test trực quan — đã xác nhận `dev-check.ps1 -Fix -Wait`
     LIVE, chờ user tự kiểm trên trình duyệt trước khi merge sang việc khác.
-
-## 1e. Trạng thái trước đó (v108)
 
 - **✨ (v108) Tóm tắt lý thuyết (Pha 1) — GV soạn (TipTap RTE), HS xem lại.** Bảng mới
   `tom_tat_ly_thuyet` (chuyen_de_id bắt buộc, dang_id nullable); GV/HS đều có menu "Lý

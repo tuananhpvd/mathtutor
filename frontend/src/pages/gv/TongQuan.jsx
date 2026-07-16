@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
-  AlertTriangle, Building2, CheckCircle2, Clock, Flag, ListChecks, Lock, Users,
+  AlertTriangle, Building2, CheckCircle2, Clock, Flag, LifeBuoy, ListChecks, Lock, Users,
 } from 'lucide-react'
 import { api } from '../../api'
-import { Card, CardBody, CardHeader, StatCard } from '../../components/ui'
+import { getSession } from '../../auth'
+import { Button, Card, CardBody, CardHeader, StatCard } from '../../components/ui'
 import BangXepHangThoiGian from '../../components/BangXepHangThoiGian'
 import { NHAN_LOAI_MAT_THOI_GIAN } from '../../utils/format'
 
@@ -29,17 +30,57 @@ function NhomThongKe({ title, icon, items }) {
   )
 }
 
-export default function TongQuan() {
+// 3 mini-card việc cần xử lý trong hero — số lớn (tông vàng "cần chú ý", nhất quán với badge
+// "Chờ duyệt"/"Cờ chưa xử lý" đã dùng sẵn ở NhomThongKe bên dưới) + CTA điều hướng thẳng tới
+// đúng trang xử lý.
+function MiniHeroGV({ icon: Icon, value, cap, nhan, onClick }) {
+  return (
+    <div className="bg-surface border border-border rounded-card shadow-[var(--shadow-card)]
+      p-4 flex flex-col gap-2.5">
+      <div className="flex items-center gap-2.5">
+        <div className="h-9 w-9 rounded-[10px] bg-warning-soft grid place-items-center shrink-0">
+          <Icon size={18} strokeWidth={2.2} className="text-warning" />
+        </div>
+        <div>
+          <p className="text-3xl font-semibold leading-none tabular-nums text-warning-ink">{value}</p>
+          <p className="text-xs text-muted mt-1">{cap}</p>
+        </div>
+      </div>
+      <Button variant="primary" size="sm" className="w-full" onClick={onClick}>{nhan}</Button>
+    </div>
+  )
+}
+
+export default function TongQuan({ onNavigate }) {
+  const { ho_ten } = getSession() || {}
   const [tk, setTk] = useState(null)
+  const [soHoTro, setSoHoTro] = useState(0)
 
   useEffect(() => {
     api.gvTongQuan().then(setTk).catch(() => {})
+    api.gvTroGiup(true).then((ds) => setSoHoTro((ds || []).length)).catch(() => {})
   }, [])
 
   if (!tk) return <p className="text-muted text-sm">Đang tải tổng quan...</p>
 
   return (
     <div className="flex flex-col gap-5">
+      {/* ===== HERO: 1 vùng nổi bật duy nhất — việc cần xử lý hôm nay ===== */}
+      <div className="rounded-card border border-border bg-gradient-to-br from-primary-soft
+        to-[#f2f1fd] p-6 flex flex-col gap-5">
+        <h2 className="text-2xl font-semibold text-ink text-balance">
+          Chào thầy/cô{ho_ten ? `, ${ho_ten}` : ''}! 👋
+        </h2>
+        <div className="grid sm:grid-cols-3 gap-3.5">
+          <MiniHeroGV icon={LifeBuoy} value={soHoTro} cap="yêu cầu hỗ trợ học sinh chờ trả lời"
+            nhan="Trả lời ngay" onClick={() => onNavigate?.('ho_tro')} />
+          <MiniHeroGV icon={Clock} value={tk.cau_hoi_cho_duyet} cap="câu hỏi chưa duyệt"
+            nhan="Duyệt ngay" onClick={() => onNavigate?.('cau_hoi')} />
+          <MiniHeroGV icon={Flag} value={tk.co_chua_xu_ly} cap="cờ chưa xử lý"
+            nhan="Xử lý ngay" onClick={() => onNavigate?.('co')} />
+        </div>
+      </div>
+
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <NhomThongKe
           title="Lớp & học sinh"
