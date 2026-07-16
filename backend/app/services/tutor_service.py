@@ -365,6 +365,21 @@ def _dispatch(trang_thai, ket_qua, ngu_canh_hs, yeu_cau_goi_y, dap_an_nhap, loai
     raise ValueError(f"Loại câu không hỗ trợ: {loai_cau}")
 
 
+def _tim_phien_dang_lam(db: Session, hoc_sinh_id: int, problem_id: int) -> SessionModel | None:
+    """Phiên dang_lam (chưa hoàn thành, chưa bị ẩn) gần nhất của HS cho ĐÚNG bài này, nếu có."""
+    return (
+        db.query(SessionModel)
+        .filter(
+            SessionModel.hoc_sinh_id == hoc_sinh_id,
+            SessionModel.problem_id == problem_id,
+            SessionModel.trang_thai == TrangThaiSession.dang_lam,
+            SessionModel.bi_an == False,  # noqa: E712
+        )
+        .order_by(SessionModel.cap_nhat_luc.desc())
+        .first()
+    )
+
+
 def tao_phien(
     db: Session,
     hoc_sinh_id: int,
@@ -374,6 +389,22 @@ def tao_phien(
     problem = db.get(Problem, problem_id)
     if problem is None:
         raise ValueError(f"Không tìm thấy bài {problem_id}")
+
+    # Tránh tạo phiên TRÙNG cho cùng 1 bài: các lối "bắt đầu bài" (Nhiệm vụ, Thi thử...) đều
+    # gọi thẳng hàm này mà không tự kiểm tra HS đã có phiên dang_lam của đúng bài chưa — nếu
+    # có, dùng lại phiên đó (không tạo mới/không gọi LLM lần nữa) để "Bài đang làm dở" không
+    # hiện trùng bài. FE sẽ tự tải lại đầy đủ hội thoại qua GET /sessions/{id} sau khi nhận
+    # session_id (giống hệt luồng "làm tiếp"), nên trả về turn gia_sư GẦN NHẤT làm van_ban
+    # là đủ — không cần dựng lại toàn bộ lịch sử ở đây.
+    phien_cu = _tim_phien_dang_lam(db, hoc_sinh_id, problem_id)
+    if phien_cu is not None:
+        turn_cuoi = (
+            db.query(Turn)
+            .filter(Turn.session_id == phien_cu.id, Turn.vai_tro == VaiTroTurn.gia_su)
+            .order_by(Turn.id.desc())
+            .first()
+        )
+        return phien_cu, (turn_cuoi.noi_dung if turn_cuoi else "")
 
     session = SessionModel(
         hoc_sinh_id=hoc_sinh_id,

@@ -404,3 +404,61 @@ def test_chuyen_de_id_va_dang_id_theo_bai_va_phien(client, db):
     r3 = client.get(f"/api/problems/{_p_cu.id}", headers=_h(tok_gv))
     assert r3.json()["dang_id"] is None
     assert r3.json()["chuyen_de_id"] is None
+
+
+def test_tao_phien_lan_2_dung_lai_phien_dang_lam_khong_tao_trung(client, db):
+    """POST /sessions gọi lần 2 cho ĐÚNG bài đang dang_lam (mô phỏng bấm 'Làm bài' lần nữa ở
+    Nhiệm vụ/Thi thử — nơi trước đây không kiểm tra) → trả lại session_id CŨ, KHÔNG tạo phiên
+    mới. 'Bài đang làm dở' (/sessions/dang-do) chỉ còn đúng 1 dòng, không trùng bài."""
+    from app.models.session import Session as SessionModel
+
+    hs, gv, admin, p = seed_all(db)
+    tok = _token(client, "hs_test")
+
+    sid1 = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok)).json()["session_id"]
+    r2 = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok))
+    assert r2.status_code == 200
+    assert r2.json()["session_id"] == sid1  # dùng lại, không sinh session_id mới
+
+    assert db.query(SessionModel).filter(SessionModel.hoc_sinh_id == hs.id).count() == 1
+
+    dd = client.get("/api/sessions/dang-do", headers=_h(tok)).json()
+    assert len(dd) == 1
+    assert dd[0]["session_id"] == sid1
+
+    # Bài KHÁC (chưa có phiên) → vẫn tạo phiên mới bình thường, không bị chặn nhầm
+    p2 = Problem(
+        chuyen_de="Test 2", loai_cau="TLN", do_kho="tb",
+        de_bai="Tìm y.", loai_dap_an_nhap="gia_tri",
+        trang_thai_duyet=TrangThaiDuyet.da_duyet, nguoi_tao_id=gv.id,
+        meta={"dap_an_cuoi": "1"},
+    )
+    db.add(p2)
+    db.commit()
+    sid2 = client.post("/api/sessions", json={"problem_id": p2.id}, headers=_h(tok)).json()["session_id"]
+    assert sid2 != sid1
+
+    # Phiên đã HOÀN THÀNH thì không tính là "đang dở" → bấm lại vẫn tạo phiên mới bình thường
+    client.post(f"/api/sessions/{sid1}/message", json={"dap_an_nhap": "5"}, headers=_h(tok))
+    r3 = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok))
+    assert r3.json()["session_id"] not in (sid1, sid2)
+
+
+def test_tao_phien_dung_lai_tai_du_lich_su_hoi_thoai(client, db):
+    """Phiên dang_lam được TÁI SỬ DỤNG (không tạo mới) vẫn giữ nguyên lịch sử hội thoại cũ —
+    GET /sessions/{id} sau khi 'tạo lại' phải thấy đủ các turn đã có, không chỉ 1 dòng chào."""
+    hs, gv, admin, p = seed_all(db)
+    tok = _token(client, "hs_test")
+
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok)).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message",
+               json={"noi_dung": "em nghĩ x=3", "dap_an_nhap": "3"}, headers=_h(tok))
+
+    so_turn_truoc = len(client.get(f"/api/sessions/{sid}", headers=_h(tok)).json()["turns"])
+    assert so_turn_truoc >= 3  # chào + HS trả lời sai + gia sư phản hồi
+
+    r = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok))
+    assert r.json()["session_id"] == sid
+
+    turns_sau = client.get(f"/api/sessions/{sid}", headers=_h(tok)).json()["turns"]
+    assert len(turns_sau) == so_turn_truoc  # không mất, không nhân đôi lịch sử cũ

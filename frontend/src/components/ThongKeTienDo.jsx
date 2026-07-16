@@ -1,31 +1,10 @@
 import { Card, CardBody, CardHeader } from './ui'
 import BangXepHangThoiGian from './BangXepHangThoiGian'
+import TongQuanTienDo from './TongQuanTienDo'
+import The7NgayQua from './The7NgayQua'
 import { NHAN_LOAI_MAT_THOI_GIAN, dinhDangThoiGian } from '../utils/format'
 
 const pct = (n, t) => (t > 0 ? Math.round((n / t) * 100) : 0)
-
-// Vòng tròn tiến độ tổng (SVG).
-function VongTienDo({ percent, size = 132, stroke = 13 }) {
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const off = c * (1 - percent / 100)
-  return (
-    <div className="relative shrink-0 w-full mx-auto" style={{ maxWidth: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-auto -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="var(--color-surface-2)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="var(--color-success)" strokeWidth={stroke} strokeLinecap="round"
-          strokeDasharray={c} strokeDashoffset={off}
-          style={{ transition: 'stroke-dashoffset .6s ease' }} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-ink">{percent}%</span>
-        <span className="text-xs text-muted">hoàn thành</span>
-      </div>
-    </div>
-  )
-}
 
 // Thanh tiến độ phân đoạn: hoàn thành (xanh) · đang dở (vàng) · chưa làm (xám, không đỏ).
 function ThanhPhanDoan({ ht, dl, cl, tong }) {
@@ -138,47 +117,6 @@ function TheMucDo({ r, size }) {
   )
 }
 
-/* Ô so sánh 7 ngày qua vs 7 ngày trước. totKhiTang: tăng là tốt (số bài) hay giảm là tốt
-   (thời gian, gợi ý). Backend trả số thô 2 kỳ — màu/mũi tên quyết định ở đây.
-   Mũi tên ▲/▼ cỡ lớn trong huy hiệu nền màu + kèm mức chênh lệch để nổi bật, nhìn là thấy. */
-function TheSoSanh({ nhan, nay, truoc, fmt = (v) => v, fmtDelta = null, totKhiTang = true }) {
-  const coNay = nay != null
-  const coTruoc = truoc != null
-  let mui = null
-  if (coNay && coTruoc) {
-    if (nay === truoc) {
-      mui = (
-        <span className="inline-flex items-center rounded-lg bg-surface px-2 py-0.5
-          text-muted text-lg font-black leading-none" title="Không đổi so với 7 ngày trước">
-          →
-        </span>
-      )
-    } else {
-      const tang = nay > truoc
-      const tot = tang === totKhiTang
-      const chenh = Math.abs(Math.round((nay - truoc) * 10) / 10)
-      mui = (
-        <span className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5
-            ${tot ? 'text-success bg-success-soft' : 'text-warning bg-warning-soft'}`}
-          title={`${tang ? 'Tăng' : 'Giảm'} so với 7 ngày trước${tot ? ' — chiều hướng tốt' : ''}`}>
-          <span className="text-2xl font-black leading-none">{tang ? '▲' : '▼'}</span>
-          <b className="text-sm">{fmtDelta ? fmtDelta(chenh) : chenh}</b>
-        </span>
-      )
-    }
-  }
-  return (
-    <div className="rounded-lg bg-surface-2 px-4 py-3 flex-1 min-w-[150px]">
-      <p className="text-xs text-muted">{nhan}</p>
-      <div className="flex items-center justify-between gap-2 flex-wrap mt-0.5">
-        <p className="text-xl font-bold text-ink">{coNay ? fmt(nay) : '—'}</p>
-        {mui}
-      </div>
-      <p className="text-[11px] text-muted mt-0.5">7 ngày trước: {coTruoc ? fmt(truoc) : '—'}</p>
-    </div>
-  )
-}
-
 function TheSo({ icon, label, value, tone = 'primary' }) {
   const toneCls = {
     primary: 'text-primary bg-primary-soft',
@@ -209,54 +147,18 @@ export default function ThongKeTienDo({ tk }) {
   return (
     <div className="flex flex-col gap-6">
       {/* 1) TỔNG QUAN — hero */}
-      <Card className="overflow-hidden">
-        <div className="border-l-4 border-primary">
-          <CardBody className="pt-5 flex flex-col sm:flex-row items-center gap-6">
-            <VongTienDo percent={pct(tq.hoan_thanh, tq.tong)} />
-            <div className="flex-1 w-full grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-surface-2 px-4 py-3">
-                <p className="text-xs text-muted">Tổng số bài</p>
-                <p className="text-2xl font-bold text-ink">{tq.tong}</p>
-              </div>
-              <div className="rounded-lg bg-success-soft px-4 py-3">
-                <p className="text-xs text-success">Đã hoàn thành</p>
-                <p className="text-2xl font-bold text-success">
-                  {tq.hoan_thanh} <span className="text-base font-semibold">({pct(tq.hoan_thanh, tq.tong)}%)</span>
-                </p>
-              </div>
-              <div className="rounded-lg bg-warning-soft px-4 py-3">
-                <p className="text-xs text-warning">Đang làm dở</p>
-                <p className="text-2xl font-bold text-warning">
-                  {tq.dang_lam} <span className="text-base font-semibold">({pct(tq.dang_lam, tq.tong)}%)</span>
-                </p>
-              </div>
-              <div className="rounded-lg bg-idle-soft px-4 py-3">
-                <p className="text-xs text-idle">Chưa làm</p>
-                <p className="text-2xl font-bold text-idle">
-                  {tq.chua_lam} <span className="text-base font-semibold">({pct(tq.chua_lam, tq.tong)}%)</span>
-                </p>
-              </div>
-            </div>
-          </CardBody>
-        </div>
-      </Card>
+      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+        {/* 1b) SO SÁNH 7 NGÀY — nhìn nhanh chiều hướng tuần này so với tuần trước */}
+        <The7NgayQua ss={ss} className="h-full" />
 
-      {/* 1b) SO SÁNH 7 NGÀY — nhìn nhanh chiều hướng tuần này so với tuần trước */}
-      {ss && (
-        <Card>
-          <CardHeader title="7 ngày qua so với 7 ngày trước"
-            subtitle="Làm nhiều bài hơn, nhanh hơn, ít cần gợi ý hơn = đang tiến bộ" />
-          <CardBody className="flex gap-3 flex-wrap">
-            <TheSoSanh nhan="Bài hoàn thành" nay={ss.ky_nay.so_bai} truoc={ss.ky_truoc.so_bai}
-              totKhiTang />
-            <TheSoSanh nhan="Thời gian TB mỗi bài" nay={ss.ky_nay.thoi_gian_tb_giay}
-              truoc={ss.ky_truoc.thoi_gian_tb_giay} fmt={dinhDangThoiGian}
-              fmtDelta={dinhDangThoiGian} totKhiTang={false} />
-            <TheSoSanh nhan="Lượt cần gợi ý TB mỗi bài" nay={ss.ky_nay.goi_y_tb}
-              truoc={ss.ky_truoc.goi_y_tb} totKhiTang={false} />
-          </CardBody>
+        <Card className="h-full overflow-hidden">
+          <div className="border-l-4 border-primary h-full">
+            <CardBody className="pt-5">
+              <TongQuanTienDo tq={tq} />
+            </CardBody>
+          </div>
         </Card>
-      )}
+      </div>
 
       {/* 2) THEO THỜI GIAN (trái) + THEO MỨC ĐỘ (phải) — 2 cột cao bằng nhau */}
       <div className="grid lg:grid-cols-2 gap-6 items-stretch">

@@ -203,6 +203,36 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     }
   }
 
+  // Áp state phòng học từ chi tiết phiên đầy đủ (ChiTietPhienResponse) — dùng chung cho cả
+  // "làm tiếp" lẫn "bắt đầu mới", vì backend giờ có thể TRẢ LẠI 1 phiên dang_lam có sẵn thay
+  // vì luôn tạo phiên mới (tránh trùng bài ở "Bài đang làm dở") — phiên trả lại đó có thể đã
+  // có nhiều lượt hội thoại từ trước, nên PHẢI tải đủ turns qua GET /sessions/{id}, không chỉ
+  // dùng 1 dòng "lời chào" như trước (sẽ làm mất lịch sử đã làm dở).
+  function apDungChiTietPhien(ct) {
+    setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, hinh_anh: ct.hinh_anh, meta: ct.meta, chuyen_de: ct.chuyen_de, chuyen_de_id: ct.chuyen_de_id, dang_id: ct.dang_id, dang_ten: ct.dang_ten })
+    setSid(ct.session_id)
+    setTurns(ct.turns.map((t) => ({ vai_tro: t.vai_tro, noi_dung: t.noi_dung })))
+    setTrangThai({
+      buoc_hien_tai: ct.buoc_hien_tai,
+      y_hien_tai: ct.y_hien_tai,
+      trang_thai_y: ct.trang_thai_y || trangThaiYBanDau(ct.meta),
+      da_xong: ct.trang_thai === 'hoan_thanh',
+      diem: ct.diem,
+      so_y_dung: null,
+      thoi_gian_giay: ct.thoi_gian_giay,
+      buoc_mo_ta: ct.buoc_mo_ta ?? null,
+      tong_buoc: ct.tong_buoc ?? null,
+      cho_chon_dap_an: ct.cho_chon_dap_an ?? null,
+      cho_chon_dung_sai: ct.cho_chon_dung_sai ?? null,
+      thoi_gian_y: ct.thoi_gian_y ?? null,
+      dap_an_y: ct.dap_an_y ?? null,
+      cap_goi_y: ct.cap_goi_y_hien_tai ?? 0,
+      so_goi_y_toi_da: ct.so_goi_y_toi_da ?? null,
+      so_lan_khong_hieu: ct.so_lan_khong_hieu ?? 0,
+      tong_so_lan_sai: ct.tong_so_lan_sai ?? 0,
+    })
+  }
+
   // Khởi tạo: làm tiếp (sessionId) hoặc bắt đầu mới (problemId).
   useEffect(() => {
     let huy = false
@@ -210,58 +240,12 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
       setLoading(true)
       setError('')
       try {
-        if (sessionId) {
-          const ct = await api.getSession(sessionId)
-          if (huy) return
-          setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, hinh_anh: ct.hinh_anh, meta: ct.meta, chuyen_de: ct.chuyen_de, chuyen_de_id: ct.chuyen_de_id, dang_id: ct.dang_id, dang_ten: ct.dang_ten })
-          setSid(ct.session_id)
-          setTurns(ct.turns.map((t) => ({ vai_tro: t.vai_tro, noi_dung: t.noi_dung })))
-          setTrangThai({
-            buoc_hien_tai: ct.buoc_hien_tai,
-            y_hien_tai: ct.y_hien_tai,
-            trang_thai_y: ct.trang_thai_y || trangThaiYBanDau(ct.meta),
-            da_xong: ct.trang_thai === 'hoan_thanh',
-            diem: ct.diem,
-            so_y_dung: null,
-            thoi_gian_giay: ct.thoi_gian_giay,
-            buoc_mo_ta: ct.buoc_mo_ta ?? null,
-            tong_buoc: ct.tong_buoc ?? null,
-            cho_chon_dap_an: ct.cho_chon_dap_an ?? null,
-            cho_chon_dung_sai: ct.cho_chon_dung_sai ?? null,
-            thoi_gian_y: ct.thoi_gian_y ?? null,
-            dap_an_y: ct.dap_an_y ?? null,
-            cap_goi_y: ct.cap_goi_y_hien_tai ?? 0,
-            so_goi_y_toi_da: ct.so_goi_y_toi_da ?? null,
-            so_lan_khong_hieu: ct.so_lan_khong_hieu ?? 0,
-            tong_so_lan_sai: ct.tong_so_lan_sai ?? 0,
-          })
-        } else {
-          const p = await api.getProblem(problemId)
-          const phien = await api.createSession(problemId)
-          if (huy) return
-          setProblem({ loai_cau: p.loai_cau, de_bai: p.de_bai, hinh_anh: p.hinh_anh, meta: p.meta, chuyen_de: p.chuyen_de, chuyen_de_id: p.chuyen_de_id, dang_id: p.dang_id, dang_ten: p.dang_ten })
-          setSid(phien.session_id)
-          setTurns([{ vai_tro: 'gia_su', noi_dung: phien.van_ban }])
-          setTrangThai({
-            buoc_hien_tai: phien.buoc_hien_tai,
-            y_hien_tai: phien.y_hien_tai,
-            trang_thai_y: trangThaiYBanDau(p.meta),
-            da_xong: false,
-            diem: null,
-            so_y_dung: null,
-            thoi_gian_giay: null,
-            buoc_mo_ta: phien.buoc_mo_ta ?? null,
-            tong_buoc: phien.tong_buoc ?? null,
-            cho_chon_dap_an: phien.cho_chon_dap_an ?? null,
-            cho_chon_dung_sai: phien.cho_chon_dung_sai ?? null,
-            thoi_gian_y: null,
-            dap_an_y: null,
-            cap_goi_y: 0,
-            so_goi_y_toi_da: phien.so_goi_y_toi_da ?? null,
-            so_lan_khong_hieu: 0,
-            tong_so_lan_sai: 0,
-          })
-        }
+        // "Bắt đầu mới" thực chất có thể trả lại 1 phiên dang_lam có sẵn (backend tránh tạo
+        // trùng) — nên sau khi có session_id, luôn tải chi tiết đầy đủ giống hệt "làm tiếp".
+        const sid_ = sessionId || (await api.createSession(problemId)).session_id
+        const ct = await api.getSession(sid_)
+        if (huy) return
+        apDungChiTietPhien(ct)
       } catch (e) {
         if (!huy) setError(e.message)
       } finally {

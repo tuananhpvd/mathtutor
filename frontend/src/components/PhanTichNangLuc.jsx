@@ -100,7 +100,10 @@ function dinhDangNgay(iso) {
 
 // pt: payload từ /phan-tich. vaiTro: 'hs' | 'gv'.
 // onCapNhat?: gọi API sinh phân tích; dangCapNhat: cờ đang chạy.
-export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapNhat, onLuyen }) {
+// sauNhanXet?: nội dung chèn ngay sau card "Nhận xét & gợi ý cho em"/"Phân tích năng lực"
+// (trước khối "Theo dạng bài"/"Theo loại câu hỏi") — dùng ở trang Tiến độ HS để đặt card
+// "Nhận xét của thầy/cô" đúng vị trí, không đổi gì khác của component dùng chung này.
+export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapNhat, onLuyen, sauNhanXet }) {
   if (!pt) return null
   const deXuat = vaiTro === 'gv' ? pt.de_xuat_gv : pt.de_xuat_hs
   const aiText = pt.ai ? (vaiTro === 'gv' ? pt.ai.cho_giao_vien : pt.ai.cho_hoc_sinh) : ''
@@ -216,6 +219,8 @@ export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapN
           )}
         </CardBody>
       </Card>
+
+      {sauNhanXet}
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>

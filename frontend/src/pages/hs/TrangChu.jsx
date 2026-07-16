@@ -4,6 +4,8 @@ import { getSession } from '../../auth'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
 import Formula from '../../components/Formula'
 import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
+import TongQuanTienDo from '../../components/TongQuanTienDo'
+import The7NgayQua from '../../components/The7NgayQua'
 import { dinhDangThoiGian } from '../../utils/format'
 
 function renderNoiDung(text) {
@@ -97,25 +99,6 @@ function CardChiSo({ icon, iconBg, title, val, tong, donViXong, barColor, onClic
   )
 }
 
-function TheTongQuan({ label, value, sub, tone }) {
-  const cls = {
-    primary: 'bg-surface-2 text-ink',
-    success: 'bg-success-soft text-success',
-    warning: 'bg-warning-soft text-warning',
-    // "idle" — "Chưa làm": xám trung tính, KHÔNG đỏ (tránh cảm giác "đang thất bại").
-    idle: 'bg-idle-soft text-idle',
-  }[tone]
-  return (
-    <div className={`rounded-xl px-4 py-4 ${cls}`}>
-      <p className="text-xs font-medium opacity-80">{label}</p>
-      <p className="text-3xl font-bold mt-1 tabular-nums">
-        {value}
-        {sub != null && <span className="text-base font-semibold ml-1">({sub}%)</span>}
-      </p>
-    </div>
-  )
-}
-
 // Thẻ thống kê thời gian — nổi bật, hiện đại.
 function TheThoiGian({ icon, label, value, tone }) {
   const cls = {
@@ -143,9 +126,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
   const [deThi, setDeThi] = useState([])
   const [loading, setLoading] = useState(true)
   const [trang, setTrang] = useState(1)
-  const [nhanXet, setNhanXet] = useState([])
   const [traLoi, setTraLoi] = useState([])
-  const [trangNx, setTrangNx] = useState(1)
   const [trangTl, setTrangTl] = useState(1)
   const MOI_TRANG_TB = 3
 
@@ -158,11 +139,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
       .catch(() => {})
       .finally(() => setLoading(false))
     api.thongBao()
-      .then((rows) => {
-        const all = rows || []
-        setNhanXet(all.filter((t) => t.loai === 'nhan_xet'))
-        setTraLoi(all.filter((t) => t.loai === 'tra_loi'))
-      })
+      .then((rows) => setTraLoi((rows || []).filter((t) => t.loai === 'tra_loi')))
       .catch(() => {})
     api.hsChuoiNgay().then(setChuoi).catch(() => {})
     api.deThiDs().then((d) => setDeThi(d || [])).catch(() => {})
@@ -172,8 +149,6 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
   const trangAnToan = Math.min(trang, tongTrang)
   const baiTrang = baiDo.slice((trangAnToan - 1) * MOI_TRANG, trangAnToan * MOI_TRANG)
 
-  const tongTrangNx = Math.max(1, Math.ceil(nhanXet.length / MOI_TRANG_TB))
-  const nxTrang = nhanXet.slice((trangNx - 1) * MOI_TRANG_TB, trangNx * MOI_TRANG_TB)
   const tongTrangTl = Math.max(1, Math.ceil(traLoi.length / MOI_TRANG_TB))
   const tlTrang = traLoi.slice((trangTl - 1) * MOI_TRANG_TB, trangTl * MOI_TRANG_TB)
 
@@ -233,67 +208,9 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
         />
       </div>
 
-      {/* ===== 2 cột: bài đang làm dở (danh sách) · thành tích ===== */}
+      {/* ===== 2 cột: 7 ngày qua · thành tích ===== */}
       <div className="grid lg:grid-cols-2 gap-4 items-stretch">
-        {/* Cột trái */}
-        <Card className="h-full flex flex-col">
-          <CardHeader title="Bài đang làm dở" subtitle="Tiếp tục đúng chỗ em dừng lại" />
-          <CardBody className="flex flex-col gap-3">
-            {loading ? (
-              <p className="text-sm text-muted">Đang tải...</p>
-            ) : baiDo.length === 0 ? (
-              <p className="text-sm text-muted">Em chưa có bài nào đang làm dở.</p>
-            ) : (
-              <>
-                {baiTrang.map((b) => (
-                  <div
-                    key={b.session_id}
-                    className="rounded-md border border-border px-3 py-2.5 flex flex-col gap-2"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-primary truncate">
-                          {b.chuyen_de}
-                          {b.dang_ten ? <> › <span className="text-ink">{b.dang_ten}</span></> : null}
-                        </p>
-                        <p className="text-sm text-ink leading-snug mt-1 line-clamp-2">
-                          {renderNoiDung(b.de_bai)}
-                        </p>
-                      </div>
-                      <Button size="sm" variant="warning" className="shrink-0"
-                        onClick={() => onLamTiep(b.session_id)}>
-                        Làm tiếp
-                      </Button>
-                    </div>
-                    <p className="text-xs text-muted flex items-center gap-2">
-                      <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
-                      <span>Bước {b.buoc_hien_tai}</span>
-                      {b.cap_nhat_luc && (
-                        <span>· {new Date(b.cap_nhat_luc).toLocaleDateString('vi-VN')}</span>
-                      )}
-                    </p>
-                  </div>
-                ))}
-
-                {tongTrang > 1 && (
-                  <div className="flex items-center justify-center gap-3 pt-1">
-                    <Button size="sm" variant="secondary" disabled={trangAnToan <= 1}
-                      onClick={() => setTrang((t) => Math.max(1, t - 1))}>
-                      ← Trước
-                    </Button>
-                    <span className="text-sm text-muted">
-                      Trang {trangAnToan}/{tongTrang}
-                    </span>
-                    <Button size="sm" variant="secondary" disabled={trangAnToan >= tongTrang}
-                      onClick={() => setTrang((t) => Math.min(tongTrang, t + 1))}>
-                      Sau →
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </CardBody>
-        </Card>
+        <The7NgayQua ss={tk?.so_sanh_7_ngay} title="7 ngày qua" className="h-full" />
 
         {/* Cột phải: thành tích (thời gian + số bài theo mức độ) */}
         <Card className="h-full flex flex-col">
@@ -355,47 +272,66 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
           {loading || !tq ? (
             <p className="text-sm text-muted">Đang tải...</p>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <TheTongQuan label="Tổng số bài" value={tq.tong} tone="primary" />
-              <TheTongQuan label="Đã hoàn thành" value={tq.hoan_thanh}
-                sub={pct(tq.hoan_thanh, tq.tong)} tone="success" />
-              <TheTongQuan label="Đang làm dở" value={tq.dang_lam}
-                sub={pct(tq.dang_lam, tq.tong)} tone="warning" />
-              <TheTongQuan label="Chưa làm" value={tq.chua_lam}
-                sub={pct(tq.chua_lam, tq.tong)} tone="idle" />
-            </div>
+            <TongQuanTienDo tq={tq} />
           )}
         </CardBody>
       </Card>
 
-      {/* ===== Nhận xét + Trả lời ===== */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Cột trái: Nhận xét */}
-        <Card className="h-full">
-          <CardHeader title="💬 Nhận xét của thầy/cô"
-            subtitle={nhanXet.length > 0 ? `${nhanXet.length} lời nhắn từ giáo viên` : undefined} />
+      {/* ===== Bài đang làm dở + Trả lời ===== */}
+      <div className="grid lg:grid-cols-2 gap-4 items-stretch">
+        {/* Cột trái: Bài đang làm dở */}
+        <Card className="h-full flex flex-col">
+          <CardHeader title="Bài đang làm dở" subtitle="Tiếp tục đúng chỗ em dừng lại" />
           <CardBody className="flex flex-col gap-3">
-            {nhanXet.length === 0 ? (
-              <p className="text-sm text-muted">Thầy/cô chưa gửi nhận xét nào cho em.</p>
+            {loading ? (
+              <p className="text-sm text-muted">Đang tải...</p>
+            ) : baiDo.length === 0 ? (
+              <p className="text-sm text-muted">Em chưa có bài nào đang làm dở.</p>
             ) : (
               <>
-                {nxTrang.map((tb) => (
-                  <div key={tb.id}
-                    className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
-                    <p className="text-sm text-ink whitespace-pre-wrap break-words">{tb.noi_dung}</p>
-                    <div className="flex items-center flex-wrap gap-x-0.5 text-xs text-muted mt-1.5">
-                      {tb.nguoi_gui_ten && <span>— {tb.nguoi_gui_ten}</span>}
-                      {tb.tao_luc && <ThoiGianPhanCach iso={tb.tao_luc} />}
+                {baiTrang.map((b) => (
+                  <div
+                    key={b.session_id}
+                    className="rounded-md border border-border px-3 py-2.5 flex flex-col gap-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-primary truncate">
+                          {b.chuyen_de}
+                          {b.dang_ten ? <> › <span className="text-ink">{b.dang_ten}</span></> : null}
+                        </p>
+                        <p className="text-sm text-ink leading-snug mt-1 line-clamp-2">
+                          {renderNoiDung(b.de_bai)}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="warning" className="shrink-0"
+                        onClick={() => onLamTiep(b.session_id)}>
+                        Làm tiếp
+                      </Button>
                     </div>
+                    <p className="text-xs text-muted flex items-center gap-2">
+                      <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
+                      <span>Bước {b.buoc_hien_tai}</span>
+                      {b.cap_nhat_luc && (
+                        <span>· {new Date(b.cap_nhat_luc).toLocaleDateString('vi-VN')}</span>
+                      )}
+                    </p>
                   </div>
                 ))}
-                {tongTrangNx > 1 && (
+
+                {tongTrang > 1 && (
                   <div className="flex items-center justify-center gap-3 pt-1">
-                    <Button size="sm" variant="secondary" disabled={trangNx <= 1}
-                      onClick={() => setTrangNx((t) => t - 1)}>← Trước</Button>
-                    <span className="text-sm text-muted">{trangNx}/{tongTrangNx}</span>
-                    <Button size="sm" variant="secondary" disabled={trangNx >= tongTrangNx}
-                      onClick={() => setTrangNx((t) => t + 1)}>Sau →</Button>
+                    <Button size="sm" variant="secondary" disabled={trangAnToan <= 1}
+                      onClick={() => setTrang((t) => Math.max(1, t - 1))}>
+                      ← Trước
+                    </Button>
+                    <span className="text-sm text-muted">
+                      Trang {trangAnToan}/{tongTrang}
+                    </span>
+                    <Button size="sm" variant="secondary" disabled={trangAnToan >= tongTrang}
+                      onClick={() => setTrang((t) => Math.min(tongTrang, t + 1))}>
+                      Sau →
+                    </Button>
                   </div>
                 )}
               </>

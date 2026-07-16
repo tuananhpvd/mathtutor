@@ -4,7 +4,39 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v114**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v115**)
+
+- **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
+  card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
+  - **Nguyên nhân gốc (đã xác minh, không đoán)**: `tao_phien()` LUÔN tạo `Session` mới, không
+    kiểm tra HS đã có phiên `dang_lam` cho ĐÚNG bài đó chưa. Chỉ trang Chọn bài tự kiểm tra
+    (đổi nút thành "Làm tiếp"); trang Nhiệm vụ và Thi thử ("Luyện bài" sau khi xem kết quả)
+    gọi thẳng `moBaiMoi`→`createSession` không kiểm tra → bấm lại đúng bài đã làm dở ở 2 nơi
+    này sinh thêm 1 `Session` dang_lam thứ 2 cùng `problem_id`; `GET /sessions/dang-do` liệt
+    kê theo PHIÊN (không gộp theo bài) nên bài hiện trùng trên Trang chủ.
+  - **Sửa gốc 1 chỗ (Phương án A user chọn, không sửa từng trang FE)**: `tao_phien()` thêm
+    `_tim_phien_dang_lam()` — nếu đã có phiên dang_lam đúng bài, trả lại phiên đó (không tạo
+    mới, không gọi LLM lại) thay vì luôn tạo mới. Chặn triệt để mọi lối vào cùng lúc.
+  - **Hệ quả FE phải vá kèm (phát hiện khi implement, không phải yêu cầu ban đầu)**: đường
+    "bắt đầu mới" của `PhongHoc.jsx` trước đây CHỈ hiện 1 dòng "lời chào" (giả định luôn là
+    phiên trắng) — nếu backend trả lại phiên cũ có lịch sử mà FE không sửa, HS sẽ mất hết hội
+    thoại đã làm dở trên màn hình dù dữ liệu vẫn còn. Gộp 2 đường "làm tiếp"/"bắt đầu mới"
+    thành 1 luồng: luôn tải chi tiết đầy đủ qua `GET /sessions/{id}` sau khi có `session_id`.
+  - 3 test mới xác nhận: bấm 2 lần cùng bài → 1 session, dang-do chỉ 1 dòng; bài khác vẫn tạo
+    mới bình thường; phiên đã hoàn thành bấm lại vẫn tạo mới (không giữ nhầm); lịch sử hội
+    thoại không mất/nhân đôi khi tái dùng phiên.
+  - **Chuỗi tinh chỉnh UI trang chủ/tiến độ HS theo phản hồi trực tiếp** (sau khi redesign
+    Trang chủ ở v114): tách 2 component dùng chung mới — `TongQuanTienDo.jsx` (vòng tròn %
+    + 4 ô 2x2, dùng ở cả Trang chủ và `ThongKeTienDo`) và `The7NgayQua.jsx` (so sánh 7 ngày
+    qua/trước, 3 ô nay xếp DỌC thay vì ngang, mỗi ô 1 màu nền nhạt riêng — primary/accent/
+    warning — thuần phân biệt trực quan, không mang nghĩa đúng/sai). Dời "Nhận xét của thầy/cô"
+    từ Trang chủ sang trang Tiến độ (thêm slot `sauNhanXet` cho `PhanTichNangLuc.jsx`, không
+    ảnh hưởng bản GV dùng); đổi vị trí card "Bài đang làm dở" cạnh "Thầy/cô đã trả lời"; thêm
+    card "7 ngày qua" cạnh "Thành tích của em"; ở trang Tiến độ, "7 ngày qua so với 7 ngày
+    trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
+  - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -30,7 +62,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v113)
+## 1b. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa tình huống "hết gợi ý → 3 liên kết" vào đánh giá năng lực (sau khi phân tích
   phát hiện: cả 'hết gợi ý' lẫn 3 nút Xem lý thuyết/Nhờ thầy cô/Hỏi gia sư đều KHÔNG có mặt
@@ -60,7 +92,7 @@
   - `pytest` 509/509 (+4 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch; xác minh cột
     đã thêm vào dev.db thật (không chỉ tin test in-memory).
 
-## 1b. Trạng thái trước đó (v112)
+## 1c. Trạng thái trước đó (v112)
 
 - **✨ (v112) Đợt cải tiến "nhìn thấy xu hướng/tiến bộ" trên giao diện thống kê (4 nhóm, user
   chốt làm cả 4 sau 1 lượt phân tích) + đổi biểu đồ tuần sang combo chart theo mẫu user chọn.**
@@ -102,7 +134,7 @@
   `BangCongThuc` (bắt GV tự gõ dấu $) sang `MathPalette` (cùng component ô "Nhờ thầy/cô" của
   HS) qua adapter `getMf()` chèn thẳng `$latex$` vào TipTap tại con trỏ.
 
-## 1c. Trạng thái trước đó (v109)
+## 1d. Trạng thái trước đó (v109)
 
 - **✨ (v109) Pha 2 tính năng "Tóm tắt lý thuyết" — khối 3 liên kết trong khung chat HS khi hết
   gợi ý (Xem lại lý thuyết / Nhờ Thầy-Cô / Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup.**
@@ -125,7 +157,12 @@
     trình duyệt/Playwright để tự click-test trực quan — đã xác nhận `dev-check.ps1 -Fix -Wait`
     LIVE, chờ user tự kiểm trên trình duyệt trước khi merge sang việc khác.
 
-## 1d. Trạng thái trước đó (v108)
+## 1e. Trạng thái trước đó (v108)
+
+- **✨ (v108) Tóm tắt lý thuyết (Pha 1) — GV soạn (TipTap RTE), HS xem lại.** Bảng mới
+  `tom_tat_ly_thuyet` (chuyen_de_id bắt buộc, dang_id nullable); GV/HS đều có menu "Lý
+  thuyết" mới, phân trang 10/trang; RTE tích hợp sau 2 vòng chỉnh theo phản hồi UI thật.
+  DOMPurify.sanitize() bắt buộc trước dangerouslySetInnerHTML. 11 test.
 
 - **✨ (v108) Tính năng mới: Tóm tắt lý thuyết (Pha 1) — GV soạn, HS xem lại — kèm Rich Text
   Editor thật (TipTap) sau 2 vòng chỉnh theo phản hồi trực tiếp trên UI.**
@@ -166,8 +203,6 @@
   - `pytest` 498/498, `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch. Pha 2 (3 liên kết
     trong khung chat khi hết gợi ý: Xem lại lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) CHƯA làm — đúng
     phạm vi Pha 1 user đã chốt.
-
-## 1e. Trạng thái trước đó (v107)
 
 - **✨ (v107) Cải tiến giao diện "Theo dõi tiến bộ" (GV) + rút gọn nhãn Dashboard/Tổng quan:**
   bộ lọc chọn lớp cho Bản đồ năng lực (backend thêm `lop_id` tùy chọn, kiểm sở hữu); sắp lại
