@@ -187,6 +187,8 @@ export const api = {
 
   // Admin (Phase 10)
   adminStats: () => request('/admin/stats'),
+  adminLlmTheoNgay: () => request('/admin/llm-theo-ngay'),
+  adminPhienTheoNgay: () => request('/admin/phien-theo-ngay'),
   adminUsers: () => request('/admin/users'),
   adminLop: () => request('/admin/lop'),
   adminLopChiTiet: () => request('/admin/lop-chi-tiet'),
@@ -240,6 +242,11 @@ export const api = {
   getHieuQuaLop: () => request('/progress/hieu-qua/lop'),
   getHieuQuaHocSinh: (id) => request(`/progress/students/${id}/hieu-qua`),
   getHieuQuaMe: () => request('/progress/me/hieu-qua'),
+  // Chuỗi 30 ngày cho biểu đồ vùng (nhịp học / khó khăn / LLM / phiên)
+  getNhipNgayMe: () => request('/progress/me/nhip-ngay'),
+  getNhipNgayHocSinh: (id) => request(`/progress/students/${id}/nhip-ngay`),
+  getNhipNgayLop: () => request('/progress/lop/nhip-ngay'),
+  getKhoKhanNgayLop: () => request('/progress/lop/kho-khan-ngay'),
   danhDauXemLyThuyet: (sid) => post(`/sessions/${sid}/xem-ly-thuyet`, {}),
   taiCsvHieuQua: async () => {
     // Tải file CSV (không phải JSON) — dùng fetch thô kèm token rồi kích hoạt tải về.

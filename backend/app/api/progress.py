@@ -21,6 +21,9 @@ from app.services.phan_tich_service import (
 )
 from app.services.progress_service import (
     hoc_sinh_thuoc_gv,
+    hs_ids_cua_gv,
+    kho_khan_theo_ngay,
+    nhip_hoc_theo_ngay,
     thong_ke_chi_tiet,
     tien_do_cua_hs,
     tien_do_lop,
@@ -48,6 +51,36 @@ def phan_tich_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
 def hieu_qua_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
     """HS tự xem chuỗi 8 tuần của chính mình (cùng dữ liệu GV xem qua /students/{id}/hieu-qua)."""
     return hieu_qua_hs(db, current_user.id)
+
+
+@router.get("/me/nhip-ngay", dependencies=[require_role(VaiTro.hs)])
+def nhip_ngay_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Nhịp học 30 ngày của chính HS (bài hoàn thành + phút học mỗi ngày) — biểu đồ vùng."""
+    return nhip_hoc_theo_ngay(db, [current_user.id])
+
+
+@router.get("/students/{hoc_sinh_id}/nhip-ngay",
+            dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def nhip_ngay_hoc_sinh(hoc_sinh_id: int, current_user: CurrentUser,
+                       db: Session = Depends(get_db)):
+    """GV xem nhịp học 30 ngày của 1 HS lớp mình (panel Tiến độ chi tiết)."""
+    if current_user.vai_tro == VaiTro.gv and not hoc_sinh_thuoc_gv(
+        db, current_user.id, hoc_sinh_id
+    ):
+        raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
+    return nhip_hoc_theo_ngay(db, [hoc_sinh_id])
+
+
+@router.get("/lop/nhip-ngay", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def nhip_ngay_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Nhịp học 30 ngày gộp mọi lớp GV phụ trách (Tổng quan GV)."""
+    return nhip_hoc_theo_ngay(db, hs_ids_cua_gv(db, current_user.id))
+
+
+@router.get("/lop/kho-khan-ngay", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def kho_khan_ngay_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """"Nhiệt kế khó khăn" 30 ngày: cờ + yêu cầu Nhờ thầy/cô phát sinh mỗi ngày (Tổng quan GV)."""
+    return kho_khan_theo_ngay(db, hs_ids_cua_gv(db, current_user.id))
 
 
 @router.post("/me/phan-tich/cap-nhat", dependencies=[require_role(VaiTro.hs)])

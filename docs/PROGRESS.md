@@ -4,7 +4,30 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-16, phiên bản **v116**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v117**)
+
+- **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
+  tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
+  tự làm theo đúng yêu cầu: C2 → A1/A2 → B1 → B2/B3/C1. Khung 30 ngày gần nhất cho MỌI biểu đồ.**
+  - **Backend — 4 hàm service mới, đọc-gộp thuần, KHÔNG đổi schema DB**:
+    `llm_quota_service.su_dung_theo_ngay()` (đọc bảng `llm_su_dung` có sẵn, tách 3 loại —
+    dữ liệu vốn đã đúng định dạng ngày, không cần thêm gì); `progress_service.
+    nhip_hoc_theo_ngay(hs_ids)` dùng chung cho 1 HS lẫn cả lớp (bài hoàn thành + phút/ngày);
+    `progress_service.kho_khan_theo_ngay(hs_ids)` (cờ + yêu cầu Nhờ thầy/cô phát sinh mỗi
+    ngày — "nhiệt kế khó khăn"); `admin_service.phien_theo_ngay()` (phiên bắt đầu/ngày).
+    6 endpoint mới, mọi chuỗi đủ 30 phần tử LIÊN TỤC (ngày trống = 0, không phải thưa dữ liệu).
+  - **Frontend — 1 component dùng chung `BieuDoVung.jsx`**: SVG thuần (không thêm thư viện),
+    làm mượt kiểu MONOTONE (Fritsch–Carlson) — cố ý tránh spline thường vì nó "võng" xuống
+    dưới 0/vẽ đỉnh ảo với chuỗi số nguyên nhỏ; gradient theo token màu app; tooltip rê chuột +
+    đường dóng; trục tung tự chọn bước "đẹp" (giống `BieuDoTuan`); prop `tach?` cho tooltip
+    tách chi tiết theo loại (cờ/nhờ thầy-cô, hội thoại/sinh câu hỏi/phân tích).
+  - **Gắn đúng 7 vị trí đã duyệt qua mockup**: HS→Tiến độ (Nhịp học của em + Thời gian học/ngày,
+    trên biểu đồ 8 tuần); GV→Tổng quan (Nhịp học của lớp + Nhiệt kế khó khăn, dưới hero); GV→
+    Tiến độ chi tiết 1 HS (Nhịp học 30 ngày, trên biểu đồ 8 tuần); Admin→Dashboard (Phiên
+    học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
+  - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -14,7 +37,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1a. Trạng thái trước đó (v115)
+## 1b. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -46,7 +69,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v114)
+## 1c. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -72,7 +95,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v113)
+## 1d. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa tình huống "hết gợi ý → 3 liên kết" vào đánh giá năng lực (sau khi phân tích
   phát hiện: cả 'hết gợi ý' lẫn 3 nút Xem lý thuyết/Nhờ thầy cô/Hỏi gia sư đều KHÔNG có mặt
@@ -102,7 +125,12 @@
   - `pytest` 509/509 (+4 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch; xác minh cột
     đã thêm vào dev.db thật (không chỉ tin test in-memory).
 
-## 1d. Trạng thái trước đó (v112)
+## 1e. Trạng thái trước đó (v112)
+
+- **✨ (v112) Xu hướng/tiến bộ trên thống kê + combo chart tuần theo mẫu user gửi**:
+  `_xu_huong` đo bằng diem_qua_trinh (không phải diem — vốn luôn ~1.0 với TLN/TN4PA);
+  badge xu hướng + mũi tên per-dạng; so sánh 7 ngày qua/trước; `BieuDoTuan.jsx` combo
+  chart cột+đường 1 trục, tuần TƯƠNG ĐỐI theo mốc phiên đầu tiên của từng HS. `pytest` 505/505.
 
 - **✨ (v112) Đợt cải tiến "nhìn thấy xu hướng/tiến bộ" trên giao diện thống kê (4 nhóm, user
   chốt làm cả 4 sau 1 lượt phân tích) + đổi biểu đồ tuần sang combo chart theo mẫu user chọn.**
@@ -143,8 +171,6 @@
 - **✨ (v110) RTE lý thuyết: tự bọc `$...$` khi GV chèn công thức** — `SoanRichText.jsx` đổi
   `BangCongThuc` (bắt GV tự gõ dấu $) sang `MathPalette` (cùng component ô "Nhờ thầy/cô" của
   HS) qua adapter `getMf()` chèn thẳng `$latex$` vào TipTap tại con trỏ.
-
-## 1e. Trạng thái trước đó (v109)
 
 - **✨ (v109) Pha 2 Tóm tắt lý thuyết — khối 3 liên kết trong chat HS khi hết gợi ý** (Xem
   lý thuyết/Nhờ Thầy-Cô/Hỏi gia sư) + đổi "Nhờ thầy/cô" sang popup. `dang_id`/`chuyen_de_id`

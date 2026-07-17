@@ -4,6 +4,7 @@ import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import BanDoNangLuc from '../../components/BanDoNangLuc'
 import BieuDoTuan from '../../components/BieuDoTuan'
+import BieuDoVung from '../../components/BieuDoVung'
 import { Button, Card, CardBody, CardHeader } from '../../components/ui'
 import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
 
@@ -53,6 +54,7 @@ export default function TienDo({ onLuyenDang }) {
   const [tk, setTk] = useState(null)
   const [pt, setPt] = useState(null)
   const [hq, setHq] = useState(null)
+  const [nhipNgay, setNhipNgay] = useState(null)
   const [nhanXet, setNhanXet] = useState([])
   const [trangNx, setTrangNx] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -63,6 +65,7 @@ export default function TienDo({ onLuyenDang }) {
       .then(([t, p, h]) => { setTk(t); setPt(p); setHq(h) })
       .catch(() => {})
       .finally(() => setLoading(false))
+    api.getNhipNgayMe().then(setNhipNgay).catch(() => {})
     api.thongBao()
       .then((rows) => setNhanXet((rows || []).filter((t) => t.loai === 'nhan_xet')))
       .catch(() => {})
@@ -85,6 +88,22 @@ export default function TienDo({ onLuyenDang }) {
           <TheNhanXet nhanXet={nhanXet} trang={trangNx} onTrang={setTrangNx} />
         }
       />
+      {nhipNgay && (
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          <BieuDoVung
+            ds={nhipNgay.map((d) => ({ ...d, so: d.so_bai }))}
+            donVi="bài hoàn thành"
+            tieu_de="Nhịp học của em"
+            phu_de="Số bài hoàn thành mỗi ngày · 30 ngày gần nhất — đường liền nhịp là học đều"
+          />
+          <BieuDoVung
+            ds={nhipNgay.map((d) => ({ ...d, so: d.so_phut }))}
+            donVi="phút học"
+            tieu_de="Thời gian học mỗi ngày"
+            phu_de="Phút làm các bài hoàn thành trong ngày · 30 ngày gần nhất"
+          />
+        </div>
+      )}
       <BieuDoTuan data={hq} tieu_de="Diễn biến 8 tuần gần nhất của em" />
       <BanDoNangLuc taiDuLieu={api.getBanDoCuaToi} tieu_de="Bản đồ năng lực của em" />
       <ThongKeTienDo tk={tk} />

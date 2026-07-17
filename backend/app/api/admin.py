@@ -49,6 +49,22 @@ def stats(current_user: CurrentUser, db: Session = Depends(get_db)):
     return thong_ke(db)
 
 
+@router.get("/llm-theo-ngay", dependencies=_ADMIN)
+def llm_theo_ngay(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Lượt gọi LLM thật mỗi ngày (30 ngày, theo loại) — theo dõi quota Gemini."""
+    from app.services.llm_quota_service import su_dung_theo_ngay
+
+    return su_dung_theo_ngay(db)
+
+
+@router.get("/phien-theo-ngay", dependencies=_ADMIN)
+def phien_theo_ngay_api(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Số phiên học bắt đầu mỗi ngày toàn hệ thống (30 ngày)."""
+    from app.services.admin_service import phien_theo_ngay
+
+    return phien_theo_ngay(db)
+
+
 @router.get("/users", dependencies=_ADMIN)
 def users(current_user: CurrentUser, db: Session = Depends(get_db)):
     return danh_sach_tai_khoan(db)

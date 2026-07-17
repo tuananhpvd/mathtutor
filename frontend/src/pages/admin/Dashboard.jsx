@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Card, CardBody, CardHeader, StatCard } from '../../components/ui'
+import BieuDoVung from '../../components/BieuDoVung'
 
 const LOAI_LABEL = { TN4PA: 'Trắc nghiệm 4 PA', TNDS: 'Đúng/Sai', TLN: 'Tự luận ngắn' }
 const DO_KHO_LABEL = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
@@ -50,14 +51,24 @@ function TieuDeThe({ icon: Icon, children }) {
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
+  const [phienNgay, setPhienNgay] = useState(null)
+  const [llmNgay, setLlmNgay] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     api.adminStats().then(setStats).catch((e) => setError(e.message))
+    api.adminPhienTheoNgay().then(setPhienNgay).catch(() => {})
+    api.adminLlmTheoNgay().then(setLlmNgay).catch(() => {})
   }, [])
 
   if (error) return <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">{error}</p>
   if (!stats) return <p className="text-muted text-sm">Đang tải thống kê...</p>
+
+  // Tổng 30 ngày theo loại cho phần chú thích dưới biểu đồ LLM.
+  const tongLlm = (llmNgay || []).reduce(
+    (a, d) => ({ ht: a.ht + d.hoi_thoai, sinh: a.sinh + d.sinh_cau_hoi, pt: a.pt + d.phan_tich }),
+    { ht: 0, sinh: 0, pt: 0 },
+  )
 
   return (
     <div className="flex flex-col gap-5">
@@ -67,6 +78,35 @@ export default function Dashboard() {
         <StatCard icon={ListChecks} label="Câu hỏi" value={stats.so_cau_hoi} accent="primary" />
         <StatCard icon={Activity} label="Phiên học" value={stats.so_phien} accent="success" />
         <StatCard icon={AlertTriangle} label="Cờ chưa xử lý" value={stats.so_co_chua_xu_ly} accent="warning" />
+      </div>
+
+      {/* Nhịp sử dụng 30 ngày: phiên học + lượt gọi AI (tím accent = màu riêng tính năng AI) */}
+      <div className="grid lg:grid-cols-2 gap-4 items-start">
+        {phienNgay && (
+          <BieuDoVung
+            ds={phienNgay.map((d) => ({ ...d, so: d.so_phien }))}
+            donVi="phiên học"
+            tieu_de="Phiên học mỗi ngày"
+            phu_de="Toàn hệ thống · 30 ngày gần nhất"
+          />
+        )}
+        {llmNgay && (
+          <div className="flex flex-col gap-2">
+            <BieuDoVung
+              ds={llmNgay.map((d) => ({ ...d, so: d.tong }))}
+              mau="var(--color-accent)"
+              donVi="lượt gọi AI"
+              tieu_de="Lượt gọi AI (LLM) mỗi ngày"
+              phu_de="Theo dõi quota · rê chuột xem tách loại"
+              tach={(d) => `💬 hội thoại: ${d.hoi_thoai} · ✨ sinh câu hỏi: ${d.sinh_cau_hoi} · 📊 phân tích: ${d.phan_tich}`}
+            />
+            <p className="text-xs text-muted px-1">
+              Tổng 30 ngày: 💬 hội thoại <b className="text-ink">{tongLlm.ht}</b> ·
+              ✨ sinh câu hỏi <b className="text-ink">{tongLlm.sinh}</b> ·
+              📊 phân tích <b className="text-ink">{tongLlm.pt}</b>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Người dùng & Lớp + Phiên học — 2 thẻ cao xấp xỉ nhau nên ghép cùng hàng */}

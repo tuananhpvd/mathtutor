@@ -93,6 +93,77 @@ def hs_ids_cua_gv(db: Session, gv_id: int) -> list[int]:
     return [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
 
 
+def _khung_ngay(so_ngay: int) -> list[str]:
+    """Danh sách `so_ngay` ngày UTC gần nhất (cũ → mới) dạng YYYY-MM-DD — khung cho các chuỗi
+    theo-ngày, đảm bảo ngày không hoạt động vẫn có mặt với giá trị 0 (biểu đồ cần liên tục)."""
+    hom_nay = datetime.now(timezone.utc).date()
+    return [(hom_nay - timedelta(days=i)).isoformat() for i in range(so_ngay - 1, -1, -1)]
+
+
+def nhip_hoc_theo_ngay(db: Session, hs_ids: list[int], so_ngay: int = 30) -> list[dict]:
+    """Nhịp học theo NGÀY (biểu đồ vùng): số bài hoàn thành + phút làm bài mỗi ngày, tính theo
+    ngày HOÀN THÀNH (cap_nhat_luc). Dùng cho 1 HS (trang Tiến độ, panel GV xem 1 em) lẫn cả
+    lớp (Tổng quan GV) — truyền list hs_ids tương ứng."""
+    khung = _khung_ngay(so_ngay)
+    gom = {ng: {"so_bai": 0, "giay": 0} for ng in khung}
+    if hs_ids:
+        tu_luc = datetime.now(timezone.utc) - timedelta(days=so_ngay)
+        rows = (
+            db.query(SessionModel)
+            .filter(
+                SessionModel.hoc_sinh_id.in_(hs_ids),
+                SessionModel.trang_thai == TrangThaiSession.hoan_thanh,
+                SessionModel.bi_an == False,  # noqa: E712
+                SessionModel.cap_nhat_luc >= tu_luc,
+            )
+            .all()
+        )
+        for s in rows:
+            ng = s.cap_nhat_luc.date().isoformat()
+            if ng in gom:
+                gom[ng]["so_bai"] += 1
+                gom[ng]["giay"] += s.thoi_gian_giay or 0
+    return [
+        {"ngay": ng, "so_bai": gom[ng]["so_bai"], "so_phut": round(gom[ng]["giay"] / 60)}
+        for ng in khung
+    ]
+
+
+def kho_khan_theo_ngay(db: Session, hs_ids: list[int], so_ngay: int = 30) -> list[dict]:
+    """"Nhiệt kế khó khăn" theo NGÀY: số cờ theo dõi + số yêu cầu "Nhờ thầy/cô" phát sinh mỗi
+    ngày của nhóm HS — đỉnh nhọn = giai đoạn cả lớp gặp khó (vào chương mới, đề khó...)."""
+    from app.models.flag import Flag
+    from app.models.yeu_cau_tro_giup import YeuCauTroGiup
+
+    khung = _khung_ngay(so_ngay)
+    gom = {ng: {"so_co": 0, "so_nho": 0} for ng in khung}
+    if hs_ids:
+        tu_luc = datetime.now(timezone.utc) - timedelta(days=so_ngay)
+        co_rows = (
+            db.query(Flag.tao_luc)
+            .join(SessionModel, Flag.session_id == SessionModel.id)
+            .filter(SessionModel.hoc_sinh_id.in_(hs_ids), Flag.tao_luc >= tu_luc)
+            .all()
+        )
+        for (dt,) in co_rows:
+            ng = dt.date().isoformat()
+            if ng in gom:
+                gom[ng]["so_co"] += 1
+        nho_rows = (
+            db.query(YeuCauTroGiup.tao_luc)
+            .filter(YeuCauTroGiup.hoc_sinh_id.in_(hs_ids), YeuCauTroGiup.tao_luc >= tu_luc)
+            .all()
+        )
+        for (dt,) in nho_rows:
+            ng = dt.date().isoformat()
+            if ng in gom:
+                gom[ng]["so_nho"] += 1
+    return [
+        {"ngay": ng, **gom[ng], "tong": gom[ng]["so_co"] + gom[ng]["so_nho"]}
+        for ng in khung
+    ]
+
+
 def _so_sanh_7_ngay(sessions) -> dict:
     """So sánh 7 ngày qua với 7 ngày liền trước (mốc = thời điểm cập nhật cuối của phiên
     hoàn thành): số bài, thời gian TB/bài, số lượt cần gợi ý TB/bài. Trả số liệu THÔ cả

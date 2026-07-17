@@ -6,6 +6,7 @@ import { api } from '../../api'
 import { getSession } from '../../auth'
 import { Button, Card, CardBody, CardHeader, StatCard } from '../../components/ui'
 import BangXepHangThoiGian from '../../components/BangXepHangThoiGian'
+import BieuDoVung from '../../components/BieuDoVung'
 import { NHAN_LOAI_MAT_THOI_GIAN } from '../../utils/format'
 
 function TieuDeThe({ icon: Icon, children }) {
@@ -55,10 +56,14 @@ export default function TongQuan({ onNavigate }) {
   const { ho_ten } = getSession() || {}
   const [tk, setTk] = useState(null)
   const [soHoTro, setSoHoTro] = useState(0)
+  const [nhipLop, setNhipLop] = useState(null)
+  const [khoKhan, setKhoKhan] = useState(null)
 
   useEffect(() => {
     api.gvTongQuan().then(setTk).catch(() => {})
     api.gvTroGiup(true).then((ds) => setSoHoTro((ds || []).length)).catch(() => {})
+    api.getNhipNgayLop().then(setNhipLop).catch(() => {})
+    api.getKhoKhanNgayLop().then(setKhoKhan).catch(() => {})
   }, [])
 
   if (!tk) return <p className="text-muted text-sm">Đang tải tổng quan...</p>
@@ -80,6 +85,31 @@ export default function TongQuan({ onNavigate }) {
             nhan="Xử lý ngay" onClick={() => onNavigate?.('co')} />
         </div>
       </div>
+
+      {/* Nhịp học của lớp (teal GV) + nhiệt kế khó khăn (vàng cần-chú-ý) — 30 ngày */}
+      {(nhipLop || khoKhan) && (
+        <div className="grid lg:grid-cols-2 gap-4 items-start">
+          {nhipLop && (
+            <BieuDoVung
+              ds={nhipLop.map((d) => ({ ...d, so: d.so_bai }))}
+              mau="var(--color-gv)"
+              donVi="bài cả lớp hoàn thành"
+              tieu_de="Nhịp học của lớp"
+              phu_de="Tổng bài hoàn thành mỗi ngày (mọi lớp phụ trách) · 30 ngày"
+            />
+          )}
+          {khoKhan && (
+            <BieuDoVung
+              ds={khoKhan.map((d) => ({ ...d, so: d.tong }))}
+              mau="var(--color-warning)"
+              donVi="tín hiệu khó khăn"
+              tieu_de="Nhiệt kế khó khăn của lớp"
+              phu_de="Cờ + yêu cầu Nhờ thầy/cô mỗi ngày · đỉnh nhọn = giai đoạn HS gặp khó"
+              tach={(d) => `🚩 cờ: ${d.so_co} · 🙋 nhờ thầy/cô: ${d.so_nho}`}
+            />
+          )}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <NhomThongKe

@@ -11,7 +11,7 @@ Giới hạn đặt trong Cấu hình Admin (0 = không giới hạn):
 - `gioi_han_llm_he_thong_ngay`: tổng lượt LLM thật toàn hệ thống / ngày.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -45,6 +45,25 @@ def ghi_luot(db: Session, user_id: int | None, loai: str, so: int = 1) -> None:
         db.add(row)
     row.so_luot += so
     db.commit()
+
+
+def su_dung_theo_ngay(db: Session, so_ngay: int = 30) -> list[dict]:
+    """Lượt gọi LLM thật mỗi ngày theo loại, `so_ngay` ngày gần nhất (kể cả ngày 0 lượt) —
+    cho biểu đồ vùng ở Dashboard admin theo dõi quota. Bảng llm_su_dung đã lưu sẵn theo
+    (ngay, user, loai), đây chỉ là đọc-gộp."""
+    hom_nay = datetime.now(timezone.utc).date()
+    khung = [(hom_nay - timedelta(days=i)).isoformat() for i in range(so_ngay - 1, -1, -1)]
+    gom = {ng: dict.fromkeys(CAC_LOAI, 0) for ng in khung}
+    rows = (
+        db.query(LLMSuDung.ngay, LLMSuDung.loai, func.sum(LLMSuDung.so_luot))
+        .filter(LLMSuDung.ngay >= khung[0])
+        .group_by(LLMSuDung.ngay, LLMSuDung.loai)
+        .all()
+    )
+    for ng, loai, so in rows:
+        if ng in gom and loai in gom[ng]:
+            gom[ng][loai] = int(so or 0)
+    return [{"ngay": ng, **gom[ng], "tong": sum(gom[ng].values())} for ng in khung]
 
 
 def tong_hom_nay(db: Session, *, user_id: int | None = None, loai: str | None = None) -> int:
