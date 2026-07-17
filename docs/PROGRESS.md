@@ -4,7 +4,25 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v119**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v120**)
+
+- **✨ (v120) 2 mục P0 từ đợt rà soát toàn dự án (#6 lộ mật khẩu seed, #10 thiếu ErrorBoundary
+  frontend) — thuần hướng dẫn thao tác trước đó (#1/#3a/#4/#5/#3b) đã xong, đây là 2 mục còn
+  lại cần code.**
+  - **#6 — `init_db()` không còn seed tài khoản mẫu mật khẩu công khai trên Postgres**: mật
+    khẩu `admin/admin123`, `gv1/gv123`, `hs1/hs123`, `quanly/quanly123` nằm công khai trong
+    `docs/PROGRESS.md` trên GitHub — nếu Postgres production từng bị tạo lại/khôi phục về rỗng
+    (hoặc ai deploy repo lần đầu), app sẽ tự tạo lại đúng các tài khoản đó. Giờ: CSDL rỗng +
+    `DATABASE_URL` chứa "postgres" (cùng cách nhận diện với `kiem_tra_an_toan_khoi_dong()`) →
+    KHÔNG seed users.json, chỉ tạo 1 admin với **mật khẩu ngẫu nhiên** in ra log khởi động một
+    lần; danh mục chuyên đề/dạng vẫn seed bình thường (không nhạy cảm). SQLite (dev/test) giữ
+    nguyên hành vi cũ. 2 test mới `test_init_db.py` xác nhận đúng cả 2 nhánh.
+  - **#10 — Thêm `ErrorBoundary` React** (`components/ErrorBoundary.jsx`, bọc quanh `<App />`
+    ở `main.jsx`): lỗi render ngoài dự kiến ở bất kỳ đâu (Login/HS/GV/Admin) giờ hiện trang lỗi
+    thân thiện ("Tải lại trang" / "Đăng xuất & tải lại") thay vì màn hình trắng.
+  - `pytest` 523/523 (+2), `eslint`/`vite build`/`vitest` 23/23 sạch.
+
+## 1a. Trạng thái trước đó (v119)
 
 - **✨ (v119) Admin tự đổi mật khẩu/họ tên (trang "Tài khoản cá nhân" mới) — vá lỗ hổng phát
   hiện khi user báo "tài khoản admin không thể đổi mật khẩu" sau khi làm theo hướng dẫn P0#3a.**
@@ -22,7 +40,7 @@
     `/admin/ho-so`, xác nhận rào chắn cũ (admin sửa admin KHÁC qua "Quản lý tài khoản") vẫn
     nguyên vẹn — không mở thêm lỗ hổng. `pytest` 521/521, `eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v118)
+## 1b. Trạng thái trước đó (v118)
 
 - **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
   TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
@@ -42,7 +60,7 @@
   - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
     cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1b. Trạng thái trước đó (v117)
+## 1c. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -65,7 +83,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v116)
+## 1d. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -75,7 +93,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1d. Trạng thái trước đó (v115)
+## 1e. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -107,7 +125,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1e. Trạng thái trước đó (v114)
+## 1f. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -133,7 +151,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1f. Trạng thái trước đó (v113)
+## 1g. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa 'hết gợi ý → 3 liên kết' vào đánh giá năng lực**: 2 cột mới `sessions`
   (so_lan_het_goi_y đếm bằng CẠNH LÊN ở tutor_service — không sửa lõi orchestrator;
@@ -1599,7 +1617,9 @@ ngày/model.
 Backend: `cd backend` → (lần đầu) `python -m venv .venv && .venv\Scripts\activate && pip install -e .`
 → `uvicorn app.main:app --reload --port 8000` (DB tự seed nếu chưa có user).
 Frontend: `cd frontend` → (lần đầu) `npm install` → `npm run dev` (http://localhost:5173, proxy /api).
-Tài khoản seed: `admin/admin123`, `gv1/gv123`, `hs1/hs123`.
+Tài khoản seed (CHỈ local/dev, SQLite): `admin/admin123`, `gv1/gv123`, `hs1/hs123`. Trên
+production (Postgres) `init_db()` KHÔNG dùng các mật khẩu công khai này — nếu CSDL rỗng chỉ tạo
+1 admin với mật khẩu ngẫu nhiên in ra log khởi động một lần (xem `db/init_db.py`).
 Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `npm run build`.
 
 > DB: `create_all()` KHÔNG ALTER bảng cũ — đã có migration nhẹ `init_db._migrate_them_cot` (thêm
