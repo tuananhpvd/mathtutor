@@ -187,6 +187,8 @@ export const api = {
 
   // Admin (Phase 10)
   adminStats: () => request('/admin/stats'),
+  adminHoSo: () => request('/admin/ho-so'),
+  adminCapNhatHoSo: (body) => request('/admin/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
   adminLlmTheoNgay: () => request('/admin/llm-theo-ngay'),
   adminPhienTheoNgay: () => request('/admin/phien-theo-ngay'),
   adminUsers: () => request('/admin/users'),

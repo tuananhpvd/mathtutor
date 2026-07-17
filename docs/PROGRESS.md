@@ -4,7 +4,25 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v118**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v119**)
+
+- **✨ (v119) Admin tự đổi mật khẩu/họ tên (trang "Tài khoản cá nhân" mới) — vá lỗ hổng phát
+  hiện khi user báo "tài khoản admin không thể đổi mật khẩu" sau khi làm theo hướng dẫn P0#3a.**
+  - **Nguyên nhân**: `admin_service.sua_tai_khoan()` (dùng cho "Quản lý tài khoản" — admin sửa
+    tài khoản GV/HS người khác) chặn cứng MỌI sửa đổi lên tài khoản vai trò admin (rào chắn cố
+    ý, chống admin này khóa/sửa admin khác) — hệ quả không mong muốn: admin không có đường nào
+    tự đổi mật khẩu của chính mình, khác GV/HS đều có sẵn `/gv/ho-so`, `/hs/ho-so`.
+  - **Hướng B (user chọn, không đụng DB production)**: thêm lối đi RIÊNG `GET/PATCH
+    /admin/ho-so` (service `ho_so_admin()`/`cap_nhat_ho_so_admin()`, thao tác đúng
+    `current_user` — không đi qua `sua_tai_khoan()` nên không đụng rào chắn cũ). FE: trang mới
+    `admin/TaiKhoanCaNhan.jsx` (mirror y hệt bản GV), mục nav riêng **"Tài khoản cá nhân"**
+    (khác key với "Quản lý tài khoản" có sẵn); `QuanTriApp.jsx` thêm state `hoTen` đồng bộ
+    header sau khi đổi tên (mirror `GiaoVienApp.jsx`).
+  - 3 test mới: tự đổi mật khẩu + xác nhận mật khẩu cũ hết hiệu lực, chặn vai trò khác gọi
+    `/admin/ho-so`, xác nhận rào chắn cũ (admin sửa admin KHÁC qua "Quản lý tài khoản") vẫn
+    nguyên vẹn — không mở thêm lỗ hổng. `pytest` 521/521, `eslint`/`vite build` sạch.
+
+## 1a. Trạng thái trước đó (v118)
 
 - **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
   TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
@@ -24,7 +42,7 @@
   - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
     cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1a. Trạng thái trước đó (v117)
+## 1b. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -47,7 +65,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v116)
+## 1c. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -57,7 +75,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1c. Trạng thái trước đó (v115)
+## 1d. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -89,7 +107,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v114)
+## 1e. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -115,7 +133,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1e. Trạng thái trước đó (v113)
+## 1f. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa 'hết gợi ý → 3 liên kết' vào đánh giá năng lực**: 2 cột mới `sessions`
   (so_lan_het_goi_y đếm bằng CẠNH LÊN ở tutor_service — không sửa lõi orchestrator;

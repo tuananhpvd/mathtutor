@@ -227,6 +227,28 @@ def phien_theo_ngay(db: Session, so_ngay: int = 30) -> list[dict]:
     return [{"ngay": ng, "so_phien": gom[ng]} for ng in khung]
 
 
+def ho_so_admin(admin: User) -> dict:
+    """Hồ sơ CHÍNH admin đang đăng nhập — khác danh_sach_tai_khoan (xem MỌI tài khoản)."""
+    return {
+        "id": admin.id, "ho_ten": admin.ho_ten, "dang_nhap": admin.dang_nhap,
+        "vai_tro": admin.vai_tro.value, "trang_thai": admin.trang_thai.value,
+    }
+
+
+def cap_nhat_ho_so_admin(db: Session, admin: User, ho_ten: str | None, mat_khau: str | None) -> User:
+    """Admin TỰ sửa hồ sơ CHÍNH MÌNH — trước đây không có đường nào đổi được mật khẩu admin
+    (sua_tai_khoan() ở dưới CHẶN CỨNG mọi sửa đổi lên tài khoản admin, kể cả tự sửa, vì hàm
+    đó dùng cho việc "admin sửa tài khoản GV/HS người khác"). Đây là lối đi RIÊNG, chỉ tác
+    động đúng tài khoản của người gọi (current_user), không đụng tới rào chắn sua_tai_khoan."""
+    if ho_ten:
+        admin.ho_ten = ho_ten.strip()
+    if mat_khau:
+        admin.mat_khau_hash = hash_password(mat_khau)
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+
 def danh_sach_tai_khoan(db: Session) -> list[dict]:
     users = db.query(User).order_by(User.id).all()
     lop_ten = {lop.id: lop.ten for lop in db.query(Lop).all()}

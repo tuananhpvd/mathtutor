@@ -417,3 +417,53 @@ def test_tu_khoa_thu_khong_phai_admin_bi_chan(db, client):
     h = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
     r = client.post("/api/admin/tu-khoa-thu", headers=h, json={"van_ban": "test"})
     assert r.status_code == 403
+
+
+def test_admin_tu_doi_mat_khau_va_ho_ten(db, client):
+    """Admin trước đây KHÔNG có cách nào tự đổi mật khẩu (sua_tai_khoan() chặn cứng mọi sửa
+    lên tài khoản admin) — /admin/ho-so là lối đi RIÊNG, chỉ tác động đúng tài khoản người
+    gọi, không đụng rào chắn đó."""
+    _seed(db)
+    tok = _login(client, "admin")
+    h = {"Authorization": f"Bearer {tok}"}
+
+    r = client.get("/api/admin/ho-so", headers=h)
+    assert r.status_code == 200
+    assert r.json() == {
+        "id": r.json()["id"], "ho_ten": "Quản trị", "dang_nhap": "admin",
+        "vai_tro": "admin", "trang_thai": "hoat_dong",
+    }
+
+    r2 = client.patch("/api/admin/ho-so", headers=h,
+                      json={"ho_ten": "Quản trị viên", "mat_khau": "matkhaumoi123"})
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["ho_ten"] == "Quản trị viên"
+
+    # Đăng nhập lại bằng mật khẩu MỚI xác nhận đã đổi thật (không chỉ đổi trong response)
+    r3 = client.post("/api/auth/login", json={"dang_nhap": "admin", "mat_khau": "matkhaumoi123"})
+    assert r3.status_code == 200, r3.text
+
+    # Mật khẩu cũ không còn dùng được
+    r4 = client.post("/api/auth/login", json={"dang_nhap": "admin", "mat_khau": "password"})
+    assert r4.status_code == 401
+
+
+def test_admin_ho_so_khong_phai_admin_bi_chan(db, client):
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    assert client.get("/api/admin/ho-so", headers=h).status_code == 403
+    assert client.patch("/api/admin/ho-so", headers=h, json={"ho_ten": "x"}).status_code == 403
+
+
+def test_admin_khong_tu_khoa_duoc_qua_sua_tai_khoan(db, client):
+    """Rào chắn cũ (sua_tai_khoan chặn sửa admin) vẫn nguyên vẹn — /admin/ho-so KHÔNG mở
+    thêm lỗ hổng cho phép admin sửa MỘT admin KHÁC qua route quản lý tài khoản chung."""
+    _seed(db)
+    admin2 = User(vai_tro=VaiTro.admin, ho_ten="Admin 2", dang_nhap="admin2",
+                 mat_khau_hash=hash_password("password"))
+    db.add(admin2)
+    db.commit()
+
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    r = client.patch(f"/api/admin/users/{admin2.id}", headers=h, json={"ho_ten": "x"})
+    assert r.status_code == 400

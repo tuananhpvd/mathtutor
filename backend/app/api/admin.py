@@ -10,6 +10,7 @@ from app.schemas.admin import (
     DatCauHinhRequest,
     DoiTrangThaiRequest,
     GanLopRequest,
+    HoSoUpdate,
     ImportTaiKhoanRequest,
     KiemTraDangNhapRequest,
     KiemTraTuKhoaRequest,
@@ -20,6 +21,7 @@ from app.schemas.admin import (
 )
 from app.schemas.gv import ImportHSBatchRequest, KiemTraHSRequest
 from app.services.admin_service import (
+    cap_nhat_ho_so_admin,
     danh_sach_giao_vien,
     danh_sach_hoc_sinh,
     danh_sach_lop,
@@ -28,6 +30,7 @@ from app.services.admin_service import (
     dat_cau_hinh,
     doi_trang_thai_tai_khoan,
     gan_lop_tai_khoan,
+    ho_so_admin,
     import_tai_khoan_batch,
     lay_cau_hinh_an_toan,
     sua_lop,
@@ -47,6 +50,17 @@ _ADMIN = [require_role(VaiTro.admin)]
 @router.get("/stats", dependencies=_ADMIN)
 def stats(current_user: CurrentUser, db: Session = Depends(get_db)):
     return thong_ke(db)
+
+
+@router.get("/ho-so", dependencies=_ADMIN)
+def ho_so(current_user: CurrentUser):
+    return ho_so_admin(current_user)
+
+
+@router.patch("/ho-so", dependencies=_ADMIN)
+def cap_nhat_ho_so(body: HoSoUpdate, current_user: CurrentUser, db: Session = Depends(get_db)):
+    admin = cap_nhat_ho_so_admin(db, current_user, body.ho_ten, body.mat_khau)
+    return ho_so_admin(admin)
 
 
 @router.get("/llm-theo-ngay", dependencies=_ADMIN)

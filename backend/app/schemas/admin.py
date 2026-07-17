@@ -24,6 +24,13 @@ class SuaTaiKhoanRequest(BaseModel):
     vai_tro: str | None = None  # gv | hs
 
 
+class HoSoUpdate(BaseModel):
+    """Admin TỰ sửa hồ sơ của chính mình — khác SuaTaiKhoanRequest (admin sửa tài khoản
+    GV/HS người khác, chặn không cho áp dụng lên tài khoản admin, xem admin_service.sua_tai_khoan)."""
+    ho_ten: str | None = None
+    mat_khau: str | None = Field(None, min_length=4)
+
+
 class TaoLopRequest(BaseModel):
     ten: str = Field(..., min_length=1)
     gv_id: int | None = None
