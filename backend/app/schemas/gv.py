@@ -54,7 +54,8 @@ class HocSinhImportItem(BaseModel):
 
 
 class ImportHSBatchRequest(BaseModel):
-    hoc_sinhs: list[HocSinhImportItem] = Field(..., min_length=1)
+    # max_length: chặn batch khổng lồ tốn RAM/CPU không giới hạn — 2000 đủ rộng cho 1 lớp/khối.
+    hoc_sinhs: list[HocSinhImportItem] = Field(..., min_length=1, max_length=2000)
 
 
 class GuiNhanXetRequest(BaseModel):

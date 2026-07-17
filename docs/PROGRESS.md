@@ -4,7 +4,21 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v121**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v122**)
+
+- **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
+  app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
+  `ImportHSBatchRequest.hoc_sinhs`, `ImportBatchRequest.items` câu hỏi) — chỉ có
+  `min_length=1`, KHÔNG có giới hạn trên → batch khổng lồ (hàng triệu dòng) tốn RAM/CPU không
+  kiểm soát.
+  - Thêm `max_length` (2000/2000/1000 tương ứng, đủ rộng cho quy mô 1 trường/khối).
+  - Thêm middleware toàn app `main.py::gioi_han_dung_luong_request` — chặn SỚM qua header
+    `Content-Length` (413) TRƯỚC khi Starlette buffer toàn bộ body vào RAM, phòng vệ chung cho
+    MỌI endpoint (kể cả endpoint tương lai lỡ quên validate field riêng) — 15MB đủ rộng cho ảnh
+    base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
+  - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
+
+## 1a. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại
@@ -36,7 +50,7 @@
     trình Alembic mới (xem mục 5 bên dưới).
   - `pytest` 526/526 (+3 test mới `test_migrate.py`), `ruff` sạch.
 
-## 1a. Trạng thái trước đó (v120)
+## 1b. Trạng thái trước đó (v120)
 
 - **✨ (v120) 2 mục P0 từ đợt rà soát toàn dự án (#6 lộ mật khẩu seed, #10 thiếu ErrorBoundary
   frontend) — thuần hướng dẫn thao tác trước đó (#1/#3a/#4/#5/#3b) đã xong, đây là 2 mục còn
@@ -54,7 +68,7 @@
     thân thiện ("Tải lại trang" / "Đăng xuất & tải lại") thay vì màn hình trắng.
   - `pytest` 523/523 (+2), `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1b. Trạng thái trước đó (v119)
+## 1c. Trạng thái trước đó (v119)
 
 - **✨ (v119) Admin tự đổi mật khẩu/họ tên (trang "Tài khoản cá nhân" mới) — vá lỗ hổng phát
   hiện khi user báo "tài khoản admin không thể đổi mật khẩu" sau khi làm theo hướng dẫn P0#3a.**
@@ -72,7 +86,7 @@
     `/admin/ho-so`, xác nhận rào chắn cũ (admin sửa admin KHÁC qua "Quản lý tài khoản") vẫn
     nguyên vẹn — không mở thêm lỗ hổng. `pytest` 521/521, `eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v118)
+## 1d. Trạng thái trước đó (v118)
 
 - **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
   TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
@@ -92,7 +106,7 @@
   - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
     cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1d. Trạng thái trước đó (v117)
+## 1e. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -115,7 +129,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1e. Trạng thái trước đó (v116)
+## 1f. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -125,7 +139,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1f. Trạng thái trước đó (v115)
+## 1g. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -157,7 +171,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1g. Trạng thái trước đó (v114)
+## 1h. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -183,7 +197,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1h. Trạng thái trước đó (v113)
+## 1i. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa 'hết gợi ý → 3 liên kết' vào đánh giá năng lực**: 2 cột mới `sessions`
   (so_lan_het_goi_y đếm bằng CẠNH LÊN ở tutor_service — không sửa lõi orchestrator;

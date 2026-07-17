@@ -38,7 +38,9 @@ class ImportCauHoiItem(BaseModel):
 
 
 class ImportBatchRequest(BaseModel):
-    items: list[ImportCauHoiItem] = Field(..., min_length=1)
+    # max_length: chặn batch khổng lồ tốn RAM/CPU không giới hạn — 1000 đủ rộng cho 1 lần
+    # import câu hỏi (kể cả cả 1 ngân hàng đề lớn).
+    items: list[ImportCauHoiItem] = Field(..., min_length=1, max_length=1000)
 
 
 class VeDoThiRequest(BaseModel):

@@ -467,3 +467,16 @@ def test_admin_khong_tu_khoa_duoc_qua_sua_tai_khoan(db, client):
     h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
     r = client.patch(f"/api/admin/users/{admin2.id}", headers=h, json={"ho_ten": "x"})
     assert r.status_code == 400
+
+
+def test_import_tai_khoan_qua_2000_dong_bi_chan(db, client):
+    """max_length=2000 trên ImportTaiKhoanRequest.tai_khoans — chặn batch khổng lồ tốn
+    RAM/CPU không giới hạn, TRƯỚC KHI chạm tới service (lỗi validate 422)."""
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    tai_khoans = [
+        {"ho_ten": f"HS {i}", "dang_nhap": f"hsx{i}", "mat_khau": "1234", "vai_tro": "hs"}
+        for i in range(2001)
+    ]
+    r = client.post("/api/admin/users/import-batch", headers=h, json={"tai_khoans": tai_khoans})
+    assert r.status_code == 422

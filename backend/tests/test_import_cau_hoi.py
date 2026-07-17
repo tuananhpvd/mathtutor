@@ -126,3 +126,16 @@ def test_import_mixed_loi_va_hop_le(client, db):
     res = r.json()
     assert res["da_tao"] == 1
     assert len(res["loi"]) == 1
+
+
+def test_import_batch_qua_1000_dong_bi_chan(client, db):
+    """max_length=1000 trên ImportBatchRequest.items — chặn batch khổng lồ tốn RAM/CPU
+    không giới hạn, TRƯỚC KHI chạm tới service (lỗi validate 422, không phải lỗi nghiệp vụ)."""
+    seed_all(db)
+    tok = _token(client, "gv_test")
+    items = [
+        {"loai_cau": "TLN", "chuyen_de": "x", "de_bai": "x", "meta": {"dap_an_cuoi": "1"}}
+        for _ in range(1001)
+    ]
+    r = client.post("/api/problems/import-batch", json={"items": items}, headers=_h(tok))
+    assert r.status_code == 422

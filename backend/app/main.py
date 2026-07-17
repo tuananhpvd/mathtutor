@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -56,6 +56,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Phòng vệ toàn app (không chỉ dựa vào max_length/kiểm tra từng field riêng lẻ, dễ sót khi
+# thêm endpoint mới): chặn SỚM qua header Content-Length, trước khi Starlette buffer toàn bộ
+# body vào RAM. 15MB đủ rộng cho ảnh base64 (giới hạn nghiệp vụ ≤10MB, xem DocDeTuAnhRequest)
+# + mọi batch import (JSON nhỏ hơn nhiều).
+_MAX_BODY_BYTES = 15 * 1024 * 1024
+
+
+@app.middleware("http")
+async def gioi_han_dung_luong_request(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length is not None and int(content_length) > _MAX_BODY_BYTES:
+        return JSONResponse(status_code=413, content={"detail": "Yêu cầu quá lớn (vượt 15MB)."})
+    return await call_next(request)
 
 # Phục vụ ảnh minh họa câu hỏi đã upload (GV thêm ở form / import).
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)

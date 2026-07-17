@@ -62,4 +62,6 @@ class TaiKhoanImportItem(BaseModel):
 
 
 class ImportTaiKhoanRequest(BaseModel):
-    tai_khoans: list[TaiKhoanImportItem] = Field(..., min_length=1)
+    # max_length: chặn batch khổng lồ tốn RAM/CPU không giới hạn — 2000 đủ rộng cho cả 1
+    # trường (nhiều lớp) nhập cùng lúc.
+    tai_khoans: list[TaiKhoanImportItem] = Field(..., min_length=1, max_length=2000)

@@ -115,3 +115,18 @@ def test_hs_khong_goi_duoc_api_gv(db, client):
     db.commit()
     h = _h(client, "hsx")
     assert client.get("/api/gv/lop", headers=h).status_code == 403
+
+
+def test_import_hs_batch_qua_2000_dong_bi_chan(db, client):
+    """max_length=2000 trên ImportHSBatchRequest.hoc_sinhs — chặn batch khổng lồ tốn
+    RAM/CPU không giới hạn, TRƯỚC KHI chạm tới service (lỗi validate 422)."""
+    _seed(db)
+    h = _h(client, "gv1")
+    lop_id = client.post("/api/gv/lop", headers=h, json={"ten": "12A1"}).json()["id"]
+    hoc_sinhs = [
+        {"ho_ten": f"HS {i}", "dang_nhap": f"hsx{i}", "mat_khau": "1234"}
+        for i in range(2001)
+    ]
+    r = client.post(f"/api/gv/lop/{lop_id}/import-hs-batch", headers=h,
+                    json={"hoc_sinhs": hoc_sinhs})
+    assert r.status_code == 422
