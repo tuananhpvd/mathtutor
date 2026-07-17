@@ -11,6 +11,10 @@ node_modules/
 dist/
 .vite/
 
+# Playwright E2E (kết quả chạy, trace, report — sinh lại mỗi lần chạy)
+test-results/
+playwright-report/
+
 # Editor
 .vscode/
 .idea/

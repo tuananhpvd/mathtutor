@@ -4,7 +4,32 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v122**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v123**)
+
+- **✨ (v123) #11 (mục P0/P1 cuối cùng còn code được): E2E Playwright 3 "luồng vàng" trên trình
+  duyệt thật + #14 viết lại mục 7 (lỗi thời từ v32).** Với v123, TOÀN BỘ 14 mục đợt rà soát
+  2026-07-17 đã chốt xong (xem mục 7: đã xong / hoãn #12 #13 / bỏ hẳn Báo cáo PH Pha 2).
+  - **E2E (`frontend/e2e/luong-vang.spec.js`, chạy `npm run e2e`)**: ① HS đăng nhập → Chọn
+    bài → lọc TLN → giải trọn bài 2 bước (nhập công thức vào MathLive math-field qua
+    `el.value` + dispatch event `input` — đúng event FormulaEditor lắng nghe, gõ phím thật
+    vào math-field không ổn định headless) → banner "Trả lời đúng — Hoàn thành bài!";
+    ② GV import 1 câu (dàn cảnh qua API) → bảng Câu hỏi → bấm Duyệt → hàng (nhận diện qua
+    cột ID vì bảng không hiện đề bài) chuyển "Đã duyệt"; ③ HS nhờ thầy/cô (API) → GV Hỗ trợ
+    học sinh → Xem chi tiết → Trả lời trong popup → "Đã trả lời".
+  - **Hạ tầng cách ly hoàn toàn khỏi dev**: cặp server riêng (backend uvicorn :18000 + vite
+    dev :15173) do Playwright tự bật/tắt; DB `backend/e2e.db` XÓA TẠO LẠI mỗi lần chạy (lệnh
+    `del ... &` ngay trong webServer command); vite proxy nhận đích qua env `MT_API_PROXY`
+    (mặc định vẫn 8000 — dev không đổi gì); LLM tự rơi về stub (không key) nên tất định.
+    `vitest` phải exclude `e2e/**` (pattern mặc định `*.spec.js` của vitest sẽ bắt nhầm spec
+    Playwright — chặn từ đầu).
+  - **#14**: mục 7 PROGRESS viết lại thành bảng trạng thái 14 mục (xong/hoãn/bỏ); quyết định
+    user: **BỎ HẲN Báo cáo phụ huynh Pha 2** (không nhắc lại nữa), #12/#13 hoãn — chỉ nhắc
+    khi bàn tới scale/nhiều trường.
+  - Backend KHÔNG đổi dòng code nào đợt này. `eslint`/`vite build` sạch (sửa 1 lỗi no-undef
+    `process` trong vite.config bằng `import process from 'node:process'`), `vitest` 23/23,
+    `playwright` 3/3 (chạy 2 lần liên tiếp xác nhận lặp lại được).
+
+## 1a. Trạng thái trước đó (v122)
 
 - **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
   app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
@@ -18,7 +43,7 @@
     base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
   - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
 
-## 1a. Trạng thái trước đó (v121)
+## 1b. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại
@@ -50,7 +75,7 @@
     trình Alembic mới (xem mục 5 bên dưới).
   - `pytest` 526/526 (+3 test mới `test_migrate.py`), `ruff` sạch.
 
-## 1b. Trạng thái trước đó (v120)
+## 1c. Trạng thái trước đó (v120)
 
 - **✨ (v120) 2 mục P0 từ đợt rà soát toàn dự án (#6 lộ mật khẩu seed, #10 thiếu ErrorBoundary
   frontend) — thuần hướng dẫn thao tác trước đó (#1/#3a/#4/#5/#3b) đã xong, đây là 2 mục còn
@@ -68,7 +93,7 @@
     thân thiện ("Tải lại trang" / "Đăng xuất & tải lại") thay vì màn hình trắng.
   - `pytest` 523/523 (+2), `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1c. Trạng thái trước đó (v119)
+## 1d. Trạng thái trước đó (v119)
 
 - **✨ (v119) Admin tự đổi mật khẩu/họ tên (trang "Tài khoản cá nhân" mới) — vá lỗ hổng phát
   hiện khi user báo "tài khoản admin không thể đổi mật khẩu" sau khi làm theo hướng dẫn P0#3a.**
@@ -86,7 +111,7 @@
     `/admin/ho-so`, xác nhận rào chắn cũ (admin sửa admin KHÁC qua "Quản lý tài khoản") vẫn
     nguyên vẹn — không mở thêm lỗ hổng. `pytest` 521/521, `eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v118)
+## 1e. Trạng thái trước đó (v118)
 
 - **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
   TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
@@ -106,7 +131,7 @@
   - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
     cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1e. Trạng thái trước đó (v117)
+## 1f. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -129,7 +154,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1f. Trạng thái trước đó (v116)
+## 1g. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -139,7 +164,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1g. Trạng thái trước đó (v115)
+## 1h. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -171,7 +196,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1h. Trạng thái trước đó (v114)
+## 1i. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -197,7 +222,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1i. Trạng thái trước đó (v113)
+## 1j. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa 'hết gợi ý → 3 liên kết' vào đánh giá năng lực**: 2 cột mới `sessions`
   (so_lan_het_goi_y đếm bằng CẠNH LÊN ở tutor_service — không sửa lõi orchestrator;
@@ -1690,8 +1715,24 @@ Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `
 | B1 | Mục tiêu học tập: HS tự đặt / GV đặt / hệ thống gợi ý theo điểm yếu | ✅ Done |
 | C1 | Chuỗi ngày học (streak) + 8 cột mốc nhẹ (bài/chuỗi ngày) | ✅ Done |
 
-## 7. Việc tiếp theo gợi ý
+## 7. Việc tiếp theo & quyết định đã chốt (viết lại 2026-07-17, thay bản cũ lỗi thời từ v32)
 
-- [ ] Đưa lên GitHub (commit + push + tag v32) khi muốn.
-- [ ] (Khi chạy thật/dự thi) thực hiện checklist mục 2.
-- [ ] Rà DoD toàn sản phẩm theo `docs/PLAN.md`.
+Trạng thái đợt rà soát toàn dự án 14 mục P0/P1/P2 (2026-07-17):
+
+- **✅ Đã xong**: #1 checklist production (đã bật trên production) · #3a đổi mật khẩu seed ·
+  #3b rate-limit login (có sẵn từ trước, `auth/throttle.py`) · #4 backup (Render + pg_dump tay)
+  · #5 uptime monitor · #6 không seed mật khẩu công khai trên Postgres (v120) · #7 Alembic
+  (v121) · #8 chặn batch/request lớn (v122) · #9 chống trùng phiên (có sẵn từ trước) ·
+  #10 ErrorBoundary (v120) · #11 E2E Playwright 3 luồng vàng (v123) · #14 mục này.
+- **⏸ Hoãn — CHỈ nhắc lại khi bàn tới scale/nhiều trường** (user dặn rõ): #12 khóa scheduler
+  phân tích nền khi chạy nhiều worker/instance · #13 chuyển ảnh upload sang cloud storage.
+- **❌ BỎ HẲN, không nhắc lại** (quyết định user 2026-07-17): **Báo cáo phụ huynh Pha 2**
+  (đưa kết quả đề thi thử vào báo cáo — từng ghi "để Pha 2" từ v106). Báo cáo phụ huynh giữ
+  nguyên như hiện tại.
+- **#2 model AI**: giữ `gemini-2.5-flash` theo quyết định user (model có lịch ngừng hỗ trợ
+  16/10/2026 — fallback `gemini-flash-latest` đã có sẵn trong code, không cần nhắc lại).
+
+Việc thường trực mỗi đợt:
+- [ ] Cập nhật mục 1 (phiên bản) + mục này khi có thay đổi đáng kể.
+- [ ] Chạy `pytest` + `npm run lint`/`build`/`test` trước mỗi commit; `npm run e2e` (frontend)
+      trước các đợt sửa lớn chạm luồng HS/GV.
