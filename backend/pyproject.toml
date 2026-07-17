@@ -22,6 +22,7 @@ dependencies = [
     "sympy>=1.14.0",
     "antlr4-python3-runtime==4.11.0",
     "psycopg2-binary>=2.9.0",
+    "alembic>=1.13.0",
 ]
 
 [project.optional-dependencies]

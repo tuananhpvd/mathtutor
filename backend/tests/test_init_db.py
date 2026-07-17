@@ -1,7 +1,12 @@
 """init_db(): trên Postgres (production) CSDL rỗng KHÔNG được seed tài khoản mẫu có
 mật khẩu công khai trong docs/PROGRESS.md (admin123/gv123/hs123) — chỉ tạo 1 admin với
-mật khẩu ngẫu nhiên. Trên SQLite (dev/test) vẫn seed đủ như cũ."""
+mật khẩu ngẫu nhiên. Trên SQLite (dev/test) vẫn seed đủ như cũ.
 
+Test seeding THUẦN (không đụng Alembic thật — schema được tạo sẵn qua Base.metadata.
+create_all() giống các test khác trong dự án). Migration Alembic thật có test riêng ở
+test_migrate.py."""
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -24,9 +29,13 @@ def _engine_rieng():
     return engine, sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _stub_migration(monkeypatch):
+    monkeypatch.setattr(init_db_module, "chay_migration", lambda: None)
+
+
 def test_postgres_rong_chi_tao_1_admin_mat_khau_ngau_nhien(monkeypatch, capsys):
     engine, SessionLocal = _engine_rieng()
-    monkeypatch.setattr(init_db_module, "engine", engine)
     monkeypatch.setattr(init_db_module, "SessionLocal", SessionLocal)
     monkeypatch.setattr(
         init_db_module.settings, "database_url",
@@ -58,7 +67,6 @@ def test_postgres_rong_chi_tao_1_admin_mat_khau_ngau_nhien(monkeypatch, capsys):
 
 def test_sqlite_rong_van_seed_du_tai_khoan_mau(monkeypatch):
     engine, SessionLocal = _engine_rieng()
-    monkeypatch.setattr(init_db_module, "engine", engine)
     monkeypatch.setattr(init_db_module, "SessionLocal", SessionLocal)
     monkeypatch.setattr(init_db_module.settings, "database_url", "sqlite:///./dev.db")
 

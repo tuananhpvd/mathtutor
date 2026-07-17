@@ -25,7 +25,8 @@ import app.models.user  # noqa: F401
 import app.models.yeu_cau_tro_giup  # noqa: F401
 from app.auth.security import hash_password
 from app.config import settings
-from app.db.base import Base, SessionLocal, engine
+from app.db.base import SessionLocal
+from app.db.migrate import chay_migration
 from app.models.danh_muc import ChuyenDe, Dang
 from app.models.lop import Lop
 from app.models.problem import Problem
@@ -114,108 +115,6 @@ def _seed_danh_muc(db, nguoi_tao_id: int | None = None) -> None:
             _DANG_MAP[(cd_data["ten"], d_data["ten"])] = dang.id
 
 
-def _migrate_them_cot(engine) -> None:
-    """Bổ sung cột mới cho DB cũ mà không mất dữ liệu (SQLite ADD COLUMN)."""
-    from sqlalchemy import inspect, text
-
-    insp = inspect(engine)
-    ten_bang = insp.get_table_names()
-    if "problems" in ten_bang:
-        cot = {c["name"] for c in insp.get_columns("problems")}
-        if "tao_luc" not in cot:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE problems ADD COLUMN tao_luc TIMESTAMP"))
-        if "bi_an" not in cot:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE problems ADD COLUMN bi_an BOOLEAN DEFAULT false NOT NULL"))
-        if "loi_giai_chi_tiet" not in cot:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE problems ADD COLUMN loi_giai_chi_tiet TEXT DEFAULT '' NOT NULL"
-                ))
-        if "hien_loi_giai_chi_tiet" not in cot:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE problems ADD COLUMN hien_loi_giai_chi_tiet BOOLEAN "
-                    "DEFAULT false NOT NULL"
-                ))
-    if "sessions" in ten_bang:
-        cot_s = {c["name"] for c in insp.get_columns("sessions")}
-        if "thoi_gian_hoat_dong_giay" not in cot_s:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE sessions ADD COLUMN thoi_gian_hoat_dong_giay INTEGER DEFAULT 0"
-                ))
-        if "bi_an" not in cot_s:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE sessions ADD COLUMN bi_an BOOLEAN DEFAULT false NOT NULL"
-                ))
-        if "tong_so_lan_sai" not in cot_s:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE sessions ADD COLUMN tong_so_lan_sai INTEGER DEFAULT 0 NOT NULL"
-                ))
-        if "diem_qua_trinh" not in cot_s:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE sessions ADD COLUMN diem_qua_trinh FLOAT"))
-        if "so_lan_het_goi_y" not in cot_s:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE sessions ADD COLUMN so_lan_het_goi_y INTEGER DEFAULT 0 NOT NULL"
-                ))
-        if "so_lan_xem_ly_thuyet" not in cot_s:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE sessions ADD COLUMN so_lan_xem_ly_thuyet INTEGER DEFAULT 0 NOT NULL"
-                ))
-    if "phan_tich_hs" in ten_bang:
-        cot_pt = {c["name"] for c in insp.get_columns("phan_tich_hs")}
-        if "nguon" not in cot_pt:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE phan_tich_hs ADD COLUMN nguon VARCHAR(16) DEFAULT 'ai'"
-                ))
-    if "users" in ten_bang:
-        cot_u = {c["name"] for c in insp.get_columns("users")}
-        if "la_quan_ly" not in cot_u:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE users ADD COLUMN la_quan_ly BOOLEAN DEFAULT false NOT NULL"
-                ))
-        if "da_xem_huong_dan_phong_hoc" not in cot_u:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE users ADD COLUMN da_xem_huong_dan_phong_hoc "
-                    "BOOLEAN DEFAULT false NOT NULL"
-                ))
-    if "de_thi" in ten_bang:
-        cot_dt = {c["name"] for c in insp.get_columns("de_thi")}
-        if "pham_vi" not in cot_dt:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE de_thi ADD COLUMN pham_vi VARCHAR(16) "
-                    "DEFAULT 'tat_ca' NOT NULL"
-                ))
-        if "phat_hanh_luc" not in cot_dt:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE de_thi ADD COLUMN phat_hanh_luc TIMESTAMP"))
-        if "thu_hoi_luc" not in cot_dt:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE de_thi ADD COLUMN thu_hoi_luc TIMESTAMP"))
-    if "de_thi_cau" in ten_bang:
-        cot_dtc = {c["name"] for c in insp.get_columns("de_thi_cau")}
-        if "diem_cau" not in cot_dtc:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE de_thi_cau ADD COLUMN diem_cau FLOAT"))
-
-    if "yeu_cau_tro_giup" in ten_bang:
-        cot_yc = {c["name"] for c in insp.get_columns("yeu_cau_tro_giup")}
-        if "turn_id" not in cot_yc:
-            with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE yeu_cau_tro_giup ADD COLUMN turn_id INTEGER"))
-
-
 def _seed_admin_ngau_nhien(db) -> None:
     """CSDL production (Postgres) rỗng: KHÔNG seed tài khoản mẫu users.json — mật khẩu
     của chúng (admin123/gv123/hs123) nằm công khai trong docs/PROGRESS.md trên GitHub.
@@ -240,8 +139,7 @@ def _seed_admin_ngau_nhien(db) -> None:
 
 
 def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
-    _migrate_them_cot(engine)
+    chay_migration()
     db = SessionLocal()
     try:
         if db.query(User).count() > 0:

@@ -81,6 +81,11 @@ bắt buộc của tôi để theo dõi.
   Test dùng SQLite in-memory.
 - Lệnh chạy giả định Windows; dùng `python -m venv .venv` và `.venv\Scripts\activate`.
 - Mọi truy cập DB qua repository/service, không query thẳng trong route.
+- Đổi schema DB: dùng **Alembic** (`backend/alembic/`) — sửa model → `alembic revision
+  --autogenerate -m "..."` → đọc kỹ file sinh ra (đặc biệt FK vòng tròn, kiểu cột tùy biến) →
+  test `upgrade head`/`downgrade -1` trên bản sao dữ liệu thật trước khi push. App tự
+  `alembic upgrade head` lúc khởi động (`app/db/migrate.py`), không cần bước deploy riêng.
+  Chi tiết đầy đủ ở `docs/PROGRESS.md` mục 5.
 
 ## 7. LLM
 

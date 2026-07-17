@@ -4,7 +4,39 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v120**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v121**)
+
+- **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
+  `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại
+  sau khi từng hoãn quyết định này "tới sau mùa thi" (phiên 2026-07-13) — đã xác nhận rõ trước
+  khi code vì đây là thay đổi rủi ro cao, khó đảo ngược, đụng thẳng cơ chế deploy trên DB
+  production có dữ liệu GV/HS thật.**
+  - **Migration baseline** (`alembic/versions/2929ecbc70fc_..._baseline...py`) sinh bằng
+    `alembic revision --autogenerate` khớp đúng schema hiện tại (DB rỗng) — phải SỬA TAY 2 lỗi
+    autogenerate: (1) thiếu `import app.db.types` cho kiểu cột `UTCDateTime` tùy biến; (2) FK
+    VÒNG TRÒN `lop.gv_id↔users.id` (autogenerate tạo `lop` kèm FK tới `users` TRƯỚC KHI bảng
+    `users` tồn tại → lỗi "relation users does not exist" thật trên Postgres nếu không sửa) —
+    tách bằng `op.batch_alter_table` thêm FK SAU khi cả 2 bảng đã tạo (batch mode để cùng chạy
+    được cả SQLite lẫn Postgres).
+  - **`app/db/migrate.py::chay_migration()`** (mới, thay `create_all()+_migrate_them_cot()`
+    trong `init_db()`): tự soi bảng qua `settings.database_url` — CSDL đã có bảng `users`
+    nhưng CHƯA có `alembic_version` (= production cũ, hoặc dev.db có sẵn dữ liệu) → **STAMP**
+    (đánh dấu đã ở đúng baseline, KHÔNG chạy lại DDL tạo bảng); ngược lại → `upgrade head` bình
+    thường. Đã tự kiểm bằng bản sao CHÍNH `dev.db` thật (12 users/11 problems/10 sessions,
+    tháo `alembic_version` để mô phỏng đúng production trước khi chuyển) — stamp thành công,
+    dữ liệu nguyên vẹn 100%.
+  - **Tự gây lỗi rồi tự phát hiện + sửa qua build-test-fix**: `alembic/env.py`'s
+    `fileConfig()` mặc định `disable_existing_loggers=True` → XÓA SẠCH handler logging của
+    pytest `caplog` mỗi lần `chay_migration()` chạy trong test, làm 1 test KHÁC hoàn toàn
+    không liên quan (`test_question_gen.py`) fail khi chạy CHUNG suite (nhưng pass khi chạy
+    riêng) — phát hiện qua đối chiếu "pass riêng lẻ, fail khi chạy full suite", sửa bằng
+    `disable_existing_loggers=False`.
+  - Xóa `_migrate_them_cot()` (183 dòng ALTER TABLE thủ công, đã hết tác dụng — mọi cột đã
+    seed vào baseline). `docs/PROGRESS.md`/quy tắc schema DB trong memory cập nhật theo quy
+    trình Alembic mới (xem mục 5 bên dưới).
+  - `pytest` 526/526 (+3 test mới `test_migrate.py`), `ruff` sạch.
+
+## 1a. Trạng thái trước đó (v120)
 
 - **✨ (v120) 2 mục P0 từ đợt rà soát toàn dự án (#6 lộ mật khẩu seed, #10 thiếu ErrorBoundary
   frontend) — thuần hướng dẫn thao tác trước đó (#1/#3a/#4/#5/#3b) đã xong, đây là 2 mục còn
@@ -22,7 +54,7 @@
     thân thiện ("Tải lại trang" / "Đăng xuất & tải lại") thay vì màn hình trắng.
   - `pytest` 523/523 (+2), `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1a. Trạng thái trước đó (v119)
+## 1b. Trạng thái trước đó (v119)
 
 - **✨ (v119) Admin tự đổi mật khẩu/họ tên (trang "Tài khoản cá nhân" mới) — vá lỗ hổng phát
   hiện khi user báo "tài khoản admin không thể đổi mật khẩu" sau khi làm theo hướng dẫn P0#3a.**
@@ -40,7 +72,7 @@
     `/admin/ho-so`, xác nhận rào chắn cũ (admin sửa admin KHÁC qua "Quản lý tài khoản") vẫn
     nguyên vẹn — không mở thêm lỗ hổng. `pytest` 521/521, `eslint`/`vite build` sạch.
 
-## 1b. Trạng thái trước đó (v118)
+## 1c. Trạng thái trước đó (v118)
 
 - **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
   TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
@@ -60,7 +92,7 @@
   - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
     cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1c. Trạng thái trước đó (v117)
+## 1d. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -83,7 +115,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v116)
+## 1e. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -93,7 +125,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1e. Trạng thái trước đó (v115)
+## 1f. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -125,7 +157,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1f. Trạng thái trước đó (v114)
+## 1g. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -151,7 +183,7 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1g. Trạng thái trước đó (v113)
+## 1h. Trạng thái trước đó (v113)
 
 - **✨ (v113) Đưa 'hết gợi ý → 3 liên kết' vào đánh giá năng lực**: 2 cột mới `sessions`
   (so_lan_het_goi_y đếm bằng CẠNH LÊN ở tutor_service — không sửa lõi orchestrator;
@@ -1622,9 +1654,16 @@ production (Postgres) `init_db()` KHÔNG dùng các mật khẩu công khai này
 1 admin với mật khẩu ngẫu nhiên in ra log khởi động một lần (xem `db/init_db.py`).
 Build-test trước khi commit: backend `ruff check app/` + `pytest`; frontend `npm run build`.
 
-> DB: `create_all()` KHÔNG ALTER bảng cũ — đã có migration nhẹ `init_db._migrate_them_cot` (thêm
-> cột `problems.tao_luc`, `sessions.thoi_gian_hoat_dong_giay`, `phan_tich_hs.nguon`,
-> `problems.pham_vi`). Đổi model lớn → cân nhắc xoá `backend/dev.db` rồi chạy lại để seed schema mới.
+> DB: từ v121 dùng **Alembic** (`backend/alembic/`), KHÔNG còn `_migrate_them_cot()` thủ công.
+> App tự chạy `alembic upgrade head` lúc khởi động (`app/db/migrate.py::chay_migration()`) —
+> KHÔNG cần bước deploy riêng. **Mỗi lần đổi model (thêm/sửa cột, bảng)**:
+> 1. Sửa model trong `app/models/`.
+> 2. `cd backend && alembic revision --autogenerate -m "mô tả ngắn"` (đọc kỹ file sinh ra trong
+>    `alembic/versions/` — đặc biệt FK vòng tròn, kiểu cột tùy biến như `UTCDateTime` cần
+>    `import app.db.types` tay, và bất kỳ chỗ nào autogenerate không suy ra đúng ý).
+> 3. Test cả `alembic upgrade head` LẪN `alembic downgrade -1` trên bản sao dữ liệu thật (không
+>    phải DB rỗng) trước khi push.
+> 4. Commit file migration mới cùng với thay đổi model — KHÔNG sửa tay migration đã push/deploy.
 
 ## 6. Đồng hành GV↔HS (A1–B1, C1) — triển khai tháng 2026-06
 
