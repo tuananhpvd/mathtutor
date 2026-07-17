@@ -141,6 +141,55 @@ def test_response_co_de_bai(db, client):
     assert ds[0]["de_bai"] == "Tìm x."
 
 
+def test_xem_chi_tiet_hoi_thoai_cat_dung_moc(db, client):
+    """GV 'Xem chi tiết': thấy đúng hội thoại từ đầu ĐẾN LÚC nhờ — không thấy các lượt HS
+    làm SAU khi nhờ (đang chờ GV), và câu trả lời của GV được nối vào CUỐI."""
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+
+    # HS thử sai 1 lần trước khi nhờ — phải xuất hiện trong chi tiết (trước mốc nhờ)
+    client.post(f"/api/sessions/{sid}/message", headers=h_hs,
+               json={"noi_dung": "em nghĩ x=3", "dap_an_nhap": "3"})
+    yc_id = client.post("/api/tro-giup", headers=h_hs,
+                        json={"session_id": sid, "noi_dung": "Em chưa hiểu bước này"}).json()["id"]
+    # HS tiếp tục hỏi gia sư AI trong lúc CHỜ GV trả lời — KHÔNG được xuất hiện trong chi tiết
+    client.post(f"/api/sessions/{sid}/message", headers=h_hs, json={"noi_dung": "gợi ý thêm với"})
+
+    h_gv = _h(client, "gv1")
+    ct = client.get(f"/api/tro-giup/{yc_id}/chi-tiet", headers=h_gv)
+    assert ct.status_code == 200, ct.text
+    d = ct.json()
+    assert d["hoc_sinh_ten"] == "HS A"
+    assert d["de_bai"] == "Tìm x."
+
+    noi_dung_ds = [t["noi_dung"] for t in d["turns"]]
+    assert any("em nghĩ x=3" in n for n in noi_dung_ds)          # trước mốc nhờ — có
+    assert any("Nhờ thầy/cô" in n for n in noi_dung_ds)          # chính lượt nhờ — có
+    assert not any("gợi ý thêm với" in n for n in noi_dung_ds)   # SAU mốc nhờ — không có
+    # Chưa trả lời → chưa có turn giao_vien ở cuối
+    assert d["turns"][-1]["vai_tro"] != "giao_vien"
+
+    # GV trả lời → gọi lại chi-tiết phải thấy câu trả lời nối CUỐI
+    client.post(f"/api/tro-giup/{yc_id}/tra-loi", headers=h_gv,
+               json={"noi_dung": "Em xem lại công thức nhé."})
+    ct2 = client.get(f"/api/tro-giup/{yc_id}/chi-tiet", headers=h_gv).json()
+    assert ct2["turns"][-1] == {"vai_tro": "giao_vien", "noi_dung": "Em xem lại công thức nhé."}
+    # Vẫn KHÔNG lẫn lượt HS hỏi thêm lúc chờ (đứng ngay trước turn giao_vien theo id)
+    assert not any("gợi ý thêm với" in t["noi_dung"] for t in ct2["turns"])
+
+
+def test_gv_khac_lop_khong_xem_chi_tiet_duoc(db, client):
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+    yc_id = client.post("/api/tro-giup", headers=h_hs, json={"session_id": sid}).json()["id"]
+
+    h_gv2 = _h(client, "gv2")
+    r = client.get(f"/api/tro-giup/{yc_id}/chi-tiet", headers=h_gv2)
+    assert r.status_code == 400
+
+
 def test_hs_khong_nho_duoc_phien_nguoi_khac(db, client):
     _seed(db)
     # tạo HS khác chưa có lớp

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, useConfirm } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, ChatBubble, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
 import MixedChatInput from '../../components/MixedChatInput'
 import ThoiGianPhanCach from '../../components/ThoiGianPhanCach'
@@ -48,14 +48,103 @@ function PhanTrang({ trang, tongTrang, onChange }) {
   )
 }
 
+// Popup "Xem chi tiết": toàn bộ khung chat từ đầu đến lúc HS nhờ + câu trả lời của GV (nếu
+// có) nối cuối — để GV hiểu HS đã làm gì trước khi trả lời trợ giúp. Nút "Trả lời" nằm ngay
+// trong popup (trước "Đóng") — GV buộc phải xem qua chi tiết mới trả lời được, đúng mục
+// đích ban đầu của tính năng này.
+function ModalChiTiet({
+  yc, du_lieu, loading, loiTai, onDong,
+  traLoiId, text, setText, loi, dangGui, onMoTraLoi, onGui,
+}) {
+  const dangTraLoi = traLoiId === yc.id
+  return (
+    <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto flex items-start justify-center p-4">
+      <Card className="max-w-2xl w-full my-8">
+        <CardBody className="flex flex-col gap-3 pt-5">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="font-bold text-ink">Chi tiết yêu cầu trợ giúp</p>
+              <p className="text-xs text-muted mt-0.5">{yc.hoc_sinh_ten} · {yc.bai}</p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {yc.trang_thai === 'cho_xu_ly' && !dangTraLoi && (
+                <Button size="sm" onClick={() => onMoTraLoi(yc)}>Trả lời</Button>
+              )}
+              <Button size="sm" variant="secondary" onClick={onDong} disabled={dangGui}>
+                Đóng ✕
+              </Button>
+            </div>
+          </div>
+
+          {loiTai && (
+            <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{loiTai}</p>
+          )}
+          {loading && <p className="text-sm text-muted">Đang tải...</p>}
+
+          {du_lieu && (
+            <>
+              {du_lieu.de_bai && (
+                <div className="rounded-lg bg-primary-soft/40 border border-primary/20 px-3 py-2 text-sm text-ink space-y-1">
+                  <div>{renderNoiDung(du_lieu.de_bai)}</div>
+                  {du_lieu.loai_cau === 'TN4PA' && du_lieu.meta_hien_thi?.phuong_an &&
+                    Object.entries(du_lieu.meta_hien_thi.phuong_an).map(([k, v]) => (
+                      <div key={k} className="flex gap-1.5">
+                        <span className="font-medium shrink-0">{k}.</span>
+                        <span>{renderNoiDung(v)}</span>
+                      </div>
+                    ))
+                  }
+                  {du_lieu.loai_cau === 'TNDS' && du_lieu.meta_hien_thi?.y?.map((item) => (
+                    <div key={item.ky_hieu} className="flex gap-1.5">
+                      <span className="font-medium shrink-0">{item.ky_hieu})</span>
+                      <span>{renderNoiDung(item.noi_dung_y)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs font-bold text-muted uppercase tracking-wide mt-1">
+                Khung chat của học sinh (đến lúc nhờ thầy/cô)
+              </p>
+              <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-1">
+                {du_lieu.turns.length === 0 ? (
+                  <p className="text-sm text-muted">Chưa có lượt trò chuyện nào.</p>
+                ) : (
+                  du_lieu.turns.map((t, i) => (
+                    <ChatBubble key={i} vai_tro={t.vai_tro} text={t.noi_dung} />
+                  ))
+                )}
+              </div>
+
+              {dangTraLoi && (
+                <div className="border-t border-border pt-3 flex flex-col gap-2">
+                  <MixedChatInput
+                    value={text}
+                    onChange={setText}
+                    placeholder="Viết câu trả lời / gợi ý cho học sinh... (có thể chèn công thức)"
+                    rows={3}
+                  />
+                  {loi && <p className="text-sm text-danger">{loi}</p>}
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" onClick={() => onGui(yc)} disabled={dangGui}>
+                      {dangGui ? 'Đang gửi...' : 'Gửi trả lời'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardBody>
+      </Card>
+    </div>
+  )
+}
+
 // Tách hẳn khỏi render của HoTroHocSinh (KHÔNG định nghĩa trong thân hàm component cha) —
 // nếu không, mỗi lần gõ vào ô trả lời (setText đổi state cha) sẽ khiến CardYeuCau bị coi là
 // 1 KIỂU COMPONENT MỚI ở mỗi lần render, React unmount/remount lại toàn bộ cây con bên trong
 // (kể cả <textarea> của MixedChatInput) — mất focus, chỉ gõ được đúng 1 ký tự rồi bật ra.
-function CardYeuCau({
-  yc, tone, dangXoa, onXoa, traLoiId, text, setText, loi, dangGui,
-  onMoTraLoi, onHuyTraLoi, onGui, noiBat,
-}) {
+function CardYeuCau({ yc, tone, dangXoa, onXoa, onXemChiTiet, noiBat }) {
   const borderClass = tone === 'warning'
     ? 'border-warning/40 bg-warning-soft/40'
     : 'border-border'
@@ -75,13 +164,18 @@ function CardYeuCau({
           </div>
           <NganCanh yc={yc} />
         </div>
-        <Button
-          size="sm" variant="danger-ghost"
-          disabled={dangXoa === yc.id}
-          onClick={() => onXoa(yc)}
-        >
-          {dangXoa === yc.id ? '...' : 'Xóa'}
-        </Button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button size="sm" variant="secondary" onClick={() => onXemChiTiet(yc)}>
+            Xem chi tiết
+          </Button>
+          <Button
+            size="sm" variant="danger-ghost"
+            disabled={dangXoa === yc.id}
+            onClick={() => onXoa(yc)}
+          >
+            {dangXoa === yc.id ? '...' : 'Xóa'}
+          </Button>
+        </div>
       </div>
 
       {/* Đề bài đầy đủ + phương án / ý */}
@@ -121,31 +215,6 @@ function CardYeuCau({
         </div>
       )}
 
-      {/* Form trả lời (mục Chờ xử lý) */}
-      {tone === 'warning' && (
-        traLoiId === yc.id ? (
-          <div className="mt-3 flex flex-col gap-2">
-            <MixedChatInput
-              value={text}
-              onChange={setText}
-              placeholder="Viết câu trả lời / gợi ý cho học sinh... (có thể chèn công thức)"
-              rows={3}
-            />
-            {loi && <p className="text-sm text-danger">{loi}</p>}
-            <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="secondary"
-                onClick={onHuyTraLoi} disabled={dangGui}>Hủy</Button>
-              <Button size="sm" onClick={() => onGui(yc)} disabled={dangGui}>
-                {dangGui ? 'Đang gửi...' : 'Gửi trả lời'}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-2">
-            <Button size="sm" onClick={() => onMoTraLoi(yc)}>Trả lời</Button>
-          </div>
-        )
-      )}
     </div>
   )
 }
@@ -166,6 +235,9 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
   const [trangCho, setTrangCho] = useState(1)
   const [trangDa, setTrangDa] = useState(1)
   const [noiBatId, setNoiBatId] = useState(null)
+  // Popup "Xem chi tiết" — chứa luôn nút/form "Trả lời" (yc = yêu cầu đang xem, để biết
+  // trạng thái + hiển thị đúng tên HS ngay cả lúc du_lieu chưa tải xong).
+  const [chiTiet, setChiTiet] = useState(null) // {yc, du_lieu, loading, loiTai} | null
 
   function tai() {
     setTimeout(() => {
@@ -193,6 +265,7 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
       await api.gvTraLoiTroGiup(yc.id, nd)
       setTraLoiId(null)
       setText('')
+      setChiTiet(null)  // trả lời xong → đóng popup, danh sách tự cập nhật bên dưới
       setOk(`Đã trả lời ${yc.hoc_sinh_ten}. Câu trả lời đã hiện trong bài của học sinh.`)
       setTimeout(() => setOk(''), 4000)
       tai()
@@ -201,6 +274,23 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
     } finally {
       setDangGui(false)
     }
+  }
+
+  async function xemChiTiet(yc) {
+    setChiTiet({ yc, du_lieu: null, loading: true, loiTai: '' })
+    try {
+      const d = await api.gvChiTietTroGiup(yc.id)
+      setChiTiet({ yc, du_lieu: d, loading: false, loiTai: '' })
+    } catch (e) {
+      setChiTiet({ yc, du_lieu: null, loading: false, loiTai: e.message })
+    }
+  }
+
+  function dongChiTiet() {
+    setChiTiet(null)
+    setTraLoiId(null)
+    setText('')
+    setLoi('')
   }
 
   async function xoa(yc) {
@@ -276,10 +366,7 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
                 {choHienThi.map((yc) => (
                   <CardYeuCau
                     key={yc.id} yc={yc} tone="warning"
-                    dangXoa={dangXoa} onXoa={xoa}
-                    traLoiId={traLoiId} text={text} setText={setText}
-                    loi={loi} dangGui={dangGui}
-                    onMoTraLoi={moTraLoi} onHuyTraLoi={() => setTraLoiId(null)} onGui={gui}
+                    dangXoa={dangXoa} onXoa={xoa} onXemChiTiet={xemChiTiet}
                     noiBat={noiBatId === yc.id}
                   />
                 ))}
@@ -301,6 +388,7 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
                 {daHienThi.map((yc) => (
                   <CardYeuCau
                     key={yc.id} yc={yc} tone="done" dangXoa={dangXoa} onXoa={xoa}
+                    onXemChiTiet={xemChiTiet}
                     noiBat={noiBatId === yc.id}
                   />
                 ))}
@@ -310,6 +398,15 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
           </CardBody>
         </Card>
       </div>
+
+      {chiTiet && (
+        <ModalChiTiet
+          yc={chiTiet.yc} du_lieu={chiTiet.du_lieu} loading={chiTiet.loading}
+          loiTai={chiTiet.loiTai} onDong={dongChiTiet}
+          traLoiId={traLoiId} text={text} setText={setText} loi={loi} dangGui={dangGui}
+          onMoTraLoi={moTraLoi} onGui={gui}
+        />
+      )}
     </div>
   )
 }

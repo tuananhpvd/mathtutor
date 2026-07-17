@@ -207,6 +207,12 @@ def _migrate_them_cot(engine) -> None:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE de_thi_cau ADD COLUMN diem_cau FLOAT"))
 
+    if "yeu_cau_tro_giup" in ten_bang:
+        cot_yc = {c["name"] for c in insp.get_columns("yeu_cau_tro_giup")}
+        if "turn_id" not in cot_yc:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE yeu_cau_tro_giup ADD COLUMN turn_id INTEGER"))
+
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)

@@ -4,7 +4,27 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v117**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v118**)
+
+- **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
+  TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
+  xác nhận thiết kế trước khi code (đúng quy trình chuẩn), (2) user phản hồi tiếp — dời hẳn
+  nút "Trả lời" từ danh sách VÀO trong popup (trước "Đóng") — buộc GV phải xem chi tiết mới
+  trả lời được, không còn đường tắt.**
+  - **Mốc cắt chính xác bằng `turn_id`** (ADD COLUMN nullable trên `yeu_cau_tro_giup`, bảng đã
+    có dữ liệu thật trên production — đúng quy tắc chỉ ADD COLUMN): ghi lại đúng ID của turn
+    "🙋 Nhờ thầy/cô" ngay lúc tạo yêu cầu, để "Xem chi tiết" lấy CHÍNH XÁC "từ đầu ĐẾN ĐÚNG lúc
+    nhờ" (`turns.id <= turn_id`) — không lẫn các lượt HS hỏi AI SAU khi đã nhờ (lúc đang chờ
+    GV). Yêu cầu cũ (trước cột này) fallback so theo `tao_luc`.
+  - Service mới `chi_tiet_hoi_thoai()` + `GET /tro-giup/{yc_id}/chi-tiet` (kiểm quyền y hệt
+    tra_loi/xoa — chỉ GV chủ nhiệm HS đó), nối thêm câu trả lời GV vào CUỐI nếu đã trả lời.
+  - **FE**: popup mới dùng lại `ChatBubble` có sẵn (đúng giao diện HS đã thấy); nút "Trả lời"
+    + form soạn giờ nằm hẳn trong popup (trước "Đóng ✕"), gửi xong tự đóng popup + danh sách
+    tự cập nhật. Card trong danh sách giờ chỉ còn "Xem chi tiết"/"Xóa".
+  - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
+    cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
+
+## 1a. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -27,7 +47,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v116)
+## 1b. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -37,7 +57,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1b. Trạng thái trước đó (v115)
+## 1c. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -69,7 +89,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1c. Trạng thái trước đó (v114)
+## 1d. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup
@@ -95,7 +115,12 @@
     nhận thêm `trang_thai`.
   - `pytest` 511/511 (+2 test `dem_ngay_hoc`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1d. Trạng thái trước đó (v113)
+## 1e. Trạng thái trước đó (v113)
+
+- **✨ (v113) Đưa 'hết gợi ý → 3 liên kết' vào đánh giá năng lực**: 2 cột mới `sessions`
+  (so_lan_het_goi_y đếm bằng CẠNH LÊN ở tutor_service — không sửa lõi orchestrator;
+  so_lan_xem_ly_thuyet qua endpoint mới); 3 cột chẩn đoán theo dạng (KHÔNG đổi công thức
+  điểm thành thạo); cờ GV siết thêm điều kiện 'cạn gợi ý ≥1 lần'. `pytest` 509/509.
 
 - **✨ (v113) Đưa tình huống "hết gợi ý → 3 liên kết" vào đánh giá năng lực (sau khi phân tích
   phát hiện: cả 'hết gợi ý' lẫn 3 nút Xem lý thuyết/Nhờ thầy cô/Hỏi gia sư đều KHÔNG có mặt
@@ -124,8 +149,6 @@
     thước đo "bí thật" chuẩn hơn `so_lan_khong_hieu` (vốn tính cả lần chỉ hỏi 1-2 gợi ý).
   - `pytest` 509/509 (+4 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch; xác minh cột
     đã thêm vào dev.db thật (không chỉ tin test in-memory).
-
-## 1e. Trạng thái trước đó (v112)
 
 - **✨ (v112) Xu hướng/tiến bộ trên thống kê + combo chart tuần theo mẫu user gửi**:
   `_xu_huong` đo bằng diem_qua_trinh (không phải diem — vốn luôn ~1.0 với TLN/TN4PA);

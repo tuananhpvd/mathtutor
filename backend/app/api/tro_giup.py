@@ -37,6 +37,16 @@ def tra_loi(yc_id: int, body: TraLoiRequest, current_user: CurrentUser,
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
+@router.get("/{yc_id}/chi-tiet", dependencies=_GV)
+def chi_tiet_hoi_thoai(yc_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Toàn bộ khung chat từ đầu đến lúc HS nhờ + câu trả lời của GV (nếu có) — để GV hiểu
+    HS đã làm gì trước khi trả lời trợ giúp."""
+    try:
+        return tro_giup_service.chi_tiet_hoi_thoai(db, current_user.id, yc_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
 @router.delete("/{yc_id}", dependencies=_GV)
 def xoa_yeu_cau(yc_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:

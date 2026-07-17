@@ -92,9 +92,14 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
         noi_dung=noi_dung_sach,
     )
     db.add(yc)
-    # Lưu turn HS để khi tải lại session vẫn thấy ngữ cảnh nhờ thầy/cô.
+    # Lưu turn HS để khi tải lại session vẫn thấy ngữ cảnh nhờ thầy/cô — đồng thời làm MỐC CẮT
+    # cho "Xem chi tiết" (GV xem toàn bộ hội thoại từ đầu ĐẾN ĐÚNG turn này, xem
+    # chi_tiet_hoi_thoai() bên dưới).
     chat_nd = f"🙋 Nhờ thầy/cô: {noi_dung_sach}" if noi_dung_sach else "🙋 Em cần thầy/cô giúp đỡ ở bước này."
-    db.add(Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd))
+    turn = Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd)
+    db.add(turn)
+    db.flush()  # có turn.id trước khi gán
+    yc.turn_id = turn.id
     db.commit()
     db.refresh(yc)
 
@@ -160,6 +165,40 @@ def _dict(db: Session, yc: YeuCauTroGiup, hs_ten: dict | None = None) -> dict:
         "tra_loi": yc.tra_loi,
         "tao_luc": yc.tao_luc.isoformat() if yc.tao_luc else None,
         "tra_loi_luc": yc.tra_loi_luc.isoformat() if yc.tra_loi_luc else None,
+    }
+
+
+def chi_tiet_hoi_thoai(db: Session, gv_id: int, yc_id: int) -> dict:
+    """Toàn bộ khung chat từ đầu ĐẾN ĐÚNG lúc HS bấm 'Nhờ thầy/cô' (+ câu trả lời của GV nối
+    cuối, nếu đã trả lời) — để GV hiểu HS đã làm gì trước khi trả lời trợ giúp. Nội dung mỗi
+    turn đã được chốt chặn lọc đáp án từ lúc tạo (kiem_tra_ro_ri), phát lại nguyên trạng an
+    toàn, không cần lọc thêm."""
+    yc = db.get(YeuCauTroGiup, yc_id)
+    if yc is None:
+        raise ValueError("Yêu cầu không tồn tại")
+    if _gv_cua_hs(db, yc.hoc_sinh_id) != gv_id:
+        raise ValueError("Không có quyền với yêu cầu này")
+
+    q = db.query(Turn).filter(Turn.session_id == yc.session_id)
+    if yc.turn_id is not None:
+        q = q.filter(Turn.id <= yc.turn_id)
+    else:
+        # Yêu cầu cũ (tạo trước khi có turn_id) — fallback gần đúng theo thời điểm.
+        q = q.filter(Turn.thoi_diem <= yc.tao_luc)
+    turns = [
+        {"vai_tro": t.vai_tro.value, "noi_dung": t.noi_dung}
+        for t in q.order_by(Turn.id).all()
+    ]
+    if yc.trang_thai == TrangThaiTroGiup.da_tra_loi and yc.tra_loi:
+        turns.append({"vai_tro": "giao_vien", "noi_dung": yc.tra_loi})
+
+    hs = db.get(User, yc.hoc_sinh_id)
+    return {
+        "id": yc.id,
+        "hoc_sinh_ten": hs.ho_ten if hs else None,
+        "bai": _mo_ta_bai(db, yc.problem_id),
+        **_noi_dung_cau_hoi(db, yc.problem_id),
+        "turns": turns,
     }
 
 

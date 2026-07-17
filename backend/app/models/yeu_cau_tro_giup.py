@@ -26,6 +26,10 @@ class YeuCauTroGiup(Base):
     buoc: Mapped[int | None] = mapped_column(Integer, nullable=True)
     y: Mapped[str | None] = mapped_column(String(10), nullable=True)
     noi_dung: Mapped[str | None] = mapped_column(Text, nullable=True)  # câu hỏi HS (tùy chọn)
+    # Turn "🙋 Nhờ thầy/cô: ..." được tạo CÙNG LÚC với yêu cầu này — mốc cắt chính xác để GV
+    # xem "toàn bộ hội thoại từ đầu ĐẾN ĐÚNG lúc nhờ" (turns.id <= turn_id). Yêu cầu tạo
+    # trước khi có cột này → NULL, service fallback so theo tao_luc.
+    turn_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("turns.id"), nullable=True)
     trang_thai: Mapped[TrangThaiTroGiup] = mapped_column(
         Enum(TrangThaiTroGiup), default=TrangThaiTroGiup.cho_xu_ly, nullable=False
     )
