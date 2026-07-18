@@ -124,7 +124,7 @@ def test_import_hs_batch_qua_2000_dong_bi_chan(db, client):
     h = _h(client, "gv1")
     lop_id = client.post("/api/gv/lop", headers=h, json={"ten": "12A1"}).json()["id"]
     hoc_sinhs = [
-        {"ho_ten": f"HS {i}", "dang_nhap": f"hsx{i}", "mat_khau": "1234"}
+        {"ho_ten": f"HS {i}", "dang_nhap": f"hsx{i}", "mat_khau": "123456"}
         for i in range(2001)
     ]
     r = client.post(f"/api/gv/lop/{lop_id}/import-hs-batch", headers=h,

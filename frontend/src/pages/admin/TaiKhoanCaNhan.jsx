@@ -42,8 +42,8 @@ export default function TaiKhoanCaNhan({ onHoTenChange }) {
               </Badge>
             </div>
             <Input label="Họ tên" value={hoTen} onChange={(e) => setHoTen(e.target.value)} required />
-            <Input label="Mật khẩu mới (để trống nếu giữ nguyên)" type="password"
-              value={matKhau} onChange={(e) => setMatKhau(e.target.value)} />
+            <Input label="Mật khẩu mới (để trống nếu giữ nguyên, tối thiểu 6 ký tự)" type="password"
+              value={matKhau} onChange={(e) => setMatKhau(e.target.value)} minLength={6} />
             <div className="flex items-center gap-3">
               <Button type="submit">Lưu thay đổi</Button>
               {msg && <span className="text-sm text-success">{msg}</span>}

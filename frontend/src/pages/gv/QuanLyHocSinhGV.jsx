@@ -93,7 +93,7 @@ export default function QuanLyHocSinhGV() {
               <Input label="Tên đăng nhập" value={form.dang_nhap}
                 onChange={(e) => setForm((f) => ({ ...f, dang_nhap: e.target.value }))} required />
               <Input label="Mật khẩu" type="password" value={form.mat_khau}
-                onChange={(e) => setForm((f) => ({ ...f, mat_khau: e.target.value }))} required />
+                onChange={(e) => setForm((f) => ({ ...f, mat_khau: e.target.value }))} required minLength={6} />
               <Select label="Lớp" value={form.lop_id}
                 onChange={(e) => setForm((f) => ({ ...f, lop_id: e.target.value }))}
                 options={[{ value: '', label: '— chọn lớp —' }, ...lopOptions]} required />

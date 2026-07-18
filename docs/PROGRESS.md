@@ -4,7 +4,26 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-17, phiên bản **v123**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-18, phiên bản **v124**)
+
+- **✨ (v124) Nâng chuẩn mật khẩu tối thiểu 4 → 6 ký tự (đợt rà soát mới 2026-07-18).** Tài
+  khoản GV/quản lý dùng "1234" quá yếu dù đã có throttle chống dò (`auth/throttle.py`).
+  - **Backend**: 9 chỗ `min_length=4` → `6` trong 3 schema (`admin.py` ×4, `gv.py` ×4,
+    `hs.py` ×1) — phủ TẤT CẢ đường tạo/sửa/import tài khoản + đổi hồ sơ admin/gv/hs. Comment
+    giải thích policy đặt tại `TaoTaiKhoanRequest`. `LoginRequest` KHÔNG áp min → mật khẩu
+    seed/cũ ngắn hơn (vd seed gv123 5 ký tự) vẫn đăng nhập được; ràng buộc chỉ lúc TẠO/ĐỔI,
+    mật khẩu cũ đã hash không bị ảnh hưởng.
+  - **Frontend**: 2 dialog import (check `<4` + text gợi ý) sửa sang 6 để không lệch backend;
+    thêm `minLength={6}` + gợi ý "tối thiểu 6 ký tự" cho các ô mật khẩu tạo/sửa/hồ sơ (2 form
+    tạo + 3 self-service TaiKhoanCaNhan + 2 modal sửa) — báo ngay thay vì chờ 422.
+  - **Tests**: sửa các test tạo/import tài khoản dùng "1234" → "123456"; thêm
+    `test_mat_khau_toi_thieu_6_ky_tu` (5 ký tự → 422, 6 ký tự → 200, seed cũ vẫn login được).
+  - `pytest` 532/532 (+1), `ruff`/`eslint`/`vite build` sạch, `vitest` 23/23, `playwright` 3/3.
+  - **Trạng thái rà soát**: #4 thực nghiệm người dùng thật (C5) — **user báo đã làm** (không
+    nhắc lại). Còn mở (P2, làm khi rảnh): nén PROGRESS.md (>170KB), cập nhật docs TESTING/
+    ARCHITECTURE cho Alembic+E2E, Sentry, đưa `npm run e2e` vào CI.
+
+## 1a. Trạng thái trước đó (v123)
 
 - **✨ (v123) #11 (mục P0/P1 cuối cùng còn code được): E2E Playwright 3 "luồng vàng" trên trình
   duyệt thật + #14 viết lại mục 7 (lỗi thời từ v32).** Với v123, TOÀN BỘ 14 mục đợt rà soát
@@ -29,7 +48,7 @@
     `process` trong vite.config bằng `import process from 'node:process'`), `vitest` 23/23,
     `playwright` 3/3 (chạy 2 lần liên tiếp xác nhận lặp lại được).
 
-## 1a. Trạng thái trước đó (v122)
+## 1b. Trạng thái trước đó (v122)
 
 - **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
   app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
@@ -43,7 +62,7 @@
     base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
   - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
 
-## 1b. Trạng thái trước đó (v121)
+## 1c. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại
@@ -75,7 +94,7 @@
     trình Alembic mới (xem mục 5 bên dưới).
   - `pytest` 526/526 (+3 test mới `test_migrate.py`), `ruff` sạch.
 
-## 1c. Trạng thái trước đó (v120)
+## 1d. Trạng thái trước đó (v120)
 
 - **✨ (v120) 2 mục P0 từ đợt rà soát toàn dự án (#6 lộ mật khẩu seed, #10 thiếu ErrorBoundary
   frontend) — thuần hướng dẫn thao tác trước đó (#1/#3a/#4/#5/#3b) đã xong, đây là 2 mục còn
@@ -93,7 +112,7 @@
     thân thiện ("Tải lại trang" / "Đăng xuất & tải lại") thay vì màn hình trắng.
   - `pytest` 523/523 (+2), `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1d. Trạng thái trước đó (v119)
+## 1e. Trạng thái trước đó (v119)
 
 - **✨ (v119) Admin tự đổi mật khẩu/họ tên (trang "Tài khoản cá nhân" mới) — vá lỗ hổng phát
   hiện khi user báo "tài khoản admin không thể đổi mật khẩu" sau khi làm theo hướng dẫn P0#3a.**
@@ -111,7 +130,7 @@
     `/admin/ho-so`, xác nhận rào chắn cũ (admin sửa admin KHÁC qua "Quản lý tài khoản") vẫn
     nguyên vẹn — không mở thêm lỗ hổng. `pytest` 521/521, `eslint`/`vite build` sạch.
 
-## 1e. Trạng thái trước đó (v118)
+## 1f. Trạng thái trước đó (v118)
 
 - **✨ (v118) "Hỗ trợ học sinh" (GV): thêm "Xem chi tiết" — GV xem toàn bộ khung chat của HS
   TRƯỚC khi trả lời "Nhờ thầy/cô", thay vì trả lời mù. Qua 2 vòng: (1) phân tích + chờ user
@@ -131,7 +150,7 @@
   - 2 test mới xác nhận đúng ranh giới cắt (không lẫn lượt hỏi sau khi nhờ) + câu trả lời nối
     cuối. `pytest` 518/518, `eslint`/`vite build`/`vitest` 23/23 sạch.
 
-## 1f. Trạng thái trước đó (v117)
+## 1g. Trạng thái trước đó (v117)
 
 - **✨ (v117) Biểu đồ vùng (area chart) theo ngày cho cả 3 vai trò — 7 vị trí, sau khi phân
   tích 1 ảnh mẫu người dùng gửi + dựng mockup 3-tab (HS/GV/Admin) duyệt trước khi code. Thứ
@@ -154,7 +173,7 @@
     học/ngày + Lượt gọi AI/ngày màu tím accent — đúng vai trò AI/gợi ý thông minh, dưới StatCard).
   - `pytest` 516/516 (+3 test `test_theo_ngay.py`), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1g. Trạng thái trước đó (v116)
+## 1h. Trạng thái trước đó (v116)
 
 - **✨ (v116) Thêm hero "việc cần xử lý" vào trang Tổng quan GV — lời chào + 3 mini-card
   (Hỗ trợ học sinh/Câu hỏi chưa duyệt/Cờ chưa xử lý), mỗi card CTA điều hướng thẳng tới đúng
@@ -164,7 +183,7 @@
   theo dõi, 2 bảng "mất nhiều thời gian") giữ nguyên bên dưới hero. `eslint`/`vite build`/
   `vitest` 23/23 sạch.
 
-## 1h. Trạng thái trước đó (v115)
+## 1i. Trạng thái trước đó (v115)
 
 - **✨ (v115) Sửa lỗi "Bài đang làm dở" hiện trùng bài (user báo trực tiếp) + redesign nhỏ
   card "7 ngày qua" (trang chủ HS) qua nhiều vòng chỉnh UI theo phản hồi trực tiếp.**
@@ -196,7 +215,7 @@
     trước" đặt cạnh card tổng quan tiến độ (trước đó xếp chồng dọc).
   - `pytest` 513/513 (+3 test), `vitest` 23/23, `ruff`/`eslint`/`vite build` sạch.
 
-## 1i. Trạng thái trước đó (v114)
+## 1j. Trạng thái trước đó (v114)
 
 - **✨ (v114) Thiết kế lại Trang chủ Học sinh theo spec user (hero + 3 card hành động) —
   qua nhiều vòng phân tích/mockup/duyệt trước khi code (user yêu cầu "chưa code, dựng mockup

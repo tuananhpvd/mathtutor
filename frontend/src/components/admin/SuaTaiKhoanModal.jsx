@@ -41,8 +41,8 @@ export default function SuaTaiKhoanModal({ user, lopOptions = [], showRole, show
         <div className="flex flex-col gap-3">
           <Input label="Họ tên" value={hoTen} onChange={(e) => setHoTen(e.target.value)} />
           <Input label="Tên đăng nhập" value={dangNhap} onChange={(e) => setDangNhap(e.target.value)} />
-          <Input label="Mật khẩu mới (để trống nếu giữ nguyên)" type="password"
-            value={matKhau} onChange={(e) => setMatKhau(e.target.value)} />
+          <Input label="Mật khẩu mới (để trống nếu giữ nguyên, tối thiểu 6 ký tự)" type="password"
+            value={matKhau} onChange={(e) => setMatKhau(e.target.value)} minLength={6} />
           {showRole && (
             <Select label="Vai trò" value={vaiTro} onChange={(e) => setVaiTro(e.target.value)}
               options={[{ value: 'hs', label: 'Học sinh' }, { value: 'gv', label: 'Giáo viên' }]} />

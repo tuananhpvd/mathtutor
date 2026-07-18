@@ -6,7 +6,7 @@ function validateRow(row) {
   if (!row.ho_ten) return 'Thiếu họ tên'
   if (!row.dang_nhap) return 'Thiếu tên đăng nhập'
   if (!row.mat_khau) return 'Thiếu mật khẩu'
-  if (row.mat_khau.length < 4) return 'Mật khẩu phải ≥ 4 ký tự'
+  if (row.mat_khau.length < 6) return 'Mật khẩu phải ≥ 6 ký tự'
   return null
 }
 
@@ -153,7 +153,7 @@ export default function ImportHocSinhDialog({ lop, onKiemTra, onImport, onClose,
           </div>
           <p className="text-xs text-muted">
             File phải có cột <strong>Họ tên học sinh</strong>,{' '}
-            <strong>Tên đăng nhập</strong>, <strong>Mật khẩu</strong> (tối thiểu 4 ký tự).
+            <strong>Tên đăng nhập</strong>, <strong>Mật khẩu</strong> (tối thiểu 6 ký tự).
             Có thể chọn lại file để cập nhật danh sách.
           </p>
 

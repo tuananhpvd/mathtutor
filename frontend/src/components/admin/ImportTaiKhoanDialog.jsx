@@ -22,7 +22,7 @@ function validateRow(row) {
   if (!row.ho_ten) return 'Thiếu họ tên'
   if (!row.dang_nhap) return 'Thiếu tên đăng nhập'
   if (!row.mat_khau) return 'Thiếu mật khẩu'
-  if (row.mat_khau.length < 4) return 'Mật khẩu phải ≥ 4 ký tự'
+  if (row.mat_khau.length < 6) return 'Mật khẩu phải ≥ 6 ký tự'
   if (!row.vai_tro) return 'Vai trò không hợp lệ (nhập "Giáo viên" hoặc "Học sinh")'
   return null
 }
@@ -167,7 +167,7 @@ export default function ImportTaiKhoanDialog({ onClose, onSaved }) {
           </div>
           <p className="text-xs text-muted">
             File phải có cột <strong>Họ tên</strong>, <strong>Tên đăng nhập</strong>,{' '}
-            <strong>Mật khẩu</strong> (≥ 4 ký tự), <strong>Vai trò</strong>{' '}
+            <strong>Mật khẩu</strong> (≥ 6 ký tự), <strong>Vai trò</strong>{' '}
             (<em>Giáo viên</em> hoặc <em>Học sinh</em>). Có thể chọn lại file để cập nhật.
           </p>
 

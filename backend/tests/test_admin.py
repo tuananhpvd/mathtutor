@@ -157,13 +157,13 @@ def test_tao_va_khoa_tai_khoan(db, client):
     h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
 
     r = client.post("/api/admin/users", headers=h, json={
-        "ho_ten": "HS Mới", "dang_nhap": "hs99", "mat_khau": "1234", "vai_tro": "hs"})
+        "ho_ten": "HS Mới", "dang_nhap": "hs99", "mat_khau": "123456", "vai_tro": "hs"})
     assert r.status_code == 200
     uid = r.json()["id"]
 
     # đăng nhập được
     assert client.post("/api/auth/login",
-                       json={"dang_nhap": "hs99", "mat_khau": "1234"}).status_code == 200
+                       json={"dang_nhap": "hs99", "mat_khau": "123456"}).status_code == 200
 
     # khóa
     r2 = client.patch(f"/api/admin/users/{uid}/trang-thai", headers=h,
@@ -173,14 +173,14 @@ def test_tao_va_khoa_tai_khoan(db, client):
 
     # bị khóa → login 403
     assert client.post("/api/auth/login",
-                       json={"dang_nhap": "hs99", "mat_khau": "1234"}).status_code == 403
+                       json={"dang_nhap": "hs99", "mat_khau": "123456"}).status_code == 403
 
 
 def test_tao_tai_khoan_trung_dang_nhap(db, client):
     _seed(db)
     h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
     r = client.post("/api/admin/users", headers=h, json={
-        "ho_ten": "Trùng", "dang_nhap": "gv1", "mat_khau": "1234", "vai_tro": "gv"})
+        "ho_ten": "Trùng", "dang_nhap": "gv1", "mat_khau": "123456", "vai_tro": "gv"})
     assert r.status_code == 400
 
 
@@ -475,8 +475,28 @@ def test_import_tai_khoan_qua_2000_dong_bi_chan(db, client):
     _seed(db)
     h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
     tai_khoans = [
-        {"ho_ten": f"HS {i}", "dang_nhap": f"hsx{i}", "mat_khau": "1234", "vai_tro": "hs"}
+        {"ho_ten": f"HS {i}", "dang_nhap": f"hsx{i}", "mat_khau": "123456", "vai_tro": "hs"}
         for i in range(2001)
     ]
     r = client.post("/api/admin/users/import-batch", headers=h, json={"tai_khoans": tai_khoans})
     assert r.status_code == 422
+
+
+def test_mat_khau_toi_thieu_6_ky_tu(db, client):
+    """Chuẩn mật khẩu ≥ 6 ký tự (nâng từ 4): tạo tài khoản mật khẩu 5 ký tự bị chặn (422),
+    6 ký tự OK. Login KHÔNG áp min nên tài khoản seed/cũ mật khẩu ngắn hơn vẫn đăng nhập được."""
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+
+    r5 = client.post("/api/admin/users", headers=h, json={
+        "ho_ten": "Ngắn", "dang_nhap": "hsngan", "mat_khau": "12345", "vai_tro": "hs"})
+    assert r5.status_code == 422
+
+    r6 = client.post("/api/admin/users", headers=h, json={
+        "ho_ten": "Đủ", "dang_nhap": "hsdu", "mat_khau": "123456", "vai_tro": "hs"})
+    assert r6.status_code == 200
+
+    # Tài khoản seed 'gv1' (mật khẩu "password" 8 ký tự, tạo thẳng qua _seed không qua schema)
+    # vẫn đăng nhập bình thường — min chỉ áp lúc tạo/đổi, không áp lúc login.
+    assert client.post("/api/auth/login",
+                       json={"dang_nhap": "gv1", "mat_khau": "password"}).status_code == 200

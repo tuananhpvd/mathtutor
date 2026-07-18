@@ -39,8 +39,8 @@ export default function SuaHocSinhModal({ hs, lopOptions = [], showLop, onClose,
         <div className="flex flex-col gap-3">
           <Input label="Họ tên" value={hoTen} onChange={(e) => setHoTen(e.target.value)} />
           <Input label="Tên đăng nhập" value={dangNhap} onChange={(e) => setDangNhap(e.target.value)} />
-          <Input label="Mật khẩu mới (để trống nếu giữ nguyên)" type="password"
-            value={matKhau} onChange={(e) => setMatKhau(e.target.value)} />
+          <Input label="Mật khẩu mới (để trống nếu giữ nguyên, tối thiểu 6 ký tự)" type="password"
+            value={matKhau} onChange={(e) => setMatKhau(e.target.value)} minLength={6} />
           {showLop && (
             <Select label="Lớp" value={lopId} onChange={(e) => setLopId(e.target.value)} options={lopOptions} />
           )}

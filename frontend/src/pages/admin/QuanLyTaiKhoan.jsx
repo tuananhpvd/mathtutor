@@ -102,7 +102,7 @@ export default function QuanLyTaiKhoan() {
             <Input label="Tên đăng nhập" value={form.dang_nhap}
               onChange={(e) => setForm((f) => ({ ...f, dang_nhap: e.target.value }))} required />
             <Input label="Mật khẩu" type="password" value={form.mat_khau}
-              onChange={(e) => setForm((f) => ({ ...f, mat_khau: e.target.value }))} required />
+              onChange={(e) => setForm((f) => ({ ...f, mat_khau: e.target.value }))} required minLength={6} />
             <Select label="Vai trò" value={form.vai_tro}
               onChange={(e) => setForm((f) => ({ ...f, vai_tro: e.target.value }))}
               options={[{ value: 'hs', label: 'Học sinh' }, { value: 'gv', label: 'Giáo viên' }]} />
