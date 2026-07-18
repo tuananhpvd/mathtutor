@@ -206,7 +206,7 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
       {!toanQuyen && (
         <Card>
           <CardHeader title="Thêm chuyên đề mới" />
-          <CardBody className="grid sm:grid-cols-3 gap-3 items-end">
+          <CardBody className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             <FormInput label="Tên chuyên đề" value={tenCD} onChange={setTenCD} placeholder="VD: Hình học không gian" />
             <FormInput label="Mô tả (tùy chọn)" value={moTaCD} onChange={setMoTaCD} placeholder="" />
             <Button onClick={themCD} disabled={!tenCD.trim() || dangThemCD}>
@@ -220,7 +220,7 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
       {danhMuc.length === 0 ? (
         <Card><CardBody className="py-8 text-center text-muted">Chưa có chuyên đề nào.</CardBody></Card>
       ) : (
-        <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           {danhMuc.map((cd) => (
             <Card key={cd.id}>
               <CardBody className="pt-4 flex flex-col gap-3">
@@ -257,7 +257,7 @@ export default function QuanLyDanhMuc({ gvId = null, toanQuyen = false }) {
                     )}
                     {/* Form thêm dạng — ẩn với tài khoản Quản lý */}
                     {!toanQuyen && (
-                      <div className="grid sm:grid-cols-3 gap-2 mt-1 items-end">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1 items-end">
                         <FormInput label="Tên dạng mới" value={tenDang} onChange={setTenDang} placeholder="VD: Xét đơn điệu" />
                         <FormInput label="Mô tả (tùy chọn)" value={moTaDang} onChange={setMoTaDang} placeholder="" />
                         <Button size="sm" onClick={() => themDang(cd.id)} disabled={!tenDang.trim() || dangThemDang}>

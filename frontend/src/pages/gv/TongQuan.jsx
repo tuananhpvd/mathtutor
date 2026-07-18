@@ -22,7 +22,7 @@ function NhomThongKe({ title, icon, items }) {
   return (
     <Card>
       <CardHeader title={icon ? <TieuDeThe icon={icon}>{title}</TieuDeThe> : title} />
-      <CardBody className="grid sm:grid-cols-3 gap-4">
+      <CardBody className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {items.map((it) => (
           <StatCard key={it.label} icon={it.icon} label={it.label} value={it.value} accent={it.accent} />
         ))}
@@ -76,7 +76,7 @@ export default function TongQuan({ onNavigate }) {
         <h2 className="text-2xl font-semibold text-ink text-balance">
           Chào thầy/cô{ho_ten ? `, ${ho_ten}` : ''}! 👋
         </h2>
-        <div className="grid sm:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <MiniHeroGV icon={LifeBuoy} value={soHoTro} cap="yêu cầu hỗ trợ học sinh chờ trả lời"
             nhan="Trả lời ngay" onClick={() => onNavigate?.('ho_tro')} />
           <MiniHeroGV icon={Clock} value={tk.cau_hoi_cho_duyet} cap="câu hỏi chưa duyệt"

@@ -79,7 +79,7 @@ export default function QuanLyHocSinh() {
       <Card>
         <CardHeader title="Học sinh" subtitle={`${loc.length}/${rows.length} học sinh`} />
         <CardBody className="flex flex-col gap-3">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input label="Tìm kiếm" placeholder="Tên hoặc đăng nhập..."
               value={q} onChange={(e) => { setQ(e.target.value); setTrang(1) }} />
             <Select label="Lớp" value={fLop} onChange={(e) => { setFLop(e.target.value); setTrang(1) }}

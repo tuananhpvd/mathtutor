@@ -222,7 +222,7 @@ export default function ThongKeTienDo({ tk }) {
       {/* 4) MẤT NHIỀU THỜI GIAN — riêng của HS này (KHÔNG cộng dồn với HS khác), khác với
           card cùng tên ở trang Tổng quan (GV, cộng dồn cả lớp). */}
       {(tk.dang_mat_thoi_gian?.length > 0 || tk.loai_mat_thoi_gian?.length > 0) && (
-        <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           <BangXepHangThoiGian
             title="Dạng bài mất nhiều thời gian"
             subtitle="Tối đa 3 dạng — theo tổng thời gian hoàn thành"

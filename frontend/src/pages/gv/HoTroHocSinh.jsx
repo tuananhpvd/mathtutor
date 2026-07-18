@@ -352,7 +352,7 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
         <div className="rounded-lg bg-danger-soft text-danger text-sm px-4 py-2.5">{loi}</div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <Card>
           <CardHeader title="Yêu cầu cần trả lời"
             subtitle={`${choXuLy.length} học sinh đang chờ thầy/cô giúp`} />

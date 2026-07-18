@@ -129,7 +129,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-5">
       {/* Cột trái: form */}
             <div className="flex flex-col gap-4">
-              <div className="grid sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {choChonLoai && (
                   <Select
                     label="Loại câu hỏi"

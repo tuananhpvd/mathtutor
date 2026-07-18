@@ -66,7 +66,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg p-4 sm:p-6">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl bg-surface
+      <div className="grid grid-cols-1 w-full max-w-5xl overflow-hidden rounded-2xl bg-surface
         shadow-[var(--shadow-pop)] lg:grid-cols-2">
         <PanelThuongHieu />
 

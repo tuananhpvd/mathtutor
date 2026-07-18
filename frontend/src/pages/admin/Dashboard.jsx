@@ -73,7 +73,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-5">
       {/* Hàng chỉ số tổng quan */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="Người dùng" value={stats.so_nguoi_dung} accent="primary" />
         <StatCard icon={ListChecks} label="Câu hỏi" value={stats.so_cau_hoi} accent="primary" />
         <StatCard icon={Activity} label="Phiên học" value={stats.so_phien} accent="success" />
@@ -81,7 +81,7 @@ export default function Dashboard() {
       </div>
 
       {/* Nhịp sử dụng 30 ngày: phiên học + lượt gọi AI (tím accent = màu riêng tính năng AI) */}
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {phienNgay && (
           <BieuDoVung
             ds={phienNgay.map((d) => ({ ...d, so: d.so_phien }))}
@@ -110,7 +110,7 @@ export default function Dashboard() {
       </div>
 
       {/* Người dùng & Lớp + Phiên học — 2 thẻ cao xấp xỉ nhau nên ghép cùng hàng */}
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <Card>
           <CardHeader title={<TieuDeThe icon={Users}>Người dùng & Lớp học</TieuDeThe>} />
           <CardBody>
@@ -134,7 +134,7 @@ export default function Dashboard() {
       </div>
 
       {/* Câu hỏi (trái) + Cờ theo dõi & Hệ thống (phải) */}
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <Card>
           <CardHeader title={<TieuDeThe icon={CheckCircle2}>Câu hỏi</TieuDeThe>}
             subtitle={`${stats.so_cau_hoi} đang hoạt động · ${stats.so_cau_an || 0} đã ẩn`} />
@@ -144,7 +144,7 @@ export default function Dashboard() {
               <MiniStat icon={Clock} label="Chờ duyệt" value={stats.so_cau_cho_duyet} tone="warning" />
               <MiniStat icon={EyeOff} label="Đã ẩn" value={stats.so_cau_an || 0} tone="idle" />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Theo loại câu</p>
                 <div className="flex gap-2 flex-wrap">

@@ -178,7 +178,7 @@ export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapN
             </p>
           )}
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-semibold text-success mb-1">✅ Điểm mạnh</p>
               {pt.diem_manh.length === 0 ? (

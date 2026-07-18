@@ -245,7 +245,7 @@ export default function GiaoNhiemVu() {
       <Card>
         <CardHeader title="Tạo nhiệm vụ" subtitle="Giao bài cho học sinh / cả lớp, có hạn nộp" />
         <CardBody className="flex flex-col gap-4">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input label="Tiêu đề" value={tieuDe} onChange={(e) => setTieuDe(e.target.value)}
               placeholder="VD: Luyện cực trị cuối tuần" />
             <Input label="Hạn nộp (tùy chọn)" type="date" value={hanChot}
@@ -287,7 +287,7 @@ export default function GiaoNhiemVu() {
             )}
           </div>
 
-          <div className="grid lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             {/* ===== CHỌN BÀI ===== */}
             <div className="lg:col-span-3 flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">
@@ -490,7 +490,7 @@ export default function GiaoNhiemVu() {
           {nhiemVus.length === 0 ? (
             <p className="text-sm text-muted">Chưa giao nhiệm vụ nào.</p>
           ) : (
-          <div className="grid lg:grid-cols-2 gap-3 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
           {nhiemVus.map((nv) => (
             <div key={nv.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
               {/* Tiêu đề + nút */}
@@ -580,7 +580,7 @@ export default function GiaoNhiemVu() {
               {suaNv?.id === nv.id && (
                 <div className="flex flex-col gap-3 border-t border-border pt-3">
                   {/* Form tiêu đề/mô tả/hạn */}
-                  <div className="grid sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <Input label="Tiêu đề" value={suaNv.tieu_de}
                       onChange={(e) => setSuaNv((s) => ({ ...s, tieu_de: e.target.value }))} />
                     <Input label="Mô tả" value={suaNv.mo_ta}

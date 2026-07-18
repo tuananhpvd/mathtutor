@@ -167,7 +167,7 @@ function TongQuanChuyenDe({ list }) {
           </div>
         ))}
       </div>
-      <div className="grid sm:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {['TN4PA', 'TNDS', 'TLN'].map((l) => {
           const r = bang[l]
           const t = r.de + r.tb + r.kho
@@ -254,7 +254,7 @@ export function ThongKeChuyenDe({ danhMuc, rows }) {
                       {cd.dang_list.length === 0 && chuaPhanDang.length === 0 ? (
                         <p className="text-xs text-muted py-1">Chưa có dạng nào.</p>
                       ) : (
-                        <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {cd.dang_list.map((d) => (
                             <TheDangChiTiet key={d.id} ten={d.ten} list={rows.filter((r) => r.dang_id === d.id)} />
                           ))}

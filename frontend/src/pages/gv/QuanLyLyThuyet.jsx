@@ -81,10 +81,10 @@ function FormTomTat({ danhMuc, dangSua, onDong, onXong }) {
       <CardHeader title={dangSua ? 'Sửa tóm tắt lý thuyết' : 'Tạo tóm tắt lý thuyết mới'}
         action={<Button variant="secondary" size="sm" onClick={dongNeuXacNhan}>✕ Đóng</Button>} />
       <CardBody>
-        <div className="grid lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Cột trái — nhập liệu */}
           <div className="flex flex-col gap-4">
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select label="Chuyên đề" value={chuyenDeId} onChange={(e) => doiChuyenDe(e.target.value)}
                 options={cdOptions.length ? cdOptions : [{ value: '', label: 'Chưa có chuyên đề nào' }]} />
               <Select label="Dạng (tùy chọn)" value={dangId} onChange={(e) => setDangId(e.target.value)}
@@ -236,7 +236,7 @@ export default function QuanLyLyThuyet() {
       )}
       {ds && ds.length > 0 && (
         <>
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {dsTrang.map((tt) => {
               const dangXem = moRong.has(tt.id)
               return (

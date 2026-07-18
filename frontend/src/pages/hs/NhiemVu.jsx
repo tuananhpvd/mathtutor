@@ -84,7 +84,7 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
           <p className="text-sm text-muted">Hiện chưa có nhiệm vụ nào. 🎉</p>
         </CardBody></Card>
       ) : (
-        <div className="grid lg:grid-cols-2 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
         {dsTrang.map((nv) => {
           const xong = nv.tong_bai > 0 && nv.so_hoan_thanh >= nv.tong_bai
           const han = hanInfo(nv.han_chot)

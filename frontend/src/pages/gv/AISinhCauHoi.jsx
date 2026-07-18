@@ -270,10 +270,10 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
     <Card>
       <CardHeader title="🎓 AI tạo bước và gợi ý"
         subtitle="Thầy/cô viết đề bài (và phương án/ý nếu có) — AI chỉ giải ra đáp án đúng, chia đúng số bước, viết đúng số gợi ý mỗi bước theo yêu cầu." />
-      <CardBody className="grid lg:grid-cols-[1fr_18rem] gap-5">
+      <CardBody className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-5">
         {/* Cột trái: form nhập */}
         <div className="flex flex-col gap-4">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Select
               label="Chuyên đề › Dạng"
               value={String(form.dang_id || '')}
@@ -319,7 +319,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
           />
 
           {form.loai_cau === 'TN4PA' && (
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {['A', 'B', 'C', 'D'].map((k) => (
                 <TexField key={k} label={`Phương án ${k}`} value={form.phuong_an[k]}
                   onChange={(v) => setForm((f) => ({ ...f, phuong_an: { ...f.phuong_an, [k]: v } }))}
@@ -449,7 +449,7 @@ export default function AISinhCauHoi() {
 
       <Card>
         <CardHeader title="Sinh câu hỏi bằng AI (hàng loạt)" subtitle="AI tự bịa đề — câu sinh ra ở trạng thái Chờ duyệt; chỉ Đã duyệt mới tới học sinh." />
-        <CardBody className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+        <CardBody className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           <Select
             label="Chuyên đề"
             value={form.chuyen_de}

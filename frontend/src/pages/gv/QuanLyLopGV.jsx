@@ -222,7 +222,7 @@ export default function QuanLyLopGV() {
         <CardHeader title="Thêm lớp" subtitle="Thêm từng lớp hoặc import hàng loạt từ Excel" />
         <CardBody className="flex flex-col gap-4">
           {/* Thêm từng lớp */}
-          <div className="grid sm:grid-cols-2 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
             <Input label="Tên lớp" value={newTen}
               onChange={(e) => { setNewTen(e.target.value); setErrThemLop('') }}
               placeholder="vd: 12A2"
@@ -271,11 +271,11 @@ export default function QuanLyLopGV() {
         <CardHeader title="Lớp của tôi" subtitle={`${loc.length}/${lops.length} lớp`} />
         <CardBody className="flex flex-col gap-3">
           <Input label="Tìm lớp" placeholder="Tên lớp..." value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="grid lg:grid-cols-2 gap-3 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
             {loc.map((l) => (
               <div key={l.id} className="rounded-lg border border-border">
                 {suaLop?.id === l.id ? (
-                  <div className="grid sm:grid-cols-2 gap-3 items-end p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end p-3">
                     <Input label="Tên lớp" value={suaLop.ten}
                       onChange={(e) => setSuaLop((s) => ({ ...s, ten: e.target.value }))} />
                     <div className="flex gap-2">

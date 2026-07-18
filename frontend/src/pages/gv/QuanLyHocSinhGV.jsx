@@ -87,7 +87,7 @@ export default function QuanLyHocSinhGV() {
           {lops.length === 0 ? (
             <p className="text-sm text-muted">Bạn chưa có lớp nào. Hãy tạo lớp ở mục "Quản lý lớp" trước.</p>
           ) : (
-            <form onSubmit={tao} className="grid sm:grid-cols-5 gap-3 items-end">
+            <form onSubmit={tao} className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
               <Input label="Họ tên" value={form.ho_ten}
                 onChange={(e) => setForm((f) => ({ ...f, ho_ten: e.target.value }))} required />
               <Input label="Tên đăng nhập" value={form.dang_nhap}
@@ -111,7 +111,7 @@ export default function QuanLyHocSinhGV() {
       <Card>
         <CardHeader title="Học sinh của tôi" subtitle={`${loc.length}/${rows.length} học sinh`} />
         <CardBody className="flex flex-col gap-3">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input label="Tìm kiếm" placeholder="Tên hoặc đăng nhập..."
               value={q} onChange={(e) => setQ(e.target.value)} />
             <Select label="Lớp" value={fLop} onChange={(e) => setFLop(e.target.value)}

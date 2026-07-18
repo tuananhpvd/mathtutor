@@ -360,7 +360,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
             {problem.dang_ten && <span className="text-ink"> › {problem.dang_ten}</span>}
           </p>
           {/* Có hình → 2 cột (đề trái, hình phải); không hình → 1 cột như cũ. Mobile tự xếp dọc. */}
-          <div className={problem.hinh_anh ? 'grid md:grid-cols-2 gap-4 items-start' : ''}>
+          <div className={problem.hinh_anh ? 'grid grid-cols-1 md:grid-cols-2 gap-4 items-start' : ''}>
             <div>
               <span className="inline-block text-xs font-bold tracking-wide text-primary bg-surface rounded px-2 py-0.5 mb-1.5">
                 [{NHAN_LOAI_CAU[problem.loai_cau] || problem.loai_cau}]
@@ -402,7 +402,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Khung hội thoại */}
         <Card className="lg:col-span-3">
           <CardBody className="flex flex-col gap-3 pt-5">

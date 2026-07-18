@@ -270,7 +270,7 @@ function TaoDeForm({ onDong, onXong }) {
           ))}
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Tên đề" value={ten} onChange={(e) => setTen(e.target.value)}
             placeholder="VD: Đề thi thử số 1 — Khảo sát hàm số" />
           <Input label="Thời gian (phút)" type="number" min={10} max={180}
@@ -785,7 +785,7 @@ export default function QuanLyDeThi({ quanLy = false }) {
         </Card>
       )}
       {dsHienThi && dsHienThi.length > 0 && (
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {dsHienThi.map((de) => (
             <Card key={de.id}>
               <CardBody className="pt-4 flex flex-col gap-2">

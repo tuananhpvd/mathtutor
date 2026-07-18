@@ -67,7 +67,7 @@ export default function LyThuyet() {
         <CardHeader title="Tóm tắt lý thuyết"
           subtitle="Xem lại lý thuyết thầy/cô đã tổng hợp theo từng chuyên đề, dạng bài." />
         <CardBody className="flex flex-col gap-3">
-          <div className="grid sm:grid-cols-2 gap-3 max-w-xl">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
             <Select label="Chuyên đề" value={fChuyenDe} onChange={(e) => doiChuyenDe(e.target.value)}
               options={cdOptions} />
             <Select label="Dạng" value={fDang}
@@ -85,7 +85,7 @@ export default function LyThuyet() {
         </CardBody>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {dsTrang.map((tt) => {
           const dangXem = moRong.has(tt.id)
           return (

@@ -119,7 +119,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
       <h2 className="text-xl font-semibold text-black">Chọn bài luyện</h2>
 
       {/* Bộ lọc theo cây danh mục */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Select
           label="Chuyên đề"
           value={fChuyenDeId}
@@ -185,7 +185,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
         </Card>
       )}
 
-      <div className="grid md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {locTrang.map((b) => {
           const tt = trangThaiBai[b.id]
           const daXong = tt?.trang_thai === 'hoan_thanh'

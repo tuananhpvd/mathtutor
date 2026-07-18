@@ -120,7 +120,7 @@ export default function QuanLyLop() {
       <Card>
         <CardHeader title="Thêm lớp" subtitle="Tên lớp + giáo viên phụ trách (tùy chọn)" />
         <CardBody className="flex flex-col gap-3">
-          <div className="grid sm:grid-cols-3 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             <Input label="Tên lớp" value={newTen}
               onChange={(e) => { setNewTen(e.target.value); setErrThemLop('') }}
               placeholder="vd: 12A2" />
@@ -141,7 +141,7 @@ export default function QuanLyLop() {
             {locTrang.map((l) => (
               <div key={l.id} className="rounded-lg border border-border">
                 {suaLop?.id === l.id ? (
-                  <div className="grid sm:grid-cols-3 gap-3 items-end p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end p-3">
                     <Input label="Tên lớp" value={suaLop.ten}
                       onChange={(e) => setSuaLop((s) => ({ ...s, ten: e.target.value }))} />
                     <Select label="Giáo viên phụ trách" value={suaLop.gv_id ? String(suaLop.gv_id) : ''}

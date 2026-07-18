@@ -89,7 +89,7 @@ export default function TienDo({ onLuyenDang }) {
         }
       />
       {nhipNgay && (
-        <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           <BieuDoVung
             ds={nhipNgay.map((d) => ({ ...d, so: d.so_bai }))}
             donVi="bài hoàn thành"

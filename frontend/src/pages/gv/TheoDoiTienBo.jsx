@@ -471,7 +471,7 @@ export default function TheoDoiTienBo() {
         <Card>
           <CardHeader title="Tổng hợp lớp"
             subtitle={`Phân tích ${tongHop.so_hoc_sinh_co_du_lieu}/${tongHop.so_hoc_sinh} học sinh có dữ liệu`} />
-          <CardBody className="grid md:grid-cols-2 gap-4">
+          <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-semibold text-danger mb-2">Dạng lớp đang yếu</p>
               {tongHop.dang_yeu_chung.length === 0 ? (

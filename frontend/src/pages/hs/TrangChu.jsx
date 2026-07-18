@@ -169,7 +169,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
     <div className="flex flex-col gap-6">
       {/* ===== HERO: 1 vùng nổi bật duy nhất ===== */}
       <div className="rounded-card border border-border bg-gradient-to-br from-primary-soft
-        to-[#f2f1fd] p-6 grid lg:grid-cols-[1.15fr_1fr] gap-5 items-center">
+        to-[#f2f1fd] p-6 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-5 items-center">
         <div>
           <h2 className="text-2xl font-semibold text-ink text-balance">
             Chào em{ho_ten ? `, ${ho_ten}` : ''}! 👋
@@ -187,7 +187,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
       </div>
 
       {/* ===== 3 card: Nhiệm vụ · Mục tiêu · Luyện đề ===== */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <CardChiSo
           icon="📋" iconBg="bg-primary-soft" title="Nhiệm vụ"
           val={tk?.nhiem_vu?.hoan_thanh ?? 0} tong={tk?.nhiem_vu?.tong ?? 0}
@@ -209,7 +209,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
       </div>
 
       {/* ===== 2 cột: 7 ngày qua · thành tích ===== */}
-      <div className="grid lg:grid-cols-2 gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <The7NgayQua ss={tk?.so_sanh_7_ngay} title="7 ngày qua" className="h-full" />
 
         {/* Cột phải: thành tích (thời gian + số bài theo mức độ) */}

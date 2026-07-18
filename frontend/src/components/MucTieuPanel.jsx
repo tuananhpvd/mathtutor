@@ -140,7 +140,7 @@ export default function MucTieuPanel({
 
         {/* Form thêm */}
         {moForm && (
-          <div className="rounded-xl border border-border p-3 grid sm:grid-cols-4 gap-3 items-end">
+          <div className="rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <Select label="Loại" value={loai} onChange={(e) => setLoai(e.target.value)}
               options={[{ value: 'tuan', label: 'Theo tuần' }, { value: 'chu_de', label: 'Theo chủ đề' }]} />
             <Input label="Số bài" type="number" min={1} value={chiTieu}
@@ -162,7 +162,7 @@ export default function MucTieuPanel({
         {ds.length === 0 ? (
           <p className="text-sm text-muted">Chưa có mục tiêu nào.</p>
         ) : (
-          <div className={haiCot ? 'grid lg:grid-cols-2 gap-3 items-start' : 'flex flex-col gap-3'}>
+          <div className={haiCot ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 items-start' : 'flex flex-col gap-3'}>
             {dsSapXep.map((mt) => (
               <div key={mt.id} className="rounded-xl border border-border px-4 py-3 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">

@@ -527,7 +527,7 @@ export default function CauHinh() {
 
       <Card className="break-inside-avoid mb-5">
         <CardHeader title="Ngưỡng & LLM" subtitle="Áp dụng cho toàn hệ thống" />
-        <CardBody className="grid sm:grid-cols-2 gap-4 items-end">
+        <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
           <div className="flex items-end gap-2">
             <Input
               label="Ngưỡng cờ 'không hiểu nhiều'"
@@ -620,7 +620,7 @@ export default function CauHinh() {
         <CardHeader title="AI sinh câu hỏi"
           subtitle="Chọn nhà cung cấp & nhập khóa API. Khóa được lưu phía máy chủ, không hiển thị lại." />
         <CardBody className="flex flex-col gap-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Nhà cung cấp"
               value={provider}
@@ -637,7 +637,7 @@ export default function CauHinh() {
           </div>
 
           {provider !== 'stub' && (
-            <div className="grid sm:grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
               <KhoaApi label="Khóa API Google Gemini" p="gemini" provider={provider}
                 value={keyGemini} onChange={setKeyGemini} daDat={cfg.llm_api_key_gemini_da_dat} />
               <KhoaApi label="Khóa API Anthropic Claude" p="anthropic" provider={provider}
