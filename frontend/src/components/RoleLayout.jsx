@@ -70,9 +70,22 @@ function Brand({ vai_tro, compact = false, textClass = '' }) {
   )
 }
 
-function UserMenu({ ho_ten, onLogout, onMoLienKet }) {
+function UserMenu({ ho_ten, onLogout, onMoLienKet, onGiaoBai }) {
   return (
     <div className="flex items-center gap-2">
+      {/* Nút hành động nhanh — đặt TRƯỚC chuông thông báo, nổi bật màu CTA (cam). Chỉ hiện
+          khi có onGiaoBai (GV). Text ẩn trên màn rất hẹp, giữ icon để vẫn bấm được. */}
+      {onGiaoBai && (
+        <button
+          onClick={onGiaoBai}
+          title="Giao bài nhanh"
+          className="inline-flex items-center gap-1.5 rounded-full bg-cta text-white px-3 py-1.5
+            text-sm font-semibold shadow-sm hover:bg-cta-hover transition-colors shrink-0"
+        >
+          <ClipboardList size={16} strokeWidth={2.2} />
+          <span className="hidden sm:inline">Giao bài nhanh</span>
+        </button>
+      )}
       <ChuongThongBao onMoLienKet={onMoLienKet} />
       <span className="text-sm text-muted hidden sm:inline">{ho_ten}</span>
       <button
@@ -330,7 +343,8 @@ function SidebarLayout({ vai_tro, ho_ten, nav = [], active, onNavigate, onLogout
             </button>
             <h1 className="text-base font-semibold text-ink truncate">{title}</h1>
           </div>
-          <UserMenu ho_ten={ho_ten} onLogout={onLogout} onMoLienKet={onMoLienKet} />
+          <UserMenu ho_ten={ho_ten} onLogout={onLogout} onMoLienKet={onMoLienKet}
+            onGiaoBai={vai_tro === 'gv' ? () => onNavigate?.('nhiem_vu') : null} />
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">{children}</main>
       </div>
