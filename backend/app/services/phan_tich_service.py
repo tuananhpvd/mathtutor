@@ -301,6 +301,77 @@ def tong_hop_lop_gv(db: Session, gv_id: int) -> dict:
     }
 
 
+# Chống spam: mỗi GV chỉ nhận 1 thông báo "cần chú ý" trong ngần này ngày (dù lịch nền chạy
+# thường xuyên hơn) — dedup theo thông báo digest gần nhất, KHÔNG cần cột trạng thái riêng.
+NHAC_GV_MOI_N_NGAY = 7
+_LIEN_KET_DIGEST = "tien_bo"  # bấm thông báo → mở trang Tiến bộ học sinh (GiaoVienApp)
+_SO_TEN_HIEN = 5  # số tên HS hiện thẳng trong nội dung, còn lại rút gọn "…"
+
+
+def _da_nhac_gan_day(db: Session, gv_id: int) -> bool:
+    """GV này đã nhận thông báo digest điểm yếu trong NHAC_GV_MOI_N_NGAY ngày gần nhất chưa."""
+    from app.models.thong_bao import ThongBao
+
+    moc = datetime.now(timezone.utc) - timedelta(days=NHAC_GV_MOI_N_NGAY)
+    return (
+        db.query(ThongBao.id)
+        .filter(
+            ThongBao.nguoi_nhan_id == gv_id,
+            ThongBao.lien_ket_loai == _LIEN_KET_DIGEST,
+            ThongBao.tao_luc >= moc,
+        )
+        .first()
+        is not None
+    )
+
+
+def _noi_dung_nhac(hs_can_chu_y: list[dict], dang_yeu_chung: list[dict]) -> str:
+    ten = [h["ho_ten"] for h in hs_can_chu_y]
+    hien = ", ".join(ten[:_SO_TEN_HIEN])
+    if len(ten) > _SO_TEN_HIEN:
+        hien += f" và {len(ten) - _SO_TEN_HIEN} em khác"
+    nd = f"{len(ten)} học sinh cần chú ý: {hien}."
+    if dang_yeu_chung:
+        nd += f" Dạng cả lớp còn yếu nhất: {dang_yeu_chung[0]['ten']}."
+    nd += " Bấm để xem chi tiết ở Tiến bộ học sinh."
+    return nd
+
+
+def day_nhac_diem_yeu_tuan(db: Session) -> dict:
+    """Chủ động đẩy cho từng GV 1 thông báo tuần "N học sinh cần chú ý" (tất định, KHÔNG gọi
+    LLM). Chỉ gửi khi lớp CÓ HS cần chú ý và GV chưa nhận trong NHAC_GV_MOI_N_NGAY ngày. Lỗi
+    1 GV không chặn GV khác. Dùng cho lịch nền (chạy độc lập với tu_dong_phan_tich)."""
+    from app.models.thong_bao import LoaiThongBao
+    from app.models.user import User, VaiTro
+    from app.services import thong_bao_service
+
+    gv_ids = [u.id for u in db.query(User).filter(User.vai_tro == VaiTro.gv).all()]
+    da_gui = bo_qua = loi = 0
+    for gv_id in gv_ids:
+        try:
+            if _da_nhac_gan_day(db, gv_id):
+                bo_qua += 1
+                continue
+            tong_hop = tong_hop_lop_gv(db, gv_id)
+            can_chu_y = tong_hop["hoc_sinh_can_chu_y"]
+            if not can_chu_y:
+                bo_qua += 1
+                continue
+            thong_bao_service.tao(
+                db,
+                nguoi_nhan_id=gv_id,
+                noi_dung=_noi_dung_nhac(can_chu_y, tong_hop["dang_yeu_chung"]),
+                loai=LoaiThongBao.he_thong,
+                tieu_de="Học sinh cần chú ý tuần này",
+                lien_ket_loai=_LIEN_KET_DIGEST,
+            )
+            da_gui += 1
+        except Exception:
+            db.rollback()
+            loi += 1
+    return {"so_gv": len(gv_ids), "da_gui": da_gui, "bo_qua": bo_qua, "loi": loi}
+
+
 def _diem_xu_huong(s) -> float | None:
     """Giá trị dùng để đo xu hướng của 1 phiên hoàn thành.
 

@@ -50,6 +50,9 @@ CAU_HINH_MAC_DINH: dict = {
     # Tự động (tái) sinh phân tích năng lực AI theo lịch nền (không cần bấm tay).
     "tu_dong_phan_tich": True,
     "chu_ky_phut_phan_tich": 360,  # quét mỗi N phút (tối thiểu 5)
+    # Chủ động đẩy thông báo tuần "N học sinh cần chú ý" cho GV (tất định, KHÔNG tốn quota AI —
+    # chạy độc lập với tu_dong_phan_tich). Dedup 7 ngày/GV nên mỗi GV chỉ nhận 1 lần/tuần.
+    "nhac_gv_diem_yeu": True,
     # Phanh chi phí LLM: giới hạn lượt gọi LLM THẬT mỗi ngày (0 = không giới hạn).
     # Hội thoại vượt ngưỡng chỉ chuyển sang lời diễn đạt mẫu, KHÔNG chặn HS học.
     "gioi_han_llm_hs_ngay": 30,        # lượt hội thoại / học sinh / ngày

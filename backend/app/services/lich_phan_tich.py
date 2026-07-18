@@ -48,6 +48,24 @@ def _chay_mot_lan() -> dict:
         db.close()
 
 
+def _chay_nhac_gv() -> None:
+    """Đẩy thông báo tuần "HS cần chú ý" cho GV (tất định, KHÔNG tốn quota) — chạy độc lập
+    với tu_dong_phan_tich, gated bởi config nhac_gv_diem_yeu. Dedup 7 ngày nằm trong hàm nên
+    gọi mỗi vòng lặp vẫn an toàn (mỗi GV chỉ nhận 1 lần/tuần)."""
+    from app.services.phan_tich_service import day_nhac_diem_yeu_tuan
+
+    db = SessionLocal()
+    try:
+        if not bool(lay_cau_hinh(db).get("nhac_gv_diem_yeu", True)):
+            return
+        ket = day_nhac_diem_yeu_tuan(db)
+        if ket["da_gui"] or ket["loi"]:
+            logger.info("Nhắc GV điểm yếu: gửi %d, bỏ qua %d, lỗi %d",
+                        ket["da_gui"], ket["bo_qua"], ket["loi"])
+    finally:
+        db.close()
+
+
 def _doc_cau_hinh() -> tuple[bool, int]:
     db = SessionLocal()
     try:
@@ -68,6 +86,9 @@ async def _vong_lap() -> None:
             bat, chu_ky = _doc_cau_hinh()
             if bat:
                 await asyncio.to_thread(_chay_mot_lan)
+            # Nhắc GV điểm yếu chạy MỖI vòng, KHÔNG phụ thuộc bat (tu_dong_phan_tich) — nó tất
+            # định, không tốn quota; cadence 1 lần/tuần/GV do dedup 7 ngày bên trong đảm bảo.
+            await asyncio.to_thread(_chay_nhac_gv)
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001 — lịch nền không bao giờ được làm sập app

@@ -91,7 +91,8 @@ export default function GiaoVienApp({ onLogout }) {
   }
 
   // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — mỗi loại nhảy tới đúng
-  // trang tương ứng ở app GV: "yeu_cau_tro_giup" → Hỗ trợ học sinh, "co" → Cờ theo dõi.
+  // trang tương ứng ở app GV: "yeu_cau_tro_giup" → Hỗ trợ học sinh, "co" → Cờ theo dõi,
+  // "tien_bo" → Tiến bộ học sinh (thông báo tuần "N học sinh cần chú ý").
   function moTuThongBao(tb) {
     if (tb.lien_ket_loai === 'yeu_cau_tro_giup' && navKeys.includes('ho_tro')) {
       setFocusYc({ id: tb.lien_ket_id, ts: Date.now() })
@@ -99,6 +100,8 @@ export default function GiaoVienApp({ onLogout }) {
     } else if (tb.lien_ket_loai === 'co' && navKeys.includes('co')) {
       setFocusCo({ id: tb.lien_ket_id, ts: Date.now() })
       navigate('co')
+    } else if (tb.lien_ket_loai === 'tien_bo' && navKeys.includes('tien_bo')) {
+      navigate('tien_bo')
     }
   }
 
