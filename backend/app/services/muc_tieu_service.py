@@ -18,7 +18,9 @@ from app.models.user import User
 from app.services import thong_bao_service
 from app.services.gv_service import _so_huu_hs
 
-LOAI_HOP_LE = {"tuan", "chu_de"}
+LOAI_HOP_LE = {"tuan", "chu_de", "nhieu"}
+LOAI_CAU_HOP_LE = {"TN4PA", "TNDS", "TLN"}
+DO_KHO_HOP_LE = {"de", "tb", "kho"}
 
 
 def _naive(dt: datetime | None) -> datetime | None:
@@ -27,8 +29,9 @@ def _naive(dt: datetime | None) -> datetime | None:
     return dt.replace(tzinfo=None) if dt.tzinfo else dt
 
 
-def _ds_hoan_thanh(db: Session, hs_id: int) -> list[tuple[int, int | None, datetime | None]]:
-    """[(problem_id, dang_id, cap_nhat_luc_naive)] các phiên HOÀN THÀNH (không bị ẩn)."""
+def _ds_hoan_thanh(db: Session, hs_id: int) -> list[dict]:
+    """Các phiên HOÀN THÀNH (không bị ẩn) kèm thuộc tính bài để lọc mục tiêu:
+    [{pid, dang_id, loai_cau, do_kho, chuyen_de, luc}]."""
     sessions = (
         db.query(SessionModel)
         .filter(
@@ -45,28 +48,54 @@ def _ds_hoan_thanh(db: Session, hs_id: int) -> list[tuple[int, int | None, datet
     out = []
     for s in sessions:
         p = problems.get(s.problem_id)
-        out.append((s.problem_id, p.dang_id if p else None, _naive(s.cap_nhat_luc)))
+        out.append({
+            "pid": s.problem_id,
+            "dang_id": p.dang_id if p else None,
+            "loai_cau": p.loai_cau.value if p else None,
+            "do_kho": p.do_kho.value if p else None,
+            "chuyen_de": p.chuyen_de if p else None,
+            "luc": _naive(s.cap_nhat_luc),
+        })
     return out
 
 
-def _tien_do(mt: MucTieu, comp: list[tuple[int, int | None, datetime | None]]) -> int:
+def _khop_muc(muc: dict, c: dict) -> bool:
+    """1 phiên hoàn thành c có khớp bộ lọc của 1 DÒNG con (muc) không — AND các tiêu chí đã đặt."""
+    if muc.get("dang_id"):
+        if c["dang_id"] != muc["dang_id"]:
+            return False
+    elif muc.get("chuyen_de"):  # chỉ lọc chuyên đề khi KHÔNG chọn dạng (dạng đã bao hàm)
+        if c["chuyen_de"] != muc["chuyen_de"]:
+            return False
+    if muc.get("loai_cau") and c["loai_cau"] != muc["loai_cau"]:
+        return False
+    if muc.get("do_kho") and c["do_kho"] != muc["do_kho"]:
+        return False
+    return True
+
+
+def _prog_muc(muc: dict, comp: list[dict], moc: datetime | None) -> int:
+    """Số bài (distinct) hoàn thành TỪ moc thỏa dòng con muc."""
+    return len({c["pid"] for c in comp
+                if (moc is None or (c["luc"] and c["luc"] >= moc)) and _khop_muc(muc, c)})
+
+
+def _tien_do(mt: MucTieu, comp: list[dict]) -> int:
     moc = _naive(mt.moc_bat_dau)
     if mt.loai == "tuan":
         den = (moc + timedelta(days=7)) if moc else None
-        pids = {
-            pid for (pid, _d, luc) in comp
-            if luc and moc and den and moc <= luc < den
-        }
-        return len(pids)
-    # chu_de
-    pids = {
-        pid for (pid, d, luc) in comp
-        if d == mt.dang_id and (moc is None or (luc and luc >= moc))
-    }
-    return len(pids)
+        return len({c["pid"] for c in comp
+                    if c["luc"] and moc and den and moc <= c["luc"] < den})
+    if mt.loai == "chu_de":
+        return len({c["pid"] for c in comp
+                    if c["dang_id"] == mt.dang_id and (moc is None or (c["luc"] and c["luc"] >= moc))})
+    # nhieu: tổng tiến độ mọi dòng con (mỗi dòng cộng tối đa bằng chỉ tiêu của nó, nên
+    # tong >= chi_tieu_so (=∑ chỉ tiêu) ⇔ MỌI dòng đạt).
+    return sum(min(_prog_muc(m, comp, moc), m["chi_tieu_so"]) for m in (mt.muc_con or []))
 
 
-def _dict(mt: MucTieu, hien_tai: int, dang_ten: str | None, nguoi_tao_ten: str | None) -> dict:
+def _dict(mt: MucTieu, hien_tai: int, dang_ten: str | None, nguoi_tao_ten: str | None,
+          muc: list[dict] | None = None) -> dict:
     return {
         "id": mt.id,
         "loai": mt.loai,
@@ -81,6 +110,8 @@ def _dict(mt: MucTieu, hien_tai: int, dang_ten: str | None, nguoi_tao_ten: str |
         "han": mt.han.isoformat() if mt.han else None,
         "nguoi_tao_ten": nguoi_tao_ten,
         "tao_luc": mt.tao_luc.isoformat() if mt.tao_luc else None,
+        # loai='nhieu': chi tiết từng dòng con kèm tiến độ riêng.
+        "muc": muc,
     }
 
 
@@ -94,7 +125,12 @@ def danh_sach(db: Session, hs_id: int) -> list[dict]:
     if not goals:
         return []
     comp = _ds_hoan_thanh(db, hs_id)
+    # Gom mọi dang_id (cả mục tiêu chu_de lẫn các dòng con của mục tiêu nhiều) để lấy tên.
     dang_ids = {g.dang_id for g in goals if g.dang_id}
+    for g in goals:
+        for m in (g.muc_con or []):
+            if m.get("dang_id"):
+                dang_ids.add(m["dang_id"])
     dang_ten = (
         {d.id: d.ten for d in db.query(Dang).filter(Dang.id.in_(dang_ids)).all()}
         if dang_ids else {}
@@ -106,12 +142,50 @@ def danh_sach(db: Session, hs_id: int) -> list[dict]:
     )
     out = []
     for g in goals:
+        muc = None
+        if g.loai == "nhieu":
+            moc = _naive(g.moc_bat_dau)
+            muc = []
+            for m in (g.muc_con or []):
+                prog = _prog_muc(m, comp, moc)
+                muc.append({
+                    **m,
+                    "dang_ten": dang_ten.get(m.get("dang_id")),
+                    "hien_tai": min(prog, m["chi_tieu_so"]),
+                    "da_dat": prog >= m["chi_tieu_so"],
+                })
         out.append(_dict(
-            g, _tien_do(g, comp), dang_ten.get(g.dang_id), nguoi_ten.get(g.nguoi_tao_id)
+            g, _tien_do(g, comp), dang_ten.get(g.dang_id), nguoi_ten.get(g.nguoi_tao_id), muc
         ))
     # Chưa đạt lên trước, mới-trước trong nhóm.
     out.sort(key=lambda x: x["da_dat"])
     return out
+
+
+def _chuan_hoa_muc(db: Session, muc: list[dict]) -> list[dict]:
+    """Kiểm tra + chuẩn hóa các dòng con của mục tiêu 'nhiều'. Mỗi dòng cần chi_tieu_so ≥ 1;
+    dang_id (nếu có) phải tồn tại → điền luôn chuyen_de từ dạng; loai_cau/do_kho hợp lệ."""
+    if not muc:
+        raise ValueError("Cần ít nhất một dòng mục tiêu")
+    ra: list[dict] = []
+    for m in muc:
+        ct = m.get("chi_tieu_so")
+        if not ct or ct < 1:
+            raise ValueError("Mỗi dòng mục tiêu cần số lượng từ 1 trở lên")
+        lc, dk, did = m.get("loai_cau"), m.get("do_kho"), m.get("dang_id")
+        if lc and lc not in LOAI_CAU_HOP_LE:
+            raise ValueError("Loại câu không hợp lệ")
+        if dk and dk not in DO_KHO_HOP_LE:
+            raise ValueError("Mức độ không hợp lệ")
+        cd = m.get("chuyen_de")
+        if did:
+            d = db.get(Dang, did)
+            if d is None:
+                raise ValueError("Dạng không tồn tại")
+            cd = d.chuyen_de.ten
+        ra.append({"dang_id": did, "chuyen_de": cd, "loai_cau": lc or None,
+                   "do_kho": dk or None, "chi_tieu_so": int(ct)})
+    return ra
 
 
 def tao(
@@ -121,43 +195,49 @@ def tao(
     nguon: str,
     loai: str,
     tieu_de: str | None,
-    chi_tieu_so: int,
+    chi_tieu_so: int | None = None,
     dang_id: int | None = None,
     chuyen_de: str | None = None,
     han: datetime | None = None,
+    muc: list[dict] | None = None,
     bao_hs: bool = False,
 ) -> dict:
     if loai not in LOAI_HOP_LE:
         raise ValueError("Loại mục tiêu không hợp lệ")
-    if chi_tieu_so is None or chi_tieu_so < 1:
-        raise ValueError("Chỉ tiêu phải từ 1 trở lên")
-
-    dang = None
-    if loai == "chu_de":
-        if not dang_id:
-            raise ValueError("Mục tiêu theo chủ đề cần chọn một dạng")
-        dang = db.get(Dang, dang_id)
-        if dang is None:
-            raise ValueError("Dạng không tồn tại")
 
     tieu_de = (tieu_de or "").strip()
-    if not tieu_de:
-        if loai == "tuan":
-            tieu_de = f"Hoàn thành {chi_tieu_so} bài trong tuần này"
-        else:
-            tieu_de = f"Hoàn thành {chi_tieu_so} bài dạng «{dang.ten}»"
 
-    mt = MucTieu(
-        hoc_sinh_id=hoc_sinh_id,
-        nguoi_tao_id=nguoi_tao_id,
-        nguon=nguon,
-        loai=loai,
-        tieu_de=tieu_de,
-        dang_id=dang_id if loai == "chu_de" else None,
-        chuyen_de=(dang.chuyen_de.ten if dang else (chuyen_de or None)),
-        chi_tieu_so=chi_tieu_so,
-        han=han,
-    )
+    if loai == "nhieu":
+        muc_con = _chuan_hoa_muc(db, muc or [])
+        tong = sum(x["chi_tieu_so"] for x in muc_con)
+        if not tieu_de:
+            tieu_de = f"Kế hoạch luyện {len(muc_con)} nhóm ({tong} bài)"
+        mt = MucTieu(
+            hoc_sinh_id=hoc_sinh_id, nguoi_tao_id=nguoi_tao_id, nguon=nguon, loai="nhieu",
+            tieu_de=tieu_de, chi_tieu_so=tong, muc_con=muc_con, han=han,
+        )
+    else:
+        if chi_tieu_so is None or chi_tieu_so < 1:
+            raise ValueError("Chỉ tiêu phải từ 1 trở lên")
+        dang = None
+        if loai == "chu_de":
+            if not dang_id:
+                raise ValueError("Mục tiêu theo chủ đề cần chọn một dạng")
+            dang = db.get(Dang, dang_id)
+            if dang is None:
+                raise ValueError("Dạng không tồn tại")
+        else:  # tuan
+            dang_id = None
+        if not tieu_de:
+            tieu_de = (f"Hoàn thành {chi_tieu_so} bài dạng «{dang.ten}»" if dang
+                       else f"Hoàn thành {chi_tieu_so} bài trong tuần này")
+        mt = MucTieu(
+            hoc_sinh_id=hoc_sinh_id, nguoi_tao_id=nguoi_tao_id, nguon=nguon, loai=loai,
+            tieu_de=tieu_de, dang_id=dang_id if loai == "chu_de" else None,
+            chuyen_de=(dang.chuyen_de.ten if dang else (chuyen_de or None)),
+            chi_tieu_so=chi_tieu_so, han=han,
+        )
+
     db.add(mt)
     db.commit()
     db.refresh(mt)

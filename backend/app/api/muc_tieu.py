@@ -32,6 +32,7 @@ def hs_tao(body: TaoMucTieuRequest, current_user: CurrentUser, db: Session = Dep
         return muc_tieu_service.tao(
             db, current_user.id, current_user.id, "hs", body.loai, body.tieu_de,
             body.chi_tieu_so, body.dang_id, body.chuyen_de, body.han,
+            muc=[m.model_dump() for m in body.muc] if body.muc else None,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -60,7 +61,8 @@ def gv_tao(hoc_sinh_id: int, body: TaoMucTieuRequest, current_user: CurrentUser,
     try:
         return muc_tieu_service.tao(
             db, hoc_sinh_id, current_user.id, "gv", body.loai, body.tieu_de,
-            body.chi_tieu_so, body.dang_id, body.chuyen_de, body.han, bao_hs=True,
+            body.chi_tieu_so, body.dang_id, body.chuyen_de, body.han,
+            muc=[m.model_dump() for m in body.muc] if body.muc else None, bao_hs=True,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

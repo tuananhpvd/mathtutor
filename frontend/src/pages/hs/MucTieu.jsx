@@ -7,7 +7,8 @@ export default function MucTieu() {
       <div>
         <h2 className="text-xl font-semibold text-black">Mục tiêu của em</h2>
         <p className="text-black/90 text-sm mt-1">
-          Đặt mục tiêu theo tuần hoặc theo chủ đề để luyện tập có định hướng và theo dõi tiến bộ.
+          Đặt mục tiêu theo chuyên đề/dạng, loại câu, mức độ (kết hợp tùy ý) kèm số lượng và hạn —
+          hoặc dùng gợi ý theo điểm yếu — để luyện tập có định hướng và theo dõi tiến bộ.
         </p>
       </div>
       <MucTieuPanel

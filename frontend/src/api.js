@@ -217,6 +217,7 @@ export const api = {
   trangThaiBaoTri: (ma) =>
     request('/trang-thai-bao-tri' + (ma ? `?ma=${encodeURIComponent(ma)}` : '')),
   adminQuetPhanTich: () => request('/admin/phan-tich/quet', { method: 'POST', timeoutMs: TIMEOUT_AI_MS }),
+  adminNhacGv: () => request('/admin/nhac-gv/chay', { method: 'POST' }),
   adminLLMSuDung: () => request('/admin/llm-su-dung'),
   adminTuKhoaThu: (van_ban) => post('/admin/tu-khoa-thu', { van_ban }),
   // Đề ôn thi THPT (C1)

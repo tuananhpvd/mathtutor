@@ -500,3 +500,15 @@ def test_mat_khau_toi_thieu_6_ky_tu(db, client):
     # vẫn đăng nhập bình thường — min chỉ áp lúc tạo/đổi, không áp lúc login.
     assert client.post("/api/auth/login",
                        json={"dang_nhap": "gv1", "mat_khau": "password"}).status_code == 200
+
+
+def test_nhac_gv_chay_endpoint(db, client):
+    """POST /admin/nhac-gv/chay chạy digest ngay, trả về thống kê; chặn vai trò khác."""
+    _seed(db)
+    h = {"Authorization": f"Bearer {_login(client, 'admin')}"}
+    r = client.post("/api/admin/nhac-gv/chay", headers=h)
+    assert r.status_code == 200
+    assert set(r.json()) >= {"so_gv", "da_gui", "bo_qua", "loi"}
+
+    h_gv = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
+    assert client.post("/api/admin/nhac-gv/chay", headers=h_gv).status_code == 403

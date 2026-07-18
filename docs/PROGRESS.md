@@ -4,7 +4,30 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-18, phiên bản **v130**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-18, phiên bản **v131**)
+
+- **✨ (v131) feat: mục tiêu HS nhiều dòng + nút admin "Nhắc GV ngay" + nút "Hủy" ở gợi ý.**
+  - **#2b — Mục tiêu HS đa dạng (redesign)**: trước chỉ đặt theo tuần/chủ đề. Nay HS chọn
+    số lượng câu cho TỪNG nhóm (chuyên đề/dạng + loại câu + mức độ) trong 1 mục tiêu — GIỐNG
+    GV giao nhiệm vụ nhưng KHÔNG lộ nội dung câu. Model `MucTieu` thêm `loai='nhieu'` + cột JSON
+    `muc_con` (danh sách dòng: `{dang_id?/chuyen_de?, loai_cau?, do_kho?, chi_tieu_so}`). Migration
+    Alembic `0e5e53d3e3b3` (add column `muc_con`, nullable — an toàn Postgres). Tiến độ: mỗi dòng
+    đếm độc lập theo bài ĐÃ hoàn thành khớp bộ lọc; mục tiêu `da_dat` khi MỌI dòng đạt (đảm bảo
+    bởi `_tien_do = sum(min(prog_i, target_i))`, `chi_tieu_so = sum(target_i)`).
+  - **FE `MucTieuPanel`** viết lại: form accordion (chip lọc loại câu/mức độ → nhóm chuyên đề →
+    dạng → thêm dòng số lượng), dùng chung HS + GV. **Fix lọc bài**: HS `/problems` KHÔNG trả
+    `trang_thai_duyet` → lọc `(trang_thai_duyet == null || === 'da_duyet') && !bi_an` (đúng cho
+    cả HS lẫn GV). Thẻ mục tiêu render các dòng con khi `loai==='nhieu'`.
+  - **#2a — nút "Hủy"** cạnh nút "+ Thêm" sau khi bấm Gợi ý: cùng hàng, cùng nền (`variant
+    secondary`).
+  - **#1 — nút admin "Nhắc GV ngay"**: endpoint `POST /api/admin/nhac-gv/chay` gọi
+    `day_nhac_diem_yeu_tuan` (đẩy digest điểm yếu tức thì), + toggle `nhac_gv_diem_yeu` trong
+    trang Cấu hình. Tương tự nút "quét phân tích ngay".
+  - Test: `pytest` 543/543 (+6 mục tiêu nhiều dòng, +1 endpoint nhắc GV), `vitest` 23/23,
+    `ruff`/`eslint`/`vite build` sạch; migration round-trip + chạy trên dev.db thật (data còn
+    nguyên); Playwright xác minh HS tạo mục tiêu nhiều dòng qua accordion OK; E2E 3 luồng vàng 3/3.
+
+## 1a. Trạng thái trước đó (v130)
 
 - **✨ (v130) feat: chủ động nhắc GV mỗi tuần "N học sinh cần chú ý" (digest điểm yếu).**
   Trước đây phân tích điểm yếu là "kéo" (GV phải mở trang mới thấy) — giờ hệ thống CHỦ ĐỘNG
@@ -23,7 +46,7 @@
   - 4 test mới `test_nhac_gv.py` (gửi khi có HS yếu / dedup 7 ngày / gửi lại sau 7 ngày / không
     gửi khi lớp sạch). `pytest` 536/536 (+4), `ruff`/`eslint`/`vite build` sạch.
 
-## 1a. Trạng thái trước đó (v129)
+## 1b. Trạng thái trước đó (v129)
 
 - **✨ (v129) ui: fix DỨT ĐIỂM cả lớp lỗi tràn ngang mobile — kẹp mọi grid card về 1 cột.**
   Thuần frontend/CSS.
@@ -41,7 +64,7 @@
     không tràn. Verify UI phải đảm bảo thành phần cần kiểm THỰC SỰ render với dữ liệu.
   - `eslint`/`vite build` sạch, E2E 3 luồng vàng 3/3 — không hồi quy.
 
-## 1b. Trạng thái trước đó (v128)
+## 1c. Trạng thái trước đó (v128)
 
 - **✨ (v128) ui: thêm nút "Giao bài nhanh" nổi bật ở header GV, đặt TRƯỚC chuông thông báo.**
   Thuần frontend.
@@ -54,7 +77,7 @@
     + bấm điều hướng đúng trang; HS không có nút. `eslint`/`vite build` sạch, E2E 3 luồng 3/3
     (lần fail giữa chừng do kẹt port tiến trình sót — kill port chạy lại sạch, không phải lỗi code).
 
-## 1c. Trạng thái trước đó (v127)
+## 1d. Trạng thái trước đó (v127)
 
 - **✨ (v127) ui: fix 5 thẻ tràn ngang trên điện thoại (Bài đang làm dở, Theo dạng bài/Theo
   loại câu hỏi, Dạng bài/Loại câu hỏi mất nhiều thời gian).** Thuần frontend/CSS.
@@ -72,7 +95,7 @@
     test PASS (scrollW 375 = viewport). TrangChu + Tiến độ HS đều sạch.
   - `eslint`/`vite build`/`vitest` 23/23, `playwright` 3 luồng vàng 3/3 — không hồi quy.
 
-## 1d. Trạng thái trước đó (v126)
+## 1e. Trạng thái trước đó (v126)
 
 - **✨ (v126) Làm DỨT ĐIỂM docs lỗi thời (Hướng B — thu hẹp về phần ổn định + trỏ nguồn tự
   đúng), thay cho cảnh báo tạm ở v125.** Thuần tài liệu, KHÔNG đụng code.
@@ -93,7 +116,7 @@
   - **Nhân tiện sửa lỗi cascade tái diễn**: quy trình cascade nhãn `## 1x.` trong file này lại
     tạo trùng nhãn (v122 và v121 cùng `1d`) — đã sửa; cần cẩn thận nhãn CŨ NHẤT mỗi lần dời.
 
-## 1e. Trạng thái trước đó (v125)
+## 1f. Trạng thái trước đó (v125)
 
 - **✨ (v125) #5–#8 (P2, đợt rà soát 2026-07-18): nén PROGRESS.md, cập nhật docs, gắn Sentry,
   đưa E2E vào CI.** Toàn bộ danh sách rà soát 2 đợt (14 mục + 8 mục) giờ đã đóng, trừ #12/#13
@@ -120,7 +143,7 @@
     Git Bash trên máy này có lỗi môi trường `spawn UNKNOWN` khi Playwright tự fork worker,
     không liên quan code, chỉ cần dùng PowerShell).
 
-## 1f. Trạng thái trước đó (v124)
+## 1g. Trạng thái trước đó (v124)
 
 - **✨ (v124) Nâng chuẩn mật khẩu tối thiểu 4 → 6 ký tự (đợt rà soát mới 2026-07-18).** Tài
   khoản GV/quản lý dùng "1234" quá yếu dù đã có throttle chống dò (`auth/throttle.py`).
@@ -139,7 +162,7 @@
     nhắc lại). Còn mở (P2, làm khi rảnh): nén PROGRESS.md (>170KB), cập nhật docs TESTING/
     ARCHITECTURE cho Alembic+E2E, Sentry, đưa `npm run e2e` vào CI.
 
-## 1g. Trạng thái trước đó (v123)
+## 1h. Trạng thái trước đó (v123)
 
 - **✨ (v123) #11 (mục P0/P1 cuối cùng còn code được): E2E Playwright 3 "luồng vàng" trên trình
   duyệt thật + #14 viết lại mục 7 (lỗi thời từ v32).** Với v123, TOÀN BỘ 14 mục đợt rà soát
@@ -164,7 +187,7 @@
     `process` trong vite.config bằng `import process from 'node:process'`), `vitest` 23/23,
     `playwright` 3/3 (chạy 2 lần liên tiếp xác nhận lặp lại được).
 
-## 1h. Trạng thái trước đó (v122)
+## 1i. Trạng thái trước đó (v122)
 
 - **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
   app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
@@ -178,7 +201,7 @@
     base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
   - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
 
-## 1i. Trạng thái trước đó (v121)
+## 1j. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại

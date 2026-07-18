@@ -281,6 +281,11 @@ export default function CauHinh() {
   const [msgPt, setMsgPt] = useState('')
   const [dangQuet, setDangQuet] = useState(false)
 
+  // Chủ động nhắc GV "học sinh cần chú ý"
+  const [nhacGv, setNhacGv] = useState(true)
+  const [dangNhac, setDangNhac] = useState(false)
+  const [msgNhac, setMsgNhac] = useState('')
+
   // Số gợi ý mặc định theo độ khó
   const [goiY, setGoiY] = useState(null)
   const [msgGoiY, setMsgGoiY] = useState('')
@@ -321,6 +326,7 @@ export default function CauHinh() {
       setThinkOpenai(c.llm_thinking_openai === true)
       setTuDong(c.tu_dong_phan_tich !== false)
       setChuKy(c.chu_ky_phut_phan_tich ?? 360)
+      setNhacGv(c.nhac_gv_diem_yeu !== false)
       setGoiY(c.so_goi_y_mac_dinh ? { ...c.so_goi_y_mac_dinh } : { de: 2, tb: 3, kho: 4 })
       setGioiHanHS(c.gioi_han_llm_hs_ngay ?? 30)
       setGioiHanHeThong(c.gioi_han_llm_he_thong_ngay ?? 500)
@@ -373,6 +379,27 @@ export default function CauHinh() {
       setError(e.message)
     } finally {
       setDangQuet(false)
+    }
+  }
+
+  async function luuNhacGv() {
+    setMsgNhac(''); setError('')
+    try {
+      await api.adminSetConfig('nhac_gv_diem_yeu', nhacGv)
+      nap()
+      setMsgNhac('Đã lưu.')
+    } catch (e) { setError(e.message) }
+  }
+
+  async function nhacNgay() {
+    setMsgNhac(''); setError(''); setDangNhac(true)
+    try {
+      const r = await api.adminNhacGv()
+      setMsgNhac(`Đã gửi ${r.da_gui} thông báo · bỏ qua ${r.bo_qua} · lỗi ${r.loi}.`)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setDangNhac(false)
     }
   }
 
@@ -752,6 +779,32 @@ export default function CauHinh() {
           <p className="text-[12px] text-muted">
             Phân tích chỉ tái sinh khi học sinh có thêm bài (≥5) hoặc bản cũ quá 7 ngày, nên không
             tốn lời gọi AI thừa. Cần nhà cung cấp AI đã có khóa ở trên thì nhận định mới được tạo.
+          </p>
+        </CardBody>
+      </Card>
+
+      <Card className="break-inside-avoid mb-5">
+        <CardHeader title="Chủ động nhắc GV (học sinh cần chú ý)"
+          subtitle="Mỗi tuần tự đẩy vào chuông của GV danh sách HS đang yếu — không tốn lượt AI." />
+        <CardBody className="flex flex-col gap-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" className="h-4 w-4 accent-primary"
+              checked={nhacGv} onChange={(e) => setNhacGv(e.target.checked)} />
+            <span className="text-sm text-ink">Bật nhắc GV theo lịch nền (1 lần/tuần/GV)</span>
+            {cfg.nhac_gv_diem_yeu !== false
+              ? <Badge tone="success">Đang bật</Badge>
+              : <Badge tone="warning">Đang tắt</Badge>}
+          </label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button onClick={luuNhacGv}>Lưu</Button>
+            <Button variant="secondary" onClick={nhacNgay} disabled={dangNhac}>
+              {dangNhac ? 'Đang gửi...' : 'Nhắc GV ngay'}
+            </Button>
+            {msgNhac && <span className="text-sm text-success">{msgNhac}</span>}
+          </div>
+          <p className="text-[12px] text-muted">
+            Chỉ gửi cho GV có học sinh cần chú ý, và mỗi GV tối đa 1 lần trong 7 ngày (chống làm
+            phiền). "Nhắc GV ngay" chạy thủ công không cần chờ lịch nền.
           </p>
         </CardBody>
       </Card>

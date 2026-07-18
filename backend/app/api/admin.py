@@ -278,3 +278,12 @@ def quet_phan_tich_ngay(current_user: CurrentUser, db: Session = Depends(get_db)
     if dung_llm_that:
         ghi_luot(db, None, LOAI_PHAN_TICH, so=ket.get("da_quet", 0))
     return ket
+
+
+@router.post("/nhac-gv/chay", dependencies=_ADMIN)
+def nhac_gv_chay(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Chạy nhắc GV "học sinh cần chú ý" NGAY (không chờ lịch nền). Tất định, KHÔNG tốn quota
+    AI. Vẫn áp dedup 7 ngày/GV (GV đã nhận gần đây thì bỏ qua) — kết quả trả về da_gui/bo_qua."""
+    from app.services.phan_tich_service import day_nhac_diem_yeu_tuan
+
+    return day_nhac_diem_yeu_tuan(db)
