@@ -19,6 +19,7 @@ FastAPI
    ├── services/        (tutor, session, question_gen, progress, monitor)
    ├── api/             (routes theo vai trò)
    ├── models/ + db/    (SQLAlchemy + repository)
+   ├── alembic/         (migration schema — xem mục 6)
    └── data/seed/       (bài mẫu + tài khoản 3 vai trò)
 ```
 
@@ -128,3 +129,22 @@ mathtutor/
 | GET/PUT | `/api/admin/config` | admin | cấu hình hệ thống |
 
 `GET /api/problems/{id}` phải lọc bỏ mọi trường đáp án/lời giải trước khi trả cho frontend HS.
+
+> ⚠️ Mục 4 (cây thư mục) và mục 5 (bảng endpoint) ở trên là bản THIẾT KẾ GỐC (Phase 0) — dự án
+> đã mở rộng nhiều so với đây (thêm nhiem_vu, muc_tieu, de_thi, thong_bao, yeu_cau_tro_giup,
+> cot_moc, phan_tich, danh_muc, cauhinh, llm_su_dung, tom_tat_ly_thuyet...). Chưa cập nhật đầy
+> đủ (ngoài phạm vi đợt sửa 2026-07-18, chỉ thêm mục 6 dưới đây) — xem `docs/PROGRESS.md` mục 3
+> ("Tính năng đã hiện thực ngoài PLAN gốc") để biết trạng thái THẬT.
+
+## 6. Migration schema — Alembic (từ v121)
+
+DB không còn dùng `Base.metadata.create_all()` + ALTER TABLE thủ công. Toàn bộ thay đổi schema
+đi qua **Alembic** (`backend/alembic/`, script trong `alembic/versions/`):
+
+- App tự chạy `alembic upgrade head` lúc khởi động qua `app/db/migrate.py::chay_migration()`
+  (gọi từ `init_db()` trong `lifespan`).
+- CSDL đã có bảng `users` nhưng chưa có `alembic_version` (production cũ trước khi có Alembic,
+  hoặc `dev.db` có sẵn dữ liệu) → tự **stamp** vào baseline thay vì chạy lại DDL tạo bảng.
+- Quy trình đổi schema: sửa model → `alembic revision --autogenerate -m "..."` → review kỹ
+  file sinh ra (đặc biệt FK vòng tròn, kiểu cột tùy biến) → test `upgrade`/`downgrade` trên
+  bản sao dữ liệu thật. Chi tiết đầy đủ ở `docs/PROGRESS.md` mục 5.

@@ -57,6 +57,9 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_SENTRY_DSN
+        sync: false # tùy chọn — để trống = Sentry không bật gì. Xem frontend/.env.example.
     routes:
       # "<TODO: thay bằng URL thật của service mathtutor ở trên>"
       - type: rewrite

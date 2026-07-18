@@ -3,16 +3,19 @@
 Hai lõi tự viết (matching, orchestrator) và lớp guard phải có test mạnh. LLM không assert nội
 dung sinh ra, chỉ test luồng và xử lý lỗi. Mỗi phase TỰ build-test-fix đến xanh (CLAUDE.md mục 2).
 
-Công cụ: `pytest`. DB test SQLite in-memory. LLM test `StubLLMClient`. Không gọi mạng.
+Công cụ: `pytest` (backend), `vitest` (frontend logic thuần), `playwright` (E2E — xem mục cuối).
+DB test SQLite in-memory. LLM test `StubLLMClient`. Không gọi mạng.
 
 ## Cấu hình vòng lặp tự động (Claude tự chạy)
 
 Sau mỗi thay đổi code:
 1. `ruff check .` (sửa lỗi lint) → `python -c "import app.main"` (import smoke).
 2. `pytest -q`.
-3. Frontend (nếu có đụng): `cd frontend && npm run build`.
-4. Còn lỗi → đọc log, sửa, lặp (tối đa 5 vòng cùng nguyên nhân rồi báo).
-5. Báo cáo: build OK?, test X passed/Y failed, lỗi đã gặp, cách xử lý, DoD.
+3. Frontend (nếu có đụng): `npm run lint` + `npm run build` + `npx vitest run`.
+4. Frontend đụng luồng HS/GV chính (làm bài, duyệt câu hỏi, nhờ trợ giúp): thêm
+   `cd frontend && npm run e2e` trước khi báo xanh — xem mục "E2E (Playwright)" cuối file.
+5. Còn lỗi → đọc log, sửa, lặp (tối đa 5 vòng cùng nguyên nhân rồi báo).
+6. Báo cáo: build OK?, test X passed/Y failed, lỗi đã gặp, cách xử lý, DoD.
 
 ## Phase 0 — auth/phân quyền
 `tests/test_auth.py`: login đúng/sai mật khẩu; JWT chứa vai trò; `require_role` chặn sai vai trò
@@ -68,3 +71,24 @@ trường đáp án; endpoint admin chặn vai trò hs/gv.
 - Mỗi phase xanh test trước commit. Seed cố định cho phần ngẫu nhiên (tái lập).
 - Một test "smoke phụ thuộc": dùng importlib xác nhận 2 lõi không import llm/web.
 - Frontend tối thiểu: `npm run build` phải pass ở các phase đụng frontend.
+
+## Migration schema (Alembic, từ v121)
+`backend/tests/test_migrate.py`: CSDL rỗng → `upgrade head` tạo đủ schema; CSDL đã có bảng
+(mô phỏng production cũ trước Alembic) nhưng chưa có `alembic_version` → phải **stamp**, không
+chạy lại DDL, không mất dữ liệu; gọi lại lần 2 idempotent (mô phỏng deploy lại).
+`backend/tests/test_init_db.py`: seed CHỈ chạy trên SQLite (dev/test) — Postgres rỗng chỉ tạo
+1 admin mật khẩu ngẫu nhiên, KHÔNG seed tài khoản mẫu công khai.
+⚠️ `alembic/env.py` gọi `fileConfig(..., disable_existing_loggers=False)` — nếu ai sửa lại
+`env.py` và bỏ `disable_existing_loggers=False`, mọi test dùng `caplog` chạy SAU trong cùng
+tiến trình pytest sẽ hỏng khó hiểu (đã gặp thật, xem `docs/PROGRESS_ARCHIVE.md` v121).
+
+## E2E (Playwright) — `frontend/e2e/luong-vang.spec.js`
+3 "luồng vàng" bấm thật trên trình duyệt, điều 500+ test backend/vitest không phủ được: HS làm
+trọn 1 bài TLN (giải 2 bước, nhập công thức qua MathLive) · GV duyệt câu hỏi · GV trả lời nhờ
+trợ giúp. Chạy: `cd frontend && npm run e2e` (cần `.venv` backend đã cài `pip install -e ".[llm,dev]"`).
+
+Hạ tầng cách ly hoàn toàn khỏi dev: `playwright.config.js` tự bật cặp server RIÊNG (backend
+uvicorn `:18000` + vite dev `:15173`), DB `backend/e2e.db` xóa tạo lại MỖI LẦN CHẠY, vite proxy
+nhận đích qua env `MT_API_PROXY`. LLM không có key nên tự rơi về `StubLLMClient` — kết quả tất
+định, không cần mạng. `vitest` phải `exclude: ['e2e/**']` trong `vite.config.js` (pattern mặc
+định `*.spec.js` của vitest sẽ bắt nhầm spec Playwright).

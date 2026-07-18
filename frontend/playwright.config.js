@@ -20,10 +20,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      // `del ... &` (không phải &&): xóa DB e2e cũ nếu có rồi LUÔN khởi động backend —
-      // đảm bảo mỗi lần chạy e2e là DB mới seed lại từ đầu, kết quả lặp lại được.
-      command: 'del e2e.db 2>nul & .venv\\Scripts\\python.exe -m uvicorn app.main:app --port 18000',
-      cwd: '../backend',
+      // start-backend.mjs: xóa DB e2e cũ + khởi động backend, cross-platform (Windows dev
+      // lẫn Ubuntu CI — trước đây dùng lệnh shell Windows-only, không chạy được trên CI).
+      command: 'node e2e/start-backend.mjs',
       url: 'http://localhost:18000/api/health',
       env: { DATABASE_URL: 'sqlite:///./e2e.db' },
       reuseExistingServer: false,

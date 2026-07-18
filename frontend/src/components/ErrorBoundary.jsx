@@ -2,6 +2,7 @@ import { Component } from 'react'
 import Button from './ui/Button'
 import ThuongHieu from './ThuongHieu'
 import { clearSession } from '../auth'
+import { baoLoi } from '../sentry.js'
 
 export default class ErrorBoundary extends Component {
   state = { loi: null }
@@ -12,6 +13,7 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(loi, info) {
     console.error('Lỗi giao diện chưa xử lý:', loi, info)
+    baoLoi(loi, info)
   }
 
   render() {
