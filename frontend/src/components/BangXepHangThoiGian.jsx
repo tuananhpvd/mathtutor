@@ -17,7 +17,7 @@ export default function BangXepHangThoiGian({ title, subtitle, rows, nhan, empty
           rows.map((r, i) => (
             <div key={i} className="flex flex-col gap-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-ink font-medium truncate">
+                <span className="text-sm text-ink font-medium truncate min-w-0">
                   <span className="text-muted">{i + 1}. </span>{nhan(r)}
                 </span>
                 <span className="text-sm font-bold text-primary shrink-0">

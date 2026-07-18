@@ -47,8 +47,9 @@ function HangNhom({ r }) {
   return (
     <div className="py-2 border-b border-border last:border-0">
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-sm text-ink truncate inline-flex items-center gap-1.5">
-          {r.ten} <MuiTenXuHuong xh={r.xu_huong} />
+        <span className="text-sm text-ink inline-flex items-center gap-1.5 min-w-0">
+          <span className="truncate">{r.ten}</span>
+          <MuiTenXuHuong xh={r.xu_huong} />
         </span>
         <span className="flex items-center gap-2 shrink-0">
           <Badge tone={TONE_NHAN[r.nhan]}>{NHAN_TEXT[r.nhan]}</Badge>
@@ -222,7 +223,7 @@ export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapN
 
       {sauNhanXet}
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader title="Theo dạng bài" subtitle="Mức thành thạo từng dạng (yếu → mạnh)" />
           <CardBody>

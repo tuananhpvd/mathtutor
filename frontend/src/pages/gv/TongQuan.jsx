@@ -88,7 +88,7 @@ export default function TongQuan({ onNavigate }) {
 
       {/* Nhịp học của lớp (teal GV) + nhiệt kế khó khăn (vàng cần-chú-ý) — 30 ngày */}
       {(nhipLop || khoKhan) && (
-        <div className="grid lg:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           {nhipLop && (
             <BieuDoVung
               ds={nhipLop.map((d) => ({ ...d, so: d.so_bai }))}
@@ -111,7 +111,7 @@ export default function TongQuan({ onNavigate }) {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <NhomThongKe
           title="Lớp & học sinh"
           icon={Users}
@@ -141,7 +141,7 @@ export default function TongQuan({ onNavigate }) {
         ]}
       />
 
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <BangXepHangThoiGian
           title="Dạng bài học sinh mất nhiều thời gian"
           subtitle="Tối đa 3 dạng — tổng thời gian cộng dồn CẢ LỚP"

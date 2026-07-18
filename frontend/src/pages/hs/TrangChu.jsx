@@ -278,7 +278,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
       </Card>
 
       {/* ===== Bài đang làm dở + Trả lời ===== */}
-      <div className="grid lg:grid-cols-2 gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         {/* Cột trái: Bài đang làm dở */}
         <Card className="h-full flex flex-col">
           <CardHeader title="Bài đang làm dở" subtitle="Tiếp tục đúng chỗ em dừng lại" />
@@ -309,7 +309,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
                         Làm tiếp
                       </Button>
                     </div>
-                    <p className="text-xs text-muted flex items-center gap-2">
+                    <p className="text-xs text-muted flex flex-wrap items-center gap-2">
                       <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
                       <span>Bước {b.buoc_hien_tai}</span>
                       {b.cap_nhat_luc && (

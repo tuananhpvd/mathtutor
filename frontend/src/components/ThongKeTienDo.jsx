@@ -147,7 +147,7 @@ export default function ThongKeTienDo({ tk }) {
   return (
     <div className="flex flex-col gap-6">
       {/* 1) TỔNG QUAN — hero */}
-      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* 1b) SO SÁNH 7 NGÀY — nhìn nhanh chiều hướng tuần này so với tuần trước */}
         <The7NgayQua ss={ss} className="h-full" />
 
@@ -161,7 +161,7 @@ export default function ThongKeTienDo({ tk }) {
       </div>
 
       {/* 2) THEO THỜI GIAN (trái) + THEO MỨC ĐỘ (phải) — 2 cột cao bằng nhau */}
-      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <Card className="h-full flex flex-col">
           <CardHeader title="Theo thời gian" subtitle="Thời gian hoàn thành bài theo mức độ" />
           <CardBody className="flex flex-col gap-3 flex-1">
@@ -202,7 +202,7 @@ export default function ThongKeTienDo({ tk }) {
         <CardHeader title="Theo dạng bài" subtitle="Tiến độ từng dạng trong mỗi chuyên đề" />
         <CardBody>
           {tk.theo_dang.length === 0 && <p className="text-sm text-muted">Chưa có bài nào.</p>}
-          <div className="grid lg:grid-cols-2 gap-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             {tk.theo_dang.map((cd) => (
               <div key={cd.chuyen_de} className="rounded-lg border border-border overflow-hidden">
                 <div className="bg-primary-soft px-4 py-2 text-primary font-bold text-sm">
