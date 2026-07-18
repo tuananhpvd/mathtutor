@@ -74,6 +74,12 @@ bắt buộc của tôi để theo dõi.
 - Frontend React function components + hooks + TailwindCSS. KHÔNG dùng localStorage cho state lõi.
 - Mọi prompt LLM ở `backend/app/llm/prompts.py` (theo `docs/PROMPTS_LLM.md`). Không rải rác.
 - Commit nhỏ, dạng `feat:`/`test:`/`fix:`/`chore:`/`ui:`.
+- **Đồng bộ tài liệu**: `docs/ARCHITECTURE.md` + `docs/DATA_MODEL.md` (từ v126) CỐ TÌNH chỉ giữ
+  phần kiến trúc/lõi ỔN ĐỊNH và trỏ tới nguồn tự-đúng (endpoint→`/docs` FastAPI; cột đầy đủ→
+  `models/*.py` + Alembic baseline). Đổi endpoint/model KHÔNG cần cập nhật 2 file này TRỪ KHI
+  chạm phần cốt lõi/nguyên tắc bất biến (vd thêm ràng buộc "không lộ đáp án"). Đừng chép lại
+  chi tiết từng file/cột/endpoint vào doc — đó là thứ đã khiến chúng lỗi thời (xem
+  `docs/PROGRESS.md` v126).
 
 ## 6. CSDL & môi trường (Windows, D:\claude\mathtutor)
 

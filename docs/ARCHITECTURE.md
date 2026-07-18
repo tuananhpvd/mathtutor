@@ -53,88 +53,55 @@ FastAPI
 Khác v2: bước 5–6 hỗ trợ "kịch bản mềm" — `y_goi_y` là ý chính, LLM diễn đạt tự nhiên và có
 thể trả lời `cau_hoi_phu` của HS trong phạm vi bài; bước 7 (chốt chặn) vì thế quan trọng hơn.
 
-## 4. Cây thư mục đích (D:\claude\mathtutor)
+## 4. Bố cục thư mục (vai trò từng lớp + quy ước)
 
-```
-mathtutor/
-├── CLAUDE.md
-├── README.md
-├── docs/
-├── backend/
-│   ├── pyproject.toml
-│   ├── .env.example          (DATABASE_URL, LLM_*, JWT_SECRET)
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── config.py
-│   │   ├── auth/
-│   │   │   ├── security.py    (hash mật khẩu, JWT)
-│   │   │   └── deps.py        (require_role: admin/gv/hs)
-│   │   ├── core/
-│   │   │   ├── matching/ { cas.py, latex.py, scoring.py, matcher.py }
-│   │   │   ├── orchestrator/ { state.py, rules.py, directive.py }
-│   │   │   └── guard/ { scope.py, safety.py, answer_guard.py }
-│   │   ├── llm/ { client.py, prompts.py, question_gen.py }
-│   │   ├── models/ { user.py, lop.py, problem.py, solution_step.py,
-│   │   │             session.py, turn.py, flag.py, progress.py }
-│   │   ├── db/ { base.py, session.py, repositories/ }
-│   │   ├── schemas/          (Pydantic)
-│   │   ├── services/ { auth_service, tutor_service, session_service,
-│   │   │               question_gen_service, progress_service, monitor_service }
-│   │   ├── api/ { auth, problems, sessions, tutor, questions_ai,
-│   │   │          students, progress, monitor, admin }
-│   │   └── data/seed/ { problems.json, users.json }
-│   └── tests/ { test_cas.py, test_latex.py, test_scoring.py, test_matcher.py,
-│                test_orchestrator.py, test_orchestrator_tnds.py, test_answer_guard.py,
-│                test_scope.py, test_safety.py, test_flag.py, test_auth.py, test_api_flow.py }
-└── frontend/
-    ├── package.json
-    ├── tailwind.config.js
-    ├── index.html
-    └── src/
-        ├── main.jsx, api.js, auth.js
-        ├── components/ { Formula.jsx, FormulaEditor.jsx (MathLive), ChatPanel.jsx,
-        │                 AnswerInputTN4PA.jsx, AnswerInputTNDS.jsx, AnswerInputTLN.jsx,
-        │                 ProgressChart.jsx, RoleLayout.jsx }
-        ├── pages/
-        │   ├── auth/ { Login.jsx }
-        │   ├── hs/ { TrangChu.jsx, ChonBai.jsx, PhongHoc.jsx, KetThuc.jsx, TienDo.jsx }
-        │   ├── gv/ { QuanLyCauHoi.jsx, SoanBai.jsx, AISinhCauHoi.jsx, QuanLyCo.jsx,
-        │   │         QuanLyHocSinh.jsx, TheoDoiTienBo.jsx }
-        │   └── admin/ { Dashboard.jsx, QuanLyTaiKhoan.jsx, CauHinh.jsx, NhatKy.jsx }
-        └── styles/ (design tokens từ Phase 7)
-```
+Doc này mô tả *ý nghĩa* mỗi thư mục (thứ ít đổi), KHÔNG liệt kê từng file — chạy `ls` là thấy
+file thật, luôn đúng. Quy ước đặt tên giúp suy ra nội dung mà không cần doc cập nhật tay.
 
-## 5. Endpoint API (theo vai trò)
+**Backend** (`backend/app/`):
 
-| Method | Path | Vai trò | Việc |
-|--------|------|---------|------|
-| POST | `/api/auth/login` | công khai | đăng nhập, trả JWT + vai trò |
-| GET | `/api/problems` | hs/gv | danh sách bài (lọc); HS chỉ thấy đã duyệt, KHÔNG kèm đáp án |
-| POST | `/api/sessions` | hs | tạo/khôi phục phiên, lời mở đầu gia sư |
-| GET | `/api/sessions/dang-do` | hs | phiên đang làm dở để làm tiếp |
-| POST | `/api/sessions/{id}/message` | hs | gửi lượt → phản hồi gia sư |
-| POST | `/api/sessions/{id}/khong-hieu` | hs | nâng mức gợi ý |
-| POST | `/api/sessions/{id}/answer` | hs | nộp đáp án theo loại (TNDS kèm bậc thang) |
-| GET | `/api/progress/me` | hs | bảng tiến độ cá nhân |
-| GET/POST/PUT/DELETE | `/api/questions...` | gv | quản lý câu hỏi/lời giải/gợi ý |
-| POST | `/api/questions-ai/generate` | gv | AI sinh nháp câu hỏi theo mẫu |
-| POST | `/api/questions-ai/{id}/duyet` | gv | duyệt/sửa/loại |
-| GET | `/api/students` | gv | HS lớp mình |
-| GET | `/api/progress/students` | gv | theo dõi tiến bộ HS lớp mình |
-| GET | `/api/monitor/flags` | gv | hàng đợi cờ |
-| GET | `/api/monitor/sessions/{id}` | gv | xem lại nhật ký |
-| POST | `/api/monitor/flags/{id}/done` | gv | đánh dấu xử lý |
-| GET | `/api/admin/overview` | admin | dashboard tổng |
-| GET/POST | `/api/admin/users` | admin | quản lý tài khoản |
-| GET/PUT | `/api/admin/config` | admin | cấu hình hệ thống |
+| Thư mục | Vai trò | Quy ước |
+|---|---|---|
+| `main.py`, `config.py` | Khởi tạo FastAPI + middleware + lifespan; đọc env | — |
+| `auth/` | JWT (`security.py`), phân quyền (`deps.py::require_role`), chống dò mật khẩu (`throttle.py`) | — |
+| `core/matching/` | SymPy CAS + parse LaTeX + bậc thang — **thuần Python, KHÔNG import FastAPI/LLM/DB** | `cas.py, latex.py, scoring.py, matcher.py` |
+| `core/orchestrator/` | Máy trạng thái dẫn dắt (kịch bản mềm) — **thuần Python** | `state.py, rules.py, directive.py` |
+| `core/guard/` | Chốt lộ đáp án (`leak.py`), khóa phạm vi (`scope.py`), lọc an toàn (`safety.py`) — **thuần Python** | — |
+| `core/` (khác) | `uploads.py` (lưu ảnh), `ve_hinh.py` (CAS dựng đồ thị/BBT) | — |
+| `llm/` | `LLMClient` + `StubLLMClient` + `prompts.py` + sinh câu hỏi | — |
+| `models/` | SQLAlchemy models | **1 file = 1 nhóm bảng, tên file ≈ tên bảng** (`user.py`→`users`, `nhiem_vu.py`→`nhiem_vu*`) |
+| `schemas/` | Pydantic request/response | 1 file theo vai trò/nghiệp vụ (`admin.py`, `gv.py`, `hs.py`, `problem.py`...) |
+| `db/` | `base.py` (engine/Base), `session.py` (get_db), `init_db.py` (seed), `migrate.py` (Alembic), `types.py` (UTCDateTime) | KHÔNG có repositories/ — service gọi ORM trực tiếp |
+| `services/` | Logic nghiệp vụ + truy cập DB | **1 file/nghiệp vụ**, đuôi `_service.py` (`tutor_service`, `de_thi_service`...) |
+| `api/` | Routes REST, kiểm vai trò từng endpoint | **1 file/nhóm nghiệp vụ**, prefix `/api/<tên>` (`gv.py`→`/api/gv`, `tro_giup.py`→`/api/tro-giup`) |
+| `data/seed/` | `problems.json`, `users.json` (dữ liệu mẫu) | — |
+| `alembic/` | Migration schema (xem mục 6) | — |
 
-`GET /api/problems/{id}` phải lọc bỏ mọi trường đáp án/lời giải trước khi trả cho frontend HS.
+**Frontend** (`frontend/src/`):
 
-> ⚠️ Mục 4 (cây thư mục) và mục 5 (bảng endpoint) ở trên là bản THIẾT KẾ GỐC (Phase 0) — dự án
-> đã mở rộng nhiều so với đây (thêm nhiem_vu, muc_tieu, de_thi, thong_bao, yeu_cau_tro_giup,
-> cot_moc, phan_tich, danh_muc, cauhinh, llm_su_dung, tom_tat_ly_thuyet...). Chưa cập nhật đầy
-> đủ (ngoài phạm vi đợt sửa 2026-07-18, chỉ thêm mục 6 dưới đây) — xem `docs/PROGRESS.md` mục 3
-> ("Tính năng đã hiện thực ngoài PLAN gốc") để biết trạng thái THẬT.
+| Thư mục | Vai trò | Quy ước |
+|---|---|---|
+| `main.jsx`, `api.js`, `auth.js` | Entry + Sentry; client API; session (sessionStorage) | — |
+| `pages/{auth,hs,gv,admin}/` | Trang theo vai trò; mỗi vai trò có 1 `*App.jsx` (shell + nav hash) | code-split lazy theo trang |
+| `components/` | Component dùng chung; `ui/` = primitive (Button, Card, Input...); `answer/` = ô nhập đáp án 3 loại | — |
+| `e2e/` | Spec Playwright 3 luồng vàng (xem `docs/TESTING.md`) | — |
+
+## 5. Endpoint API
+
+Toàn bộ endpoint (154 route, đủ method/path/schema request-response) được **FastAPI tự sinh**
+và LUÔN khớp code — xem tại `/docs` (Swagger UI) hoặc `/openapi.json` khi chạy backend. KHÔNG
+liệt kê tay ở đây để tránh lỗi thời (bài học: bảng endpoint cũ từng dẫn sai ~90% sau 40 phiên).
+
+Router tổ chức theo prefix vai trò/nghiệp vụ: `/api/auth`, `/api/hs`, `/api/gv`, `/api/admin`,
+`/api/problems`, `/api/sessions`, `/api/questions-ai`, `/api/monitor`, `/api/progress`,
+`/api/nhiem-vu`, `/api/muc-tieu`, `/api/de-thi`, `/api/thong-bao`, `/api/tro-giup`,
+`/api/danh-muc`, `/api/ly-thuyet`, `/api/gv/dat-lai`.
+
+**Nguyên tắc bất biến (KHÔNG được vi phạm, không phụ thuộc vào việc doc có cập nhật hay không):**
+- `GET /api/problems` + `/api/problems/{id}` cho HS phải lọc bỏ MỌI trường đáp án/lời giải
+  (`dap_an_dung`, `dap_an` ý, `dap_an_cuoi`, `bieu_thuc_ket_qua`) trước khi trả.
+- Mỗi endpoint kiểm vai trò (`require_role`); HS không thấy đáp án/quản trị; GV chỉ thấy lớp
+  mình; chỉ Admin quản trị hệ thống.
 
 ## 6. Migration schema — Alembic (từ v121)
 

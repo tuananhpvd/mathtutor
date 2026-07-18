@@ -4,7 +4,28 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-18, phiên bản **v125**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-18, phiên bản **v126**)
+
+- **✨ (v126) Làm DỨT ĐIỂM docs lỗi thời (Hướng B — thu hẹp về phần ổn định + trỏ nguồn tự
+  đúng), thay cho cảnh báo tạm ở v125.** Thuần tài liệu, KHÔNG đụng code.
+  - **Vấn đề gốc**: `ARCHITECTURE.md` (cây thư mục + bảng endpoint) và `DATA_MODEL.md` là spec
+    Phase 0, không cập nhật qua ~40 phiên → lệch nặng (8/20 models, ~20/154 endpoint, bảng
+    endpoint dẫn SAI ~90%: kiểm 6 path thì 5 đã biến mất). Nguyên nhân: liệt kê tay thứ mà code
+    đã tự mô tả → chắc chắn lỗi thời lại nếu chỉ "viết lại cho đúng hôm nay".
+  - **ARCHITECTURE.md**: mục 4 (cây thư mục liệt kê từng file) → thay bằng **bảng thư mục →
+    vai trò + quy ước đặt tên** (ls thấy file thật; doc chỉ giải thích ý nghĩa lớp). Mục 5
+    (bảng 20 endpoint tay) → thay bằng **trỏ `/docs` + `/openapi.json` (FastAPI tự sinh, luôn
+    khớp code)** + giữ lại NGUYÊN TẮC BẤT BIẾN (lọc đáp án, kiểm vai trò).
+  - **DATA_MODEL.md**: giữ 8 bảng lõi (chỉ cột cốt lõi) + thêm cảnh báo "nguồn sự thật là
+    `models/*.py` + Alembic baseline" + mục 13 mới **liệt kê 12 nhóm bảng mở rộng** (tên +
+    mục đích, không chép cột) + cập nhật ghi chú seed (4 tài khoản, hành vi v120 trên Postgres).
+  - **CLAUDE.md**: thêm quy ước — đổi endpoint/model KHÔNG cần sửa 2 doc này trừ khi chạm phần
+    cốt lõi/bất biến; đừng chép lại chi tiết file/cột/endpoint (đó là thứ gây lỗi thời). Đây là
+    cơ chế chống tái lỗi thời — gánh nặng đồng bộ gần như biến mất.
+  - **Nhân tiện sửa lỗi cascade tái diễn**: quy trình cascade nhãn `## 1x.` trong file này lại
+    tạo trùng nhãn (v122 và v121 cùng `1d`) — đã sửa; cần cẩn thận nhãn CŨ NHẤT mỗi lần dời.
+
+## 1a. Trạng thái trước đó (v125)
 
 - **✨ (v125) #5–#8 (P2, đợt rà soát 2026-07-18): nén PROGRESS.md, cập nhật docs, gắn Sentry,
   đưa E2E vào CI.** Toàn bộ danh sách rà soát 2 đợt (14 mục + 8 mục) giờ đã đóng, trừ #12/#13
@@ -31,7 +52,7 @@
     Git Bash trên máy này có lỗi môi trường `spawn UNKNOWN` khi Playwright tự fork worker,
     không liên quan code, chỉ cần dùng PowerShell).
 
-## 1a. Trạng thái trước đó (v124)
+## 1b. Trạng thái trước đó (v124)
 
 - **✨ (v124) Nâng chuẩn mật khẩu tối thiểu 4 → 6 ký tự (đợt rà soát mới 2026-07-18).** Tài
   khoản GV/quản lý dùng "1234" quá yếu dù đã có throttle chống dò (`auth/throttle.py`).
@@ -50,7 +71,7 @@
     nhắc lại). Còn mở (P2, làm khi rảnh): nén PROGRESS.md (>170KB), cập nhật docs TESTING/
     ARCHITECTURE cho Alembic+E2E, Sentry, đưa `npm run e2e` vào CI.
 
-## 1b. Trạng thái trước đó (v123)
+## 1c. Trạng thái trước đó (v123)
 
 - **✨ (v123) #11 (mục P0/P1 cuối cùng còn code được): E2E Playwright 3 "luồng vàng" trên trình
   duyệt thật + #14 viết lại mục 7 (lỗi thời từ v32).** Với v123, TOÀN BỘ 14 mục đợt rà soát
@@ -75,7 +96,7 @@
     `process` trong vite.config bằng `import process from 'node:process'`), `vitest` 23/23,
     `playwright` 3/3 (chạy 2 lần liên tiếp xác nhận lặp lại được).
 
-## 1c. Trạng thái trước đó (v122)
+## 1d. Trạng thái trước đó (v122)
 
 - **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
   app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
@@ -89,7 +110,7 @@
     base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
   - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
 
-## 1d. Trạng thái trước đó (v121)
+## 1e. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại

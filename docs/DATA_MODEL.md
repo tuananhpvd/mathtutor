@@ -2,6 +2,18 @@
 
 Ánh xạ từ mục 4 đặc tả v3. Dùng SQLAlchemy. Dev/test SQLite, đích PostgreSQL.
 
+> ⚠️ **Nguồn sự thật về schema là code, KHÔNG phải file này.** Các bảng mục 1–8 dưới đây mô tả
+> **LÕI sư phạm** (dựng ở Phase 0, ổn định) và chỉ liệt kê **cột cốt lõi để hiểu nghiệp vụ** —
+> không phải mọi cột hiện tại (nhiều cột thêm dần qua các phiên: `sessions` có thêm
+> `tong_so_lan_sai`, `diem_qua_trinh`, `so_lan_het_goi_y`, `thoi_gian_hoat_dong_giay`...;
+> `users` có `lop_id`, `la_quan_ly`...). Khi cần schema ĐẦY ĐỦ & CHÍNH XÁC HÔM NAY:
+> - **`backend/app/models/*.py`** — 1 file/nhóm bảng, tên khớp bảng, luôn đúng.
+> - **Alembic baseline** `backend/alembic/versions/2929ecbc70fc_*.py` — toàn bộ schema hiện tại
+>   dưới dạng code chạy được (mọi bảng + cột + FK + index).
+>
+> Ngoài 8 bảng lõi, dự án còn **12 nhóm bảng mở rộng** (nhiệm vụ, mục tiêu, đề thi, thông báo,
+> trợ giúp...) — xem mục 13 cuối file.
+
 ## 1. `users`
 | Cột | Kiểu | Ghi chú |
 |-----|------|---------|
@@ -90,15 +102,13 @@ da_xu_ly (bool), ghi_chu_gv (text).
 hoc_sinh_id, chuyen_de, so_bai_lam, so_bai_hoan_thanh, ty_le_dung_trung_binh, cap_nhat_luc.
 Phục vụ bảng tiến độ HS và theo dõi của GV.
 
-## 9. Tài khoản seed (3 vai trò) — `data/seed/users.json`
-```json
-[
-  {"vai_tro":"admin","dang_nhap":"admin","mat_khau":"admin123","ho_ten":"Quản trị"},
-  {"vai_tro":"gv","dang_nhap":"gv1","mat_khau":"gv123","ho_ten":"Cô Lan","lop":"12A1"},
-  {"vai_tro":"hs","dang_nhap":"hs1","mat_khau":"hs123","ho_ten":"Học sinh A","lop":"12A1"}
-]
-```
-Seed hash mật khẩu khi nạp. Đây là tài khoản DEMO, đổi trước khi dùng thật.
+## 9. Tài khoản seed — `data/seed/users.json`
+4 tài khoản mẫu: `admin/admin123`, `gv1/gv123`, `hs1/hs123`, `quanly/quanly123` (GV quản lý).
+Seed hash mật khẩu khi nạp. **CHỈ dùng cho local/dev (SQLite).**
+
+> ⚠️ Từ v120: trên **production (Postgres) rỗng**, `init_db()` KHÔNG seed các tài khoản mật
+> khẩu công khai này (chúng nằm trong repo GitHub) — chỉ tạo 1 admin mật khẩu NGẪU NHIÊN in ra
+> log khởi động một lần. Xem `backend/app/db/init_db.py`.
 
 ## 10. Bài mẫu — `data/seed/problems.json` (1 bài mỗi loại, ý gợi ý dạng Ý CHÍNH)
 
@@ -183,3 +193,26 @@ Khi tạo bài mới hoặc AI sinh nháp, số gợi ý mỗi bước được 
 khu Admin): `de→2`, `tb→3`, `kho→4`. Đây chỉ là GIÁ TRỊ KHỞI TẠO; GV chỉnh tự do (khuyến nghị
 1–5) khi soạn. Orchestrator luôn đọc độ dài `danh_sach_goi_y` thực tế của bước, không giả định 3.
 Lưu bảng mặc định này trong cấu hình hệ thống (bảng config Admin) để đổi mà không sửa code.
+
+## 13. Bảng mở rộng ngoài lõi Phase 0 (thêm dần qua các phiên)
+
+Bản đồ tổng quan — **cột chi tiết đọc ở `backend/app/models/<file>.py`** (tên file ≈ tên bảng).
+Một số file chứa nhiều bảng liên quan (ghi trong ngoặc).
+
+| Model file | Bảng | Mục đích |
+|---|---|---|
+| `danh_muc.py` | `chuyen_de`, `dang` | Cây phân loại **Chuyên đề → Dạng** cho bài + lý thuyết |
+| `tom_tat_ly_thuyet.py` | `tom_tat_ly_thuyet` | Tóm tắt lý thuyết theo chuyên đề/dạng (HS xem khi bí, GV soạn) |
+| `nhiem_vu.py` | `nhiem_vu` (+ `nhiem_vu_bai`, `nhiem_vu_hoc_sinh`) | GV giao nhiệm vụ/bài theo lớp hoặc từng HS (A3) |
+| `muc_tieu.py` | `muc_tieu` | Mục tiêu học tập: HS tự đặt / GV đặt / hệ thống gợi ý theo điểm yếu (B1) |
+| `de_thi.py` | `de_thi` (+ `de_thi_cau`, `bai_thi`, `de_thi_hoc_sinh`) | Đề thi thử GV tạo + bài làm/điểm của HS |
+| `thong_bao.py` | `thong_bao` | Thông báo (chuông) đa loại: nhận xét, cờ, nhiệm vụ, trả lời trợ giúp... |
+| `yeu_cau_tro_giup.py` | `yeu_cau_tro_giup` | HS "nhờ thầy/cô" trong bài, GV trả lời inline (A2) |
+| `yeu_cau_dat_lai.py` | `yeu_cau_dat_lai` | GV xin đặt lại tiến độ 1 HS, Admin duyệt (soft-reset phiên) |
+| `cot_moc.py` | `cot_moc` | Cột mốc nhẹ + chuỗi ngày học liên tiếp (streak) (C1) |
+| `phan_tich.py` | `phan_tich_hs` | Phân tích năng lực HS (AI sinh định kỳ hoặc GV nhập tay) |
+| `cauhinh.py` | `cau_hinh` | Cấu hình hệ thống key-value (Admin chỉnh: quota LLM, từ khóa an toàn, bảo trì, provider... — đổi không cần sửa code) |
+| `llm_su_dung.py` | `llm_su_dung` | Đếm lượt gọi LLM thật mỗi ngày (phanh chi phí, quota HS/hệ thống) |
+
+Ghi chú: `flags.loai_co` thực tế đã mở rộng so với mục 7 (`ro_ri_dap_an`, `noi_dung_khong_phu_hop`,
+`ngoai_pham_vi`, `khong_hieu_nhieu`, `chot_chan_nhieu`, `thu_cong`) — xem `models/flag.py`.
