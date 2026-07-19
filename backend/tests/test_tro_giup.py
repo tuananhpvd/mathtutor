@@ -179,6 +179,46 @@ def test_xem_chi_tiet_hoi_thoai_cat_dung_moc(db, client):
     assert not any("gợi ý thêm với" in t["noi_dung"] for t in ct2["turns"])
 
 
+def test_tra_loi_them_giu_du_lich_su(db, client):
+    """GV bấm 'Trả lời thêm' nhiều lần: chi tiết phải giữ ĐỦ các lượt trả lời trước đó, không
+    chỉ câu cuối. `yc.tra_loi` bị GHI ĐÈ mỗi lần trả lời nên không dùng làm nguồn lịch sử —
+    phải đọc từ các Turn giao_vien thật."""
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+    yc_id = client.post("/api/tro-giup", headers=h_hs,
+                        json={"session_id": sid, "noi_dung": "Em bí bước này"}).json()["id"]
+
+    h_gv = _h(client, "gv1")
+    client.post(f"/api/tro-giup/{yc_id}/tra-loi", headers=h_gv, json={"noi_dung": "Gợi ý thứ nhất"})
+    client.post(f"/api/tro-giup/{yc_id}/tra-loi", headers=h_gv, json={"noi_dung": "Gợi ý thứ hai"})
+
+    d = client.get(f"/api/tro-giup/{yc_id}/chi-tiet", headers=h_gv).json()
+    tl = [t["noi_dung"] for t in d["turns"] if t["vai_tro"] == "giao_vien"]
+    assert tl == ["Gợi ý thứ nhất", "Gợi ý thứ hai"], tl
+
+
+def test_tra_loi_khong_lan_sang_yeu_cau_sau(db, client):
+    """Cùng một phiên HS nhờ 2 lần: lượt trả lời của yêu cầu SAU không được gộp nhầm vào
+    yêu cầu TRƯỚC (chặn trên theo turn_id của yêu cầu kế tiếp)."""
+    pid = _seed(db)
+    h_hs = _h(client, "hs1")
+    sid = client.post("/api/sessions", headers=h_hs, json={"problem_id": pid}).json()["session_id"]
+    h_gv = _h(client, "gv1")
+
+    yc1 = client.post("/api/tro-giup", headers=h_hs,
+                      json={"session_id": sid, "noi_dung": "Nhờ lần 1"}).json()["id"]
+    client.post(f"/api/tro-giup/{yc1}/tra-loi", headers=h_gv, json={"noi_dung": "Đáp lần 1"})
+
+    yc2 = client.post("/api/tro-giup", headers=h_hs,
+                      json={"session_id": sid, "noi_dung": "Nhờ lần 2"}).json()["id"]
+    client.post(f"/api/tro-giup/{yc2}/tra-loi", headers=h_gv, json={"noi_dung": "Đáp lần 2"})
+
+    d1 = client.get(f"/api/tro-giup/{yc1}/chi-tiet", headers=h_gv).json()
+    tl1 = [t["noi_dung"] for t in d1["turns"] if t["vai_tro"] == "giao_vien"]
+    assert tl1 == ["Đáp lần 1"], tl1
+
+
 def test_gv_khac_lop_khong_xem_chi_tiet_duoc(db, client):
     pid = _seed(db)
     h_hs = _h(client, "hs1")

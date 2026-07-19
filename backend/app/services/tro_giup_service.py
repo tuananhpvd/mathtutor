@@ -189,7 +189,36 @@ def chi_tiet_hoi_thoai(db: Session, gv_id: int, yc_id: int) -> dict:
         {"vai_tro": t.vai_tro.value, "noi_dung": t.noi_dung}
         for t in q.order_by(Turn.id).all()
     ]
-    if yc.trang_thai == TrangThaiTroGiup.da_tra_loi and yc.tra_loi:
+    # Các LƯỢT TRẢ LỜI THẬT của GV nằm SAU mốc HS nhờ nên đã bị bộ lọc ở trên cắt mất. Lấy lại
+    # ĐỦ để GV thấy toàn bộ lịch sử trả lời, không chỉ câu cuối: `yc.tra_loi` bị GHI ĐÈ mỗi lần
+    # "Trả lời thêm" nên KHÔNG dùng làm nguồn lịch sử được.
+    if yc.turn_id is not None:
+        q_tl = db.query(Turn).filter(
+            Turn.session_id == yc.session_id,
+            Turn.vai_tro == VaiTroTurn.giao_vien,
+            Turn.id > yc.turn_id,
+        )
+        # Chặn trên: nếu trong cùng phiên HS còn nhờ tiếp lần sau, các lượt trả lời sau mốc đó
+        # thuộc yêu cầu KIA — không gộp nhầm sang yêu cầu này.
+        moc_sau = (
+            db.query(YeuCauTroGiup.turn_id)
+            .filter(
+                YeuCauTroGiup.session_id == yc.session_id,
+                YeuCauTroGiup.turn_id.isnot(None),
+                YeuCauTroGiup.turn_id > yc.turn_id,
+            )
+            .order_by(YeuCauTroGiup.turn_id)
+            .first()
+        )
+        if moc_sau is not None:
+            q_tl = q_tl.filter(Turn.id < moc_sau[0])
+        turns += [
+            {"vai_tro": t.vai_tro.value, "noi_dung": t.noi_dung}
+            for t in q_tl.order_by(Turn.id).all()
+        ]
+    elif yc.trang_thai == TrangThaiTroGiup.da_tra_loi and yc.tra_loi:
+        # Yêu cầu CŨ (tạo trước khi có turn_id): không định vị được mốc → giữ fallback cũ,
+        # chấp nhận chỉ có câu trả lời gần nhất.
         turns.append({"vai_tro": "giao_vien", "noi_dung": yc.tra_loi})
 
     hs = db.get(User, yc.hoc_sinh_id)

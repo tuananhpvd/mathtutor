@@ -209,10 +209,11 @@ function CardYeuCau({ yc, tone, dangXoa, onXoa, onXemChiTiet, noiBat }) {
         </div>
       )}
 
-      {/* Câu trả lời của GV (mục Đã trả lời) */}
+      {/* Câu trả lời GẦN NHẤT của GV (mục Đã trả lời). Nếu đã "Trả lời thêm" nhiều lần thì
+          trường này chỉ giữ câu cuối — xem đầy đủ lịch sử trong "Xem chi tiết". */}
       {yc.tra_loi && (
         <div className="mt-2 rounded-lg bg-success-soft border border-success/30 px-3 py-2 text-sm text-ink">
-          <span className="font-medium text-success">Trả lời: </span>
+          <span className="font-medium text-success">Trả lời gần nhất: </span>
           {renderNoiDung(yc.tra_loi)}
         </div>
       )}
