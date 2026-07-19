@@ -49,11 +49,19 @@ const MixedChatInput = forwardRef(function MixedChatInput({
 
   useEffect(() => {
     if (luonHienBangCT) return
-    function ngoaiClick(e) {
+    // Ẩn khi bấm/di chuyển focus RA NGOÀI khối. Cần cả 'focusin' (không chỉ 'mousedown') vì khi
+    // HS bấm sang ô công thức khác (math-field của khu vực trả lời), MathLive không phát
+    // mousedown bong bóng tới document ⇒ chỉ dựa mousedown thì bảng này không tự ẩn (2 bảng
+    // hiện cùng lúc). focusin bong bóng đáng tin khi focus rời khối.
+    function ngoai(e) {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setDaFocus(false)
     }
-    document.addEventListener('mousedown', ngoaiClick)
-    return () => document.removeEventListener('mousedown', ngoaiClick)
+    document.addEventListener('mousedown', ngoai)
+    document.addEventListener('focusin', ngoai)
+    return () => {
+      document.removeEventListener('mousedown', ngoai)
+      document.removeEventListener('focusin', ngoai)
+    }
   }, [luonHienBangCT])
 
   const hienBang = luonHienBangCT || daFocus

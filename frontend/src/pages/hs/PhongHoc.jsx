@@ -111,6 +111,68 @@ function CardBuoc({ buoc_hien_tai, tong_buoc, buoc_mo_ta }) {
   )
 }
 
+// Khay đáp án — biến hình theo loại câu & pha mở khóa (tái dùng 3 component nhập đáp án).
+// Đây là vùng "bài làm được máy chấm" (dap_an_nhap), tách khỏi ô trò chuyện (noi_dung).
+function KhayDapAn({ problem, trangThai, gui, dangGui }) {
+  const loai = problem.loai_cau
+  return (
+    <div className="rounded-xl border border-primary/40 bg-primary-soft/40 p-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-primary mb-2">
+        Khu vực trả lời
+      </p>
+      {loai === 'TN4PA' && (
+        trangThai.cho_chon_dap_an === false ? (
+          // Pha suy luận: HS nhập biểu thức kết quả của bước (CAS chấm) trước khi mở A–D
+          <>
+            <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink">
+              🔒 Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này —
+              làm đúng để chọn được đáp án nhé!
+            </div>
+            <CardBuoc
+              buoc_hien_tai={trangThai.buoc_hien_tai}
+              tong_buoc={trangThai.tong_buoc}
+              buoc_mo_ta={trangThai.buoc_mo_ta}
+            />
+            <p className="text-sm font-medium text-ink mb-3">Tính kết quả của bước này</p>
+            <AnswerInputTLN onGui={gui} dang_gui={dangGui} />
+          </>
+        ) : (
+          // Pha chọn đáp án: A/B/C/D đã mở khóa
+          <>
+            <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+            <AnswerInputTN4PA phuong_an={problem.meta?.phuong_an} onGui={gui} dang_gui={dangGui} />
+          </>
+        )
+      )}
+      {loai === 'TNDS' && (
+        <>
+          <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+          <AnswerInputTNDS
+            y={problem.meta?.y}
+            y_hien_tai={trangThai.y_hien_tai}
+            trang_thai_y={trangThai.trang_thai_y}
+            cho_chon={trangThai.cho_chon_dung_sai}
+            buoc_mo_ta={trangThai.buoc_mo_ta}
+            onGui={gui}
+            dang_gui={dangGui}
+          />
+        </>
+      )}
+      {loai === 'TLN' && (
+        <>
+          <CardBuoc
+            buoc_hien_tai={trangThai.buoc_hien_tai}
+            tong_buoc={trangThai.tong_buoc}
+            buoc_mo_ta={trangThai.buoc_mo_ta}
+          />
+          <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
+          <AnswerInputTLN onGui={gui} dang_gui={dangGui} />
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, onSid }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -402,94 +464,19 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Khung hội thoại */}
-        <Card className="lg:col-span-3">
-          <CardBody className="flex flex-col gap-3 pt-5">
-            <p className="text-[11px] text-muted text-center -mt-1">
-              🤖 Gia sư AI chỉ dẫn dắt — đúng/sai do máy chấm, đáp án được khóa tuyệt đối tới
-              khi em hoàn thành bài.
-            </p>
-            <div ref={chatRef} className="flex flex-col gap-3 overflow-y-auto max-h-[48vh] min-h-[180px] pr-1">
+      <Card>
+        <CardBody className="flex flex-col gap-3 pt-5">
+            <div ref={chatRef} className="flex flex-col gap-3 overflow-y-auto max-h-[48vh] min-h-[180px] rounded-lg border border-border bg-surface-2/30 p-3">
               {turns.map((t, i) => (
                 <ChatBubble key={i} vai_tro={t.vai_tro} text={t.noi_dung} />
               ))}
               {dangGui && <TypingBubble />}
-              {hetGoiY && !daXong && (
-                <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2.5 flex flex-col gap-2">
-                  <p className="text-sm text-ink text-center">
-                    Em đã dùng hết gợi ý cho bước này. Em có thể:
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Button size="sm" variant="secondary" onClick={moLyThuyet}>
-                      📖 Xem lại lý thuyết
-                    </Button>
-                    <Button size="sm" variant="secondary"
-                      onClick={() => { setNhoMo(true); setNhoText('') }}>
-                      🙋 Nhờ Thầy/Cô
-                    </Button>
-                    <Button size="sm" variant="secondary"
-                      onClick={() => cauHoiRef.current?.focus()}>
-                      💬 Hỏi gia sư
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
             {nhoOk && (
               <div className="rounded-lg bg-success-soft text-success text-sm px-3 py-2 text-center">
                 ✓ {nhoOk}
               </div>
             )}
-            {!daXong && (
-              <div className="border-t border-border pt-3">
-                <MixedChatInput
-                  ref={cauHoiRef}
-                  value={cauHoi}
-                  onChange={setCauHoi}
-                  placeholder="Hỏi gia sư điều em chưa hiểu (vd: vì sao lại làm vậy ạ?)... — bấm vào ô để nhập công thức"
-                  rows={2}
-                  luonHienBangCT={false}
-                  textareaClassName="bg-success-soft shadow-sm border border-[#2596be]"
-                  duoiO={
-                    <Button size="sm" variant="primary" className="w-full"
-                      disabled={dangGui || !cauHoi.trim()} onClick={guiCauHoi}>
-                      Gửi câu hỏi
-                    </Button>
-                  }
-                />
-              </div>
-            )}
-            <div className="border-t border-border pt-2 flex flex-wrap justify-center gap-2">
-              <Button
-                variant={hetGoiY ? 'secondary' : 'warning'}
-                disabled={dangGui || daXong || hetGoiY}
-                onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
-              >
-                {hetGoiY
-                  ? '💡 Đã dùng hết gợi ý'
-                  : trangThai.so_goi_y_toi_da != null
-                    ? `💡 GỢI Ý CHO EM (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
-                    : '💡 GỢI Ý CHO EM'}
-              </Button>
-              <Button
-                variant={hetGoiY ? 'warning' : 'secondary'}
-                disabled={!sid}
-                className={hetGoiY ? 'ring-2 ring-warning animate-pulse' : ''}
-                onClick={() => { setNhoMo((v) => !v); setNhoText('') }}
-              >
-                🙋 NHỜ THẦY/CÔ
-              </Button>
-              <Button variant="primary" onClick={onChonBai}>
-                ↩ QUAY LẠI LÀM SAU
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Vùng trả lời / banner hoàn thành */}
-        <Card className="lg:col-span-2">
-          <CardBody className="pt-5">
             {daXong ? (
               <BangHoanThanh
                 loai={problem.loai_cau}
@@ -503,98 +490,110 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 onXemLai={() => setXemLaiMo(true)}
               />
             ) : (
-              <>
-                {problem.loai_cau === 'TN4PA' && (
-                  trangThai.cho_chon_dap_an === false ? (
-                    // Pha suy luận: HS nhập biểu thức kết quả của bước (CAS chấm)
-                    <>
-                      <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink">
-                        🔒 Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này —
-                        làm đúng để chọn được đáp án nhé!
-                      </div>
-                      <CardBuoc
-                        buoc_hien_tai={trangThai.buoc_hien_tai}
-                        tong_buoc={trangThai.tong_buoc}
-                        buoc_mo_ta={trangThai.buoc_mo_ta}
-                      />
-                      <p className="text-sm font-medium text-ink mb-3">Tính kết quả của bước này</p>
-                      <AnswerInputTLN onGui={gui} dang_gui={dangGui} />
-                    </>
-                  ) : (
-                    // Pha chọn đáp án: A/B/C/D đã mở khóa
-                    <>
-                      <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
-                      <AnswerInputTN4PA phuong_an={problem.meta?.phuong_an} onGui={gui} dang_gui={dangGui} />
-                    </>
-                  )
+              <div className="border-t border-border pt-3 flex flex-col gap-3">
+                {/* Nhắc khi hết gợi ý — thay cho khối 3 nút cũ; các lối tắt đã có sẵn trong khối */}
+                {hetGoiY && (
+                  <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-ink text-center">
+                    Em đã dùng hết gợi ý cho bước này — thử <b>📖 xem lý thuyết</b> hoặc{' '}
+                    <b>🙋 nhờ thầy/cô</b> bên dưới nhé. Em vẫn có thể hỏi gia sư hoặc thử nộp đáp án.
+                  </div>
                 )}
-                {problem.loai_cau === 'TNDS' && (
-                  <>
-                    <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
-                    <AnswerInputTNDS
-                      y={problem.meta?.y}
-                      y_hien_tai={trangThai.y_hien_tai}
-                      trang_thai_y={trangThai.trang_thai_y}
-                      cho_chon={trangThai.cho_chon_dung_sai}
-                      buoc_mo_ta={trangThai.buoc_mo_ta}
-                      onGui={gui}
-                      dang_gui={dangGui}
+
+                {/* Hàng thao tác: gợi ý · nhờ thầy/cô · (lý thuyết khi hết gợi ý) · quay lại — nằm TRÊN khu vực trả lời */}
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button
+                    variant={hetGoiY ? 'warningSoft' : 'warning'}
+                    disabled={dangGui || daXong || hetGoiY}
+                    onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
+                  >
+                    {hetGoiY
+                      ? '💡 Đã dùng hết gợi ý'
+                      : trangThai.so_goi_y_toi_da != null
+                        ? `💡 GỢI Ý CHO EM (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
+                        : '💡 GỢI Ý CHO EM'}
+                  </Button>
+                  <Button
+                    variant={hetGoiY ? 'warning' : 'secondary'}
+                    disabled={!sid}
+                    className={hetGoiY ? 'ring-2 ring-warning animate-pulse' : ''}
+                    onClick={() => { setNhoMo((v) => !v); setNhoText('') }}
+                  >
+                    🙋 NHỜ THẦY/CÔ
+                  </Button>
+                  {hetGoiY && (
+                    <Button variant="success" onClick={moLyThuyet}>
+                      📖 XEM LÝ THUYẾT
+                    </Button>
+                  )}
+                  <Button variant="indigo" onClick={onChonBai}>
+                    ↩ QUAY LẠI LÀM SAU
+                  </Button>
+                </div>
+
+                {/* Nhờ thầy/cô — inline ngay trong khối (không còn modal toàn màn) */}
+                {nhoMo && (
+                  <div className="rounded-xl border border-secondary/40 bg-secondary/5 p-3 flex flex-col gap-2">
+                    <div>
+                      <p className="font-semibold text-sm text-ink">🙋 Nhờ thầy/cô giúp đỡ</p>
+                      <p className="text-xs text-muted mt-0.5">
+                        Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong khung chat.
+                        Em có thể mô tả bằng chữ hoặc chèn công thức toán.
+                      </p>
+                    </div>
+                    <MixedChatInput
+                      value={nhoText}
+                      onChange={setNhoText}
+                      placeholder="Mô tả chỗ chưa hiểu (không bắt buộc)..."
+                      rows={2}
+                      luonHienBangCT={false}
                     />
-                  </>
-                )}
-                {problem.loai_cau === 'TLN' && (
-                  <>
-                    <CardBuoc
-                      buoc_hien_tai={trangThai.buoc_hien_tai}
-                      tong_buoc={trangThai.tong_buoc}
-                      buoc_mo_ta={trangThai.buoc_mo_ta}
-                    />
-                    <p className="text-sm font-medium text-ink mb-3">Câu trả lời của em</p>
-                    <AnswerInputTLN onGui={gui} dang_gui={dangGui} />
-                  </>
+                    <div className="flex gap-2 justify-end">
+                      <Button size="sm" variant="secondary"
+                        onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
+                        Hủy
+                      </Button>
+                      <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
+                        {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                      </Button>
+                    </div>
+                  </div>
                 )}
 
                 {error && (
-                  <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2 mt-3">{error}</p>
+                  <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">{error}</p>
                 )}
-              </>
+
+                {/* 2 cột: KHU VỰC TRẢ LỜI (trái, máy chấm) · TRÒ CHUYỆN với gia sư (phải, phụ) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                  <KhayDapAn problem={problem} trangThai={trangThai} gui={gui} dangGui={dangGui} />
+
+                  <div className="rounded-xl border border-[#2596be]/40 bg-success-soft/30 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-success mb-1.5">
+                      Trò chuyện với gia sư
+                    </p>
+                    <MixedChatInput
+                      ref={cauHoiRef}
+                      value={cauHoi}
+                      onChange={setCauHoi}
+                      placeholder="Có chỗ nào chưa rõ, hỏi ở đây (vd: vì sao lại làm vậy ạ?)... — bấm vào ô để nhập công thức"
+                      rows={2}
+                      luonHienBangCT={false}
+                      textareaClassName="bg-surface border border-[#2596be]"
+                      duoiO={
+                        <Button size="sm" variant="indigo" className="w-full"
+                          disabled={dangGui || !cauHoi.trim()} onClick={guiCauHoi}>
+                          Gửi câu hỏi
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </CardBody>
         </Card>
-      </div>
 
       {xemLaiMo && sid && <XemLaiBai sessionId={sid} onDong={() => setXemLaiMo(false)} />}
-
-      {nhoMo && (
-        <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto flex items-start justify-center p-4">
-          <Card className="max-w-lg w-full my-8 border-secondary/40 bg-secondary/5">
-            <CardBody className="flex flex-col gap-3 pt-4">
-              <div>
-                <p className="font-semibold text-sm text-ink">🙋 Nhờ thầy/cô giúp đỡ</p>
-                <p className="text-xs text-muted mt-0.5">
-                  Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong bài.
-                  Em có thể mô tả bằng chữ hoặc chèn công thức toán.
-                </p>
-              </div>
-              <MixedChatInput
-                value={nhoText}
-                onChange={setNhoText}
-                placeholder="Mô tả chỗ chưa hiểu (không bắt buộc)..."
-                rows={2}
-              />
-              <div className="flex gap-2 justify-end">
-                <Button size="sm" variant="secondary"
-                  onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
-                  Hủy
-                </Button>
-                <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
-                  {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
 
       {lyThuyetMo && (
         <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto flex items-start justify-center p-4">

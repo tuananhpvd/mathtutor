@@ -67,8 +67,10 @@ function ModalChiTiet({
               <p className="text-xs text-muted mt-0.5">{yc.hoc_sinh_ten} · {yc.bai}</p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {yc.trang_thai === 'cho_xu_ly' && !dangTraLoi && (
-                <Button size="sm" onClick={() => onMoTraLoi(yc)}>Trả lời</Button>
+              {!dangTraLoi && (
+                <Button size="sm" onClick={() => onMoTraLoi(yc)}>
+                  {yc.trang_thai === 'cho_xu_ly' ? 'Trả lời' : 'Trả lời thêm'}
+                </Button>
               )}
               <Button size="sm" variant="secondary" onClick={onDong} disabled={dangGui}>
                 Đóng ✕

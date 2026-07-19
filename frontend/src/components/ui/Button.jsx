@@ -10,6 +10,12 @@ const VARIANTS = {
   // được (~2.2:1); chữ tối đạt ~8.3:1. Xem theme.css --color-warning-ink.
   warning: 'bg-warning text-warning-ink shadow-sm hover:opacity-90 disabled:opacity-50 disabled:shadow-none',
   danger: 'bg-danger text-white shadow-sm hover:opacity-90 disabled:opacity-50 disabled:shadow-none',
+  // "indigo" = nền Indigo Học Đường (--color-primary). Theo yêu cầu dùng cho vài nút điều
+  // hướng/gửi trong phòng học (Gửi câu hỏi, Quay lại làm sau).
+  indigo: 'bg-primary text-white shadow-sm hover:opacity-90 disabled:opacity-50 disabled:shadow-none',
+  // "warningSoft" = nền cam NHẠT (warning-soft) + chữ tối — cho nút trạng thái mềm (vd
+  // "Đã dùng hết gợi ý").
+  warningSoft: 'bg-warning-soft text-warning-ink border border-warning/40 hover:opacity-90 disabled:opacity-50',
 }
 
 const SIZES = {
