@@ -27,8 +27,13 @@ _GV = [require_role(VaiTro.gv)]
 
 
 @router.get("/tong-quan", dependencies=_GV)
-def tong_quan(current_user: CurrentUser, db: Session = Depends(get_db)):
-    return gv_service.tong_quan_gv(db, current_user.id)
+def tong_quan(current_user: CurrentUser, lop_id: int | None = None,
+              db: Session = Depends(get_db)):
+    """Sĩ số HS / HS bị khóa / cờ theo dõi CỐ Ý gộp mọi lớp; các thẻ "tốn nhiều thời gian"
+    tính theo `lop_id` (lớp GV không sở hữu → 403)."""
+    if lop_id is not None and not gv_service._so_huu_lop(db, current_user.id, lop_id):
+        raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
+    return gv_service.tong_quan_gv(db, current_user.id, lop_id)
 
 
 @router.get("/ho-so", dependencies=_GV)

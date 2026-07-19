@@ -77,8 +77,9 @@ export const api = {
   hsHuongDanPhongHoc: () => request('/hs/huong-dan-phong-hoc'),
 
   // Giáo viên / Admin (Phase 9–10)
-  getProgressStudents: () => request('/progress/students'),
-  getTongHopLop: () => request('/progress/lop/tong-hop'),
+  getProgressStudents: (lopId) => request('/progress/students' + (lopId ? `?lop_id=${lopId}` : '')),
+  getTongHopLop: (lopId) => request('/progress/lop/tong-hop' + (lopId ? `?lop_id=${lopId}` : '')),
+  getSoSanhLop: () => request('/progress/lop/so-sanh'),
   getThongKeHocSinh: (id) => request(`/progress/students/${id}/thong-ke`),
   getPhanTichHocSinh: (id) => request(`/progress/students/${id}/phan-tich`),
   capNhatPhanTichHocSinh: (id) => post(`/progress/students/${id}/phan-tich/cap-nhat`, null, TIMEOUT_AI_MS),
@@ -134,7 +135,7 @@ export const api = {
     ),
 
   // Giáo viên — hồ sơ + quản lý lớp & học sinh của mình
-  gvTongQuan: () => request('/gv/tong-quan'),
+  gvTongQuan: (lopId) => request('/gv/tong-quan' + (lopId ? `?lop_id=${lopId}` : '')),
   gvHoSo: () => request('/gv/ho-so'),
   gvCapNhatHoSo: (body) => request('/gv/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
   gvLop: () => request('/gv/lop'),
@@ -242,19 +243,20 @@ export const api = {
   getBanDoLop: (lopId) =>
     request('/progress/ban-do/lop' + (lopId ? `?lop_id=${lopId}` : '')),
   getBanDoHocSinh: (id) => request(`/progress/students/${id}/ban-do`),
-  getHieuQuaLop: () => request('/progress/hieu-qua/lop'),
+  getHieuQuaLop: (lopId) => request('/progress/hieu-qua/lop' + (lopId ? `?lop_id=${lopId}` : '')),
   getHieuQuaHocSinh: (id) => request(`/progress/students/${id}/hieu-qua`),
   getHieuQuaMe: () => request('/progress/me/hieu-qua'),
   // Chuỗi 30 ngày cho biểu đồ vùng (nhịp học / khó khăn / LLM / phiên)
   getNhipNgayMe: () => request('/progress/me/nhip-ngay'),
   getNhipNgayHocSinh: (id) => request(`/progress/students/${id}/nhip-ngay`),
-  getNhipNgayLop: () => request('/progress/lop/nhip-ngay'),
-  getKhoKhanNgayLop: () => request('/progress/lop/kho-khan-ngay'),
+  getNhipNgayLop: (lopId) => request('/progress/lop/nhip-ngay' + (lopId ? `?lop_id=${lopId}` : '')),
+  getKhoKhanNgayLop: (lopId) => request('/progress/lop/kho-khan-ngay' + (lopId ? `?lop_id=${lopId}` : '')),
   danhDauXemLyThuyet: (sid) => post(`/sessions/${sid}/xem-ly-thuyet`, {}),
-  taiCsvHieuQua: async () => {
+  taiCsvHieuQua: async (lopId) => {
     // Tải file CSV (không phải JSON) — dùng fetch thô kèm token rồi kích hoạt tải về.
+    // Truyền lop_id để file xuất ra khớp đúng phạm vi đang xem trên màn hình.
     const token = sessionStorage.getItem('token')
-    const res = await fetch(BASE + '/progress/hieu-qua/lop/csv', {
+    const res = await fetch(BASE + '/progress/hieu-qua/lop/csv' + (lopId ? `?lop_id=${lopId}` : ''), {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     if (!res.ok) throw new Error(`Lỗi ${res.status}`)

@@ -13,6 +13,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Button, Card, CardBody, CardHeader } from '../ui'
+import ChonLop from './ChonLop'
 
 // Sequential tím nhạt→đậm cho mức gợi ý 0/1/2/3+ (đã chạy validate_palette: PASS)
 const MAU_MUC = ['#a294ea', '#8272e2', '#6353d0', '#4a3bc4']
@@ -78,14 +79,18 @@ export default function HieuQuaPhuongPhap() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [dangTai, setDangTai] = useState(false)
+  // NGOẠI LỆ so với các thống kê khác: ở đây "Tất cả các lớp" ('') là tùy chọn HỢP LỆ và là
+  // mặc định — hiệu quả phương pháp Socratic là thuộc tính của CÁCH DẠY chứ không của lớp,
+  // gộp cho mẫu lớn hơn nên tín hiệu ổn định hơn.
+  const [lopId, setLopId] = useState('')
 
   useEffect(() => {
-    api.getHieuQuaLop().then(setData).catch((e) => setError(e.message))
-  }, [])
+    api.getHieuQuaLop(lopId).then(setData).catch((e) => setError(e.message))
+  }, [lopId])
 
   async function taiCsv() {
     setDangTai(true)
-    try { await api.taiCsvHieuQua() } catch (e) { setError(e.message) }
+    try { await api.taiCsvHieuQua(lopId) } catch (e) { setError(e.message) }
     finally { setDangTai(false) }
   }
 
@@ -106,9 +111,12 @@ export default function HieuQuaPhuongPhap() {
         title="Hiệu quả phương pháp gợi mở"
         subtitle="Thống kê mô tả tính từ toàn bộ phiên đã hoàn thành — mức gợi ý cao nhất học sinh cần trước khi tự tìm ra đáp án. Dùng làm minh chứng báo cáo."
         action={
-          <Button variant="secondary" size="sm" onClick={taiCsv} disabled={dangTai || !pb.tong}>
-            {dangTai ? 'Đang tải...' : '⬇ Xuất CSV'}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <ChonLop value={lopId} onChange={setLopId} choPhepGop nhan="Phạm vi" />
+            <Button variant="secondary" size="sm" onClick={taiCsv} disabled={dangTai || !pb.tong}>
+              {dangTai ? 'Đang tải...' : '⬇ Xuất CSV'}
+            </Button>
+          </div>
         }
       />
       <CardBody className="flex flex-col gap-4">

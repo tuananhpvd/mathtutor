@@ -188,8 +188,15 @@ def _chuoi_tuan_theo_moc(sessions: list[SessionModel], muc_map: dict[int, int],
     return ket
 
 
-def _hoc_sinh_cua_gv(db: Session, gv_id: int) -> tuple[list[User], dict[int, str]]:
-    lops = db.query(Lop).filter(Lop.gv_id == gv_id).all()
+def _hoc_sinh_cua_gv(db: Session, gv_id: int,
+                     lop_id: int | None = None) -> tuple[list[User], dict[int, str]]:
+    """lop_id có giá trị → CHỈ lớp đó; None → mọi lớp. Khác các thống kê còn lại, ở đây view
+    gộp ĐƯỢC GIỮ như một tùy chọn hợp lệ: hiệu quả phương pháp Socratic là thuộc tính của CÁCH
+    DẠY chứ không của lớp, gộp cho mẫu lớn hơn nên tín hiệu ổn định hơn."""
+    q = db.query(Lop).filter(Lop.gv_id == gv_id)
+    if lop_id is not None:
+        q = q.filter(Lop.id == lop_id)
+    lops = q.all()
     lop_ten = {lop.id: lop.ten for lop in lops}
     if not lop_ten:
         return [], {}
@@ -215,9 +222,9 @@ def hieu_qua_hs(db: Session, hoc_sinh_id: int, so_tuan: int = 8) -> dict:
     }
 
 
-def hieu_qua_lop(db: Session, gv_id: int) -> dict:
+def hieu_qua_lop(db: Session, gv_id: int, lop_id: int | None = None) -> dict:
     """Hiệu quả phương pháp cấp lớp cho GV: phân bố chung + bảng từng HS."""
-    hoc_sinhs, lop_ten = _hoc_sinh_cua_gv(db, gv_id)
+    hoc_sinhs, lop_ten = _hoc_sinh_cua_gv(db, gv_id, lop_id)
     hs_ids = [h.id for h in hoc_sinhs]
     sessions = _phien_hoan_thanh(db, hs_ids)
     muc_map = _muc_goi_y_theo_phien(db, [s.id for s in sessions])
@@ -247,9 +254,10 @@ def hieu_qua_lop(db: Session, gv_id: int) -> dict:
     }
 
 
-def csv_hieu_qua_lop(db: Session, gv_id: int) -> str:
-    """Xuất CSV bảng hiệu quả từng HS — đưa thẳng vào báo cáo/phụ lục dự thi."""
-    ket = hieu_qua_lop(db, gv_id)
+def csv_hieu_qua_lop(db: Session, gv_id: int, lop_id: int | None = None) -> str:
+    """Xuất CSV bảng hiệu quả từng HS — đưa thẳng vào báo cáo/phụ lục dự thi.
+    Theo đúng phạm vi đang xem (lop_id) để file xuất ra không lệch với màn hình."""
+    ket = hieu_qua_lop(db, gv_id, lop_id)
     dong = ["Họ tên,Lớp,Số bài hoàn thành,% tự làm không cần gợi ý,"
             "Gợi ý TB 5 bài đầu,Gợi ý TB 5 bài gần nhất,Xu hướng"]
     nhan_xu_huong = {"giam": "Giảm (tiến bộ)", "tang": "Tăng", "on_dinh": "Ổn định"}

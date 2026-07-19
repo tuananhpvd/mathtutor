@@ -17,11 +17,11 @@ from app.services.phan_tich_service import (
     ban_do_nang_luc,
     cap_nhat_phan_tich,
     lay_phan_tich,
+    so_sanh_cac_lop_gv,
     tong_hop_lop_gv,
 )
 from app.services.progress_service import (
     hoc_sinh_thuoc_gv,
-    hs_ids_cua_gv,
     kho_khan_theo_ngay,
     nhip_hoc_theo_ngay,
     thong_ke_chi_tiet,
@@ -71,16 +71,48 @@ def nhip_ngay_hoc_sinh(hoc_sinh_id: int, current_user: CurrentUser,
     return nhip_hoc_theo_ngay(db, [hoc_sinh_id])
 
 
+def _kiem_lop(db: Session, current_user, lop_id: int | None) -> None:
+    """Chặn GV xem lớp không phải của mình (Admin xem lớp nào cũng được)."""
+    if lop_id is None:
+        return
+    from app.models.lop import Lop
+
+    lop = db.get(Lop, lop_id)
+    if lop is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy lớp")
+    if current_user.vai_tro == VaiTro.gv and lop.gv_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
+
+
+def _hs_ids_pham_vi(db: Session, current_user, lop_id: int | None) -> list[int]:
+    """id HS trong phạm vi THỐNG KÊ (đã kiểm quyền lớp). lop_id có giá trị → chỉ lớp đó;
+    None → mọi lớp GV phụ trách (chỉ dùng cho các số liệu cố ý gộp)."""
+    _kiem_lop(db, current_user, lop_id)
+    from app.models.lop import Lop
+    from app.models.user import User
+
+    if lop_id is not None:
+        lop_ids = [lop_id]
+    else:
+        lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == current_user.id).all()]
+    return (
+        [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
+        if lop_ids else []
+    )
+
+
 @router.get("/lop/nhip-ngay", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def nhip_ngay_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
-    """Nhịp học 30 ngày gộp mọi lớp GV phụ trách (Tổng quan GV)."""
-    return nhip_hoc_theo_ngay(db, hs_ids_cua_gv(db, current_user.id))
+def nhip_ngay_lop(current_user: CurrentUser, lop_id: int | None = None,
+                  db: Session = Depends(get_db)):
+    """Nhịp học 30 ngày của MỘT lớp (lop_id); None → mọi lớp GV phụ trách."""
+    return nhip_hoc_theo_ngay(db, _hs_ids_pham_vi(db, current_user, lop_id))
 
 
 @router.get("/lop/kho-khan-ngay", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def kho_khan_ngay_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
-    """"Nhiệt kế khó khăn" 30 ngày: cờ + yêu cầu Nhờ thầy/cô phát sinh mỗi ngày (Tổng quan GV)."""
-    return kho_khan_theo_ngay(db, hs_ids_cua_gv(db, current_user.id))
+def kho_khan_ngay_lop(current_user: CurrentUser, lop_id: int | None = None,
+                      db: Session = Depends(get_db)):
+    """"Nhiệt kế khó khăn" 30 ngày: cờ + yêu cầu Nhờ thầy/cô mỗi ngày, theo MỘT lớp."""
+    return kho_khan_theo_ngay(db, _hs_ids_pham_vi(db, current_user, lop_id))
 
 
 @router.post("/me/phan-tich/cap-nhat", dependencies=[require_role(VaiTro.hs)])
@@ -94,13 +126,27 @@ def cap_nhat_phan_tich_cua_toi(current_user: CurrentUser, db: Session = Depends(
 
 
 @router.get("/students", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def tien_do_hoc_sinh(current_user: CurrentUser, db: Session = Depends(get_db)):
-    return tien_do_lop(db, current_user.id)
+def tien_do_hoc_sinh(current_user: CurrentUser, lop_id: int | None = None,
+                     db: Session = Depends(get_db)):
+    """Tiến độ HS của MỘT lớp (lop_id); None → mọi lớp GV phụ trách."""
+    _kiem_lop(db, current_user, lop_id)
+    return tien_do_lop(db, current_user.id, lop_id)
 
 
 @router.get("/lop/tong-hop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def tong_hop_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
-    return tong_hop_lop_gv(db, current_user.id)
+def tong_hop_lop(current_user: CurrentUser, lop_id: int | None = None,
+                 db: Session = Depends(get_db)):
+    """Điểm yếu chung + HS cần chú ý của MỘT lớp (lop_id) — gộp nhiều lớp làm chìm khác biệt
+    giữa các lớp nên không còn là mặc định."""
+    _kiem_lop(db, current_user, lop_id)
+    return tong_hop_lop_gv(db, current_user.id, lop_id)
+
+
+@router.get("/lop/so-sanh", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
+def so_sanh_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Mỗi lớp một dòng trên cùng bộ chỉ số — thay cho số liệu gộp mọi lớp, vẫn so sánh được
+    lớp nào đang đuối mà không làm chìm khác biệt giữa các lớp."""
+    return so_sanh_cac_lop_gv(db, current_user.id)
 
 
 @router.get("/me/ban-do", dependencies=[require_role(VaiTro.hs)])
@@ -112,26 +158,9 @@ def ban_do_cua_toi(current_user: CurrentUser, db: Session = Depends(get_db)):
 @router.get("/ban-do/lop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
 def ban_do_lop(current_user: CurrentUser, lop_id: int | None = None,
                db: Session = Depends(get_db)):
-    """C3 — bản đồ năng lực lớp. lop_id=None (mặc định, tương thích ngược) → dồn chung phiên
-    của MỌI lớp GV phụ trách; có lop_id → CHỈ lớp đó (phải thuộc GV, trừ Admin xem lớp nào cũng
-    được) — cho GV nhiều lớp xem tách riêng từng lớp thay vì luôn bị trộn chung."""
-    from app.models.lop import Lop
-    from app.models.user import User
-
-    if lop_id is not None:
-        lop = db.get(Lop, lop_id)
-        if lop is None:
-            raise HTTPException(status_code=404, detail="Không tìm thấy lớp")
-        if current_user.vai_tro == VaiTro.gv and lop.gv_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
-        lop_ids = [lop_id]
-    else:
-        lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == current_user.id).all()]
-    hs_ids = (
-        [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
-        if lop_ids else []
-    )
-    return ban_do_nang_luc(db, hs_ids)
+    """C3 — bản đồ năng lực của MỘT lớp (lop_id); None → dồn chung mọi lớp GV phụ trách.
+    GV chỉ xem được lớp của mình, Admin xem lớp nào cũng được."""
+    return ban_do_nang_luc(db, _hs_ids_pham_vi(db, current_user, lop_id))
 
 
 @router.get("/students/{hoc_sinh_id}/ban-do",
@@ -146,17 +175,26 @@ def ban_do_hoc_sinh(hoc_sinh_id: int, current_user: CurrentUser,
 
 
 @router.get("/hieu-qua/lop", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def hieu_qua_phuong_phap_lop(current_user: CurrentUser, db: Session = Depends(get_db)):
-    """C2 — số liệu chứng minh hiệu quả phương pháp gợi mở, cấp lớp (tất định, không LLM)."""
-    return hieu_qua_lop(db, current_user.id)
+def hieu_qua_phuong_phap_lop(current_user: CurrentUser, lop_id: int | None = None,
+                             db: Session = Depends(get_db)):
+    """C2 — số liệu chứng minh hiệu quả phương pháp gợi mở (tất định, không LLM).
+
+    KHÁC các thống kê còn lại: ở đây `lop_id=None` (gộp mọi lớp) là một tùy chọn HỢP LỆ —
+    hiệu quả phương pháp Socratic là thuộc tính của CÁCH DẠY chứ không của lớp, gộp cho mẫu
+    lớn hơn nên tín hiệu ổn định hơn."""
+    _kiem_lop(db, current_user, lop_id)
+    return hieu_qua_lop(db, current_user.id, lop_id)
 
 
 @router.get("/hieu-qua/lop/csv", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def hieu_qua_phuong_phap_lop_csv(current_user: CurrentUser, db: Session = Depends(get_db)):
-    """Xuất CSV bảng hiệu quả từng HS (kèm BOM UTF-8 để Excel mở đúng tiếng Việt)."""
+def hieu_qua_phuong_phap_lop_csv(current_user: CurrentUser, lop_id: int | None = None,
+                                 db: Session = Depends(get_db)):
+    """Xuất CSV bảng hiệu quả từng HS (kèm BOM UTF-8 để Excel mở đúng tiếng Việt).
+    Theo đúng phạm vi đang xem trên màn hình (lop_id) — tránh file xuất ra lại gộp mọi lớp."""
     from fastapi.responses import Response
 
-    noi_dung = "﻿" + csv_hieu_qua_lop(db, current_user.id)
+    _kiem_lop(db, current_user, lop_id)
+    noi_dung = "﻿" + csv_hieu_qua_lop(db, current_user.id, lop_id)
     return Response(
         content=noi_dung,
         media_type="text/csv; charset=utf-8",

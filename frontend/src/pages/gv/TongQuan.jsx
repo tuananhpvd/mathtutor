@@ -6,6 +6,7 @@ import { api } from '../../api'
 import { getSession } from '../../auth'
 import { Button, Card, CardBody, CardHeader, StatCard } from '../../components/ui'
 import BangXepHangThoiGian from '../../components/BangXepHangThoiGian'
+import ChonLop from '../../components/gv/ChonLop'
 import BieuDoVung from '../../components/BieuDoVung'
 import { NHAN_LOAI_MAT_THOI_GIAN } from '../../utils/format'
 
@@ -58,13 +59,19 @@ export default function TongQuan({ onNavigate }) {
   const [soHoTro, setSoHoTro] = useState(0)
   const [nhipLop, setNhipLop] = useState(null)
   const [khoKhan, setKhoKhan] = useState(null)
+  // Đơn vị thống kê là MỘT lớp. Riêng sĩ số HS / HS bị khóa / cờ theo dõi vẫn gộp mọi lớp
+  // (yêu cầu nghiệp vụ) — backend tự xử, không phụ thuộc lopId này.
+  const [lopId, setLopId] = useState('')
 
   useEffect(() => {
-    api.gvTongQuan().then(setTk).catch(() => {})
     api.gvTroGiup(true).then((ds) => setSoHoTro((ds || []).length)).catch(() => {})
-    api.getNhipNgayLop().then(setNhipLop).catch(() => {})
-    api.getKhoKhanNgayLop().then(setKhoKhan).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    api.gvTongQuan(lopId).then(setTk).catch(() => {})
+    api.getNhipNgayLop(lopId).then(setNhipLop).catch(() => {})
+    api.getKhoKhanNgayLop(lopId).then(setKhoKhan).catch(() => {})
+  }, [lopId])
 
   if (!tk) return <p className="text-muted text-sm">Đang tải tổng quan...</p>
 
@@ -95,7 +102,7 @@ export default function TongQuan({ onNavigate }) {
               mau="var(--color-gv)"
               donVi="bài cả lớp hoàn thành"
               tieu_de="Nhịp học của lớp"
-              phu_de="Tổng bài hoàn thành mỗi ngày (mọi lớp phụ trách) · 30 ngày"
+              phu_de="Tổng bài hoàn thành mỗi ngày (lớp đang chọn) · 30 ngày"
             />
           )}
           {khoKhan && (
@@ -141,20 +148,24 @@ export default function TongQuan({ onNavigate }) {
         ]}
       />
 
+      <div className="flex items-center justify-end">
+        <ChonLop value={lopId} onChange={setLopId} nhan="Số liệu theo lớp" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <BangXepHangThoiGian
           title="Dạng bài học sinh mất nhiều thời gian"
-          subtitle="Tối đa 3 dạng — tổng thời gian cộng dồn CẢ LỚP"
+          subtitle={`Tối đa 3 dạng — thời gian TRUNG BÌNH mỗi lượt (chỉ nhóm có từ ${tk.nguong_luot ?? 5} lượt)`}
           rows={tk.dang_mat_thoi_gian}
           nhan={(r) => r.ten}
-          empty="Chưa có dữ liệu hoàn thành."
+          empty="Chưa đủ dữ liệu để xếp hạng."
         />
         <BangXepHangThoiGian
           title="Loại câu hỏi học sinh mất nhiều thời gian"
-          subtitle="Tổng thời gian cộng dồn CẢ LỚP"
+          subtitle={`Thời gian TRUNG BÌNH mỗi lượt (chỉ nhóm có từ ${tk.nguong_luot ?? 5} lượt)`}
           rows={tk.loai_mat_thoi_gian}
           nhan={(r) => NHAN_LOAI_MAT_THOI_GIAN[r.loai] || r.loai}
-          empty="Chưa có dữ liệu hoàn thành."
+          empty="Chưa đủ dữ liệu để xếp hạng."
         />
       </div>
     </div>

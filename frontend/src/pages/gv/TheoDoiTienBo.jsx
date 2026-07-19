@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, CardHeader, Select, Table } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Table } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
 import { CotThoiGian } from '../../components/ThoiGianPhanCach'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import BieuDoTuan from '../../components/BieuDoTuan'
 import BieuDoVung from '../../components/BieuDoVung'
+import ChonLop from '../../components/gv/ChonLop'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
 import GuiNhanXetModal from '../../components/gv/GuiNhanXetModal'
 import BanDoNangLuc from '../../components/BanDoNangLuc'
@@ -293,8 +294,8 @@ export default function TheoDoiTienBo() {
   const [dangTaiTk, setDangTaiTk] = useState(false)
   const [dangCapNhatAi, setDangCapNhatAi] = useState(false)
   const [nhatKy, setNhatKy] = useState([])
-  const [fLop, setFLop] = useState('')
   const [tongHop, setTongHop] = useState(null)
+  const [soSanh, setSoSanh] = useState(null)
   const [trangHs, setTrangHs] = useState(1)
   const [trangNk, setTrangNk] = useState(1)
   const [nhanXetHs, setNhanXetHs] = useState(null) // {id, ho_ten} đang gửi nhận xét
@@ -304,19 +305,25 @@ export default function TheoDoiTienBo() {
   const [gcSession, setGcSession] = useState(null) // {session_id, ho_ten} đang gắn cờ thủ công
   const [gcGhiChu, setGcGhiChu] = useState('')
   const [gcDangGui, setGcDangGui] = useState(false)
-  const [banDoLopId, setBanDoLopId] = useState('') // '' = gộp mọi lớp GV phụ trách (mặc định)
+  // Bộ lọc lớp CHO CẢ TRANG: đơn vị thống kê là MỘT lớp (gộp mọi lớp làm chìm khác biệt giữa
+  // các lớp và để lớp đông lấn át lớp nhỏ). ChonLop tự chọn lớp đầu tiên khi trang mở.
+  const [lopId, setLopId] = useState('')
   const MOI_TRANG = 5
   const MOI_TRANG_LOP = 5
 
   useEffect(() => {
+    api.listSessionsHoanThanh().then(setNhatKy).catch(() => {})
+    api.getSoSanhLop().then(setSoSanh).catch(() => {})
+  }, [])
+
+  useEffect(() => {
     api
-      .getProgressStudents()
+      .getProgressStudents(lopId)
       .then(setStudents)
       .catch(() => {})
       .finally(() => setLoading(false))
-    api.listSessionsHoanThanh().then(setNhatKy).catch(() => {})
-    api.getTongHopLop().then(setTongHop).catch(() => {})
-  }, [])
+    api.getTongHopLop(lopId).then(setTongHop).catch(() => {})
+  }, [lopId])
 
   function xemHs(id) {
     setChon(id)
@@ -365,40 +372,19 @@ export default function TheoDoiTienBo() {
 
   const hsChon = students.find((h) => h.hoc_sinh_id === chon)
 
-  // Danh sách lớp (để lọc) + danh sách HS đã lọc
-  const lopOptions = useMemo(() => {
-    const ten = [...new Set(students.map((s) => s.lop_ten).filter(Boolean))].sort()
-    return ten.map((t) => ({ value: t, label: t }))
-  }, [students])
-
-  // Danh sách lớp theo lop_id (cho bộ lọc "Bản đồ năng lực lớp" — backend cần id, không phải tên,
-  // và 1 GV có thể có nhiều lớp cùng tên trùng lặp ở trường khác nên id mới xác định đúng 1 lớp).
-  const lopOptionsById = useMemo(() => {
-    const map = new Map()
-    for (const s of students) {
-      if (s.lop_id != null) map.set(s.lop_id, s.lop_ten)
-    }
-    return [...map.entries()]
-      .sort((a, b) => (a[1] || '').localeCompare(b[1] || ''))
-      .map(([id, ten]) => ({ value: String(id), label: ten }))
-  }, [students])
-  // GV chỉ có đúng 1 lớp → coi như đã chọn lớp đó (không cần bấm), vẫn hiện rõ tên lớp trong
-  // subtitle. Suy ra thuần từ state hiện có (không setState trong effect — tránh render thừa).
-  const banDoLopIdHieuLuc =
-    banDoLopId || (lopOptionsById.length === 1 ? lopOptionsById[0].value : '')
-  const tenLopBanDo = lopOptionsById.find((o) => o.value === banDoLopIdHieuLuc)?.label
+  // MỌI danh sách lớp phải lấy từ API (soSanh = toàn bộ lớp của GV), TUYỆT ĐỐI không suy từ
+  // `students` nữa: students giờ đã lọc theo lớp đang chọn nên suy ra sẽ chỉ còn đúng 1 lớp.
+  const tenLopBanDo = (soSanh || []).find((r) => String(r.lop_id) === String(lopId))?.lop_ten
 
   // Danh sách lớp kèm số HS (cho card thống kê lớp)
-  const lopDsThongKe = useMemo(() => {
-    const ten = [...new Set(students.map((s) => s.lop_ten).filter(Boolean))].sort()
-    return ten.map((t) => ({ ten: t, soHs: students.filter((s) => s.lop_ten === t).length }))
-  }, [students])
+  const lopDsThongKe = useMemo(
+    () => (soSanh || []).map((r) => ({ ten: r.lop_ten, soHs: r.so_hoc_sinh })),
+    [soSanh]
+  )
   const tongTrangLop = Math.max(1, Math.ceil(lopDsThongKe.length / MOI_TRANG_LOP))
   const lopTrang = lopDsThongKe.slice((trangLop - 1) * MOI_TRANG_LOP, trangLop * MOI_TRANG_LOP)
-  const dsLoc = useMemo(
-    () => (fLop ? students.filter((s) => s.lop_ten === fLop) : students),
-    [students, fLop]
-  )
+  // Không còn lọc lồng: bộ chọn lớp cấp trang đã quyết định phạm vi.
+  const dsLoc = students
 
   // Phân trang (5/trang) cho bảng học sinh và nhật ký
   const tongTrangHs = Math.max(1, Math.ceil(dsLoc.length / MOI_TRANG))
@@ -410,6 +396,49 @@ export default function TheoDoiTienBo() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-end">
+        <ChonLop value={lopId} onChange={setLopId} nhan="Thống kê cho lớp" />
+      </div>
+
+      {soSanh && soSanh.length > 1 && (
+        <Card>
+          <CardHeader title="So sánh các lớp"
+            subtitle="Mỗi lớp một dòng trên cùng bộ chỉ số — thay cho việc trộn chung mọi lớp thành một con số" />
+          <CardBody className="pt-0">
+            <Table
+              columns={[
+                { key: 'lop_ten', header: 'Lớp' },
+                { key: 'so_hoc_sinh', header: 'Sĩ số' },
+                {
+                  key: 'du_lieu', header: 'HS có dữ liệu',
+                  render: (r) => `${r.so_hoc_sinh_co_du_lieu}/${r.so_hoc_sinh}`,
+                },
+                {
+                  key: 'can_chu_y', header: 'Cần chú ý',
+                  render: (r) => (
+                    r.du_mau
+                      ? <Badge tone={r.so_hoc_sinh_can_chu_y > 0 ? 'warning' : 'success'}>
+                          {r.so_hoc_sinh_can_chu_y}
+                        </Badge>
+                      : <span className="text-xs text-muted">chưa đủ dữ liệu</span>
+                  ),
+                },
+                {
+                  key: 'dang_yeu_dau', header: 'Dạng yếu nổi bật',
+                  render: (r) => (r.du_mau && r.dang_yeu_dau) ? r.dang_yeu_dau : '—',
+                },
+              ]}
+              rows={soSanh}
+              rowKey={(r) => r.lop_id}
+            />
+            <p className="text-xs text-muted mt-2">
+              Lưu ý khi so sánh: các lớp có thể được giao nhiệm vụ/đề khác nhau nên mức tiếp xúc
+              không giống nhau — đừng kết luận về học sinh chỉ từ bảng này.
+            </p>
+          </CardBody>
+        </Card>
+      )}
+
       <Card>
         <CardHeader title="Nhật ký hoàn thành"
           subtitle={`${nhatKy.length} bài đã làm xong (kèm thời gian)`} />
@@ -448,23 +477,14 @@ export default function TheoDoiTienBo() {
       </Card>
 
       <BanDoNangLuc
-        taiDuLieu={() => api.getBanDoLop(banDoLopIdHieuLuc)}
-        khoa={banDoLopIdHieuLuc || 'tat_ca'}
+        taiDuLieu={() => api.getBanDoLop(lopId)}
+        khoa={lopId || 'tat_ca'}
         tieu_de="Bản đồ năng lực lớp"
         subtitle={
           tenLopBanDo
             ? `Lớp ${tenLopBanDo} — nhìn 1 lần biết lớp vững/yếu ở chuyên đề × độ khó nào; ô xám = chưa đủ dữ liệu.`
-            : lopOptionsById.length > 1
-              ? 'Gộp phiên của mọi lớp bạn phụ trách — chọn 1 lớp cụ thể ở góc phải để xem riêng.'
-              : 'Chưa được phân lớp nào.'
+            : 'Chưa được phân lớp nào.'
         }
-        action={lopOptionsById.length > 0 && (
-          <Select value={banDoLopIdHieuLuc} onChange={(e) => setBanDoLopId(e.target.value)}
-            options={lopOptionsById.length > 1
-              ? [{ value: '', label: 'Tất cả các lớp' }, ...lopOptionsById]
-              : lopOptionsById}
-            className="w-44 shrink-0" />
-        )}
       />
 
       {tongHop && (tongHop.dang_yeu_chung.length > 0 || tongHop.hoc_sinh_can_chu_y.length > 0) && (
@@ -474,7 +494,15 @@ export default function TheoDoiTienBo() {
           <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-semibold text-danger mb-2">Dạng lớp đang yếu</p>
-              {tongHop.dang_yeu_chung.length === 0 ? (
+              {/* Chặn xếp hạng khi lớp còn quá ít HS có dữ liệu: tách thống kê theo lớp làm mẫu
+                  số nhỏ đi nhiều, vài lượt làm cũng ra con số trông rất "báo động" nhưng vô
+                  nghĩa thống kê. */}
+              {!tongHop.du_mau ? (
+                <p className="text-sm text-muted">
+                  Chưa đủ dữ liệu để xếp hạng — mới {tongHop.so_hoc_sinh_co_du_lieu} học sinh có
+                  dữ liệu (cần từ {tongHop.nguong_mau}). Số liệu lúc này dễ gây hiểu sai.
+                </p>
+              ) : tongHop.dang_yeu_chung.length === 0 ? (
                 <p className="text-sm text-muted">Không có dạng chung đáng lo. 👍</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
@@ -550,14 +578,6 @@ export default function TheoDoiTienBo() {
         <CardHeader title="Học sinh lớp của tôi"
           subtitle={`${dsLoc.length}/${students.length} học sinh`} />
         <CardBody className="pt-0 flex flex-col gap-3">
-          <div className="max-w-xs">
-            <Select
-              label="Lọc theo lớp"
-              value={fLop}
-              onChange={(e) => { setFLop(e.target.value); setTrangHs(1) }}
-              options={[{ value: '', label: 'Tất cả lớp' }, ...lopOptions]}
-            />
-          </div>
           {loading ? (
             <p className="text-muted text-sm">Đang tải...</p>
           ) : (

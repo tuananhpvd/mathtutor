@@ -11,6 +11,10 @@ from app.models.session import Session as SessionModel
 from app.models.session import TrangThaiSession
 from app.models.user import TrangThaiUser, User, VaiTro
 
+# Số lượt hoàn thành tối thiểu của một nhóm (dạng/loại) mới được xếp hạng "tốn nhiều thời
+# gian". Dưới ngưỡng, một lượt cá biệt đủ kéo trung bình lên đỉnh bảng — nhiễu thành "tín hiệu".
+NGUONG_LUOT_TOI_THIEU = 5
+
 
 def _hs_dict(u: User) -> dict:
     return {
@@ -33,8 +37,11 @@ def _so_huu_hs(db: Session, gv_id: int, hs_id: int) -> bool:
 
 # ---------- Tổng quan ----------
 
-def tong_quan_gv(db: Session, gv_id: int) -> dict:
-    """Thống kê tổng quan cho GV (lớp/HS/câu hỏi/cờ + dạng & loại tốn nhiều thời gian)."""
+def tong_quan_gv(db: Session, gv_id: int, lop_id: int | None = None) -> dict:
+    """Thống kê tổng quan cho GV (lớp/HS/câu hỏi/cờ + dạng & loại tốn nhiều thời gian).
+
+    Sĩ số HS / HS bị khóa / cờ theo dõi CỐ Ý gộp MỌI lớp (yêu cầu nghiệp vụ; GV chỉ có 1 lớp
+    thì trùng luôn lớp đó). Riêng các thẻ "tốn nhiều thời gian" tính THEO LỚP `lop_id`."""
     lops = db.query(Lop).filter(Lop.gv_id == gv_id).all()
     lop_ids = [lop.id for lop in lops]
     hs = (
@@ -59,31 +66,48 @@ def tong_quan_gv(db: Session, gv_id: int) -> dict:
     tong_co = len(co)
     co_chua = sum(1 for f in co if f.trang_thai == TrangThaiCo.cho_xu_ly)
 
-    # Thời gian theo dạng & loại — phiên ĐÃ HOÀN THÀNH của HS
+    # --- Thẻ "tốn nhiều thời gian": tính THEO LỚP (khác 3 số đếm ở trên vốn cố ý gộp) ---
+    lop_ids_tk = [lop_id] if lop_id is not None else lop_ids
+    hs_ids_tk = (
+        [u.id for u in db.query(User).filter(
+            User.vai_tro == VaiTro.hs, User.lop_id.in_(lop_ids_tk)).all()]
+        if lop_ids_tk else []
+    )
     sess = (
         db.query(SessionModel).filter(
-            SessionModel.hoc_sinh_id.in_(hs_ids),
+            SessionModel.hoc_sinh_id.in_(hs_ids_tk),
             SessionModel.trang_thai == TrangThaiSession.hoan_thanh,
         ).all()
-        if hs_ids else []
+        if hs_ids_tk else []
     )
     p_cache = {p.id: p for p in problems}
-    tg_dang: dict[str, int] = {}
-    tg_loai: dict[str, int] = {}
+    # TRƯỚC ĐÂY cộng dồn TỔNG thời gian rồi lấy top 3 → dạng nào được GIAO NHIỀU NHẤT luôn
+    # đứng đầu, không phải dạng KHÓ NHẤT (một dạng dễ mà 40 HS làm sẽ vượt một dạng khó mà 5 HS
+    # làm). Nay dùng THỜI GIAN TRUNG BÌNH MỖI LƯỢT + kèm số lượt để đọc đúng bản chất.
+    tg_dang: dict[str, list[int]] = {}
+    tg_loai: dict[str, list[int]] = {}
     for s in sess:
         p = p_cache.get(s.problem_id)
         if p is None:
             continue
         t = s.thoi_gian_giay or 0
         ten_dang = f"{p.chuyen_de} › {p.dang.ten}" if p.dang else p.chuyen_de
-        tg_dang[ten_dang] = tg_dang.get(ten_dang, 0) + t
-        tg_loai[p.loai_cau.value] = tg_loai.get(p.loai_cau.value, 0) + t
+        tg_dang.setdefault(ten_dang, []).append(t)
+        tg_loai.setdefault(p.loai_cau.value, []).append(t)
 
-    dang_top = sorted(tg_dang.items(), key=lambda x: x[1], reverse=True)[:3]
-    loai_top = sorted(tg_loai.items(), key=lambda x: x[1], reverse=True)[:3]
+    def _top(bang: dict[str, list[int]]) -> list[tuple[str, int, int]]:
+        """(khóa, thời gian TB mỗi lượt, số lượt) — CHỈ xếp hạng nhóm đủ mẫu, để mẫu nhỏ
+        không bị đẩy lên top do một lượt cá biệt kéo trung bình."""
+        du_mau = [(k, round(sum(v) / len(v)), len(v))
+                  for k, v in bang.items() if len(v) >= NGUONG_LUOT_TOI_THIEU]
+        return sorted(du_mau, key=lambda x: x[1], reverse=True)[:3]
+
+    dang_top = _top(tg_dang)
+    loai_top = _top(tg_loai)
 
     return {
         "so_lop": len(lops),
+        # 3 số dưới CỐ Ý gộp mọi lớp theo yêu cầu nghiệp vụ (GV 1 lớp thì trùng luôn lớp đó).
         "tong_hoc_sinh": len(hs),
         "hoc_sinh_khoa": hs_khoa,
         "tong_cau_hoi": tong_ch,
@@ -92,8 +116,15 @@ def tong_quan_gv(db: Session, gv_id: int) -> dict:
         "tong_co": tong_co,
         "co_da_xu_ly": tong_co - co_chua,
         "co_chua_xu_ly": co_chua,
-        "dang_mat_thoi_gian": [{"ten": k, "thoi_gian_giay": v} for k, v in dang_top],
-        "loai_mat_thoi_gian": [{"loai": k, "thoi_gian_giay": v} for k, v in loai_top],
+        # Các thẻ dưới theo LỚP (lop_id) + kèm số lượt để không đọc nhầm.
+        "lop_id": lop_id,
+        "nguong_luot": NGUONG_LUOT_TOI_THIEU,
+        "dang_mat_thoi_gian": [
+            {"ten": k, "thoi_gian_tb_giay": tb, "so_luot": n} for k, tb, n in dang_top
+        ],
+        "loai_mat_thoi_gian": [
+            {"loai": k, "thoi_gian_tb_giay": tb, "so_luot": n} for k, tb, n in loai_top
+        ],
     }
 
 

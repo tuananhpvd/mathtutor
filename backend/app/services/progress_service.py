@@ -82,12 +82,22 @@ def hoc_sinh_thuoc_gv(db: Session, gv_id: int, hoc_sinh_id: int) -> bool:
     return hs.lop_id in lop_ids
 
 
-def hs_ids_cua_gv(db: Session, gv_id: int) -> list[int]:
-    """Toàn bộ id học sinh thuộc các lớp GV này chủ nhiệm — dùng để lọc danh sách
-    (vd cờ, nhật ký phiên) theo quyền sở hữu thay vì kiểm từng bản ghi một."""
+def hs_ids_cua_gv(db: Session, gv_id: int, lop_id: int | None = None) -> list[int]:
+    """id học sinh trong phạm vi của GV — dùng để lọc danh sách (vd cờ, nhật ký phiên) theo
+    quyền sở hữu thay vì kiểm từng bản ghi một.
+
+    - `lop_id=None` → MỌI lớp GV chủ nhiệm. Chỉ dùng cho (a) lọc theo quyền sở hữu, và (b) các
+      số liệu CỐ Ý gộp (sĩ số/HS khóa/cờ ở Tổng quan, tùy chọn "tất cả các lớp" ở Hiệu quả).
+    - `lop_id` có giá trị → CHỈ lớp đó. Đây là mặc định cho THỐNG KÊ: gộp nhiều lớp làm chìm
+      khác biệt giữa các lớp và lớp đông lấn át lớp nhỏ.
+    Hàm này KHÔNG kiểm quyền sở hữu lớp — tầng API phải kiểm trước (xem `_lop_ids_pham_vi`).
+    """
     from app.models.lop import Lop
 
-    lop_ids = [lop.id for lop in db.query(Lop).filter(Lop.gv_id == gv_id).all()]
+    q = db.query(Lop).filter(Lop.gv_id == gv_id)
+    if lop_id is not None:
+        q = q.filter(Lop.id == lop_id)
+    lop_ids = [lop.id for lop in q.all()]
     if not lop_ids:
         return []
     return [u.id for u in db.query(User).filter(User.lop_id.in_(lop_ids)).all()]
@@ -370,11 +380,15 @@ def thong_ke_chi_tiet(db: Session, hoc_sinh_id: int) -> dict:
     }
 
 
-def tien_do_lop(db: Session, gv_id: int) -> list[dict]:
-    """Tiến độ HS thuộc lớp do GV này phụ trách."""
+def tien_do_lop(db: Session, gv_id: int, lop_id: int | None = None) -> list[dict]:
+    """Tiến độ HS thuộc lớp do GV này phụ trách. `lop_id` có giá trị → CHỈ lớp đó (mặc định
+    của thống kê); None → mọi lớp (chỉ dùng khi cố ý gộp)."""
     from app.models.lop import Lop
 
-    lops = db.query(Lop).filter(Lop.gv_id == gv_id).all()
+    q = db.query(Lop).filter(Lop.gv_id == gv_id)
+    if lop_id is not None:
+        q = q.filter(Lop.id == lop_id)
+    lops = q.all()
     lop_ten = {lop.id: lop.ten for lop in lops}
     lop_ids = list(lop_ten.keys())
     if not lop_ids:
