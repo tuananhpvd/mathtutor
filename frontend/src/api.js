@@ -55,6 +55,10 @@ export const api = {
   login: (dang_nhap, mat_khau) => post('/auth/login', { dang_nhap, mat_khau }),
   health: () => request('/health'),
 
+  // Tự đăng ký bằng mã lớp (2 endpoint CÔNG KHAI — không cần token)
+  lopTuMa: (ma) => request(`/auth/lop-tu-ma?ma=${encodeURIComponent(ma)}`),
+  dangKyBangMa: (body) => post('/auth/dang-ky', body),
+
   // Học sinh — bài & phiên (gv_id: Quản lý/Admin lọc theo GV)
   listProblems: (gv_id) => request('/problems' + (gv_id ? `?gv_id=${gv_id}` : '')),
   getProblem: (id) => request(`/problems/${id}`),
@@ -140,6 +144,9 @@ export const api = {
   gvCapNhatHoSo: (body) => request('/gv/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
   gvLop: () => request('/gv/lop'),
   gvTaoLop: (body) => post('/gv/lop', body),
+  // Mã mời để HS tự đăng ký. Gọi lại gvTaoMaLop = ĐỔI mã (mã cũ mất hiệu lực ngay).
+  gvTaoMaLop: (lop_id) => post(`/gv/lop/${lop_id}/ma`),
+  gvThuHoiMaLop: (lop_id) => request(`/gv/lop/${lop_id}/ma`, { method: 'DELETE' }),
   gvKiemTraTrung: (ten_lops) => post('/gv/lop/kiem-tra-trung', { ten_lops }),
   gvKiemTraHS: (lop_id, dang_nhaps) => post(`/gv/lop/${lop_id}/kiem-tra-hs`, { dang_nhaps }),
   gvImportHSBatch: (lop_id, hoc_sinhs) => post(`/gv/lop/${lop_id}/import-hs-batch`, { hoc_sinhs }),

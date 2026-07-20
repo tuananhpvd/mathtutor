@@ -88,6 +88,38 @@ export default function QuanLyLopGV() {
   const [errThemLop, setErrThemLop] = useState('')
   const [dangImport, setDangImport] = useState(false)
   const [preview, setPreview] = useState(null) // { tenLops, kiemTra }
+  const [maMsg, setMaMsg] = useState('')        // phản hồi ngắn cho thao tác mã lớp
+
+  async function taoMa(l) {
+    setMaMsg('')
+    try {
+      const d = await api.gvTaoMaLop(l.id)
+      tai()
+      setMaMsg(`Đã ${l.ma_lop ? 'đổi' : 'tạo'} mã cho lớp ${l.ten}: ${d.ma_lop}`)
+    } catch (e) { setError(e.message) }
+  }
+
+  async function thuHoiMa(l) {
+    if (!await confirm(
+      `Thu hồi mã lớp "${l.ten}"? Học sinh sẽ không dùng mã này đăng ký được nữa `
+      + '(các em đã vào lớp vẫn giữ nguyên tài khoản).'
+    )) return
+    setMaMsg('')
+    try {
+      await api.gvThuHoiMaLop(l.id)
+      tai()
+      setMaMsg(`Đã thu hồi mã lớp ${l.ten}.`)
+    } catch (e) { setError(e.message) }
+  }
+
+  async function saoChepMa(ma) {
+    try {
+      await navigator.clipboard.writeText(ma)
+      setMaMsg(`Đã sao chép mã ${ma}`)
+    } catch {
+      setMaMsg(`Mã lớp: ${ma}`)  // trình duyệt chặn clipboard → vẫn hiện để GV chép tay
+    }
+  }
   const fileRef = useRef(null)
 
   function tai() {
@@ -269,6 +301,11 @@ export default function QuanLyLopGV() {
 
       <Card>
         <CardHeader title="Lớp của tôi" subtitle={`${loc.length}/${lops.length} lớp`} />
+        {maMsg && (
+          <p className="mx-4 mb-2 rounded-md bg-success-soft px-3 py-2 text-sm text-success">
+            {maMsg}
+          </p>
+        )}
         <CardBody className="flex flex-col gap-3">
           <Input label="Tìm lớp" placeholder="Tên lớp..." value={q} onChange={(e) => setQ(e.target.value)} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
@@ -301,6 +338,37 @@ export default function QuanLyLopGV() {
                     </div>
                   </div>
                 )}
+
+                {/* Mã mời để HS TỰ đăng ký vào lớp — thầy cô chỉ cần đọc mã cho cả lớp,
+                    không phải nhập tay từng em. Không có mã = lớp đang đóng. */}
+                <div className="border-t border-border px-3 py-2 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    Mã cho HS tự đăng ký
+                  </span>
+                  {l.ma_lop ? (
+                    <>
+                      <code className="rounded-md bg-primary-soft px-2.5 py-1 text-sm font-bold
+                        tracking-widest text-primary">{l.ma_lop}</code>
+                      {l.ma_het_han && (
+                        <span className="text-xs text-muted">
+                          hết hạn {new Date(l.ma_het_han).toLocaleDateString('vi-VN')}
+                        </span>
+                      )}
+                      <div className="flex gap-1 ml-auto">
+                        <Button size="sm" variant="secondary" onClick={() => saoChepMa(l.ma_lop)}>
+                          Sao chép
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => taoMa(l)}>Đổi mã</Button>
+                        <Button size="sm" variant="danger" onClick={() => thuHoiMa(l)}>Thu hồi</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm text-muted">Chưa mở — lớp không nhận đăng ký</span>
+                      <Button size="sm" className="ml-auto" onClick={() => taoMa(l)}>Tạo mã</Button>
+                    </>
+                  )}
+                </div>
 
                 {moRong[l.id] && (
                   <div className="border-t border-border px-3 py-2 flex flex-col gap-1">

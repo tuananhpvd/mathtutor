@@ -3,6 +3,7 @@
 from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
+from app.core.ma_lop import dinh_dang
 from app.models.flag import Flag, TrangThaiCo
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
@@ -159,6 +160,9 @@ def lop_cua_gv(db: Session, gv_id: int) -> list[dict]:
             "id": lop.id, "ten": lop.ten,
             "so_hoc_sinh": len(hs_by_lop.get(lop.id, [])),
             "hoc_sinhs": [_hs_dict(h) for h in hs_by_lop.get(lop.id, [])],
+            # Mã mời để HS tự đăng ký (None = lớp đang ĐÓNG). Dạng có gạch cho dễ đọc/chép.
+            "ma_lop": dinh_dang(lop.ma_lop) if lop.ma_lop else None,
+            "ma_het_han": lop.ma_het_han.isoformat() if lop.ma_het_han else None,
         }
         for lop in lops
     ]

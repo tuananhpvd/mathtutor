@@ -43,7 +43,7 @@ function PanelThuongHieu() {
   )
 }
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onDangKy }) {
   const [form, setForm] = useState({ dang_nhap: '', mat_khau: '' })
   const [hienMk, setHienMk] = useState(false)
   const [error, setError] = useState('')
@@ -142,6 +142,18 @@ export default function Login({ onLogin }) {
               <p className="text-center text-xs text-muted">
                 Quên mật khẩu? Liên hệ giáo viên hoặc quản trị viên.
               </p>
+
+              {/* Lối vào cho HS chưa có tài khoản: tự đăng ký bằng mã lớp thầy/cô cấp —
+                  bỏ được rào cản "phải chờ GV nhập tay từng em". */}
+              {onDangKy && (
+                <div className="border-t border-border pt-4 text-center">
+                  <p className="text-sm text-muted">Học sinh chưa có tài khoản?</p>
+                  <button type="button" onClick={onDangKy}
+                    className="mt-1 text-sm font-medium text-primary hover:underline">
+                    Đăng ký bằng mã lớp
+                  </button>
+                </div>
+              )}
             </form>
           </div>
         </div>

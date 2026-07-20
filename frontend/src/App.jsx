@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import Login from './pages/auth/Login'
+import DangKy from './pages/auth/DangKy'
 import { dangKyPhienHetHan, getSession } from './auth'
 import { ConfirmProvider } from './components/ui'
 import ThuongHieu from './components/ThuongHieu'
@@ -97,7 +98,12 @@ export default function App() {
 
   return (
     <ConfirmProvider>
-      {page === 'login' && <Login onLogin={handleLogin} />}
+      {page === 'login' && (
+        <Login onLogin={handleLogin} onDangKy={() => setPage('dang_ky')} />
+      )}
+      {page === 'dang_ky' && (
+        <DangKy onXong={handleLogin} onQuayLai={() => setPage('login')} />
+      )}
       <Suspense fallback={<DangTaiToanTrang />}>
         {page === 'hs' && <HocSinhApp onLogout={handleLogout} />}
         {page === 'gv' && <GiaoVienApp onLogout={handleLogout} />}

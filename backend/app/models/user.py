@@ -1,9 +1,11 @@
 import enum
+from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import UTCDateTime
 
 
 class VaiTro(str, enum.Enum):
@@ -34,5 +36,11 @@ class User(Base):
     # HS: đã xem hướng dẫn 3 bước lúc vào phòng học lần đầu chưa — lưu server-side (không
     # dùng localStorage) để hướng dẫn chỉ hiện đúng 1 lần dù đổi máy/trình duyệt.
     da_xem_huong_dan_phong_hoc: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Thời điểm tạo tài khoản. NULLABLE có chủ ý: tài khoản đã tồn tại trước khi có cột này
+    # KHÔNG biết được ngày tạo thật — để NULL trung thực hơn là gán bừa thời điểm chạy
+    # migration. Dùng cho trần chống spam "số đăng ký/lớp/ngày" (xem dang_ky_service).
+    tao_luc: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=True
+    )
 
     lop: Mapped["Lop | None"] = relationship("Lop", back_populates="hoc_sinhs", foreign_keys=[lop_id])  # noqa: F821

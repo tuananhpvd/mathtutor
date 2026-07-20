@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentUser, require_role
+from app.core.ma_lop import dinh_dang
 from app.db.session import get_db
 from app.models.user import VaiTro
 from app.schemas.gv import (
@@ -50,6 +51,33 @@ def cap_nhat_ho_so(body: HoSoUpdate, current_user: CurrentUser, db: Session = De
 @router.get("/lop", dependencies=_GV)
 def lop(current_user: CurrentUser, db: Session = Depends(get_db)):
     return gv_service.lop_cua_gv(db, current_user.id)
+
+
+@router.post("/lop/{lop_id}/ma", dependencies=_GV)
+def tao_ma_lop(lop_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Sinh mã mời mới cho lớp (gọi lại = ĐỔI mã, mã cũ hết hiệu lực ngay)."""
+    from app.models.lop import Lop
+    from app.services import dang_ky_service
+
+    if not gv_service._so_huu_lop(db, current_user.id, lop_id):
+        raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
+    lop_ = dang_ky_service.tao_ma_lop(db, db.get(Lop, lop_id))
+    return {
+        "ma_lop": dinh_dang(lop_.ma_lop),
+        "ma_het_han": lop_.ma_het_han.isoformat() if lop_.ma_het_han else None,
+    }
+
+
+@router.delete("/lop/{lop_id}/ma", dependencies=_GV)
+def thu_hoi_ma_lop(lop_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+    """Thu hồi mã — lớp trở lại trạng thái ĐÓNG, không nhận đăng ký mới."""
+    from app.models.lop import Lop
+    from app.services import dang_ky_service
+
+    if not gv_service._so_huu_lop(db, current_user.id, lop_id):
+        raise HTTPException(status_code=403, detail="Không có quyền với lớp này")
+    dang_ky_service.thu_hoi_ma_lop(db, db.get(Lop, lop_id))
+    return {"ok": True}
 
 
 @router.post("/lop", dependencies=_GV)

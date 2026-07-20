@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 .venv/
 *.db
+# Bản sao lưu CSDL trước khi chạy migration (vd dev.db.bak-20260720-182156). Không khớp
+# "*.db" nên phải khai riêng — các file này CHỨA DỮ LIỆU HỌC SINH (họ tên, hash mật khẩu),
+# lỡ commit là rò rỉ dữ liệu.
+*.db.bak*
 .env
 *.egg-info/
 

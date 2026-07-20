@@ -4,7 +4,52 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-19, phiên bản **v134**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-20, phiên bản **v135**)
+
+- **✨ (v135) feat: HS TỰ đăng ký bằng MÃ LỚP — gỡ nút thắt "phải chờ GV nhập tay từng em".**
+  Trước đây chỉ GV/Admin tạo được tài khoản HS, nên không GV nào triển khai thì không HS nào
+  dùng được. Nay GV sinh mã, đọc cho cả lớp; HS tự tạo tài khoản và vào đúng lớp.
+  **Chuỗi trách nhiệm giữ nguyên**: mọi HS tự đăng ký vẫn thuộc một lớp CÓ GV phụ trách.
+  - **Pha A** — `lop.ma_lop` (unique index, nullable — **NULL = lớp ĐÓNG**, cố ý không thêm cờ
+    riêng để tránh 2 nguồn sự thật) + `lop.ma_het_han`; migration `e2a75c1c5e82`.
+    `core/ma_lop.py`: mã 8 ký tự từ bảng chữ 31 ký tự **bỏ `0/O`, `1/I/L`** (thầy cô đọc cho cả
+    lớp chép), hiển thị `A7K3-QM9X`; `chuan_hoa` nhận mọi kiểu gõ (thường/gạch/khoảng trắng).
+    Không gian mã 31⁸ ≈ 8,5×10¹¹ → dò mù bất khả thi.
+  - **Pha B** — 4 endpoint: `GET /auth/lop-tu-ma` + `POST /auth/dang-ky` (**2 endpoint CÔNG
+    KHAI đầu tiên của hệ thống**), `POST|DELETE /gv/lop/{id}/ma`. Quyết định nghiệp vụ đã chốt:
+    HS vào lớp NGAY (trả token luôn) · HS tự đặt tên đăng nhập · CHẶN lớp chưa có GV.
+    - **Throttle chỉ đếm lần nhập SAI mã**, khóa theo IP: cả lớp 40 em đăng ký cùng lúc qua
+      NAT trường không sinh lần sai nào nên không bao giờ bị khóa oan; kẻ dò mã chỉ tạo lần
+      sai nên bị chặn nhanh. (Cùng triết lý throttle login sẵn có.)
+    - **Vai trò CỨNG `hs`, `lop_id` lấy từ MÃ** — client không được khai; có test gửi kèm
+      `vai_tro:"admin"`, `la_quan_ly:true` và xác nhận bị bỏ qua.
+    - Mã sai và mã hết hạn trả **cùng một thông điệp** → không lộ mã nào từng có thật.
+    - Hai lớp trần chống spam: **60 đăng ký/lớp/ngày** (dựa `users.tao_luc`, migration
+      `040595cbe601`) + **100 tổng sĩ số** (chặn kiểu nhỏ giọt nhiều ngày). GV nhận thông báo
+      mỗi khi có HS tự vào lớp → luôn biết ai trong lớp mình và khóa được ngay.
+  - **Pha C** — màn đăng ký **2 bước** (nhập mã → hiện TÊN LỚP + TÊN GV để xác nhận, chống vào
+    nhầm lớp → nhập thông tin → vào thẳng phòng học); link "Đăng ký bằng mã lớp" ở trang đăng
+    nhập; khu quản lý mã trong Quản lý lớp GV (Tạo mã / Sao chép / Đổi mã / Thu hồi + hạn).
+  - **Dọn drift model vs dev.db (điều tra lật ngược kết luận ban đầu)**: `tom_tat_ly_thuyet.
+    noi_dung` và FK `yeu_cau_tro_giup.turn_id` bị autogenerate báo lệch ở mọi lần chạy. Truy ra
+    **BASELINE MIGRATION (= production Postgres) VỐN ĐÃ ĐÚNG**, chỉ `dev.db` local sai (di sản
+    thời trước Alembic, `turn_id` thêm bằng `ALTER TABLE ADD COLUMN` nên không kèm FK). Nếu viết
+    migration "sửa drift" như định ban đầu thì đã đi sửa thứ không hỏng và `create_foreign_key`
+    sẽ lỗi trên Postgres. → Vá riêng `dev.db` bằng `PRAGMA writable_schema` (sửa văn bản DDL,
+    không dời dữ liệu). Autogenerate nay sinh migration RỖNG.
+  - `.gitignore` thêm `*.db.bak*` — bản sao CSDL trước migration **chứa dữ liệu học sinh**
+    (họ tên, hash mật khẩu), `*.db` không khớp nên trước đó vẫn lọt ra untracked.
+  - Test: `pytest` **577/577** (+8 `test_ma_lop.py`, +16 `test_dang_ky_ma_lop.py`),
+    `ruff`/`eslint`/`vite build` sạch, `vitest` 23/23. Migration round-trip trên BẢN SAO trước
+    khi áp `dev.db`. Xác minh thêm bằng HTTP thật trên server đang chạy.
+  - **3 bài học ghi lại**: (a) autogenerate **luôn quên `import app.db.types`** với kiểu cột tùy
+    biến → thiếu là NameError lúc chạy migration, phải kiểm tay mọi lần; (b) truyền
+    `tao_luc=None` lúc khởi tạo **không** tạo NULL — SQLAlchemy vẫn áp `default=`, phải UPDATE
+    sau insert (test đầu tiên của tôi sai vì điều này); (c) vá `sqlite_master` phải dùng THAM SỐ
+    RÀNG BUỘC, dùng `repr()` sẽ sinh escape kiểu Python (`\t`) làm hỏng schema (đã xảy ra, khôi
+    phục từ backup).
+
+## 1a. Trạng thái trước đó (v134)
 
 - **✨ (v134) feat: thống kê GV chuyển sang đơn vị LỚP (không còn gộp mọi lớp GV phụ trách).**
   Gộp nhiều lớp làm chìm khác biệt giữa các lớp và để lớp đông lấn át lớp nhỏ; đơn vị thống
@@ -42,7 +87,7 @@
     sạch, `vitest` 23/23. Xác minh thêm bằng script đọc thẳng `dev.db` qua ORM (không chỉ tin
     HTTP 200) sau sự cố backend không nạp code mới do socket cổng 8000 bị treo.
 
-## 1a. Trạng thái trước đó (v133)
+## 1b. Trạng thái trước đó (v133)
 
 - **🐞 (v133) fix: GV "Trả lời thêm" không còn làm MẤT các câu trả lời cũ.** Lỗi lộ ra sau khi
   v132 cho phép trả lời tiếp ở yêu cầu đã trả lời.
@@ -63,7 +108,7 @@
   - **Bài học**: khi một trường bị ghi đè (`tra_loi`) được dùng làm nguồn hiển thị LỊCH SỬ thì
     sớm muộn sẽ mất dữ liệu hiển thị — nguồn lịch sử phải là bảng append-only (`Turn`).
 
-## 1b. Trạng thái trước đó (v132)
+## 1c. Trạng thái trước đó (v132)
 
 - **✨ (v132) ui: gộp phòng học về MỘT khối soạn — khu vực trả lời & trò chuyện tách rõ, nhờ
   thầy/cô inline.** Thuần frontend, KHÔNG đụng backend/API/lõi/guard/nguyên tắc bất biến — hợp
@@ -89,7 +134,7 @@
     bản tái cấu trúc; các chỉnh màu/bố cục sau đó không chạm đường E2E kiểm). Lưu ý: máy dev
     cạn RAM có lúc làm vite E2E OOM — không phải lỗi code.
 
-## 1c. Trạng thái trước đó (v131)
+## 1d. Trạng thái trước đó (v131)
 
 - **✨ (v131) feat: mục tiêu HS nhiều dòng + nút admin "Nhắc GV ngay" + nút "Hủy" ở gợi ý.**
   - **#2b — Mục tiêu HS đa dạng (redesign)**: trước chỉ đặt theo tuần/chủ đề. Nay HS chọn
@@ -112,7 +157,7 @@
     `ruff`/`eslint`/`vite build` sạch; migration round-trip + chạy trên dev.db thật (data còn
     nguyên); Playwright xác minh HS tạo mục tiêu nhiều dòng qua accordion OK; E2E 3 luồng vàng 3/3.
 
-## 1d. Trạng thái trước đó (v130)
+## 1e. Trạng thái trước đó (v130)
 
 - **✨ (v130) feat: chủ động nhắc GV mỗi tuần "N học sinh cần chú ý" (digest điểm yếu).**
   Trước đây phân tích điểm yếu là "kéo" (GV phải mở trang mới thấy) — giờ hệ thống CHỦ ĐỘNG
@@ -131,7 +176,7 @@
   - 4 test mới `test_nhac_gv.py` (gửi khi có HS yếu / dedup 7 ngày / gửi lại sau 7 ngày / không
     gửi khi lớp sạch). `pytest` 536/536 (+4), `ruff`/`eslint`/`vite build` sạch.
 
-## 1e. Trạng thái trước đó (v129)
+## 1f. Trạng thái trước đó (v129)
 
 - **✨ (v129) ui: fix DỨT ĐIỂM cả lớp lỗi tràn ngang mobile — kẹp mọi grid card về 1 cột.**
   Thuần frontend/CSS.
@@ -149,7 +194,7 @@
     không tràn. Verify UI phải đảm bảo thành phần cần kiểm THỰC SỰ render với dữ liệu.
   - `eslint`/`vite build` sạch, E2E 3 luồng vàng 3/3 — không hồi quy.
 
-## 1f. Trạng thái trước đó (v128)
+## 1g. Trạng thái trước đó (v128)
 
 - **✨ (v128) ui: thêm nút "Giao bài nhanh" nổi bật ở header GV, đặt TRƯỚC chuông thông báo.**
   Thuần frontend.
@@ -162,7 +207,7 @@
     + bấm điều hướng đúng trang; HS không có nút. `eslint`/`vite build` sạch, E2E 3 luồng 3/3
     (lần fail giữa chừng do kẹt port tiến trình sót — kill port chạy lại sạch, không phải lỗi code).
 
-## 1g. Trạng thái trước đó (v127)
+## 1h. Trạng thái trước đó (v127)
 
 - **✨ (v127) ui: fix 5 thẻ tràn ngang trên điện thoại (Bài đang làm dở, Theo dạng bài/Theo
   loại câu hỏi, Dạng bài/Loại câu hỏi mất nhiều thời gian).** Thuần frontend/CSS.
@@ -180,7 +225,7 @@
     test PASS (scrollW 375 = viewport). TrangChu + Tiến độ HS đều sạch.
   - `eslint`/`vite build`/`vitest` 23/23, `playwright` 3 luồng vàng 3/3 — không hồi quy.
 
-## 1h. Trạng thái trước đó (v126)
+## 1i. Trạng thái trước đó (v126)
 
 - **✨ (v126) Làm DỨT ĐIỂM docs lỗi thời (Hướng B — thu hẹp về phần ổn định + trỏ nguồn tự
   đúng), thay cho cảnh báo tạm ở v125.** Thuần tài liệu, KHÔNG đụng code.
@@ -201,7 +246,7 @@
   - **Nhân tiện sửa lỗi cascade tái diễn**: quy trình cascade nhãn `## 1x.` trong file này lại
     tạo trùng nhãn (v122 và v121 cùng `1d`) — đã sửa; cần cẩn thận nhãn CŨ NHẤT mỗi lần dời.
 
-## 1i. Trạng thái trước đó (v125)
+## 1j. Trạng thái trước đó (v125)
 
 - **✨ (v125) #5–#8 (P2, đợt rà soát 2026-07-18): nén PROGRESS.md, cập nhật docs, gắn Sentry,
   đưa E2E vào CI.** Toàn bộ danh sách rà soát 2 đợt (14 mục + 8 mục) giờ đã đóng, trừ #12/#13
@@ -228,7 +273,7 @@
     Git Bash trên máy này có lỗi môi trường `spawn UNKNOWN` khi Playwright tự fork worker,
     không liên quan code, chỉ cần dùng PowerShell).
 
-## 1j. Trạng thái trước đó (v124)
+## 1k. Trạng thái trước đó (v124)
 
 - **✨ (v124) Nâng chuẩn mật khẩu tối thiểu 4 → 6 ký tự (đợt rà soát mới 2026-07-18).** Tài
   khoản GV/quản lý dùng "1234" quá yếu dù đã có throttle chống dò (`auth/throttle.py`).
@@ -247,7 +292,7 @@
     nhắc lại). Còn mở (P2, làm khi rảnh): nén PROGRESS.md (>170KB), cập nhật docs TESTING/
     ARCHITECTURE cho Alembic+E2E, Sentry, đưa `npm run e2e` vào CI.
 
-## 1k. Trạng thái trước đó (v123)
+## 1l. Trạng thái trước đó (v123)
 
 - **✨ (v123) #11 (mục P0/P1 cuối cùng còn code được): E2E Playwright 3 "luồng vàng" trên trình
   duyệt thật + #14 viết lại mục 7 (lỗi thời từ v32).** Với v123, TOÀN BỘ 14 mục đợt rà soát
@@ -272,7 +317,7 @@
     `process` trong vite.config bằng `import process from 'node:process'`), `vitest` 23/23,
     `playwright` 3/3 (chạy 2 lần liên tiếp xác nhận lặp lại được).
 
-## 1l. Trạng thái trước đó (v122)
+## 1m. Trạng thái trước đó (v122)
 
 - **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
   app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
@@ -286,7 +331,7 @@
     base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
   - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
 
-## 1m. Trạng thái trước đó (v121)
+## 1n. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại
