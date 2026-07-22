@@ -47,6 +47,24 @@ def de_xuat_dang(hoc_sinh_id: int, dang_id: int, current_user: CurrentUser,
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
+@router.get("/da-hoan-thanh", dependencies=_GV)
+def da_hoan_thanh(hoc_sinh_ids: str = "", current_user: CurrentUser = None,
+                  db: Session = Depends(get_db)):
+    """Với tập HS đang chọn (CSV id), mỗi bài đã có bao nhiêu em hoàn thành.
+
+    Dùng cho màn Giao nhiệm vụ: làm mờ bài cả nhóm đã làm, gắn nhãn "N/M em đã làm" cho bài
+    một phần nhóm đã làm — GV không còn lỡ giao trùng bài các em vừa làm xong.
+    """
+    try:
+        ids = [int(x) for x in hoc_sinh_ids.split(",") if x.strip()]
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="hoc_sinh_ids không hợp lệ") from e
+    try:
+        return nhiem_vu_service.dem_hoan_thanh(db, current_user.id, ids)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
 @router.patch("/{nv_id}", dependencies=_GV)
 def cap_nhat(nv_id: int, body: dict, current_user: CurrentUser, db: Session = Depends(get_db)):
     try:

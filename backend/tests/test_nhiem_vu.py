@@ -168,3 +168,83 @@ def test_xoa_nhiem_vu(db, client):
     }).json()["id"]
     assert client.delete(f"/api/nhiem-vu/{nv_id}", headers=h_gv).status_code == 200
     assert client.get("/api/nhiem-vu/hs", headers=_h(client, "hs1")).json() == []
+
+
+# ---------- Không giao trùng bài HS đã hoàn thành ----------
+
+def _hoan_thanh(client, dn, problem_id):
+    """HS làm xong 1 bài TLN 1 bước (đáp án 5) qua đúng luồng HTTP."""
+    h = _h(client, dn)
+    sid = client.post("/api/sessions", headers=h,
+                      json={"problem_id": problem_id}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+
+def test_chan_giao_bai_hs_duy_nhat_da_hoan_thanh(db, client):
+    """Giao cho 1 HS — bài em đó đã làm thì KHÔNG giao lại được (đúng yêu cầu gốc)."""
+    s = _seed(db)
+    _hoan_thanh(client, "hs1", s["p1"])
+
+    r = client.post("/api/nhiem-vu", headers=_h(client, "gv1"), json={
+        "tieu_de": "Giao trùng", "problem_ids": [s["p1"]], "hoc_sinh_ids": [s["hs1"]],
+    })
+    assert r.status_code == 400
+    assert "hoàn thành" in r.json()["detail"]
+
+
+def test_van_giao_duoc_khi_chi_MOT_trong_nhieu_em_da_lam(db, client):
+    """Chặn theo 'MỌI em đã làm', KHÔNG phải 'bất kỳ em nào' — nếu chặn theo bất kỳ thì giao
+    cho cả lớp sẽ gần như không còn bài nào giao được."""
+    s = _seed(db)
+    _hoan_thanh(client, "hs1", s["p1"])   # chỉ hs1 làm, hs2 chưa
+
+    r = client.post("/api/nhiem-vu", headers=_h(client, "gv1"), json={
+        "tieu_de": "Giao cả nhóm", "problem_ids": [s["p1"]],
+        "hoc_sinh_ids": [s["hs1"], s["hs2"]],
+    })
+    assert r.status_code == 200, r.text
+
+
+def test_chan_khi_ca_nhom_deu_da_lam(db, client):
+    s = _seed(db)
+    _hoan_thanh(client, "hs1", s["p1"])
+    _hoan_thanh(client, "hs2", s["p1"])
+
+    r = client.post("/api/nhiem-vu", headers=_h(client, "gv1"), json={
+        "tieu_de": "Vô ích", "problem_ids": [s["p1"]],
+        "hoc_sinh_ids": [s["hs1"], s["hs2"]],
+    })
+    assert r.status_code == 400
+
+
+def test_chan_ca_o_duong_SUA_nhiem_vu(db, client):
+    """Lỗ dễ sót: tạo nhiệm vụ sạch rồi SỬA để nhét bài đã hoàn thành vào."""
+    s = _seed(db)
+    h_gv = _h(client, "gv1")
+    nv = client.post("/api/nhiem-vu", headers=h_gv, json={
+        "tieu_de": "NV", "problem_ids": [s["p2"]], "hoc_sinh_ids": [s["hs1"]],
+    }).json()
+    _hoan_thanh(client, "hs1", s["p1"])
+
+    r = client.patch(f"/api/nhiem-vu/{nv['id']}", headers=h_gv,
+                     json={"problem_ids": [s["p1"]]})
+    assert r.status_code == 400
+    assert "hoàn thành" in r.json()["detail"]
+
+
+def test_endpoint_dem_hoan_thanh(db, client):
+    s = _seed(db)
+    _hoan_thanh(client, "hs1", s["p1"])
+
+    d = client.get(f"/api/nhiem-vu/da-hoan-thanh?hoc_sinh_ids={s['hs1']},{s['hs2']}",
+                   headers=_h(client, "gv1")).json()
+    assert d["so_hoc_sinh"] == 2
+    assert d["theo_bai"][str(s["p1"])] == 1      # 1/2 em đã làm
+    assert str(s["p2"]) not in d["theo_bai"]     # chưa em nào làm → không có trong bảng thưa
+
+
+def test_dem_hoan_thanh_chan_hs_lop_khac(db, client):
+    s = _seed(db)
+    r = client.get(f"/api/nhiem-vu/da-hoan-thanh?hoc_sinh_ids={s['hs1']}",
+                   headers=_h(client, "gv2"))
+    assert r.status_code == 400

@@ -60,6 +60,9 @@ export default function GiaoNhiemVu() {
   const [deXuat, setDeXuat] = useState(null)
   const [dangDeXuat, setDangDeXuat] = useState(false)
 
+  // Số em (trong tập ĐANG CHỌN) đã hoàn thành từng bài — nguồn để chặn giao trùng.
+  // {so_hoc_sinh, theo_bai: {problem_id: so_em_da_lam}}
+  const [daLam, setDaLam] = useState({ so_hoc_sinh: 0, theo_bai: {} })
   const [dangGui, setDangGui] = useState(false)
   const [ok, setOk] = useState('')
   const [loi, setLoi] = useState('')
@@ -75,6 +78,40 @@ export default function GiaoNhiemVu() {
     api.gvLop().then(setLops).catch(() => {})
     taiNhiemVu()
   }, [])
+
+  // Chọn HS đổi → tải lại bảng "ai đã làm bài nào". Chưa chọn em nào thì không có gì để lọc
+  // (không setState đồng bộ ở đây — các hàm dưới đã tự trả 0 khi soHsChon = 0).
+  useEffect(() => {
+    const ids = [...chonHs]
+    if (ids.length === 0) return
+    let huy = false
+    api.gvDemHoanThanh(ids)
+      .then((d) => {
+        if (huy) return
+        const bang = d?.theo_bai || {}
+        setDaLam(d || { so_hoc_sinh: 0, theo_bai: {} })
+        // Bỏ tích bài vừa trở thành "cả nhóm đã làm" sau khi đổi tập HS — nếu không, bài đã
+        // bị khóa trên màn hình vẫn nằm trong danh sách gửi đi và backend báo lỗi khó hiểu.
+        setChonBai((truoc) => {
+          const sau = new Set(
+            [...truoc].filter((id) => (bang[id] ?? bang[String(id)] ?? 0) < ids.length)
+          )
+          return sau.size === truoc.size ? truoc : sau
+        })
+      })
+      .catch(() => {})
+    return () => { huy = true }
+  }, [chonHs])
+
+  // Bài mà MỌI em được chọn đều đã làm → giao lại là vô ích với cả nhóm, cấm tích.
+  // (Chọn đúng 1 em thì đây chính là "bài em đó đã làm".) Bài mới một phần nhóm làm vẫn cho
+  // tích nhưng có nhãn cảnh báo — GV tự quyết.
+  const soHsChon = chonHs.size
+  function soEmDaLam(id) {
+    if (soHsChon === 0) return 0   // tránh dùng số liệu cũ của tập HS trước đó
+    return daLam.theo_bai?.[id] ?? daLam.theo_bai?.[String(id)] ?? 0
+  }
+  function caNhomDaLam(id) { return soHsChon > 0 && soEmDaLam(id) >= soHsChon }
 
   const lopOptions = useMemo(
     () => [{ value: '', label: 'Tất cả lớp' },
@@ -119,9 +156,10 @@ export default function GiaoNhiemVu() {
     setter(next)
   }
   function chonNhom(items) {
-    const allSel = items.every((b) => chonBai.has(b.id))
+    const duoc = items.filter((b) => !caNhomDaLam(b.id))   // không tích hộ bài đã bị khóa
+    const allSel = duoc.length > 0 && duoc.every((b) => chonBai.has(b.id))
     const next = new Set(chonBai)
-    allSel ? items.forEach((b) => next.delete(b.id)) : items.forEach((b) => next.add(b.id))
+    allSel ? duoc.forEach((b) => next.delete(b.id)) : duoc.forEach((b) => next.add(b.id))
     setChonBai(next)
   }
   function chonCaLop() {
@@ -335,6 +373,19 @@ export default function GiaoNhiemVu() {
                   className="ml-auto rounded-md border border-border px-2 py-0.5 text-xs w-36 focus:outline-none focus:ring-1 focus:ring-primary/40" />
               </div>
 
+              {/* Chưa chọn HS thì không biết em nào đã làm bài nào → nhắc chọn HS trước */}
+              {soHsChon === 0 ? (
+                <p className="rounded-md bg-warning-soft border border-warning/30 px-3 py-2 text-xs text-ink">
+                  Hãy <b>chọn học sinh trước</b> — khi đó hệ thống sẽ tự làm mờ những bài các em
+                  đã hoàn thành để thầy/cô không giao trùng.
+                </p>
+              ) : (
+                <p className="text-xs text-muted">
+                  Bài <b>cả nhóm đã hoàn thành</b> bị làm mờ và không chọn được. Bài chỉ một số em
+                  đã làm vẫn chọn được, có nhãn nhắc.
+                </p>
+              )}
+
               {/* Accordion Chuyên đề → Dạng bài → Câu hỏi */}
               <div className="overflow-y-auto max-h-[58vh] rounded-lg border border-border flex flex-col divide-y divide-border">
                 {Object.keys(grouped).length === 0 ? (
@@ -392,12 +443,19 @@ export default function GiaoNhiemVu() {
                             {/* Danh sách câu hỏi đầy đủ */}
                             {isOpenDang && (
                               <div className="divide-y divide-border/40 bg-surface">
-                                {items.map((b) => (
+                                {items.map((b) => {
+                                  const nDaLam = soEmDaLam(b.id)
+                                  const khoa = caNhomDaLam(b.id)
+                                  return (
                                   <label key={b.id}
-                                    className={`flex gap-3 pl-8 pr-4 py-3 cursor-pointer transition-colors hover:bg-surface-2 ${
-                                      chonBai.has(b.id) ? 'bg-primary-soft/20' : ''
+                                    title={khoa ? 'Cả nhóm đã hoàn thành bài này' : undefined}
+                                    className={`flex gap-3 pl-8 pr-4 py-3 transition-colors ${
+                                      khoa
+                                        ? 'opacity-55 cursor-not-allowed bg-surface-2/40'
+                                        : `cursor-pointer hover:bg-surface-2 ${chonBai.has(b.id) ? 'bg-primary-soft/20' : ''}`
                                     }`}>
                                     <input type="checkbox" checked={chonBai.has(b.id)}
+                                      disabled={khoa}
                                       onChange={() => toggle(chonBai, setChonBai, b.id)}
                                       className="mt-0.5 shrink-0 accent-[var(--color-primary)]" />
                                     <div className="flex-1 min-w-0">
@@ -406,6 +464,14 @@ export default function GiaoNhiemVu() {
                                         <Badge tone={DO_KHO_TONE[b.do_kho] || 'primary'}>
                                           {DO_KHO_LABEL[b.do_kho] || b.do_kho}
                                         </Badge>
+                                        {/* Nêu RÕ LÝ DO bài bị mờ / cần cân nhắc, tránh GV tưởng bài biến mất */}
+                                        {khoa ? (
+                                          <Badge tone="success">
+                                            {soHsChon === 1 ? 'Em này đã làm' : `Cả ${soHsChon} em đã làm`}
+                                          </Badge>
+                                        ) : nDaLam > 0 ? (
+                                          <Badge tone="warning">{nDaLam}/{soHsChon} em đã làm</Badge>
+                                        ) : null}
                                       </div>
                                       <p className="text-sm text-ink leading-relaxed">
                                         {renderDeBai(b.de_bai)}
@@ -434,7 +500,7 @@ export default function GiaoNhiemVu() {
                                       )}
                                     </div>
                                   </label>
-                                ))}
+                                )})}
                               </div>
                             )}
                           </div>

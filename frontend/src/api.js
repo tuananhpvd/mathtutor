@@ -142,6 +142,9 @@ export const api = {
   gvTongQuan: (lopId) => request('/gv/tong-quan' + (lopId ? `?lop_id=${lopId}` : '')),
   gvHoSo: () => request('/gv/ho-so'),
   gvCapNhatHoSo: (body) => request('/gv/ho-so', { method: 'PATCH', body: JSON.stringify(body) }),
+  // Mỗi bài đã có bao nhiêu em (trong tập đang chọn) hoàn thành — để không giao trùng.
+  gvDemHoanThanh: (hocSinhIds) =>
+    request(`/nhiem-vu/da-hoan-thanh?hoc_sinh_ids=${(hocSinhIds || []).join(',')}`),
   gvLop: () => request('/gv/lop'),
   gvTaoLop: (body) => post('/gv/lop', body),
   // Mã mời để HS tự đăng ký. Gọi lại gvTaoMaLop = ĐỔI mã (mã cũ mất hiệu lực ngay).

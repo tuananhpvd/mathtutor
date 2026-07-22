@@ -36,6 +36,63 @@ def _hoan_thanh_set(db: Session, hs_id: int, problem_ids: list[int]) -> set[int]
     return {r[0] for r in rows}
 
 
+def dem_hoan_thanh(db: Session, gv_id: int, hoc_sinh_ids: list[int]) -> dict:
+    """Với tập HS đang chọn, đếm mỗi bài có BAO NHIÊU em đã hoàn thành.
+
+    Trả `{"so_hoc_sinh": N, "theo_bai": {problem_id: so_em_da_lam}}` — FE dùng để:
+      - làm mờ & cấm tích bài mà CẢ NHÓM đã làm (giao lại là vô ích với mọi em),
+      - gắn nhãn "3/5 em đã làm" cho bài mới một phần nhóm làm (GV tự quyết).
+    Chỉ trả bài CÓ ít nhất 1 em đã làm (bảng thưa) để không tải cả ngân hàng câu hỏi.
+    """
+    hs_ids = list(dict.fromkeys(hoc_sinh_ids or []))
+    for hid in hs_ids:
+        if not _so_huu_hs(db, gv_id, hid):
+            raise ValueError("Có học sinh không thuộc lớp của bạn")
+    if not hs_ids:
+        return {"so_hoc_sinh": 0, "theo_bai": {}}
+
+    rows = (
+        db.query(SessionModel.problem_id, SessionModel.hoc_sinh_id)
+        .filter(
+            SessionModel.hoc_sinh_id.in_(hs_ids),
+            SessionModel.trang_thai == TrangThaiSession.hoan_thanh,
+            SessionModel.bi_an == False,  # noqa: E712
+        )
+        .distinct()
+        .all()
+    )
+    theo_bai: dict[int, int] = {}
+    for pid, _hid in rows:
+        theo_bai[pid] = theo_bai.get(pid, 0) + 1
+    return {"so_hoc_sinh": len(hs_ids), "theo_bai": theo_bai}
+
+
+def _chan_bai_ca_nhom_da_lam(db: Session, problem_ids: list[int], hs_ids: list[int]) -> None:
+    """Chặn giao bài mà MỌI HS nhận nhiệm vụ đều đã hoàn thành.
+
+    Vì sao là "mọi em" chứ không phải "bất kỳ em nào": nhiệm vụ giao cho cả lớp thì hầu như
+    bài nào cũng có một em nào đó từng làm — chặn theo "bất kỳ" sẽ khiến GV không còn bài nào
+    giao được. Chặn theo "mọi em" chỉ loại đúng những bài vô ích với toàn nhóm.
+
+    Chốt chặn đặt ở SERVICE (không phải ở FE) để cả đường tạo mới lẫn đường sửa nhiệm vụ đều
+    đi qua, và không phụ thuộc việc FE có lọc đúng hay không.
+    """
+    if not problem_ids or not hs_ids:
+        return
+    da_lam = {}
+    for hid in hs_ids:
+        for pid in _hoan_thanh_set(db, hid, problem_ids):
+            da_lam[pid] = da_lam.get(pid, 0) + 1
+    vi_pham = [pid for pid in problem_ids if da_lam.get(pid, 0) == len(hs_ids)]
+    if vi_pham:
+        ds = ", ".join(f"#{pid}" for pid in vi_pham[:5])
+        them = f" và {len(vi_pham) - 5} bài khác" if len(vi_pham) > 5 else ""
+        raise ValueError(
+            f"Không giao được: bài {ds}{them} đã được TẤT CẢ học sinh nhận nhiệm vụ hoàn thành. "
+            "Hãy bỏ chọn bài đó hoặc chọn thêm học sinh chưa làm."
+        )
+
+
 def _bai_dict(p: Problem) -> dict:
     return {
         "problem_id": p.id,
@@ -88,6 +145,7 @@ def tao_nhiem_vu(
             raise ValueError("Chỉ giao được bài đã duyệt")
         if p.nguoi_tao_id != gv_id:
             raise ValueError(f"Câu hỏi #{p.id} không thuộc bạn — chỉ được giao bài của mình")
+    _chan_bai_ca_nhom_da_lam(db, problem_ids, list(hs_set))
 
     nv = NhiemVu(
         gv_id=gv_id, tieu_de=tieu_de,
@@ -312,6 +370,13 @@ def cap_nhat_nhiem_vu(db: Session, gv_id: int, nv_id: int, data: dict) -> dict:
                 raise ValueError("Chỉ giao được bài đã duyệt")
             if p.nguoi_tao_id != gv_id:
                 raise ValueError(f"Câu hỏi #{p.id} không thuộc bạn — chỉ được giao bài của mình")
+        # Đường SỬA nhiệm vụ cũng phải chặn — trước đây chỉ tạo mới mới kiểm, nên GV vẫn thêm
+        # được bài đã hoàn thành bằng cách tạo rồi sửa.
+        hs_ids_nv = [
+            r[0] for r in db.query(NhiemVuHocSinh.hoc_sinh_id)
+            .filter(NhiemVuHocSinh.nhiem_vu_id == nv_id).all()
+        ]
+        _chan_bai_ca_nhom_da_lam(db, new_pids, hs_ids_nv)
         db.query(NhiemVuBai).filter(NhiemVuBai.nhiem_vu_id == nv_id).delete()
         for pid in new_pids:
             db.add(NhiemVuBai(nhiem_vu_id=nv_id, problem_id=pid))
