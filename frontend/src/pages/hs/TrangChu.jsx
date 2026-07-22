@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react'
+import {
+  Clock, ClipboardList, FileText, GraduationCap, Hourglass, Target, Zap,
+} from 'lucide-react'
 import { api } from '../../api'
 import { getSession } from '../../auth'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
@@ -76,13 +79,13 @@ function MiniHero({ big, cap, nhan, tone, onClick }) {
 }
 
 // 3 card dưới hero: Nhiệm vụ / Mục tiêu / Luyện đề — phân số + thanh tiến độ + CTA "Bắt đầu".
-function CardChiSo({ icon, iconBg, title, val, tong, donViXong, barColor, onClick }) {
+function CardChiSo({ icon: Icon, iconBg, iconColor, title, val, tong, donViXong, barColor, onClick }) {
   const w = pct(val, tong)
   return (
     <Card className="p-[18px] flex flex-col gap-3">
       <div className="flex items-center gap-2.5">
-        <div className={`h-10 w-10 rounded-[10px] grid place-items-center text-xl shrink-0 ${iconBg}`}>
-          {icon}
+        <div className={`h-[38px] w-[38px] rounded-[10px] grid place-items-center shrink-0 ${iconBg}`}>
+          <Icon size={19} strokeWidth={2.2} className={iconColor} />
         </div>
         <h3 className="text-base font-semibold text-ink">{title}</h3>
       </div>
@@ -99,17 +102,17 @@ function CardChiSo({ icon, iconBg, title, val, tong, donViXong, barColor, onClic
   )
 }
 
-// Thẻ thống kê thời gian — nổi bật, hiện đại.
-function TheThoiGian({ icon, label, value, tone }) {
-  const cls = {
-    primary: 'from-primary/10 to-primary/5 text-primary',
-    success: 'from-success/15 to-success/5 text-success',
+// Thẻ thống kê thời gian — nền phẳng `bg` (không gradient riêng lẻ mỗi ô), màu chỉ ở icon.
+function TheThoiGian({ icon: Icon, label, value, tone }) {
+  const iconColor = {
+    primary: 'text-primary',
+    success: 'text-success',
     // "neutral" — vế "chậm nhất" của so sánh min/max: xám trung tính, KHÔNG đỏ (không phải lỗi).
-    neutral: 'from-muted/10 to-muted/5 text-muted',
+    neutral: 'text-muted',
   }[tone]
   return (
-    <div className={`rounded-xl bg-gradient-to-br ${cls} px-4 py-3.5 flex items-center gap-3`}>
-      <span className="text-2xl">{icon}</span>
+    <div className="rounded-[10px] bg-bg px-3.5 py-3 flex items-center gap-2.5">
+      <Icon size={20} strokeWidth={2} className={`shrink-0 ${iconColor}`} />
       <div className="min-w-0">
         <p className="text-[11px] font-medium text-muted">{label}</p>
         <p className="text-lg font-bold text-ink truncate">{value}</p>
@@ -169,7 +172,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
     <div className="flex flex-col gap-6">
       {/* ===== HERO: 1 vùng nổi bật duy nhất ===== */}
       <div className="rounded-card border border-border bg-gradient-to-br from-primary-soft
-        to-[#f2f1fd] p-6 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-5 items-center">
+        to-primary-soft-2 p-6 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-5 items-center">
         <div>
           <h2 className="text-2xl font-semibold text-ink text-balance">
             Chào em{ho_ten ? `, ${ho_ten}` : ''}! 👋
@@ -189,19 +192,19 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
       {/* ===== 3 card: Nhiệm vụ · Mục tiêu · Luyện đề ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <CardChiSo
-          icon="📋" iconBg="bg-primary-soft" title="Nhiệm vụ"
+          icon={ClipboardList} iconBg="bg-primary-soft" iconColor="text-primary" title="Nhiệm vụ"
           val={tk?.nhiem_vu?.hoan_thanh ?? 0} tong={tk?.nhiem_vu?.tong ?? 0}
           donViXong="hoàn thành" barColor="bg-primary"
           onClick={() => onDieuHuong?.('nhiem_vu')}
         />
         <CardChiSo
-          icon="🎯" iconBg="bg-success-soft" title="Mục tiêu"
+          icon={Target} iconBg="bg-success-soft" iconColor="text-success" title="Mục tiêu"
           val={tk?.muc_tieu?.dat ?? 0} tong={tk?.muc_tieu?.tong ?? 0}
           donViXong="đạt được" barColor="bg-success"
           onClick={() => onDieuHuong?.('muc_tieu')}
         />
         <CardChiSo
-          icon="📝" iconBg="bg-accent-soft" title="Luyện đề"
+          icon={FileText} iconBg="bg-accent-soft" iconColor="text-accent" title="Luyện đề"
           val={deDaLam} tong={deTong}
           donViXong="đã làm" barColor="bg-accent"
           onClick={() => onDieuHuong?.('thi_thu')}
@@ -221,12 +224,12 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
             ) : (
               <>
                 <div className="flex flex-col gap-3">
-                  <TheThoiGian icon="⏱️" label="Tổng thời gian làm bài"
+                  <TheThoiGian icon={Clock} label="Tổng thời gian làm bài"
                     value={dinhDangThoiGian(tg.tong_thoi_gian_giay)} tone="primary" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <TheThoiGian icon="⚡" label="Hoàn thành nhanh nhất"
+                    <TheThoiGian icon={Zap} label="Hoàn thành nhanh nhất"
                       value={dinhDangThoiGian(nhanhNhat)} tone="success" />
-                    <TheThoiGian icon="🐢" label="Hoàn thành chậm nhất"
+                    <TheThoiGian icon={Hourglass} label="Hoàn thành chậm nhất"
                       value={dinhDangThoiGian(chamNhat)} tone="neutral" />
                   </div>
                 </div>
@@ -304,7 +307,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
                           {renderNoiDung(b.de_bai)}
                         </p>
                       </div>
-                      <Button size="sm" variant="warning" className="shrink-0"
+                      <Button size="sm" variant="primary" className="shrink-0"
                         onClick={() => onLamTiep(b.session_id)}>
                         Làm tiếp
                       </Button>
@@ -341,7 +344,13 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
 
         {/* Cột phải: Trả lời */}
         <Card className="h-full">
-          <CardHeader title="👩‍🏫 Thầy/cô đã trả lời"
+          <CardHeader
+            title={(
+              <span className="inline-flex items-center gap-1.5">
+                <GraduationCap size={17} strokeWidth={2.2} className="text-primary" />
+                Thầy/cô đã trả lời
+              </span>
+            )}
             subtitle={traLoi.length > 0 ? `${traLoi.length} câu trả lời` : undefined} />
           <CardBody className="flex flex-col gap-3">
             {traLoi.length === 0 ? (

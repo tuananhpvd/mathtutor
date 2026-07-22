@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  ArrowLeft, BookOpen, Check, CircleHelp, Lightbulb, Lock, Send, X,
+} from 'lucide-react'
 import { api } from '../../api'
 import { Button, Card, CardBody, ChatBubble, TypingBubble } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -34,8 +37,8 @@ function BangHoanThanh({
   const khongCanGoiY = !so_lan_khong_hieu && !tong_so_lan_sai
   return (
     <div className="rounded-lg border-2 border-success bg-success-soft p-4 text-center flex flex-col items-center gap-2">
-      <div className="h-12 w-12 rounded-full bg-success text-white grid place-items-center text-2xl">
-        ✓
+      <div className="h-12 w-12 rounded-full bg-success text-white grid place-items-center">
+        <Check size={26} strokeWidth={2.5} />
       </div>
       <p className="text-lg font-semibold text-success">Trả lời đúng — Hoàn thành bài!</p>
       <p className="text-sm text-ink">
@@ -86,7 +89,10 @@ function BangHoanThanh({
         </table>
       )}
       <div className="flex gap-2 mt-2 flex-wrap justify-center">
-        <Button onClick={onXemLai}>📖 Xem lại bài</Button>
+        <Button onClick={onXemLai}>
+          <BookOpen size={16} strokeWidth={2.2} />
+          <span>Xem lại bài</span>
+        </Button>
         <Button variant="secondary" onClick={onChonBai}>Chọn bài khác</Button>
         <Button variant="secondary" onClick={onTrangChu}>
           Về trang chủ
@@ -116,7 +122,7 @@ function CardBuoc({ buoc_hien_tai, tong_buoc, buoc_mo_ta }) {
 function KhayDapAn({ problem, trangThai, gui, dangGui }) {
   const loai = problem.loai_cau
   return (
-    <div className="rounded-xl border border-primary/40 bg-primary-soft/40 p-3">
+    <div className="rounded-[10px] border border-border bg-bg p-3">
       <p className="text-[11px] font-bold uppercase tracking-wide text-primary mb-2">
         Khu vực trả lời
       </p>
@@ -124,9 +130,10 @@ function KhayDapAn({ problem, trangThai, gui, dangGui }) {
         trangThai.cho_chon_dap_an === false ? (
           // Pha suy luận: HS nhập biểu thức kết quả của bước (CAS chấm) trước khi mở A–D
           <>
-            <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink">
-              🔒 Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này —
-              làm đúng để chọn được đáp án nhé!
+            <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink flex items-start gap-2">
+              <Lock size={16} strokeWidth={2.2} className="shrink-0 mt-0.5 text-primary" />
+              <span>Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này —
+                làm đúng để chọn được đáp án nhé!</span>
             </div>
             <CardBuoc
               buoc_hien_tai={trangThai.buoc_hien_tai}
@@ -407,13 +414,13 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
       )}
       <div>
         <div className="flex gap-2 mb-2">
-          <Button onClick={onChonBai} variant="secondary" size="sm"
-            className="bg-warning-soft border-warning/20 shadow-[var(--shadow-card)]">
-            ← Chọn bài khác
+          <Button onClick={onChonBai} variant="secondary" size="sm">
+            <ArrowLeft size={15} strokeWidth={2.2} />
+            <span>Chọn bài khác</span>
           </Button>
-          <Button onClick={() => setHienHuongDan(true)} variant="secondary" size="sm"
-            className="bg-cta-soft border-cta/20 shadow-[var(--shadow-card)]">
-            📖 Hướng dẫn
+          <Button onClick={() => setHienHuongDan(true)} variant="secondary" size="sm">
+            <BookOpen size={15} strokeWidth={2.2} />
+            <span>Hướng dẫn</span>
           </Button>
         </div>
         <div className="rounded-lg border border-primary/20 bg-primary-soft px-4 py-3">
@@ -473,8 +480,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
               {dangGui && <TypingBubble />}
             </div>
             {nhoOk && (
-              <div className="rounded-lg bg-success-soft text-success text-sm px-3 py-2 text-center">
-                ✓ {nhoOk}
+              <div className="rounded-lg bg-success-soft text-success text-sm px-3 py-2 text-center flex items-center justify-center gap-1.5">
+                <Check size={15} strokeWidth={2.5} className="shrink-0" />
+                <span>{nhoOk}</span>
               </div>
             )}
             {daXong ? (
@@ -494,39 +502,45 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 {/* Nhắc khi hết gợi ý — thay cho khối 3 nút cũ; các lối tắt đã có sẵn trong khối */}
                 {hetGoiY && (
                   <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-ink text-center">
-                    Em đã dùng hết gợi ý cho bước này — thử <b>📖 xem lý thuyết</b> hoặc{' '}
-                    <b>🙋 nhờ thầy/cô</b> bên dưới nhé. Em vẫn có thể hỏi gia sư hoặc thử nộp đáp án.
+                    Em đã dùng hết gợi ý cho bước này — thử <b>xem lý thuyết</b> hoặc{' '}
+                    <b>nhờ thầy/cô</b> bên dưới nhé. Em vẫn có thể hỏi gia sư hoặc thử nộp đáp án.
                   </div>
                 )}
 
-                {/* Hàng thao tác: gợi ý · nhờ thầy/cô · (lý thuyết khi hết gợi ý) · quay lại — nằm TRÊN khu vực trả lời */}
+                {/* Hàng thao tác: chỉ "Gợi ý cho em" dùng màu nhấn (indigo), còn lại đồng nhất
+                    secondary — nằm TRÊN khu vực trả lời */}
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button
-                    variant={hetGoiY ? 'warningSoft' : 'warning'}
+                    variant="indigo"
                     disabled={dangGui || daXong || hetGoiY}
                     onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
                   >
-                    {hetGoiY
-                      ? '💡 Đã dùng hết gợi ý'
-                      : trangThai.so_goi_y_toi_da != null
-                        ? `💡 GỢI Ý CHO EM (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
-                        : '💡 GỢI Ý CHO EM'}
+                    <Lightbulb size={16} strokeWidth={2.2} />
+                    <span>
+                      {hetGoiY
+                        ? 'Đã dùng hết gợi ý'
+                        : trangThai.so_goi_y_toi_da != null
+                          ? `Gợi ý cho em (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
+                          : 'Gợi ý cho em'}
+                    </span>
                   </Button>
                   <Button
-                    variant={hetGoiY ? 'warning' : 'secondary'}
+                    variant="secondary"
                     disabled={!sid}
-                    className={hetGoiY ? 'ring-2 ring-warning animate-pulse' : ''}
                     onClick={() => { setNhoMo((v) => !v); setNhoText('') }}
                   >
-                    🙋 NHỜ THẦY/CÔ
+                    <CircleHelp size={16} strokeWidth={2.2} />
+                    <span>Nhờ thầy/cô</span>
                   </Button>
                   {hetGoiY && (
-                    <Button variant="success" onClick={moLyThuyet}>
-                      📖 XEM LÝ THUYẾT
+                    <Button variant="secondary" onClick={moLyThuyet}>
+                      <BookOpen size={16} strokeWidth={2.2} />
+                      <span>Xem lý thuyết</span>
                     </Button>
                   )}
-                  <Button variant="indigo" onClick={onChonBai}>
-                    ↩ QUAY LẠI LÀM SAU
+                  <Button variant="secondary" onClick={onChonBai}>
+                    <ArrowLeft size={16} strokeWidth={2.2} />
+                    <span>Quay lại làm sau</span>
                   </Button>
                 </div>
 
@@ -534,7 +548,10 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 {nhoMo && (
                   <div className="rounded-xl border border-secondary/40 bg-secondary/5 p-3 flex flex-col gap-2">
                     <div>
-                      <p className="font-semibold text-sm text-ink">🙋 Nhờ thầy/cô giúp đỡ</p>
+                      <p className="font-semibold text-sm text-ink flex items-center gap-1.5">
+                        <CircleHelp size={16} strokeWidth={2.2} className="text-primary" />
+                        Nhờ thầy/cô giúp đỡ
+                      </p>
                       <p className="text-xs text-muted mt-0.5">
                         Thầy/cô sẽ thấy em đang bí ở bước này và trả lời ngay trong khung chat.
                         Em có thể mô tả bằng chữ hoặc chèn công thức toán.
@@ -567,8 +584,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                   <KhayDapAn problem={problem} trangThai={trangThai} gui={gui} dangGui={dangGui} />
 
-                  <div className="rounded-xl border border-[#2596be]/40 bg-success-soft/30 p-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-success mb-1.5">
+                  <div className="rounded-[10px] border border-border bg-bg p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-muted mb-1.5">
                       Trò chuyện với gia sư
                     </p>
                     <MixedChatInput
@@ -578,11 +595,12 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                       placeholder="Có chỗ nào chưa rõ, hỏi ở đây (vd: vì sao lại làm vậy ạ?)... — bấm vào ô để nhập công thức"
                       rows={2}
                       luonHienBangCT={false}
-                      textareaClassName="bg-surface border border-[#2596be]"
+                      textareaClassName="bg-surface border border-border"
                       duoiO={
                         <Button size="sm" variant="indigo" className="w-full"
                           disabled={dangGui || !cauHoi.trim()} onClick={guiCauHoi}>
-                          Gửi câu hỏi
+                          <Send size={15} strokeWidth={2.2} />
+                          <span>Gửi câu hỏi</span>
                         </Button>
                       }
                     />
@@ -600,9 +618,13 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
           <Card className="max-w-2xl w-full my-8">
             <CardBody className="flex flex-col gap-3 pt-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-bold text-ink">📖 Xem lại lý thuyết</p>
+                <p className="font-bold text-ink flex items-center gap-1.5">
+                  <BookOpen size={17} strokeWidth={2.2} className="text-primary" />
+                  Xem lại lý thuyết
+                </p>
                 <Button size="sm" variant="secondary" onClick={() => setLyThuyetMo(false)}>
-                  Đóng ✕
+                  <X size={15} strokeWidth={2.2} />
+                  <span>Đóng</span>
                 </Button>
               </div>
               {lyThuyetError && (

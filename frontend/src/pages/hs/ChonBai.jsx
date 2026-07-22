@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BookOpen } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -116,7 +117,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <h2 className="text-xl font-semibold text-black">Chọn bài luyện</h2>
+      <h2 className="text-xl font-semibold text-ink">Chọn bài luyện</h2>
 
       {/* Bộ lọc theo cây danh mục */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -200,8 +201,8 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge tone="primary">{NHAN_LOAI[b.loai_cau] || b.loai_cau}</Badge>
                   <Badge tone={TONE_KHO[b.do_kho] || 'neutral'}>{NHAN_KHO[b.do_kho] || b.do_kho}</Badge>
-                  {daXong && <Badge tone="success">ĐÃ LÀM XONG</Badge>}
-                  {dangDo && <Badge tone="warning">ĐANG LÀM DỞ</Badge>}
+                  {daXong && <Badge trang_thai="hoan_thanh" />}
+                  {dangDo && <Badge trang_thai="dang_lam" />}
                 </div>
                 <p className="text-sm text-ink line-clamp-3">{renderDe(b.de_bai)}</p>
                 {dangDo ? (
@@ -215,7 +216,8 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
                     </Button>
                     <Button className="flex-1" variant="secondary"
                       onClick={() => setXemLaiSid(tt.session_id)}>
-                      📖 Xem lại
+                      <BookOpen size={15} strokeWidth={2.2} />
+                      <span>Xem lại</span>
                     </Button>
                   </div>
                 ) : (

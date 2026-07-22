@@ -79,7 +79,7 @@ export default function TongQuan({ onNavigate }) {
     <div className="flex flex-col gap-5">
       {/* ===== HERO: 1 vùng nổi bật duy nhất — việc cần xử lý hôm nay ===== */}
       <div className="rounded-card border border-border bg-gradient-to-br from-primary-soft
-        to-[#f2f1fd] p-6 flex flex-col gap-5">
+        to-primary-soft-2 p-6 flex flex-col gap-5">
         <h2 className="text-2xl font-semibold text-ink text-balance">
           Chào thầy/cô{ho_ten ? `, ${ho_ten}` : ''}! 👋
         </h2>
@@ -112,7 +112,16 @@ export default function TongQuan({ onNavigate }) {
               donVi="tín hiệu khó khăn"
               tieu_de="Nhiệt kế khó khăn của lớp"
               phu_de="Cờ + yêu cầu Nhờ thầy/cô mỗi ngày · đỉnh nhọn = giai đoạn HS gặp khó"
-              tach={(d) => `🚩 cờ: ${d.so_co} · 🙋 nhờ thầy/cô: ${d.so_nho}`}
+              tach={(d) => (
+                <span className="inline-flex items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1">
+                    <Flag size={11} strokeWidth={2.2} /> cờ: {d.so_co}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <LifeBuoy size={11} strokeWidth={2.2} /> nhờ thầy/cô: {d.so_nho}
+                  </span>
+                </span>
+              )}
             />
           )}
         </div>

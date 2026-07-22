@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
-  Activity, AlertTriangle, Building2, CheckCircle2, Clock, Cpu, EyeOff, Flag, GraduationCap,
-  ListChecks, Users,
+  Activity, AlertTriangle, BarChart3, Building2, CheckCircle2, Clock, Cpu, EyeOff, Flag,
+  GraduationCap, ListChecks, MessageCircle, Sparkles, Users,
 } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Card, CardBody, CardHeader, StatCard } from '../../components/ui'
@@ -98,12 +98,33 @@ export default function Dashboard() {
               donVi="lượt gọi AI"
               tieu_de="Lượt gọi AI (LLM) mỗi ngày"
               phu_de="Theo dõi quota · rê chuột xem tách loại"
-              tach={(d) => `💬 hội thoại: ${d.hoi_thoai} · ✨ sinh câu hỏi: ${d.sinh_cau_hoi} · 📊 phân tích: ${d.phan_tich}`}
+              tach={(d) => (
+                <span className="inline-flex items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1">
+                    <MessageCircle size={11} strokeWidth={2.2} /> hội thoại: {d.hoi_thoai}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Sparkles size={11} strokeWidth={2.2} /> sinh câu hỏi: {d.sinh_cau_hoi}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <BarChart3 size={11} strokeWidth={2.2} /> phân tích: {d.phan_tich}
+                  </span>
+                </span>
+              )}
             />
-            <p className="text-xs text-muted px-1">
-              Tổng 30 ngày: 💬 hội thoại <b className="text-ink">{tongLlm.ht}</b> ·
-              ✨ sinh câu hỏi <b className="text-ink">{tongLlm.sinh}</b> ·
-              📊 phân tích <b className="text-ink">{tongLlm.pt}</b>
+            <p className="text-xs text-muted px-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              <span>Tổng 30 ngày:</span>
+              <span className="inline-flex items-center gap-1">
+                <MessageCircle size={12} strokeWidth={2.2} /> hội thoại <b className="text-ink">{tongLlm.ht}</b>
+              </span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                <Sparkles size={12} strokeWidth={2.2} /> sinh câu hỏi <b className="text-ink">{tongLlm.sinh}</b>
+              </span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                <BarChart3 size={12} strokeWidth={2.2} /> phân tích <b className="text-ink">{tongLlm.pt}</b>
+              </span>
             </p>
           </div>
         )}

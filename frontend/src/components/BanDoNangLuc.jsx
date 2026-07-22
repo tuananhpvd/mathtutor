@@ -10,15 +10,17 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardBody, CardHeader } from './ui'
+import { THANG_TIM } from '../utils/chartColors'
 
 const NHAN_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
-// 5 bậc tím nhạt→đậm (lightness đơn điệu, cùng họ ramp C2 đã validate)
+// 5 bậc tím nhạt→đậm (lightness đơn điệu, cùng họ ramp C2 đã validate) — màu lấy từ
+// THANG_TIM dùng chung (utils/chartColors.js), không khai báo riêng nữa.
 const BAC = [
-  { toi_thieu: 80, mau: '#4a3bc4', chu: '#ffffff', nhan: '80–100' },
-  { toi_thieu: 60, mau: '#7867db', chu: '#ffffff', nhan: '60–79' },
-  { toi_thieu: 40, mau: '#a294ea', chu: '#1a1a2e', nhan: '40–59' },
-  { toi_thieu: 20, mau: '#c7bef4', chu: '#1a1a2e', nhan: '20–39' },
-  { toi_thieu: 0, mau: '#ece9fb', chu: '#1a1a2e', nhan: '0–19' },
+  { toi_thieu: 80, mau: THANG_TIM[0], chu: '#ffffff', nhan: '80–100' },
+  { toi_thieu: 60, mau: THANG_TIM[1], chu: '#ffffff', nhan: '60–79' },
+  { toi_thieu: 40, mau: THANG_TIM[2], chu: '#1a1a2e', nhan: '40–59' },
+  { toi_thieu: 20, mau: THANG_TIM[3], chu: '#1a1a2e', nhan: '20–39' },
+  { toi_thieu: 0, mau: THANG_TIM[4], chu: '#1a1a2e', nhan: '0–19' },
 ]
 
 function bacCua(diem) {

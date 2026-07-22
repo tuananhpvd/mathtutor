@@ -13,6 +13,9 @@
   --color-primary: #3b36cc;
   --color-primary-hover: #332eaf;
   --color-primary-soft: #e7e7f9;
+  /* Điểm dừng gradient thứ 2 cho hero nhạt hơn --color-primary-soft (TrangChu.jsx HS,
+     TongQuan.jsx GV) — trước đây mỗi nơi tự hard-code hex `to-[#f2f1fd]`, gộp về 1 token. */
+  --color-primary-soft-2: #f2f1fd;
 
   /* CTA — Cam nhiệt huyết, dành RIÊNG cho nút hành động chính (Button variant="primary":
      Lưu, Gửi, Xác nhận, Đăng nhập...) — thúc đẩy bấm ngay, tách khỏi màu điều hướng. */

@@ -13,10 +13,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Button, Card, CardBody, CardHeader } from '../ui'
+import { THANG_TIM_MUC_GOI_Y } from '../../utils/chartColors'
 import ChonLop from './ChonLop'
 
-// Sequential tím nhạt→đậm cho mức gợi ý 0/1/2/3+ (đã chạy validate_palette: PASS)
-const MAU_MUC = ['#a294ea', '#8272e2', '#6353d0', '#4a3bc4']
+// Sequential tím nhạt→đậm cho mức gợi ý 0/1/2/3+ (đã chạy validate_palette: PASS) — dùng
+// chung từ utils/chartColors.js, không khai báo mảng hex riêng nữa.
+const MAU_MUC = THANG_TIM_MUC_GOI_Y
 const NHAN_MUC = ['Mức 0 — tự làm', 'Mức 1', 'Mức 2', 'Mức 3+']
 
 function StatTile({ nhan, gia_tri, phu }) {
