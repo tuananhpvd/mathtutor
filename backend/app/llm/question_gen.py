@@ -44,6 +44,30 @@ def dap_an_tln_hop_le(dap_an_cuoi: str) -> bool:
     return bool(_RE_SO_THAP_PHAN.match(s))
 
 
+# Chuỗi đáp án 4 ý a→d đúng khuôn few-shot từng bị rò rỉ vào prompt (xem ghi chú trong
+# prompts.py _MAU_TNDS, sự cố v137): AI có xu hướng CHÉP nguyên khuôn này thay vì tự giải độc
+# lập từng ý. Không chặn lưu — chỉ nhắc GV kiểm kỹ, vì 4 ý độc lập vẫn có xác suất nhỏ ra
+# đúng khuôn xen kẽ một cách tự nhiên (1/16 mỗi chiều).
+_KHUON_MAU_TNDS_NGHI_NGO = [
+    ["Dung", "Sai", "Dung", "Sai"],
+    ["Sai", "Dung", "Sai", "Dung"],
+]
+
+
+def canh_bao_khuon_mau_tnds(y: list[dict]) -> list[str]:
+    """Cảnh báo khi 4 đáp án a→d khớp NGUYÊN VĂN khuôn xen kẽ nghi ngờ chép mẫu."""
+    if len(y) != 4:
+        return []
+    theo_ky_hieu = {item.get("ky_hieu"): item.get("dap_an") for item in y}
+    day = [theo_ky_hieu.get(k) for k in ("a", "b", "c", "d")]
+    if day in _KHUON_MAU_TNDS_NGHI_NGO:
+        return [
+            "4 ý ra đúng khuôn xen kẽ Đúng/Sai — trùng mẫu ví dụ hay bị AI copy thay vì tự "
+            "giải độc lập từng ý. Hãy đối chiếu KỸ từng ý với lời giải chi tiết trước khi duyệt."
+        ]
+    return []
+
+
 def validate_cau_hoi(cau: dict) -> list[str]:
     """Trả danh sách cảnh báo cho một câu hỏi nháp. Rỗng = hợp lệ."""
     canh_bao: list[str] = []
@@ -69,6 +93,7 @@ def validate_cau_hoi(cau: dict) -> list[str]:
         for item in y:
             if item.get("dap_an") not in {"Dung", "Sai"}:
                 canh_bao.append(f"Ý {item.get('ky_hieu')} có dap_an không hợp lệ")
+        canh_bao += canh_bao_khuon_mau_tnds(y)
     elif loai == "TLN":
         dap_an = meta.get("dap_an_cuoi", "")
         if not str(dap_an).strip():

@@ -485,3 +485,62 @@ def test_duyet_roi_hs_thay(db, client):
     r = client.get("/api/problems", headers={"Authorization": f"Bearer {hs}"})
     assert len(r.json()) == 1
     assert r.json()[0]["id"] == pid
+
+
+# ----- canh_bao_khuon_mau_tnds (v137 — chống nhiễm mẫu few-shot) -----
+
+def _y(a, b, c, d):
+    return [
+        {"ky_hieu": "a", "noi_dung_y": "x", "dap_an": a},
+        {"ky_hieu": "b", "noi_dung_y": "x", "dap_an": b},
+        {"ky_hieu": "c", "noi_dung_y": "x", "dap_an": c},
+        {"ky_hieu": "d", "noi_dung_y": "x", "dap_an": d},
+    ]
+
+
+def test_canh_bao_khuon_mau_tnds_xen_ke_dung_sai():
+    from app.llm.question_gen import canh_bao_khuon_mau_tnds
+    cb = canh_bao_khuon_mau_tnds(_y("Dung", "Sai", "Dung", "Sai"))
+    assert cb and "khuôn" in cb[0]
+
+
+def test_canh_bao_khuon_mau_tnds_xen_ke_sai_dung():
+    from app.llm.question_gen import canh_bao_khuon_mau_tnds
+    cb = canh_bao_khuon_mau_tnds(_y("Sai", "Dung", "Sai", "Dung"))
+    assert cb
+
+
+def test_khong_canh_bao_khi_dap_an_khong_theo_khuon():
+    from app.llm.question_gen import canh_bao_khuon_mau_tnds
+    assert canh_bao_khuon_mau_tnds(_y("Dung", "Dung", "Dung", "Sai")) == []
+    assert canh_bao_khuon_mau_tnds(_y("Sai", "Sai", "Sai", "Sai")) == []
+    assert canh_bao_khuon_mau_tnds(_y("Dung", "Dung", "Sai", "Sai")) == []
+
+
+def test_validate_cau_hoi_tnds_kem_canh_bao_khuon_mau():
+    cau = {
+        "loai_cau": "TNDS", "de_bai": "Test", "loai_dap_an_nhap": "dung_sai_4y",
+        "meta": {"y": _y("Dung", "Sai", "Dung", "Sai")},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": k, "mo_ta": "m", "bieu_thuc_ket_qua": "1",
+             "danh_sach_goi_y": ["g"]}
+            for k in ("a", "b", "c", "d")
+        ],
+        "loi_giai_chi_tiet": "giai",
+    }
+    cb = validate_cau_hoi(cau)
+    assert any("khuôn" in c for c in cb)
+
+
+# ----- Mẫu prompt KHÔNG được chứa giá trị đáp án thật (chống tái nhiễm few-shot) -----
+
+def test_mau_prompt_khong_chua_dap_an_that():
+    """Khóa quy tắc: mẫu ví dụ JSON gửi cho AI không được có giá trị dap_an cụ thể — chỉ được
+    dùng placeholder dạng hướng dẫn. Vi phạm quy tắc này chính là nguyên nhân sự cố v137."""
+    from app.llm import prompts
+
+    for mau in (prompts._MAU_TN4PA, prompts._MAU_TNDS, prompts._MAU_TLN):
+        assert '"dap_an_dung": "A"' not in mau
+        assert '"dap_an": "Dung"' not in mau
+        assert '"dap_an": "Sai"' not in mau
+        assert '"dap_an_cuoi": "5"' not in mau

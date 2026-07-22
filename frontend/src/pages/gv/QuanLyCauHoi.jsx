@@ -186,7 +186,11 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
                       <Button size="sm" variant="secondary" onClick={() => setSua(r.id)}>
                         {coQuyen ? 'Xem / Sửa' : 'Xem'}
                       </Button>
-                      {coQuyen && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && (
+                      {/* Câu AI SINH chưa duyệt: KHÔNG cho Duyệt 1 chạm ngay trên bảng — hàng
+                          này chỉ hiện tóm tắt (không có đề bài/đáp án/lời giải) nên GV có thể
+                          duyệt mà chưa từng thấy nội dung (sự cố v137). Bắt buộc qua "Xem/Sửa"
+                          — nơi có đủ nội dung + checkbox xác nhận đối chiếu đáp án. */}
+                      {coQuyen && !r.bi_an && r.trang_thai_duyet !== 'da_duyet' && r.nguon !== 'ai_sinh' && (
                         <Button size="sm" variant="success" onClick={() => duyet(r)}>Duyệt</Button>
                       )}
                       {coQuyen && !r.bi_an && r.trang_thai_duyet === 'da_duyet' && (

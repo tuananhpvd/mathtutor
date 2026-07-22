@@ -26,6 +26,13 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
   const [bai, setBai] = useState(null)
   const [error, setError] = useState('')
   const [dangLuu, setDangLuu] = useState(false)
+  // Lỗ hổng từng bị bỏ sót (sự cố v137): màn "Sinh câu hỏi AI" đã bắt GV tích xác nhận trước
+  // khi Duyệt, nhưng GV cũng có thể vào SỬA một câu AI-sinh đang chờ duyệt từ đây (modal này
+  // dùng chung cho mọi nguồn, mở từ cả AISinhCauHoi.jsx lẫn QuanLyCauHoi.jsx) rồi bấm "Duyệt
+  // luôn" ở hộp thoại xác nhận bên dưới — HOÀN TOÀN bỏ qua checkbox ở màn AI. Chặn lại tại
+  // đây: chỉ câu AI SINH đang chờ duyệt mới cần tích; câu GV tự nhập/import thì GV đã tự viết
+  // đáp án nên không có rủi ro AI chép khuôn mẫu.
+  const [daXacNhanDapAn, setDaXacNhanDapAn] = useState(false)
   const confirm = useConfirm()
 
   useEffect(() => {
@@ -33,6 +40,7 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
   }, [id])
 
   const dangOptions = dungDangOptions(danhMuc)
+  const laAiSinhChoDuyet = bai?.nguon === 'ai_sinh' && bai?.trang_thai_duyet !== 'da_duyet'
 
   async function luu() {
     setError('')
@@ -55,7 +63,9 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
         hien_loi_giai_chi_tiet: !!bai.hien_loi_giai_chi_tiet,
       })
       // Câu chưa duyệt → hỏi ngay có duyệt luôn không, đỡ phải quay lại tìm trong danh sách.
-      if (bai.trang_thai_duyet !== 'da_duyet') {
+      // Riêng câu AI sinh: CHỈ hỏi khi GV đã tích xác nhận đối chiếu đáp án — chưa tích thì
+      // lưu xong vẫn giữ nguyên chờ duyệt, GV duyệt sau từ danh sách (đã có checkbox riêng).
+      if (bai.trang_thai_duyet !== 'da_duyet' && (!laAiSinhChoDuyet || daXacNhanDapAn)) {
         const muonDuyet = await confirm(
           'Đã lưu câu hỏi. Thầy/cô có muốn DUYỆT LUÔN để học sinh thấy được ngay không?',
           { title: 'Lưu thành công', labelYes: 'Duyệt luôn', labelNo: 'Chỉ lưu, duyệt sau' }
@@ -80,6 +90,17 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
         <ThanCauHoiForm
           bai={bai} setBai={setBai} dangOptions={dangOptions}
           onLuu={luu} onDong={onDong} dangLuu={dangLuu} nutLuuText="Lưu thay đổi"
+          xacNhanDapAn={laAiSinhChoDuyet ? (
+            <label className="flex items-start gap-2 text-sm text-ink bg-warning-soft/60 rounded-md px-3 py-2 cursor-pointer">
+              <input type="checkbox" className="mt-0.5 shrink-0" checked={daXacNhanDapAn}
+                onChange={(e) => setDaXacNhanDapAn(e.target.checked)} />
+              <span>
+                Câu này do <b>AI sinh</b>, chưa duyệt. Tôi đã đối chiếu <b>đáp án</b> với{' '}
+                <b>lời giải chi tiết</b> bên trên và xác nhận khớp nhau — chưa tích thì lưu xong
+                vẫn giữ trạng thái chờ duyệt (không hỏi duyệt luôn).
+              </span>
+            </label>
+          ) : null}
         />
       )}
     </KhungModal>

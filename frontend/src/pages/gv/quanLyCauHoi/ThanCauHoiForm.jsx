@@ -10,7 +10,7 @@ import { NHAN_LOAI } from './constants'
 import { templateTheoLoai } from './templateTheoLoai'
 
 // Thân form chung cho cả Sửa và Tạo câu hỏi.
-export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, dangLuu, nutLuuText }) {
+export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, onDong, dangLuu, nutLuuText, nutLuuDisabled = false, xacNhanDapAn = null }) {
   const activeInsert = useRef(null)
   const register = (fn) => { activeInsert.current = fn }
   const chen = (s, b) => activeInsert.current?.(s, b)
@@ -428,8 +428,10 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                 </label>
               </div>
 
+              {xacNhanDapAn}
+
               <div className="flex gap-2 pt-1">
-                <Button onClick={onLuu} disabled={dangLuu}>
+                <Button onClick={onLuu} disabled={dangLuu || nutLuuDisabled}>
                   {dangLuu ? 'Đang lưu...' : (nutLuuText || 'Lưu thay đổi')}
                 </Button>
                 <Button variant="secondary" onClick={onDong}>Hủy</Button>

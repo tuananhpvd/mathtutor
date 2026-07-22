@@ -134,6 +134,10 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
   const [error, setError] = useState('')
   const [nhap, setNhap] = useState(null) // {cau, canh_bao} bản nháp — CHƯA lưu DB
   const [dangLuu, setDangLuu] = useState(false)
+  // GV phải tự xác nhận đã đối chiếu đáp án AI chọn với lời giải trước khi lưu — AI có thể
+  // giải đúng nhưng chọn đáp án theo thói quen/khuôn mẫu lệch với chính lời giải của nó
+  // (sự cố v137). Reset về false mỗi khi có bản nháp MỚI để không lọt qua xác nhận cũ.
+  const [daXacNhanDapAn, setDaXacNhanDapAn] = useState(false)
   const [anhDan, setAnhDan] = useState(null) // { dataUrl, mimeType } — chỉ dùng để AI đọc, không lưu
   const [dangDocAnh, setDangDocAnh] = useState(false)
 
@@ -212,6 +216,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
       }
       const ket = await api.taoBuocGoiY(body)
       setNhap(ket)
+      setDaXacNhanDapAn(false)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -228,6 +233,10 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
     if (nhap.cau.loai_cau === 'TLN') {
       const err = kiemTraDapAnTLN(nhap.cau.meta?.dap_an_cuoi)
       if (err) { setError(err); return }
+    }
+    if (!daXacNhanDapAn) {
+      setError('Vui lòng tích xác nhận đã đối chiếu đáp án với lời giải trước khi lưu.')
+      return
     }
     setDangLuu(true)
     try {
@@ -260,6 +269,20 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
             dangOptions={dangOptions}
             onLuu={luu} onDong={huyXemTruoc} dangLuu={dangLuu}
             nutLuuText="✅ Lưu câu hỏi (chờ duyệt)"
+            nutLuuDisabled={!daXacNhanDapAn}
+            xacNhanDapAn={
+              // AI có thể giải đúng nhưng chọn đáp án lệch với chính lời giải của nó (sự cố
+              // v137) — bắt GV tự đối chiếu trước khi lưu, không chỉ tin cảnh báo tự động.
+              // Đặt NGAY TRÊN nút Lưu (trong ThanCauHoiForm) để GV thấy trước khi bấm.
+              <label className="flex items-start gap-2 text-sm text-ink bg-warning-soft/60 rounded-md px-3 py-2 cursor-pointer">
+                <input type="checkbox" className="mt-0.5 shrink-0" checked={daXacNhanDapAn}
+                  onChange={(e) => setDaXacNhanDapAn(e.target.checked)} />
+                <span>
+                  Tôi đã đối chiếu <b>đáp án AI chọn</b> (A/B/C/D, Đúng/Sai từng ý, hoặc giá trị
+                  cuối) với <b>lời giải chi tiết</b> bên trên và xác nhận chúng khớp nhau.
+                </span>
+              </label>
+            }
           />
         </CardBody>
       </Card>
@@ -397,6 +420,9 @@ export default function AISinhCauHoi() {
   const [nhap, setNhap] = useState([])
   const [choDuyet, setChoDuyet] = useState([])
   const [sua, setSua] = useState(null)
+  // Cùng lý do với TaoBuocGoiYPanel (sự cố v137): bắt GV tự xác nhận đã đối chiếu đáp án với
+  // lời giải cho TỪNG câu trước khi Duyệt, không chỉ tin cảnh báo tự động.
+  const [xacNhanCacCau, setXacNhanCacCau] = useState(() => new Set())
 
   const dangList = useMemo(() => {
     const cd = danhMuc.find((c) => c.ten === form.chuyen_de)
@@ -431,7 +457,21 @@ export default function AISinhCauHoi() {
   async function duyet(id, hanh_dong) {
     await api.duyetCau(id, hanh_dong)
     setNhap((ns) => ns.filter((n) => n.id !== id))
+    setXacNhanCacCau((s) => {
+      if (!s.has(id)) return s
+      const next = new Set(s)
+      next.delete(id)
+      return next
+    })
     taiChoDuyet()
+  }
+
+  function toggleXacNhan(id) {
+    setXacNhanCacCau((s) => {
+      const next = new Set(s)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   async function suaXong(id) {
@@ -529,8 +569,16 @@ export default function AISinhCauHoi() {
                     ))}
                   </ul>
                 )}
+                {/* Bắt GV tự đối chiếu đáp án với lời giải trước khi Duyệt — AI có thể giải
+                    đúng nhưng chọn đáp án lệch với chính lời giải của nó (sự cố v137). */}
+                <label className="flex items-start gap-2 text-xs text-ink bg-warning-soft/60 rounded-md px-2.5 py-1.5 cursor-pointer">
+                  <input type="checkbox" className="mt-0.5 shrink-0" checked={xacNhanCacCau.has(c.id)}
+                    onChange={() => toggleXacNhan(c.id)} />
+                  <span>Tôi đã đối chiếu đáp án với lời giải chi tiết và xác nhận khớp nhau.</span>
+                </label>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="success" onClick={() => duyet(c.id, 'duyet')}>
+                  <Button size="sm" variant="success" onClick={() => duyet(c.id, 'duyet')}
+                    disabled={!xacNhanCacCau.has(c.id)}>
                     Duyệt
                   </Button>
                   <Button size="sm" onClick={() => setSua(c.id)}>
@@ -553,14 +601,23 @@ export default function AISinhCauHoi() {
             <p className="text-sm text-muted">Không còn câu nào chờ duyệt.</p>
           ) : (
             choDuyet.map((c) => (
-              <div key={c.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+              <div key={c.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 flex-wrap">
                 <span className="text-sm text-ink truncate mr-2">
                   <Badge tone="primary">{c.loai_cau}</Badge>{' '}
                   <b className="text-primary">{c.chuyen_de}</b>
                   {c.dang_ten ? <span className="text-muted"> › {c.dang_ten}</span> : null}
                 </span>
-                <div className="flex gap-2 shrink-0">
-                  <Button size="sm" variant="success" onClick={() => duyet(c.id, 'duyet')}>
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Danh sách này rút gọn, không hiện đề/lời giải để đối chiếu tại chỗ — bấm
+                      "Sửa" xem đầy đủ trước, rồi mới tích xác nhận (sự cố v137). */}
+                  <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer"
+                    title="Đã xem đề bài + lời giải chi tiết (bấm Sửa) và đáp án khớp nhau">
+                    <input type="checkbox" checked={xacNhanCacCau.has(c.id)}
+                      onChange={() => toggleXacNhan(c.id)} />
+                    Đã đối chiếu đáp án
+                  </label>
+                  <Button size="sm" variant="success" onClick={() => duyet(c.id, 'duyet')}
+                    disabled={!xacNhanCacCau.has(c.id)}>
                     Duyệt
                   </Button>
                   <Button size="sm" onClick={() => setSua(c.id)}>
