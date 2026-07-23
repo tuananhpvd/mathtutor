@@ -532,6 +532,67 @@ def test_validate_cau_hoi_tnds_kem_canh_bao_khuon_mau():
     assert any("khuôn" in c for c in cb)
 
 
+# ----- canh_bao_cong_thuc_chua_boc_dollar (v139 — AI quên bọc $...$ trong loi_giai_chi_tiet) -----
+
+def test_canh_bao_cong_thuc_ro_ri_frac_ngoai_dollar():
+    from app.llm.question_gen import canh_bao_cong_thuc_chua_boc_dollar
+    cb = canh_bao_cong_thuc_chua_boc_dollar(r"Hệ số góc m = \frac{y_B - y_A}{x_B - x_A} = 2.")
+    assert cb and "$...$" in cb[0]
+
+
+def test_canh_bao_cong_thuc_ro_ri_dao_ham_ngoai_dollar():
+    from app.llm.question_gen import canh_bao_cong_thuc_chua_boc_dollar
+    cb = canh_bao_cong_thuc_chua_boc_dollar("Đạo hàm của hàm số là y' = -3x^2 + 6x.")
+    assert cb
+
+
+def test_khong_canh_bao_khi_da_boc_dollar_day_du():
+    from app.llm.question_gen import canh_bao_cong_thuc_chua_boc_dollar
+    text = r"Đạo hàm của hàm số là $y' = -3x^2 + 6x$. Hệ số góc $m = \frac{y_B - y_A}{x_B - x_A} = 2$."
+    assert canh_bao_cong_thuc_chua_boc_dollar(text) == []
+
+
+def test_khong_canh_bao_khi_khong_co_cong_thuc():
+    from app.llm.question_gen import canh_bao_cong_thuc_chua_boc_dollar
+    assert canh_bao_cong_thuc_chua_boc_dollar("Ta xét từng mệnh đề rồi kết luận.") == []
+
+
+def test_khong_canh_bao_khi_rong():
+    from app.llm.question_gen import canh_bao_cong_thuc_chua_boc_dollar
+    assert canh_bao_cong_thuc_chua_boc_dollar("") == []
+    assert canh_bao_cong_thuc_chua_boc_dollar("   ") == []
+    assert canh_bao_cong_thuc_chua_boc_dollar(None) == []
+
+
+def test_validate_cau_hoi_kem_canh_bao_cong_thuc_ro_ri():
+    cau = {
+        "loai_cau": "TLN", "de_bai": "Test",
+        "meta": {"dap_an_cuoi": "2"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "m", "bieu_thuc_ket_qua": "2",
+             "danh_sach_goi_y": ["g"]},
+        ],
+        "loi_giai_chi_tiet": "Hệ số góc m = \\frac{y_B - y_A}{x_B - x_A} = 2.",
+    }
+    cb = validate_cau_hoi(cau)
+    assert any("$...$" in c for c in cb)
+
+
+# ----- Prompt phải yêu cầu bọc $...$ cho loi_giai_chi_tiet (v139 — chống tái nhiễm bug) -----
+
+def test_prompt_yeu_cau_boc_dollar_cho_loi_giai_chi_tiet():
+    """Khóa quy tắc: cả 2 prompt sinh câu hỏi phải nêu rõ "loi_giai_chi_tiet" cần bọc $...$,
+    nếu không AI sẽ để lọt công thức trần ra ngoài (nguyên nhân sự cố v139)."""
+    from app.llm import prompts
+
+    assert "loi_giai_chi_tiet" in prompts.SYSTEM_SINH_CAU_HOI
+    idx = prompts.SYSTEM_SINH_CAU_HOI.index("loi_giai_chi_tiet")
+    assert "$...$" in prompts.SYSTEM_SINH_CAU_HOI[max(0, idx - 50):idx + 200]
+
+    assert '"loi_giai_chi_tiet"' in prompts.SYSTEM_TAO_BUOC_GOI_Y
+    assert "PHẢI bọc $...$" in prompts.SYSTEM_TAO_BUOC_GOI_Y or "bọc $...$" in prompts.SYSTEM_TAO_BUOC_GOI_Y
+
+
 # ----- Mẫu prompt KHÔNG được chứa giá trị đáp án thật (chống tái nhiễm few-shot) -----
 
 def test_mau_prompt_khong_chua_dap_an_that():

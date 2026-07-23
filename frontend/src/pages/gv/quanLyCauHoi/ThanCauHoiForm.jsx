@@ -417,6 +417,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                   multiline
                   rows={6}
                   registerActive={register}
+                  splitPreview
                 />
                 <label className="flex items-center gap-2 text-xs text-ink">
                   <input

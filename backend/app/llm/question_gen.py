@@ -68,6 +68,38 @@ def canh_bao_khuon_mau_tnds(y: list[dict]) -> list[str]:
     return []
 
 
+# Lưới an toàn cho sự cố thực tế: prompt dặn AI bọc MỌI công thức trong "loi_giai_chi_tiet"
+# bằng $...$ (để FE render đẹp qua KaTeX), nhưng AI đôi khi quên bọc vài câu giữa bài — phần
+# quên đó hiện nguyên văn ký hiệu LaTeX thô (vd "y' = 3x^2-6x", "\frac{...}{...}") cho GV/HS
+# thấy thay vì công thức đẹp. Prompt không đảm bảo AI tuân thủ 100%, nên cần cảnh báo GV tự
+# kiểm — không chặn lưu vì đây chỉ là lỗi trình bày, không sai về mặt toán học/đáp án.
+_RE_DA_BOC_DOLLAR = re.compile(r"\$[^$]+\$")
+_RE_LATEX_RO_RI = re.compile(
+    r"\\(?:frac|dfrac|sqrt|int|sum|lim|cdot|times|div|pi|infty|left|right|alpha|beta|gamma|"
+    r"delta|theta|leq|geq|neq|approx|pm|to|rightarrow)\b"
+    r"|[a-zA-Z0-9)\]]\^\{?-?\d"      # x^2, y^{2}, )^2 — số mũ
+    r"|[a-zA-Z0-9)\]]_\{?[a-zA-Z0-9]"  # x_1, y_{A} — chỉ số dưới
+    r"|[a-zA-Z0-9)\]]'\s*="          # y' =, )' = — ký hiệu đạo hàm
+)
+
+
+def canh_bao_cong_thuc_chua_boc_dollar(loi_giai_chi_tiet: str) -> list[str]:
+    """Cảnh báo khi "loi_giai_chi_tiet" có dấu hiệu công thức LaTeX rơi ra NGOÀI mọi cặp
+    $...$ (AI quên bọc). Bỏ hết các đoạn ĐÃ bọc $...$ đúng, rồi rà phần còn lại xem có ký
+    hiệu LaTeX/toán học rơi rớt không (\\frac, ^, _, dấu ' kiểu đạo hàm...)."""
+    text = loi_giai_chi_tiet or ""
+    if not text.strip():
+        return []
+    con_lai = _RE_DA_BOC_DOLLAR.sub("", text)
+    if _RE_LATEX_RO_RI.search(con_lai):
+        return [
+            "loi_giai_chi_tiet có vẻ còn công thức CHƯA được bọc trong $...$ (vd ký hiệu "
+            "^, _, \\frac, dấu ' sau biến nằm ngoài $...$) — phần đó sẽ hiện ký hiệu thô "
+            "thay vì công thức đẹp. Hãy kiểm tra lại và bọc $...$ trước khi lưu."
+        ]
+    return []
+
+
 def validate_cau_hoi(cau: dict) -> list[str]:
     """Trả danh sách cảnh báo cho một câu hỏi nháp. Rỗng = hợp lệ."""
     canh_bao: list[str] = []
@@ -124,8 +156,11 @@ def validate_cau_hoi(cau: dict) -> list[str]:
         if not s.get("danh_sach_goi_y"):
             canh_bao.append(f"Bước {s.get('thu_tu')} ({s.get('pham_vi')}): thiếu gợi ý")
 
-    if not str(cau.get("loi_giai_chi_tiet") or "").strip():
+    loi_giai = str(cau.get("loi_giai_chi_tiet") or "")
+    if not loi_giai.strip():
         canh_bao.append("Thiếu lời giải chi tiết — GV nên tự bổ sung trước khi cho HS xem lại")
+    else:
+        canh_bao += canh_bao_cong_thuc_chua_boc_dollar(loi_giai)
 
     return canh_bao
 

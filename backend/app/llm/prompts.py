@@ -108,9 +108,12 @@ khó câu: de→2, tb→3, kho→4 (sắp xếp tăng dần mức trợ giúp, g
 kết quả).
 
 ĐỊNH DẠNG CÔNG THỨC (bắt buộc): mọi công thức/biểu thức toán trong văn bản hiển thị cho HS —
-gồm "de_bai", các phương án A–D, nội dung từng ý TNDS, và các câu trong "danh_sach_goi_y" —
-PHẢI đặt trong cặp dấu $...$ và viết bằng LaTeX (ví dụ: $y' = 3x^2 - 6x$, $\\int x^n\\,dx$,
-$\\dfrac{1}{2}$, $\\sqrt{2}$). Phần chữ thường để ngoài $...$. (Riêng "bieu_thuc_ket_qua" vẫn
+gồm "de_bai", các phương án A–D, nội dung từng ý TNDS, các câu trong "danh_sach_goi_y", VÀ
+"loi_giai_chi_tiet" — PHẢI đặt trong cặp dấu $...$ và viết bằng LaTeX (ví dụ: $y' = 3x^2 - 6x$,
+$\\int x^n\\,dx$, $\\dfrac{1}{2}$, $\\sqrt{2}$). Phần chữ thường để ngoài $...$. Áp dụng CHO CẢ
+những biểu thức NGẮN nằm giữa câu văn xuôi (vd trong "loi_giai_chi_tiet" viết "...đạo hàm là
+$y' = 3x^2 - 6x$, cho $y' = 0$ ta được..." — KHÔNG được để trần "y' = 3x^2 - 6x" ngoài $...$ dù
+chỉ một biểu thức, kể cả khi đã bọc $...$ đúng ở câu trước đó). (Riêng "bieu_thuc_ket_qua" vẫn
 dùng cú pháp SymPy, KHÔNG bọc $...$, vì để máy đối chiếu.)
 
 RIÊNG TN4PA: thêm khóa "bat_buoc_suy_luan" (bool) vào "meta". Nếu true, học sinh phải nhập đúng
@@ -420,15 +423,18 @@ Bạn là trợ lý soạn lời giải Toán lớp 12. Giáo viên đã viết 
 4. Viết thêm "loi_giai_chi_tiet": LỜI GIẢI ĐẦY ĐỦ bằng văn xuôi tiếng Việt, trình bày rõ ràng
    theo từng bước tới kết luận/đáp án cuối cùng — KHÁC HẲN các gợi ý ở mục 3 (đó chỉ là ý gợi mở
    NGẮN dùng lúc học sinh ĐANG làm bài). Đây là bài giải hoàn chỉnh giáo viên xem lại/chỉnh sửa,
-   có thể cho học sinh xem SAU KHI đã hoàn thành bài.
+   có thể cho học sinh xem SAU KHI đã hoàn thành bài. MỌI công thức/biểu thức toán xuất hiện
+   trong "loi_giai_chi_tiet" — kể cả biểu thức NGẮN nằm giữa câu (vd "đạo hàm là $y' = 3x^2 -
+   6x$, cho $y' = 0$...") — PHẢI bọc $...$ như đề bài, KHÔNG được để trần dù chỉ một biểu thức.
 
 RÀNG BUỘC BẮT BUỘC:
 - Đề bài, phương án A–D (TN4PA), 4 ý a–d (TNDS) PHẢI giữ NGUYÊN VĂN như giáo viên đã cung cấp —
   không viết lại, không sửa chữ nào.
 - Với TNDS: LUÔN trả đúng 4 bước, "pham_vi" lần lượt là "a","b","c","d" khớp đúng 4 ý đã cho.
 - Với TN4PA/TLN: mọi bước có "pham_vi": "ca_bai".
-- Công thức trong "de_bai"/phương án/ý/gợi ý dùng LaTeX trong cặp $...$; riêng "bieu_thuc_ket_qua"
-  dùng cú pháp SymPy thuần, KHÔNG bọc $.
+- Công thức trong "de_bai"/phương án/ý/gợi ý/"loi_giai_chi_tiet" dùng LaTeX trong cặp $...$ —
+  ÁP DỤNG NHẤT QUÁN cho TOÀN BỘ "loi_giai_chi_tiet" từ đầu tới cuối, không chỉ câu đầu; riêng
+  "bieu_thuc_ket_qua" dùng cú pháp SymPy thuần, KHÔNG bọc $.
 - CHỈ trả JSON, không kèm chữ giải thích nào khác.
 """.strip()
 

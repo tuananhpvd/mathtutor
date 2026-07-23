@@ -10,7 +10,11 @@ function renderTex(text) {
 }
 
 // Ô nhập có xem trước công thức + đăng ký làm ô đang focus để chèn ký hiệu.
-export function TexField({ value, onChange, label, multiline, rows, registerActive, placeholder }) {
+// splitPreview: chia 2 cột (trái nhập, phải xem trước) thay vì xếp chồng; ô nhập tự giãn
+// chiều cao theo đúng nội dung thay vì cố định "rows".
+export function TexField({
+  value, onChange, label, multiline, rows, registerActive, placeholder, splitPreview,
+}) {
   const ref = useRef(null)
   // Bug đã sửa: focusSelf chỉ chạy 1 lần khi Focus (không chạy lại khi gõ chữ), nên closure
   // đăng ký từng "chốt cứng" value/onChange tại thời điểm focus. Gõ thêm chữ rồi mới bấm chèn
@@ -22,6 +26,13 @@ export function TexField({ value, onChange, label, multiline, rows, registerActi
     valueRef.current = value
     onChangeRef.current = onChange
   })
+
+  useEffect(() => {
+    if (splitPreview && ref.current) {
+      ref.current.style.height = 'auto'
+      ref.current.style.height = `${ref.current.scrollHeight}px`
+    }
+  }, [value, splitPreview])
 
   function focusSelf() {
     registerActive((snippet, back) => {
@@ -50,6 +61,24 @@ export function TexField({ value, onChange, label, multiline, rows, registerActi
       'w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm text-ink ' +
       'focus:border-primary focus:outline-none',
   }
+  if (splitPreview) {
+    return (
+      <div>
+        {label && <p className="text-xs text-muted mb-1">{label}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+          <textarea
+            {...common}
+            rows={rows || 2}
+            className={`${common.className} resize-none overflow-hidden min-h-[3rem]`}
+          />
+          <div className="text-[13px] text-ink/80 px-2.5 py-1.5 rounded-lg bg-primary-soft border border-primary/30 whitespace-pre-wrap h-full min-h-[3rem]">
+            {value ? renderTex(value) : <span className="text-muted">Xem trước công thức sẽ hiện ở đây</span>}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       {label && <p className="text-xs text-muted mb-1">{label}</p>}
