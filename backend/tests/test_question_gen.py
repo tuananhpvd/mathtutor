@@ -578,6 +578,67 @@ def test_validate_cau_hoi_kem_canh_bao_cong_thuc_ro_ri():
     assert any("$...$" in c for c in cb)
 
 
+# ----- canh_bao_dinh_dang_latex_khac (v141 — aligned bị cấm + ký hiệu suy ra trong công thức) --
+
+def test_canh_bao_dung_moi_truong_aligned():
+    from app.llm.question_gen import canh_bao_dinh_dang_latex_khac
+    cb = canh_bao_dinh_dang_latex_khac(
+        r"$\begin{aligned} y' &= 3x^2 - 6x \\ y'(1) &= -3 \end{aligned}$"
+    )
+    assert cb and "aligned" in cb[0]
+
+
+def test_canh_bao_ky_hieu_suy_ra_trong_cong_thuc():
+    from app.llm.question_gen import canh_bao_dinh_dang_latex_khac
+    cb = canh_bao_dinh_dang_latex_khac(r"Ta có $y' = 0 \Rightarrow x = 1$.")
+    assert cb and "suy ra" in cb[0].lower()
+
+    cb2 = canh_bao_dinh_dang_latex_khac("Ta có $y' = 0 => x = 1$.")
+    assert cb2
+
+    cb3 = canh_bao_dinh_dang_latex_khac("Ta có $y' = 0 ⇒ x = 1$.")
+    assert cb3
+
+
+def test_khong_canh_bao_khi_viet_dung_quy_tac():
+    from app.llm.question_gen import canh_bao_dinh_dang_latex_khac
+    text = "Ta có $y' = 0$, giải ra $x = 0$ hoặc $x = 2$.\nSuy ra hàm số đạt cực trị tại đó."
+    assert canh_bao_dinh_dang_latex_khac(text) == []
+    assert canh_bao_dinh_dang_latex_khac("") == []
+    assert canh_bao_dinh_dang_latex_khac(None) == []
+
+
+def test_validate_cau_hoi_kem_canh_bao_dinh_dang_latex_khac():
+    cau = {
+        "loai_cau": "TLN", "de_bai": "Test",
+        "meta": {"dap_an_cuoi": "2"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "m", "bieu_thuc_ket_qua": "2",
+             "danh_sach_goi_y": ["g"]},
+        ],
+        "loi_giai_chi_tiet": r"Ta có $y' = 0 \Rightarrow x = 1$.",
+    }
+    cb = validate_cau_hoi(cau)
+    assert any("suy ra" in c.lower() for c in cb)
+
+
+# ----- Quy tắc LaTeX góc/vectơ/aligned/suy-ra dùng chung (v141) áp cho cả 3 prompt sinh/trích --
+
+def test_prompt_co_du_quy_tac_goc_vecto_aligned_suy_ra():
+    """Khóa quy tắc: cả 3 prompt (SINH_CAU_HOI, TAO_BUOC_GOI_Y, DOC_DE_TU_ANH) phải nêu đủ quy
+    tắc LaTeX: góc 1 đỉnh $\\widehat{A}$, góc 3 điểm $\\widehat{ABC}$, vectơ 1 chữ $\\vec{u}$,
+    vectơ 2 chữ $\\overrightarrow{AB}$, cấm môi trường aligned, cấm ký hiệu suy ra trong công thức."""
+    from app.llm import prompts
+
+    for p in (prompts.SYSTEM_SINH_CAU_HOI, prompts.SYSTEM_TAO_BUOC_GOI_Y, prompts.SYSTEM_DOC_DE_TU_ANH):
+        assert r"\widehat{A}" in p
+        assert r"\widehat{ABC}" in p
+        assert r"\vec{u}" in p
+        assert r"\overrightarrow{AB}" in p
+        assert r"\begin{aligned}" in p
+        assert "Suy ra $AB = CD$." in p
+
+
 # ----- Prompt phải yêu cầu bọc $...$ cho loi_giai_chi_tiet (v139 — chống tái nhiễm bug) -----
 
 def test_prompt_yeu_cau_boc_dollar_cho_loi_giai_chi_tiet():
@@ -590,7 +651,8 @@ def test_prompt_yeu_cau_boc_dollar_cho_loi_giai_chi_tiet():
     assert "$...$" in prompts.SYSTEM_SINH_CAU_HOI[max(0, idx - 50):idx + 200]
 
     assert '"loi_giai_chi_tiet"' in prompts.SYSTEM_TAO_BUOC_GOI_Y
-    assert "PHẢI bọc $...$" in prompts.SYSTEM_TAO_BUOC_GOI_Y or "bọc $...$" in prompts.SYSTEM_TAO_BUOC_GOI_Y
+    assert "$...$" in prompts.SYSTEM_TAO_BUOC_GOI_Y
+    assert "loi_giai_chi_tiet" in prompts.SYSTEM_TAO_BUOC_GOI_Y.split("ĐỊNH DẠNG CÔNG THỨC")[0][-400:]
 
 
 # ----- Mẫu prompt KHÔNG được chứa giá trị đáp án thật (chống tái nhiễm few-shot) -----

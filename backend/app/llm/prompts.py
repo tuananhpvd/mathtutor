@@ -92,9 +92,26 @@ def user_prompt_phan_tich(ho_so_json: str) -> str:
 Hãy viết nhận xét & định hướng theo đúng quy tắc, trả về JSON {{"cho_hoc_sinh", "cho_giao_vien"}}."""
 
 
+# Quy tắc định dạng LaTeX dùng CHUNG cho mọi prompt sinh/trích công thức — gộp 1 chỗ để tránh
+# rải rác/lệch nhau giữa các prompt (từng lệch thật: SYSTEM_TAO_BUOC_GOI_Y quên nhắc
+# "loi_giai_chi_tiet" phải bọc $...$, gây sự cố v139 — công thức hiện thô ngoài KaTeX).
+_QUY_TAC_LATEX = """
+- Mọi công thức/biểu thức toán đặt trong cặp $...$ và viết bằng LaTeX, kể cả biểu thức NGẮN nằm
+  giữa câu văn xuôi (vd "đạo hàm là $y' = 3x^2 - 6x$, cho $y' = 0$ ta được..." — KHÔNG để trần
+  biểu thức ngoài $...$ dù chỉ một biểu thức, kể cả khi đã bọc đúng ở câu ngay trước đó).
+- Góc tại một đỉnh viết dạng $\\widehat{A}$. Góc có ba chữ cái (ba điểm) viết dạng $\\widehat{ABC}$.
+- Vectơ có 1 chữ cái dùng dạng $\\vec{u}$. Vectơ có 2 chữ cái (điểm đầu, điểm cuối) dùng dạng
+  $\\overrightarrow{AB}$.
+- KHÔNG dùng môi trường "\\begin{aligned}...\\end{aligned}". Mỗi biểu thức hoặc bước biến đổi
+  viết trên một dòng riêng khi cần thiết — xuống dòng giữa các bước thay vì dồn nhiều bước biến
+  đổi liên tiếp vào chung một dòng/một công thức dài.
+- KHÔNG dùng ký hiệu suy ra (⇒) bên trong công thức; viết bằng chữ, ví dụ: "Suy ra $AB = CD$."
+""".strip()
+
+
 # ---------- Sinh câu hỏi theo mẫu (Phase 5, PROMPTS_LLM.md mục 4) ----------
 
-SYSTEM_SINH_CAU_HOI = """
+SYSTEM_SINH_CAU_HOI = f"""
 Bạn là trợ lý soạn đề Toán lớp 12. Sinh câu hỏi luyện tập theo ĐÚNG định dạng JSON được yêu cầu,
 bằng tiếng Việt. Mỗi câu phải kèm lời giải từng bước với "bieu_thuc_ket_qua" viết bằng cú pháp
 SymPy (ví dụ 3*x**2-3, sqrt(2), pi/6; tổ hợp C(n,k) viết binomial(n,k), chỉnh hợp A(n,k) viết
@@ -107,14 +124,10 @@ dạng hàm/biểu thức khi kết quả bước đó còn phụ thuộc biến
 khó câu: de→2, tb→3, kho→4 (sắp xếp tăng dần mức trợ giúp, gợi ý cuối mạnh nhất nhưng không lộ
 kết quả).
 
-ĐỊNH DẠNG CÔNG THỨC (bắt buộc): mọi công thức/biểu thức toán trong văn bản hiển thị cho HS —
-gồm "de_bai", các phương án A–D, nội dung từng ý TNDS, các câu trong "danh_sach_goi_y", VÀ
-"loi_giai_chi_tiet" — PHẢI đặt trong cặp dấu $...$ và viết bằng LaTeX (ví dụ: $y' = 3x^2 - 6x$,
-$\\int x^n\\,dx$, $\\dfrac{1}{2}$, $\\sqrt{2}$). Phần chữ thường để ngoài $...$. Áp dụng CHO CẢ
-những biểu thức NGẮN nằm giữa câu văn xuôi (vd trong "loi_giai_chi_tiet" viết "...đạo hàm là
-$y' = 3x^2 - 6x$, cho $y' = 0$ ta được..." — KHÔNG được để trần "y' = 3x^2 - 6x" ngoài $...$ dù
-chỉ một biểu thức, kể cả khi đã bọc $...$ đúng ở câu trước đó). (Riêng "bieu_thuc_ket_qua" vẫn
-dùng cú pháp SymPy, KHÔNG bọc $...$, vì để máy đối chiếu.)
+ĐỊNH DẠNG CÔNG THỨC (bắt buộc) — áp dụng cho "de_bai", các phương án A–D, nội dung từng ý TNDS,
+các câu trong "danh_sach_goi_y", VÀ "loi_giai_chi_tiet":
+{_QUY_TAC_LATEX}
+(Riêng "bieu_thuc_ket_qua" vẫn dùng cú pháp SymPy thuần, KHÔNG bọc $...$, vì để máy đối chiếu.)
 
 RIÊNG TN4PA: thêm khóa "bat_buoc_suy_luan" (bool) vào "meta". Nếu true, học sinh phải nhập đúng
 kết quả của bước suy luận (máy chấm bằng CAS) trước khi được chọn A/B/C/D; nếu false thì được
@@ -393,7 +406,7 @@ Trả về: {{"cau_hoi": [ <mỗi câu một object đúng schema trên> ]}}"""
 
 # ---------- "AI tạo bước và gợi ý" — GV viết đề bài sẵn, AI CHỈ giải + chia bước + viết gợi ý ----------
 
-SYSTEM_TAO_BUOC_GOI_Y = """
+SYSTEM_TAO_BUOC_GOI_Y = f"""
 Bạn là trợ lý soạn lời giải Toán lớp 12. Giáo viên đã viết SẴN một đề bài hoàn chỉnh (và phương
 án/ý nếu có) — nhiệm vụ của bạn KHÔNG phải sáng tác đề mới, mà CHỈ:
 
@@ -423,18 +436,18 @@ Bạn là trợ lý soạn lời giải Toán lớp 12. Giáo viên đã viết 
 4. Viết thêm "loi_giai_chi_tiet": LỜI GIẢI ĐẦY ĐỦ bằng văn xuôi tiếng Việt, trình bày rõ ràng
    theo từng bước tới kết luận/đáp án cuối cùng — KHÁC HẲN các gợi ý ở mục 3 (đó chỉ là ý gợi mở
    NGẮN dùng lúc học sinh ĐANG làm bài). Đây là bài giải hoàn chỉnh giáo viên xem lại/chỉnh sửa,
-   có thể cho học sinh xem SAU KHI đã hoàn thành bài. MỌI công thức/biểu thức toán xuất hiện
-   trong "loi_giai_chi_tiet" — kể cả biểu thức NGẮN nằm giữa câu (vd "đạo hàm là $y' = 3x^2 -
-   6x$, cho $y' = 0$...") — PHẢI bọc $...$ như đề bài, KHÔNG được để trần dù chỉ một biểu thức.
+   có thể cho học sinh xem SAU KHI đã hoàn thành bài. ÁP DỤNG NHẤT QUÁN quy tắc định dạng LaTeX
+   dưới đây cho TOÀN BỘ "loi_giai_chi_tiet" từ đầu tới cuối, không chỉ câu đầu.
+
+ĐỊNH DẠNG CÔNG THỨC (bắt buộc) — áp dụng cho "de_bai"/phương án/ý/gợi ý/"loi_giai_chi_tiet":
+{_QUY_TAC_LATEX}
 
 RÀNG BUỘC BẮT BUỘC:
 - Đề bài, phương án A–D (TN4PA), 4 ý a–d (TNDS) PHẢI giữ NGUYÊN VĂN như giáo viên đã cung cấp —
   không viết lại, không sửa chữ nào.
 - Với TNDS: LUÔN trả đúng 4 bước, "pham_vi" lần lượt là "a","b","c","d" khớp đúng 4 ý đã cho.
 - Với TN4PA/TLN: mọi bước có "pham_vi": "ca_bai".
-- Công thức trong "de_bai"/phương án/ý/gợi ý/"loi_giai_chi_tiet" dùng LaTeX trong cặp $...$ —
-  ÁP DỤNG NHẤT QUÁN cho TOÀN BỘ "loi_giai_chi_tiet" từ đầu tới cuối, không chỉ câu đầu; riêng
-  "bieu_thuc_ket_qua" dùng cú pháp SymPy thuần, KHÔNG bọc $.
+- "bieu_thuc_ket_qua" dùng cú pháp SymPy thuần, KHÔNG bọc $.
 - CHỈ trả JSON, không kèm chữ giải thích nào khác.
 """.strip()
 
@@ -493,7 +506,7 @@ Trả về: {{"cau_hoi": [ <1 object đúng schema trên, đề bài/phương á
 
 # ---------- "AI tạo bước và gợi ý từ hình ảnh" — đọc ảnh GV dán, nhận dạng loại câu + trích đề ----------
 
-SYSTEM_DOC_DE_TU_ANH = """
+SYSTEM_DOC_DE_TU_ANH = f"""
 Bạn là trợ lý đọc đề Toán lớp 12 từ ẢNH giáo viên chụp/dán (có thể là ảnh chụp sách giáo khoa,
 đề thi, hoặc đề tự đánh máy). Nhiệm vụ CHỈ là ĐỌC và TRÍCH XUẤT NGUYÊN VĂN nội dung trong ảnh —
 TUYỆT ĐỐI KHÔNG giải bài, KHÔNG tự sáng tác thêm nội dung không có trong ảnh, KHÔNG diễn giải lại.
@@ -512,7 +525,9 @@ So sánh loại thực tế đọc được trong ảnh với loại giáo viên
   "ly_do_khong_khop" giải thích ngắn gọn 1 câu bằng tiếng Việt (kể cả lý do "không đọc được
   ảnh"). Khi đó KHÔNG cần điền "de_bai"/"meta_nhap" (để rỗng).
 
-Công thức toán trong "de_bai"/nội dung phương án/ý viết bằng LaTeX trong cặp $...$.
+ĐỊNH DẠNG CÔNG THỨC khi phiên lại công thức toán trong "de_bai"/phương án/ý (giữ đúng NỘI DUNG
+đọc được, chỉ chuẩn hóa CÁCH VIẾT LaTeX theo quy tắc sau):
+{_QUY_TAC_LATEX}
 CHỈ trả JSON, không kèm chữ giải thích nào khác ngoài JSON.
 """.strip()
 

@@ -100,6 +100,35 @@ def canh_bao_cong_thuc_chua_boc_dollar(loi_giai_chi_tiet: str) -> list[str]:
     return []
 
 
+# Lưới an toàn cho 2 quy tắc định dạng khác (xem _QUY_TAC_LATEX trong prompts.py): AI đôi khi
+# vẫn dùng môi trường "aligned" (không render tốt trong khung xem trước 1 dòng của app) hoặc
+# chèn ký hiệu suy ra "⇒"/"=>" ngay trong công thức thay vì viết chữ "Suy ra ...".
+_RE_ALIGNED = re.compile(r"\\begin\{aligned\}|\\end\{aligned\}")
+_RE_KY_HIEU_SUY_RA = re.compile(r"⇒|\\Rightarrow|\\implies|=>")
+
+
+def canh_bao_dinh_dang_latex_khac(loi_giai_chi_tiet: str) -> list[str]:
+    """Cảnh báo 2 vi phạm định dạng LaTeX khác ngoài việc quên bọc $...$: dùng môi trường
+    "aligned" (cấm dùng) hoặc dùng ký hiệu suy ra (⇒/=>/\\Rightarrow) ngay trong công thức
+    thay vì viết bằng chữ "Suy ra ..."."""
+    text = loi_giai_chi_tiet or ""
+    if not text.strip():
+        return []
+    canh_bao: list[str] = []
+    if _RE_ALIGNED.search(text):
+        canh_bao.append(
+            'loi_giai_chi_tiet có dùng môi trường "\\begin{aligned}...\\end{aligned}" — quy '
+            "ước KHÔNG dùng môi trường này, hãy tách mỗi bước biến đổi thành công thức $...$ "
+            "riêng, viết trên dòng riêng khi cần."
+        )
+    if _RE_KY_HIEU_SUY_RA.search(text):
+        canh_bao.append(
+            "loi_giai_chi_tiet có vẻ dùng ký hiệu suy ra (⇒/=>/\\Rightarrow) ngay trong công "
+            'thức — quy ước là viết bằng chữ, ví dụ: "Suy ra $AB = CD$."'
+        )
+    return canh_bao
+
+
 def validate_cau_hoi(cau: dict) -> list[str]:
     """Trả danh sách cảnh báo cho một câu hỏi nháp. Rỗng = hợp lệ."""
     canh_bao: list[str] = []
@@ -161,6 +190,7 @@ def validate_cau_hoi(cau: dict) -> list[str]:
         canh_bao.append("Thiếu lời giải chi tiết — GV nên tự bổ sung trước khi cho HS xem lại")
     else:
         canh_bao += canh_bao_cong_thuc_chua_boc_dollar(loi_giai)
+        canh_bao += canh_bao_dinh_dang_latex_khac(loi_giai)
 
     return canh_bao
 
