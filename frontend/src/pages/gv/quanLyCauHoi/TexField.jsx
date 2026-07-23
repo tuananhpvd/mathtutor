@@ -51,15 +51,19 @@ export function TexField({
       }, 0)
     })
   }
+  // className tách riêng khỏi "common" — không đọc lại common.className, vì common chứa
+  // "ref" và ESLint (react-hooks/refs) coi mọi truy cập property trên object mang ref là
+  // "đọc ref lúc render", kể cả property khác không liên quan (vd className).
+  const baseClassName =
+    'w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm text-ink ' +
+    'focus:border-primary focus:outline-none'
   const common = {
     ref,
     value: value || '',
     onChange: (e) => onChange(e.target.value),
     onFocus: focusSelf,
     placeholder,
-    className:
-      'w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm text-ink ' +
-      'focus:border-primary focus:outline-none',
+    className: baseClassName,
   }
   if (splitPreview) {
     return (
@@ -69,7 +73,7 @@ export function TexField({
           <textarea
             {...common}
             rows={rows || 2}
-            className={`${common.className} resize-none overflow-hidden min-h-[3rem]`}
+            className={`${baseClassName} resize-none overflow-hidden min-h-[3rem]`}
           />
           <div className="text-[13px] text-ink/80 px-2.5 py-1.5 rounded-lg bg-primary-soft border border-primary/30 whitespace-pre-wrap h-full min-h-[3rem]">
             {value ? renderTex(value) : <span className="text-muted">Xem trước công thức sẽ hiện ở đây</span>}
