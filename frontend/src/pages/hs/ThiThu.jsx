@@ -429,9 +429,17 @@ function ManKetQua({ kq, onQuayLai, onLuyenBai }) {
 
 /* ───────────────────────── Trang chính ───────────────────────── */
 
-export default function ThiThu({ onLuyenBai, focusId, onFocusDone }) {
+export default function ThiThu({ onLuyenBai, focusId, onFocusDone, onDangLamBai }) {
   const [man, setMan] = useState({ ten: 'ds' }) // ds | thi | ket_qua
   const [error, setError] = useState('')
+
+  // Báo cho HocSinhApp biết HS đang làm dở 1 đề (chưa nộp/chưa hết giờ) — để cảnh báo trước
+  // khi rời trang, tránh bỏ dở bài thi mà không biết.
+  useEffect(() => {
+    onDangLamBai?.(man.ten === 'thi')
+    return () => onDangLamBai?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [man.ten])
 
   async function vaoThi(deId) {
     setError('')

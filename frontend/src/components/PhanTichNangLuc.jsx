@@ -92,6 +92,17 @@ function dinhDangNgay(iso) {
   })
 }
 
+// Tách văn bản AI (1 đoạn văn liền, chỉ ngăn cách bằng dấu câu — không có \n thật) thành từng
+// câu để mỗi câu xuống 1 dòng, dễ đọc hơn. Chỉ tách khi sau dấu kết câu có khoảng trắng rồi
+// tới ký tự khác (tránh tách nhầm số thập phân dạng "3.5" vốn không có khoảng trắng).
+function tachCauVanBan(text) {
+  if (!text) return []
+  return text
+    .split(/(?<=[.!?…])\s+(?=\S)/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 // pt: payload từ /phan-tich. vaiTro: 'hs' | 'gv'.
 // onCapNhat?: gọi API sinh phân tích; dangCapNhat: cờ đang chạy.
 // sauNhanXet?: nội dung chèn ngay sau card "Nhận xét & gợi ý cho em"/"Phân tích năng lực"
@@ -131,7 +142,9 @@ export default function PhanTichNangLuc({
         <CardBody>
           {aiText ? (
             <>
-              <p className="text-sm text-ink whitespace-pre-line leading-relaxed">{aiText}</p>
+              <div className="text-sm text-ink leading-relaxed flex flex-col gap-1.5">
+                {tachCauVanBan(aiText).map((cau, i) => <p key={i}>{cau}</p>)}
+              </div>
               {theoLuat ? (
                 <p className="text-[11px] text-warning mt-2">
                   Nhận định tạm theo quy tắc — chưa gọi được AI (có thể đã hết lượt trong ngày).

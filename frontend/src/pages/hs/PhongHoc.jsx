@@ -180,7 +180,7 @@ function KhayDapAn({ problem, trangThai, gui, dangGui }) {
   )
 }
 
-export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, onSid }) {
+export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, onSid, onDangDo }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [problem, setProblem] = useState(null)
@@ -215,6 +215,16 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     so_lan_khong_hieu: 0,
     tong_so_lan_sai: 0,
   })
+
+  // Báo cho HocSinhApp biết bài NÀY còn dở dang hay đã xong — để cảnh báo trước khi HS rời
+  // trang (chuyển trang khác / bấm "Quay lại làm sau") nếu còn dở, tránh thoát nhầm mất tiến
+  // trình đang làm. Chỉ tính là "đang dở" khi đã tải xong bài (không tính lúc đang loading/lỗi).
+  useEffect(() => {
+    onDangDo?.(!loading && !error && !!problem && !trangThai.da_xong)
+    return () => onDangDo?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, error, problem, trangThai.da_xong])
+
   const [dangGui, setDangGui] = useState(false)
   const [zoomHinh, setZoomHinh] = useState(null)
   const [hienHuongDan, setHienHuongDan] = useState(false)

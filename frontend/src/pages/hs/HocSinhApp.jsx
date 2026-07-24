@@ -47,6 +47,10 @@ export default function HocSinhApp({ onLogout }) {
   // tương ứng ở chuông. "ts" đổi mỗi lần bấm để ép hiệu ứng chạy lại kể cả bấm trùng.
   const [focusNv, setFocusNv] = useState(null)
   const [focusDeThi, setFocusDeThi] = useState(null)
+  // PhongHoc/ThiThu tự báo lên qua onDangDo/onDangLamBai: đang có bài/đề làm dở ở đúng
+  // trang đó hay không — dùng để cảnh báo trước khi HS rời trang (mục "canhBaoNeuCanRoiTrang").
+  const [dangDoPhongHoc, setDangDoPhongHoc] = useState(false)
+  const [dangLamThiThu, setDangLamThiThu] = useState(false)
 
   function capNhatHoTen(ten) {
     updateHoTen(ten)
@@ -107,6 +111,8 @@ export default function HocSinhApp({ onLogout }) {
         'Bạn đang làm dở một bài khác. Bạn có muốn rời khỏi bài này để chuyển đến bài trong thông báo không?'
       )
       if (!dongY) return
+    } else if (!(await canhBaoNeuCanRoiTrang())) {
+      return
     }
     lamTiep(sessionId)
   }
@@ -118,12 +124,45 @@ export default function HocSinhApp({ onLogout }) {
     if (tb.lien_ket_loai === 'session') {
       moPhongHocTuThongBao(tb.lien_ket_id)
     } else if (tb.lien_ket_loai === 'nhiem_vu') {
-      setFocusNv({ id: tb.lien_ket_id, ts: Date.now() })
-      dieuHuong('nhiem_vu')
+      canhBaoNeuCanRoiTrang().then((duocDi) => {
+        if (!duocDi) return
+        setFocusNv({ id: tb.lien_ket_id, ts: Date.now() })
+        dieuHuong('nhiem_vu')
+      })
     } else if (tb.lien_ket_loai === 'de_thi') {
-      setFocusDeThi({ id: tb.lien_ket_id, ts: Date.now() })
-      dieuHuong('thi_thu')
+      canhBaoNeuCanRoiTrang().then((duocDi) => {
+        if (!duocDi) return
+        setFocusDeThi({ id: tb.lien_ket_id, ts: Date.now() })
+        dieuHuong('thi_thu')
+      })
     }
+  }
+
+  // Đang ở phòng học với bài chưa hoàn thành, hoặc đang thi với đề chưa nộp → hỏi xác nhận
+  // trước khi rời trang (chuyển trang khác / "Quay lại làm sau"), tránh HS thoát nhầm.
+  // Trả về true nếu được phép điều hướng tiếp (không có việc dở dang, hoặc HS xác nhận rời).
+  async function canhBaoNeuCanRoiTrang() {
+    if (page === 'phong_hoc' && dangDoPhongHoc) {
+      return confirm(
+        'Em đang làm dở bài này. Em có thể quay lại làm tiếp sau — nhưng nếu rời khỏi bây giờ, em có chắc muốn thoát không?',
+        { title: 'Đang làm bài dở', labelYes: 'Rời khỏi', labelNo: 'Ở lại làm tiếp' }
+      )
+    }
+    if (page === 'thi_thu' && dangLamThiThu) {
+      return confirm(
+        'Em đang làm bài thi, chưa nộp bài. Nếu rời khỏi bây giờ, bài thi sẽ vẫn ở trạng thái chưa nộp — em có chắc muốn thoát không?',
+        { title: 'Đang làm bài thi', labelYes: 'Rời khỏi', labelNo: 'Ở lại làm tiếp' }
+      )
+    }
+    return true
+  }
+
+  // Bọc dieuHuong bằng cảnh báo rời trang — dùng cho MỌI cách chuyển trang chủ động của HS
+  // (menu điều hướng, nút trong PhongHoc/TrangChu...). dieuHuong (không bọc) vẫn giữ để dùng
+  // nội bộ ở những nơi ĐÃ tự xử lý xác nhận riêng (vd moPhongHocTuThongBao ở trên).
+  async function dieuHuongCoCanhBao(key) {
+    if (!(await canhBaoNeuCanRoiTrang())) return
+    dieuHuong(key)
   }
 
   function dieuHuong(key) {
@@ -155,7 +194,7 @@ export default function HocSinhApp({ onLogout }) {
       ho_ten={hoTen}
       nav={NAV}
       active={page === 'phong_hoc' ? 'chon_bai' : page}
-      onNavigate={dieuHuong}
+      onNavigate={dieuHuongCoCanhBao}
       onLogout={() => {
         clearSession()
         onLogout()
@@ -165,10 +204,10 @@ export default function HocSinhApp({ onLogout }) {
       <Suspense fallback={<p className="text-muted text-sm">Đang tải...</p>}>
         {page === 'trang_chu' && (
           <TrangChu
-            onChonBai={() => dieuHuong('chon_bai')}
+            onChonBai={() => dieuHuongCoCanhBao('chon_bai')}
             onLamTiep={lamTiep}
             onTiepTucLam={tiepTucLam}
-            onDieuHuong={dieuHuong}
+            onDieuHuong={dieuHuongCoCanhBao}
           />
         )}
         {page === 'chon_bai' && (
@@ -182,16 +221,18 @@ export default function HocSinhApp({ onLogout }) {
             key={phongHoc.sessionId || phongHoc.problemId || 'moi'}
             problemId={phongHoc.problemId}
             sessionId={phongHoc.sessionId}
-            onTrangChu={() => dieuHuong('trang_chu')}
-            onChonBai={() => dieuHuong('chon_bai')}
+            onTrangChu={() => dieuHuongCoCanhBao('trang_chu')}
+            onChonBai={() => dieuHuongCoCanhBao('chon_bai')}
             onSid={setActiveSid}
+            onDangDo={setDangDoPhongHoc}
           />
         )}
         {page === 'nhiem_vu' && (
           <NhiemVu onChon={moBaiMoi} focusId={focusNv} onFocusDone={() => setFocusNv(null)} />
         )}
         {page === 'thi_thu' && (
-          <ThiThu onLuyenBai={moBaiMoi} focusId={focusDeThi} onFocusDone={() => setFocusDeThi(null)} />
+          <ThiThu onLuyenBai={moBaiMoi} focusId={focusDeThi} onFocusDone={() => setFocusDeThi(null)}
+            onDangLamBai={setDangLamThiThu} />
         )}
         {page === 'muc_tieu' && <MucTieu />}
         {page === 'ly_thuyet' && <LyThuyet />}
