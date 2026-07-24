@@ -23,8 +23,8 @@ Sau MỖI lần viết hoặc sửa code trong một phase, TỰ ĐỘNG thực 
 ```
 1. BUILD lại:
    - Backend: cài deps nếu cần; chạy `ruff check` + `python -c "import app.main"` (import smoke).
-   - Frontend: `npm run build` (hoặc `npm run dev` smoke nếu chưa có build).
-2. TEST: chạy `pytest` (backend) và test frontend nếu có.
+   - Frontend: `npm run lint` (eslint) + `npm run build`.
+2. TEST: chạy `pytest` (backend) và `npm run test` (vitest, frontend) nếu có.
 3. NẾU CÒN LỖI: tự đọc log, sửa, rồi quay lại bước 1. Lặp đến khi BUILD và TEST đều xanh.
    - Giới hạn an toàn: nếu sau 5 vòng vẫn lỗi cùng nguyên nhân, DỪNG và báo tôi (đừng lặp vô hạn).
 4. BÁO CÁO cho tôi, ngắn gọn, theo mẫu:
@@ -38,6 +38,27 @@ Sau MỖI lần viết hoặc sửa code trong một phase, TỰ ĐỘNG thực 
 
 Quy ước báo lỗi: luôn nói RÕ lỗi gì, nguyên nhân, sửa thế nào — kể cả lỗi nhỏ. Đây là yêu cầu
 bắt buộc của tôi để theo dõi.
+
+### 2a. ⛔ CỔNG CHẶN TRƯỚC KHI PUSH (bắt buộc, có gác máy móc — không dựa vào "nhớ chạy tay")
+
+Từng bị CI đỏ nhiều lần (v139 quên `eslint`, v143 quên `e2e`) vì suy đoán "đổi nhỏ chắc
+không ảnh hưởng" thay vì chạy đủ mọi job CI. **`.git/hooks/pre-push` tự động chạy
+`scripts/kiem-tra-truoc-khi-push.ps1`** (chạy ĐÚNG cả 3 job của `.github/workflows/ci.yml`:
+backend ruff+import+pytest, frontend eslint+vitest+build, **và e2e Playwright** — job hay bị
+bỏ sót nhất) và **CHẶN CỨNG lệnh `git push`** nếu còn lỗi. Không cần nhớ chạy tay — hook tự lo.
+
+- Sửa `ci.yml` (thêm/bớt job hay bước) → PHẢI sửa `scripts/kiem-tra-truoc-khi-push.ps1` theo
+  ngay, đừng để 2 nơi lệch nhau — nguồn gốc cả 2 lần CI đỏ trước đây là cục bộ và CI kiểm tra
+  khác nhau.
+- KHÔNG dùng `git push --no-verify` để né hook trừ khi thật sự khẩn cấp và đã tự kiểm tra thủ
+  công kỹ — hook tồn tại chính vì "tự tin chắc ổn" đã sai nhiều lần.
+- Việc "đưa lên github" (commit + push + tag) chỉ được coi là XONG khi hook chạy qua sạch —
+  không suy đoán, không báo "kỳ vọng CI xanh", CHỈ báo khi đã tự xác nhận.
+- **Lưu ý**: `.git/hooks/` KHÔNG được git theo dõi (không nằm trong repo) — nếu clone lại máy
+  mới/`.git` bị dựng lại, hook biến mất và phải tạo lại thủ công (copy nội dung từ phiên đã
+  tạo hook này, hoặc dựa vào chính mục 2a này để viết lại — logic thật nằm ở
+  `scripts/kiem-tra-truoc-khi-push.ps1`, file NÀY có version control, chỉ cần trỏ hook `pre-push`
+  gọi nó).
 
 ## 3. NGUYÊN TẮC BẤT BIẾN — vi phạm là lỗi nghiêm trọng
 
