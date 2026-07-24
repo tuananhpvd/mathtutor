@@ -528,6 +528,11 @@ So sánh loại thực tế đọc được trong ảnh với loại giáo viên
 ĐỊNH DẠNG CÔNG THỨC khi phiên lại công thức toán trong "de_bai"/phương án/ý (giữ đúng NỘI DUNG
 đọc được, chỉ chuẩn hóa CÁCH VIẾT LaTeX theo quy tắc sau):
 {_QUY_TAC_LATEX}
+Trong CHUỖI JSON trả về, dấu gạch chéo ngược của LaTeX phải viết KÉP — muốn công thức là
+$\\overrightarrow{{AB}}$ thì viết trong chuỗi JSON là "$\\\\overrightarrow{{AB}}$" (HAI dấu \\\\
+liền nhau cho MỖI lệnh, không phải một). Áp dụng cho MỌI lệnh LaTeX xuất hiện trong
+"de_bai"/phương án/ý: \\\\sqrt, \\\\frac, \\\\vec, \\\\widehat, \\\\int... đều viết KÉP trong
+chuỗi JSON — viết thiếu (1 dấu) làm JSON hỏng cú pháp, viết ĐÚNG HAI dấu là chuẩn.
 CHỈ trả JSON, không kèm chữ giải thích nào khác ngoài JSON.
 """.strip()
 

@@ -534,6 +534,39 @@ def _goi_va_parse(call_fn, system: str, user: str) -> dict:
     raise RuntimeError(f"Sinh câu hỏi thất bại sau {SO_LAN_THU} lần: {loi}")
 
 
+# Sự cố thực tế (tính năng "Nhận dạng đề từ ảnh"): Gemini structured-output đôi khi tự ý
+# escape THỪA 1 lớp khi phiên âm LaTeX từ ảnh — trả "\\\\overrightarrow" (4 ký tự \) trong
+# response.text thay vì đúng 2 ký tự \ như prompt đã dặn. Chuỗi này VẪN LÀ JSON HỢP LỆ CÚ
+# PHÁP (json.loads thành công ngay lần đầu, không có lỗi nào để _va_escape_json kích hoạt
+# vá) — nhưng sau khi decode còn dư nguyên 2 dấu \ THẬT trong nội dung, khiến KaTeX hiểu
+# "\\" là lệnh xuống dòng rồi phần lệnh LaTeX phía sau (vd "overrightarrow{AB}") hiện ra chữ
+# thô thay vì công thức. Domain này KHÔNG dùng "\\" (xuống dòng LaTeX thật) ở bất kỳ đâu
+# (cấm môi trường "aligned" — xem _QUY_TAC_LATEX), nên 2 dấu \ liên tiếp ngay trước 1 lệnh
+# LaTeX quen thuộc LUÔN là escape thừa, an toàn để tự sửa về 1 dấu.
+_RE_LENH_LATEX_QUEN_THUOC = (
+    r"overrightarrow|widehat|vec|dfrac|frac|sqrt|int|sum|lim|cdot|times|div|infty|pi|"
+    r"left|right|alpha|beta|gamma|delta|theta|leq|geq|neq|approx|pm|to|Rightarrow|"
+    r"rightarrow|implies|circ"
+)
+_RE_BACKSLASH_THUA_LATEX = re.compile(
+    r"\\\\(?=(?:" + _RE_LENH_LATEX_QUEN_THUOC + r")\b)"
+)
+
+
+def _sua_backslash_thua_latex(s):
+    """Sửa "\\\\lenh" (thừa 1 lớp escape JSON) về "\\lenh" đúng chuẩn — xem ghi chú trên.
+    Áp dụng đệ quy cho dict/list (vd "meta_nhap"); chuỗi rỗng/None giữ nguyên."""
+    if isinstance(s, str):
+        if not s:
+            return s
+        return _RE_BACKSLASH_THUA_LATEX.sub(lambda m: "\\", s)
+    if isinstance(s, dict):
+        return {k: _sua_backslash_thua_latex(v) for k, v in s.items()}
+    if isinstance(s, list):
+        return [_sua_backslash_thua_latex(v) for v in s]
+    return s
+
+
 def _parse_json_doc_de_tu_anh(raw: str) -> dict:
     """Parse JSON {khop_loai_cau, loai_cau_nhan_dang, de_bai, meta_nhap, ly_do_khong_khop}."""
     text = _trich_json(raw or "")
@@ -551,8 +584,10 @@ def _parse_json_doc_de_tu_anh(raw: str) -> dict:
     return {
         "khop_loai_cau": bool(data.get("khop_loai_cau")),
         "loai_cau_nhan_dang": str(data.get("loai_cau_nhan_dang") or ""),
-        "de_bai": str(data.get("de_bai") or ""),
-        "meta_nhap": data.get("meta_nhap") if isinstance(data.get("meta_nhap"), dict) else {},
+        "de_bai": _sua_backslash_thua_latex(str(data.get("de_bai") or "")),
+        "meta_nhap": _sua_backslash_thua_latex(
+            data.get("meta_nhap") if isinstance(data.get("meta_nhap"), dict) else {}
+        ),
         "ly_do_khong_khop": data.get("ly_do_khong_khop"),
     }
 

@@ -135,6 +135,46 @@ def test_parse_json_doc_de_tu_anh_thieu_khoa_bat_buoc():
         _parse_json_doc_de_tu_anh('{"de_bai": "abc"}')
 
 
+# ---------- Sự cố thực tế (v146): Gemini escape THỪA 1 lớp khi đọc ảnh — "\\\\overrightarrow"
+# (4 ký tự \ trong JSON) thay vì đúng 2 ký tự \ — JSON vẫn hợp lệ cú pháp nên _va_escape_json
+# không kích hoạt; sau decode còn dư 2 dấu \ thật khiến KaTeX hiểu nhầm "\\" là xuống dòng,
+# công thức hiện chữ thô. _parse_json_doc_de_tu_anh phải TỰ SỬA về đúng 1 dấu \. ----------
+
+def test_parse_json_doc_de_tu_anh_sua_backslash_thua_trong_de_bai():
+    raw = r'{"khop_loai_cau": true, "loai_cau_nhan_dang": "TNDS", ' \
+          r'"de_bai": "$\\\\overrightarrow{AB} = (-3;-3;3)$, $AB = 3\\\\sqrt{3}$.", ' \
+          r'"meta_nhap": {}, "ly_do_khong_khop": null}'
+    ket = _parse_json_doc_de_tu_anh(raw)
+    assert ket["de_bai"] == r"$\overrightarrow{AB} = (-3;-3;3)$, $AB = 3\sqrt{3}$."
+
+
+def test_parse_json_doc_de_tu_anh_sua_backslash_thua_trong_meta_nhap_long_nhau():
+    raw = (
+        r'{"khop_loai_cau": true, "loai_cau_nhan_dang": "TNDS", "de_bai": "de bai",'
+        r' "meta_nhap": {"y": [{"ky_hieu": "a", "noi_dung_y": "$\\\\vec{u} = (1;2;3)$"},'
+        r' {"ky_hieu": "b", "noi_dung_y": "$\\\\widehat{ABC}$"}]}, "ly_do_khong_khop": null}'
+    )
+    ket = _parse_json_doc_de_tu_anh(raw)
+    assert ket["meta_nhap"]["y"][0]["noi_dung_y"] == r"$\vec{u} = (1;2;3)$"
+    assert ket["meta_nhap"]["y"][1]["noi_dung_y"] == r"$\widehat{ABC}$"
+
+
+def test_parse_json_doc_de_tu_anh_khong_dung_nham_backslash_da_dung():
+    """Chuỗi ĐÃ đúng (1 dấu \\ sau decode) không bị sửa nhầm thành 0 dấu."""
+    raw = r'{"khop_loai_cau": true, "loai_cau_nhan_dang": "TLN", ' \
+          r'"de_bai": "$\\sqrt{2}$", "meta_nhap": {}, "ly_do_khong_khop": null}'
+    ket = _parse_json_doc_de_tu_anh(raw)
+    assert ket["de_bai"] == r"$\sqrt{2}$"
+
+
+def test_parse_json_doc_de_tu_anh_khong_dung_van_ban_thuong():
+    raw = ('{"khop_loai_cau": true, "loai_cau_nhan_dang": "TLN", '
+           '"de_bai": "Trong khong gian Oxyz, cho cac diem A, B, C.", '
+           '"meta_nhap": {}, "ly_do_khong_khop": null}')
+    ket = _parse_json_doc_de_tu_anh(raw)
+    assert ket["de_bai"] == "Trong khong gian Oxyz, cho cac diem A, B, C."
+
+
 # ---------- GeminiLLMClient.doc_de_tu_anh (mock _call_voi_anh, không gọi mạng thật) ----------
 
 def test_gemini_doc_de_tu_anh_goi_dung_va_parse(monkeypatch):
@@ -161,6 +201,22 @@ def test_gemini_doc_de_tu_anh_goi_dung_va_parse(monkeypatch):
     assert goi_lai["response_schema"]["required"] == [
         "khop_loai_cau", "loai_cau_nhan_dang", "de_bai", "meta_nhap",
     ]
+
+
+# ---------- Prompt phải dặn cách escape backslash trong JSON (v146 — chống tái nhiễm) -------
+
+def test_prompt_doc_de_tu_anh_co_day_du_quy_tac_escape_backslash():
+    """Khóa quy tắc: SYSTEM_DOC_DE_TU_ANH phải dặn RÕ + có VÍ DỤ cách viết backslash LaTeX
+    trong chuỗi JSON (2 dấu \\ cho 1 lệnh) — nguyên nhân sự cố v146 là prompt này thiếu hẳn
+    dặn dò này (khác SYSTEM_SINH_CAU_HOI đã có từ trước), khiến Gemini tự ý escape thừa khi
+    phiên âm LaTeX từ ảnh."""
+    from app.llm import prompts
+
+    p = prompts.SYSTEM_DOC_DE_TU_ANH
+    assert "CHUỖI JSON" in p
+    assert "viết KÉP" in p or "viết kép" in p
+    # Có ví dụ cụ thể 2-dấu-\ (không chỉ nói suông) — đúng dạng đã sửa lỗi trong session này.
+    assert r"\\overrightarrow" in p
 
 
 # ---------- Regression: schema Gemini KHÔNG được chứa enum rỗng ----------
