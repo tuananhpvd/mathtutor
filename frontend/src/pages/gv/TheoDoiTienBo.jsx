@@ -283,7 +283,7 @@ function PhanTrang({ trang, tong, onLui, onToi }) {
   )
 }
 
-export default function TheoDoiTienBo() {
+export default function TheoDoiTienBo({ onGiaoBai }) {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [chon, setChon] = useState(null)
@@ -638,7 +638,8 @@ export default function TheoDoiTienBo() {
           ) : (
             <>
               <PhanTichNangLuc pt={ptChon} vaiTro="gv"
-                onCapNhat={capNhatAi} dangCapNhat={dangCapNhatAi} />
+                onCapNhat={capNhatAi} dangCapNhat={dangCapNhatAi}
+                onGiaoBai={onGiaoBai && ((r) => onGiaoBai(hsChon, r))} />
               {nhipChon && (
                 <BieuDoVung
                   ds={nhipChon.map((d) => ({ ...d, so: d.so_bai }))}

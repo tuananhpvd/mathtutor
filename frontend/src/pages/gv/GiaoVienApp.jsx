@@ -84,10 +84,19 @@ export default function GiaoVienApp({ onLogout }) {
   // { id, ts } | null — cờ theo dõi cần nhảy tới + làm nổi bật khi GV bấm thông báo
   // "⚠️/🆘 ..." ở chuông (nội dung không phù hợp / khẩn cấp).
   const [focusCo, setFocusCo] = useState(null)
+  // { hocSinhId, hoTen, dangId, dangTen } | null — bấm "Giao bài ngay" ở 1 dạng yếu cụ thể
+  // (Tiến bộ học sinh) → nhảy sang Giao nhiệm vụ, lọc sẵn đúng HS + đúng dạng. GiaoNhiemVu tự
+  // gọi onGoiYDone() sau khi áp dụng xong nên không cần "ts" chống trùng như focusYc/focusCo.
+  const [goiYNv, setGoiYNv] = useState(null)
 
   function navigate(key) {
     window.location.hash = key
     setPage(key)
+  }
+
+  function giaoBaiNgay(hs, r) {
+    setGoiYNv({ hocSinhId: hs.hoc_sinh_id, hoTen: hs.ho_ten, dangId: r.dang_id, dangTen: r.ten })
+    navigate('nhiem_vu')
   }
 
   // ChuongThongBao gọi hàm này cho MỌI loại thông báo có liên kết — mỗi loại nhảy tới đúng
@@ -141,9 +150,11 @@ export default function GiaoVienApp({ onLogout }) {
         {page === 'ho_tro' && (
           <HoTroHocSinh focusYc={focusYc} onFocusDone={() => setFocusYc(null)} />
         )}
-        {page === 'nhiem_vu' && <GiaoNhiemVu />}
+        {page === 'nhiem_vu' && (
+          <GiaoNhiemVu goiY={goiYNv} onGoiYDone={() => setGoiYNv(null)} />
+        )}
         {page === 'de_thi' && <QuanLyDeThi quanLy={la_quan_ly} />}
-        {page === 'tien_bo' && <TheoDoiTienBo />}
+        {page === 'tien_bo' && <TheoDoiTienBo onGiaoBai={giaoBaiNgay} />}
         {page === 'lop' && <QuanLyLopGV />}
         {page === 'hoc_sinh' && <QuanLyHocSinhGV />}
         {page === 'tai_khoan' && <TaiKhoanCaNhan onHoTenChange={capNhatHoTen} />}

@@ -34,18 +34,21 @@ function renderDeBai(text) {
     )
 }
 
-export default function GiaoNhiemVu() {
+export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
   const confirm = useConfirm()
   const [bais, setBais] = useState([])
   const [hocSinhs, setHocSinhs] = useState([])
   const [lops, setLops] = useState([])
   const [nhiemVus, setNhiemVus] = useState([])
 
-  const [tieuDe, setTieuDe] = useState('')
+  // "goiY" (từ "Giao bài ngay" ở Tiến bộ học sinh) chỉ có giá trị ở LẦN MOUNT ĐẦU — trang này
+  // unmount/remount mỗi lần chuyển trang (conditional render ở GiaoVienApp) nên khởi tạo state
+  // thẳng từ prop ban đầu (lazy initializer), không dùng effect để set — tránh cascading render.
+  const [tieuDe, setTieuDe] = useState(() => (goiY ? `Luyện thêm: ${goiY.dangTen}` : ''))
   const [moTa, setMoTa] = useState('')
   const [hanChot, setHanChot] = useState('')
   const [chonBai, setChonBai] = useState(() => new Set())
-  const [chonHs, setChonHs] = useState(() => new Set())
+  const [chonHs, setChonHs] = useState(() => new Set(goiY ? [goiY.hocSinhId] : []))
   const [fLop, setFLop] = useState('')
 
   // Bộ lọc & tìm kiếm câu hỏi
@@ -56,9 +59,12 @@ export default function GiaoNhiemVu() {
   const [openCd, setOpenCd] = useState(() => new Set())
   const [openDang, setOpenDang] = useState(() => new Set())
 
-  const [hsDeXuat, setHsDeXuat] = useState('')
+  const [hsDeXuat, setHsDeXuat] = useState(() => (goiY ? String(goiY.hocSinhId) : ''))
   const [deXuat, setDeXuat] = useState(null)
   const [dangDeXuat, setDangDeXuat] = useState(false)
+  // Khác null khi tới từ "Giao bài ngay" (Tiến bộ học sinh, 1 dạng yếu cụ thể) — khoá gợi ý
+  // vào ĐÚNG dạng đó thay vì quét toàn bộ điểm yếu của HS.
+  const [presetDang, setPresetDang] = useState(() => (goiY ? { id: goiY.dangId, ten: goiY.dangTen } : null)) // {id, ten} | null
 
   // Số em (trong tập ĐANG CHỌN) đã hoàn thành từng bài — nguồn để chặn giao trùng.
   // {so_hoc_sinh, theo_bai: {problem_id: so_em_da_lam}}
@@ -168,18 +174,45 @@ export default function GiaoNhiemVu() {
     setChonHs(next)
   }
 
-  async function layDeXuat() {
-    if (!hsDeXuat) return
+  // hocSinhIdOverride/dangOverride: dùng khi gọi NGAY sau khi set state preset (state chưa kịp
+  // áp dụng trong cùng tick) — xem effect áp dụng `goiY` bên dưới.
+  async function layDeXuat(hocSinhIdOverride, dangOverride) {
+    const hsId = hocSinhIdOverride ?? (hsDeXuat ? Number(hsDeXuat) : null)
+    const dang = dangOverride !== undefined ? dangOverride : presetDang
+    if (!hsId) return
     setDangDeXuat(true)
     setDeXuat(null)
     try {
-      setDeXuat(await api.gvDeXuatNhiemVu(Number(hsDeXuat)))
+      if (dang) {
+        const bai = await api.gvDeXuatTheoDang(hsId, dang.id)
+        setDeXuat({ dang_yeu: [dang.ten], bai })
+      } else {
+        setDeXuat(await api.gvDeXuatNhiemVu(hsId))
+      }
     } catch (e) {
       setLoi(e.message)
     } finally {
       setDangDeXuat(false)
     }
   }
+
+  // State ban đầu đã khoá theo `goiY` (xem lazy initializer ở trên) — effect này chỉ lo phần
+  // THẬT SỰ là side effect: gọi API lấy gợi ý + báo cho GiaoVienApp đã tiêu thụ xong `goiY`.
+  // Chạy đúng 1 lần lúc mount (trang này luôn mount MỚI mỗi khi điều hướng tới, xem ghi chú ở
+  // khai báo state phía trên) nên không cần theo dõi goiY đổi giữa chừng.
+  useEffect(() => {
+    if (goiY) {
+      // layDeXuat gọi setState ngay ở đầu thân hàm (trước await) — đẩy ra ngoài microtask để
+      // effect không setState ĐỒNG BỘ (tránh cascading render, cùng lý do các setState khác
+      // trong effect này đã được dời sang lazy initializer ở khai báo state phía trên).
+      Promise.resolve().then(() => {
+        layDeXuat(goiY.hocSinhId, { id: goiY.dangId, ten: goiY.dangTen })
+      })
+      onGoiYDone?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function themBaiDeXuat() {
     if (!deXuat) return
     const next = new Set(chonBai)
@@ -295,14 +328,26 @@ export default function GiaoNhiemVu() {
           {/* Gợi ý theo điểm yếu */}
           <div className="rounded-xl border border-border bg-surface-2/40 p-3 flex flex-col gap-2">
             <p className="text-sm font-semibold text-ink">💡 Gợi ý bài theo điểm yếu</p>
+            {presetDang && (
+              <div className="rounded-md bg-primary-soft border border-primary/30 px-3 py-2 text-xs
+                text-ink flex items-center justify-between gap-2 flex-wrap">
+                <span>
+                  🎯 Đến từ "Giao bài ngay" — đang khoá đúng dạng yếu <b>«{presetDang.ten}»</b>.
+                </span>
+                <button onClick={() => { setPresetDang(null); layDeXuat(undefined, null) }}
+                  className="text-primary hover:underline shrink-0 font-medium">
+                  Bỏ khoá, xem mọi điểm yếu
+                </button>
+              </div>
+            )}
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[200px]">
                 <Select label="Chọn học sinh để gợi ý" value={hsDeXuat}
-                  onChange={(e) => setHsDeXuat(e.target.value)}
+                  onChange={(e) => { setHsDeXuat(e.target.value); setPresetDang(null) }}
                   options={[{ value: '', label: '— Chọn học sinh —' },
                     ...hocSinhs.map((h) => ({ value: String(h.id), label: h.ho_ten }))]} />
               </div>
-              <Button size="sm" variant="secondary" onClick={layDeXuat}
+              <Button size="sm" variant="secondary" onClick={() => layDeXuat()}
                 disabled={!hsDeXuat || dangDeXuat}>
                 {dangDeXuat ? 'Đang lấy...' : 'Lấy gợi ý'}
               </Button>

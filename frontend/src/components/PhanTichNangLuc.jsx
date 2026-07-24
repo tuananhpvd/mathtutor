@@ -97,7 +97,9 @@ function dinhDangNgay(iso) {
 // sauNhanXet?: nội dung chèn ngay sau card "Nhận xét & gợi ý cho em"/"Phân tích năng lực"
 // (trước khối "Theo dạng bài"/"Theo loại câu hỏi") — dùng ở trang Tiến độ HS để đặt card
 // "Nhận xét của thầy/cô" đúng vị trí, không đổi gì khác của component dùng chung này.
-export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapNhat, onLuyen, sauNhanXet }) {
+export default function PhanTichNangLuc({
+  pt, vaiTro = 'hs', onCapNhat, dangCapNhat, onLuyen, onGiaoBai, sauNhanXet,
+}) {
   if (!pt) return null
   const deXuat = vaiTro === 'gv' ? pt.de_xuat_gv : pt.de_xuat_hs
   const aiText = pt.ai ? (vaiTro === 'gv' ? pt.ai.cho_giao_vien : pt.ai.cho_hoc_sinh) : ''
@@ -193,9 +195,16 @@ export default function PhanTichNangLuc({ pt, vaiTro = 'hs', onCapNhat, dangCapN
                   {pt.diem_yeu.map((r, i) => (
                     <li key={i} className="flex items-center justify-between gap-2">
                       <span>• {r.ten} <b className="text-danger">{r.diem_thanh_thao}%</b></span>
-                      {onLuyen && r.dang_id && (
-                        <Button size="sm" onClick={() => onLuyen(r)}>Luyện ngay</Button>
-                      )}
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        {onLuyen && r.dang_id && (
+                          <Button size="sm" onClick={() => onLuyen(r)}>Luyện ngay</Button>
+                        )}
+                        {onGiaoBai && r.dang_id && (
+                          <Button size="sm" variant="secondary" onClick={() => onGiaoBai(r)}>
+                            Giao bài ngay
+                          </Button>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
