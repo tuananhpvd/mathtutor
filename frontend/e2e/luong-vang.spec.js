@@ -38,8 +38,10 @@ test('HS làm trọn vẹn 1 bài TLN: đăng nhập → chọn bài → giải 
   await dangNhapUI(page, 'hs1', 'hs123')
 
   // Vào "Chọn bài", lọc loại "Trả lời ngắn"
+  // Lưới bộ lọc: Nhiệm vụ, Chuyên đề, Dạng, Loại câu, Mức độ, Trạng thái (v143 thêm
+  // "Nhiệm vụ" lên đầu — chỉ số dịch từ 2 → 3 cho đúng vị trí "Loại câu").
   await page.getByRole('button', { name: 'Chọn bài' }).click()
-  await page.locator('select').nth(2).selectOption('TLN')
+  await page.locator('select').nth(3).selectOption('TLN')
 
   // Bài TLN 2 bước đã biết lời giải chuẩn: f(x) = x^3 - 3x, nghịch biến trên (-a; a), a = 1
   const card = page.locator('.rounded-card').filter({ hasText: 'nghịch biến trên khoảng' })

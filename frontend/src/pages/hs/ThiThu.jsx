@@ -207,6 +207,7 @@ function ManLamBai({ bai, onNopXong }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-ink">{bai.ten_de}</h2>
         <div className="flex items-center gap-3">
+          <span className="text-sm text-muted">Thời gian còn lại</span>
           <span className={`font-mono text-lg font-bold px-3 py-1 rounded-md ${
             gapGio ? 'bg-danger-soft text-danger' : 'bg-surface-2 text-ink'}`}>
             ⏱ {dinhDangThoiGian(Math.max(0, conLai))}
