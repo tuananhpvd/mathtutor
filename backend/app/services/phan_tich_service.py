@@ -64,11 +64,18 @@ def _diem_thanh_thao(ty_le_hoan_thanh: float, diem_chat_luong_tb: float, het_goi
     return round(max(0.0, min(1.0, diem - phat)) * 100)
 
 
-def _phan_loai(mastery: int | None) -> str:
+# Tỉ lệ hoàn thành dưới ngưỡng này thì KHÔNG được xếp "manh" dù điểm chất lượng cao — tránh
+# 1-2 bài làm tốt che mất việc bỏ dở phần lớn bài đã bắt đầu (vd hoàn thành 2/7 = 29% nhưng
+# 2 bài đó làm rất tốt vẫn không nên gắn "Vững"). Dùng CHUNG ngưỡng với câu ly_do ("hay bỏ dở
+# giữa chừng") để nhãn và lời giải thích luôn khớp nhau.
+NGUONG_TY_LE_KHOA_MANH = 0.6
+
+
+def _phan_loai(mastery: int | None, ty_le_hoan_thanh: float = 1.0) -> str:
     if mastery is None:
         return "chua_du_lieu"
     if mastery >= 75:
-        return "manh"
+        return "manh" if ty_le_hoan_thanh >= NGUONG_TY_LE_KHOA_MANH else "kha"
     if mastery >= 50:
         return "kha"
     return "can_cai_thien"
@@ -107,7 +114,7 @@ def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
     )
     tg_tb = round(sum(g["_tg"]) / len(g["_tg"])) if g["_tg"] else None
     mastery = _diem_thanh_thao(ty_le, diem_chat_luong_tb, het_goi_y_tb) if htc >= 1 else None
-    nhan = _phan_loai(mastery)
+    nhan = _phan_loai(mastery, ty_le)
     row = {
         "ten": ten,
         "so_phien": g["so_phien"],

@@ -512,6 +512,18 @@ def test_het_goi_y_giam_diem_thanh_thao():
     assert vat_lon < khong_vat_lon
 
 
+def test_ty_le_thap_khong_duoc_xep_manh():
+    """Phát hiện qua dữ liệu THẬT trên production (2026-07-24): 1 dạng chỉ hoàn thành 2/7
+    bài (29%) nhưng 2 bài đó làm rất sạch vẫn ra "Vững" — 1-2 bài làm tốt che mất việc bỏ dở
+    phần lớn. Tỉ lệ hoàn thành dưới NGUONG_TY_LE_KHOA_MANH thì bị KHOÁ, không cho lên "manh"
+    dù điểm chất lượng cao, dù mastery-số vẫn ở khoảng ≥75."""
+    from app.services.phan_tich_service import _phan_loai
+
+    assert _phan_loai(90, ty_le_hoan_thanh=1.0) == "manh"
+    assert _phan_loai(90, ty_le_hoan_thanh=0.29) == "kha"  # bị khoá, không phải "manh"
+    assert _phan_loai(40, ty_le_hoan_thanh=0.29) == "can_cai_thien"  # điểm thấp thì vẫn vậy
+
+
 def test_me_hieu_qua(db, client):
     """HS tự xem chuỗi 8 tuần của mình; GV không gọi được route /me (dành riêng HS)."""
     pid = _seed(db)
