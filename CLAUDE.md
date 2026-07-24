@@ -59,6 +59,13 @@ bỏ sót nhất) và **CHẶN CỨNG lệnh `git push`** nếu còn lỗi. Khô
   tạo hook này, hoặc dựa vào chính mục 2a này để viết lại — logic thật nằm ở
   `scripts/kiem-tra-truoc-khi-push.ps1`, file NÀY có version control, chỉ cần trỏ hook `pre-push`
   gọi nó).
+- **Cache tránh chạy lại thừa** (2026-07-24): hook lưu `<commit sha>:<hash script kiểm tra>`
+  vào `.git/kiem-tra-truoc-khi-push.da-xac-nhan` sau mỗi lần chạy sạch — commit đã xác nhận
+  rồi (vd vừa push nhánh `main`, giờ push THÊM tag trỏ đúng commit đó) thì **bỏ qua ngay**
+  (~2 giây thay vì ~7 phút), không chạy lại vô ích. Đổi `scripts/kiem-tra-truoc-khi-push.ps1`
+  (thêm bước CI mới) tự làm cache CŨ hết hiệu lực (hash file đổi → khóa cache đổi) — không
+  cần nhớ xóa cache thủ công. Cache nằm trong `.git/` nên cũng mất khi `.git/` bị dựng lại,
+  không cần lo dọn.
 
 ## 3. NGUYÊN TẮC BẤT BIẾN — vi phạm là lỗi nghiêm trọng
 
