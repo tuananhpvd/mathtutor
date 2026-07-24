@@ -18,10 +18,21 @@ function renderDe(text) {
     )
 }
 
+// Ngưỡng "sắp hết hạn" — CÙNG ngưỡng cảnh báo vàng đã dùng ở trang Nhiệm vụ (NhiemVu.jsx
+// hanInfo()), để HS thấy nhất quán 1 khái niệm "sắp hết hạn" ở cả 2 màn.
+const NGUONG_SAP_HET_HAN_NGAY = 2
+
+// Hàm module-level (không gọi Date.now() trực tiếp trong component/hook) — tránh lỗi
+// ESLint react-hooks/purity, cùng cách NhiemVu.jsx đã làm với hanInfo().
+function soNgayConLai(iso) {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)
+}
+
 export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   const [danhMuc, setDanhMuc] = useState([]) // [{id, ten, dang_list:[...]}]
   const [bai, setBai] = useState([])
   const [trangThaiBai, setTrangThaiBai] = useState({}) // {problem_id: {session_id, trang_thai}}
+  const [nhiemVu, setNhiemVu] = useState([]) // ds nhiệm vụ được giao (từ api.hsNhiemVu())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [xemLaiSid, setXemLaiSid] = useState(null) // session_id đang mở xem lại
@@ -32,16 +43,18 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   const [fLoai, setFLoai] = useState('')
   const [fKho, setFKho] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
+  const [fNhiemVu, setFNhiemVu] = useState('')
   const [trang, setTrang] = useState(1)
 
   useEffect(() => {
     async function load() {
       try {
         // Các call độc lập: lỗi phụ không chặn danh sách bài
-        const [dmResult, baiResult, ttResult] = await Promise.allSettled([
+        const [dmResult, baiResult, ttResult, nvResult] = await Promise.allSettled([
           api.getDanhMuc(),
           api.listProblems(),
           api.getPhienCuaToi(),
+          api.hsNhiemVu(),
         ])
         if (dmResult.status === 'fulfilled') setDanhMuc(dmResult.value)
         if (baiResult.status === 'fulfilled') setBai(baiResult.value)
@@ -51,6 +64,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
           ttResult.value.forEach((s) => { map[s.problem_id] = s })
           setTrangThaiBai(map)
         }
+        if (nvResult.status === 'fulfilled') setNhiemVu(nvResult.value || [])
       } finally {
         setLoading(false)
       }
@@ -93,6 +107,31 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
     return cd ? cd.ten : ''
   }, [danhMuc, fChuyenDeId])
 
+  // problem_id thuộc nhiệm vụ CÒN hạn và sắp tới (0 ≤ số ngày còn lại ≤ ngưỡng) — quá hạn
+  // KHÔNG tính (đã lỡ hạn là 1 trạng thái khác, không phải "sắp" nữa).
+  const idSapHetHan = useMemo(() => {
+    const s = new Set()
+    nhiemVu.forEach((nv) => {
+      if (!nv.han_chot) return
+      const conLai = soNgayConLai(nv.han_chot)
+      if (conLai >= 0 && conLai <= NGUONG_SAP_HET_HAN_NGAY) {
+        nv.bai?.forEach((b) => s.add(b.problem_id))
+      }
+    })
+    return s
+  }, [nhiemVu])
+
+  // problem_id thuộc ĐÚNG 1 nhiệm vụ được giao gần đây nhất (tao_luc lớn nhất).
+  const idMoiNhat = useMemo(() => {
+    const s = new Set()
+    if (nhiemVu.length === 0) return s
+    const moiNhat = nhiemVu.reduce((a, b) =>
+      new Date(b.tao_luc || 0) > new Date(a.tao_luc || 0) ? b : a
+    )
+    moiNhat.bai?.forEach((b) => s.add(b.problem_id))
+    return s
+  }, [nhiemVu])
+
   const loc = bai.filter((b) => {
     if (fChuyenDeId && b.chuyen_de !== cdTen) return false
     if (fDangId && String(b.dang_id) !== fDangId) return false
@@ -104,13 +143,16 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
       if (fTrangThai === 'dang_lam' && tt !== 'dang_lam') return false
       if (fTrangThai === 'chua_lam' && (tt === 'hoan_thanh' || tt === 'dang_lam')) return false
     }
+    if (fNhiemVu === 'sap_het_han' && !idSapHetHan.has(b.id)) return false
+    if (fNhiemVu === 'moi_nhat' &&
+        (!idMoiNhat.has(b.id) || trangThaiBai[b.id]?.trang_thai === 'hoan_thanh')) return false
     return true
   })
 
   // Đổi bộ lọc → quay về trang 1, tránh kẹt ở trang rỗng.
   useEffect(() => {
     setTimeout(() => setTrang(1), 0)
-  }, [fChuyenDeId, fDangId, fLoai, fKho, fTrangThai])
+  }, [fChuyenDeId, fDangId, fLoai, fKho, fTrangThai, fNhiemVu])
 
   const tongTrang = Math.max(1, Math.ceil(loc.length / MOI_TRANG))
   const locTrang = loc.slice((trang - 1) * MOI_TRANG, trang * MOI_TRANG)
@@ -120,7 +162,17 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
       <h2 className="text-xl font-semibold text-ink">Chọn bài luyện</h2>
 
       {/* Bộ lọc theo cây danh mục */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <Select
+          label="Nhiệm vụ"
+          value={fNhiemVu}
+          onChange={(e) => setFNhiemVu(e.target.value)}
+          options={[
+            { value: '', label: 'Tất cả' },
+            { value: 'sap_het_han', label: 'Sắp hết hạn' },
+            { value: 'moi_nhat', label: 'Mới nhất' },
+          ]}
+        />
         <Select
           label="Chuyên đề"
           value={fChuyenDeId}

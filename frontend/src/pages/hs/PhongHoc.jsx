@@ -563,16 +563,18 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                       placeholder="Mô tả chỗ chưa hiểu (không bắt buộc)..."
                       rows={2}
                       luonHienBangCT={false}
+                      duoiO={
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="secondary"
+                            onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
+                            Hủy
+                          </Button>
+                          <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
+                            {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                          </Button>
+                        </div>
+                      }
                     />
-                    <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="secondary"
-                        onClick={() => { setNhoMo(false); setNhoText('') }} disabled={nhoDangGui}>
-                        Hủy
-                      </Button>
-                      <Button size="sm" onClick={guiNhoThayCo} disabled={nhoDangGui}>
-                        {nhoDangGui ? 'Đang gửi...' : 'Gửi yêu cầu'}
-                      </Button>
-                    </div>
                   </div>
                 )}
 
