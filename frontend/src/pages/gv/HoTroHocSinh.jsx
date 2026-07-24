@@ -125,13 +125,17 @@ function ModalChiTiet({
                     onChange={setText}
                     placeholder="Viết câu trả lời / gợi ý cho học sinh... (có thể chèn công thức)"
                     rows={3}
+                    duoiO={
+                      <>
+                        {loi && <p className="text-sm text-danger">{loi}</p>}
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" onClick={() => onGui(yc)} disabled={dangGui}>
+                            {dangGui ? 'Đang gửi...' : 'Gửi trả lời'}
+                          </Button>
+                        </div>
+                      </>
+                    }
                   />
-                  {loi && <p className="text-sm text-danger">{loi}</p>}
-                  <div className="flex gap-2 justify-end">
-                    <Button size="sm" onClick={() => onGui(yc)} disabled={dangGui}>
-                      {dangGui ? 'Đang gửi...' : 'Gửi trả lời'}
-                    </Button>
-                  </div>
                 </div>
               )}
             </>
