@@ -5,6 +5,7 @@ import re
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.matching.cas import buoc_co_bieu_thuc_khong_hop_le
 from app.models.danh_muc import Dang
 from app.models.flag import Flag
 from app.models.problem import (
@@ -73,6 +74,10 @@ def tao_problem(db: Session, du_lieu: dict, nguoi_tao_id: int | None) -> Problem
     meta = du_lieu.get("meta") or {}
     if loai == LoaiCau.TLN:
         _kiem_tra_dap_an_tln(meta)
+
+    loi_buoc = buoc_co_bieu_thuc_khong_hop_le(du_lieu.get("solution_steps") or [])
+    if loi_buoc:
+        raise ValueError("; ".join(loi_buoc))
 
     p = Problem(
         chuyen_de=chuyen_de,
@@ -176,6 +181,12 @@ def sua_problem(db: Session, problem_id: int, du_lieu: dict) -> Problem:
     p = db.get(Problem, problem_id)
     if p is None:
         raise ValueError("Không tìm thấy câu hỏi")
+
+    # Validate TRƯỚC khi mutate gì — tránh xóa mất các bước cũ còn tốt nếu bước mới hỏng.
+    if "solution_steps" in du_lieu and du_lieu["solution_steps"] is not None:
+        loi_buoc = buoc_co_bieu_thuc_khong_hop_le(du_lieu["solution_steps"])
+        if loi_buoc:
+            raise ValueError("; ".join(loi_buoc))
 
     if "dang_id" in du_lieu:
         dang_id = du_lieu["dang_id"]

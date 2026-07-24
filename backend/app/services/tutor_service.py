@@ -507,12 +507,20 @@ def xu_ly_luot(
                 ket_qua = km.ket_qua
                 ket_qua_dict = {"ket_qua": ket_qua.value, "la_chon_dap_an": True}
             else:
-                # Pha suy luận: so biểu thức HS nhập với bieu_thuc_ket_qua của bước hiện tại
+                # Pha suy luận: so biểu thức HS nhập với bieu_thuc_ket_qua của bước hiện tại.
+                # Sự cố thực tế (production): sau khi làm đúng bước bắt buộc và đã MỞ KHÓA
+                # đáp án, buoc_hien_tai chuyển sang bước KẾ TIẾP — bước đó thường RỖNG
+                # (TN4PA chỉ cần đúng 1 bước để mở khóa, không có bước 2 thật). Nếu lúc này
+                # HS lỡ gửi lại một biểu thức (thay vì bấm A/B/C/D), so_khop() với chuẩn
+                # rỗng LUÔN thất bại (KHONG_PHAN_TICH_DUOC) — báo "nhập lại biểu thức hợp
+                # lệ" dù HS nhập ĐÚNG TUYỆT ĐỐI, kể cả gửi lại chính biểu thức vừa đúng.
+                # Chỉ so khớp khi bước hiện tại THẬT SỰ có chuẩn để chấm.
                 buoc = trang_thai.buoc_data()
                 bieu_thuc_chuan = (buoc or {}).get("bieu_thuc_ket_qua", "")
-                km = so_khop("TLN", dap_an_nhap, {"dap_an_cuoi": bieu_thuc_chuan}, che_do)
-                ket_qua = km.ket_qua
-                ket_qua_dict = {"ket_qua": ket_qua.value, "la_chon_dap_an": False}
+                if bieu_thuc_chuan.strip():
+                    km = so_khop("TLN", dap_an_nhap, {"dap_an_cuoi": bieu_thuc_chuan}, che_do)
+                    ket_qua = km.ket_qua
+                    ket_qua_dict = {"ket_qua": ket_qua.value, "la_chon_dap_an": False}
         else:
             km = so_khop(loai_cau, dap_an_nhap, problem.meta, che_do)
             ket_qua = km.ket_qua

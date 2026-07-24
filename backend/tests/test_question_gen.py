@@ -8,7 +8,7 @@ from app.models.danh_muc import ChuyenDe, Dang
 from app.models.lop import Lop
 from app.models.problem import Problem
 from app.models.user import User, VaiTro
-from app.services.question_gen_service import sinh_va_luu
+from app.services.question_gen_service import luu_cau_nhap, sinh_va_luu
 
 
 def _login(client, dang_nhap):
@@ -239,6 +239,59 @@ def test_sinh_va_luu_luu_ca_loi_giai_chi_tiet_ai_sinh(db):
     p = db.get(Problem, ket_qua[0]["id"])
     assert p.loi_giai_chi_tiet.strip() != ""
     assert p.hien_loi_giai_chi_tiet is False
+
+
+# ----- Chặn lưu khi bieu_thuc_ket_qua không parse được (v142) -----
+
+class _FakeLLMBieuThucHong(StubLLMClient):
+    """Luôn trả 1 câu TLN có bieu_thuc_ket_qua còn sót $...$ — mô phỏng đúng sự cố thực tế
+    (AI quên bỏ $ dù prompt cấm) khiến CAS không bao giờ chấm đúng được cho bước đó."""
+
+    def sinh_cau_hoi(self, yeu_cau):
+        return {"cau_hoi": [{
+            "chuyen_de": yeu_cau.get("chuyen_de", "X"), "loai_cau": "TLN", "do_kho": "tb",
+            "de_bai": "Tính đạo hàm.",
+            "loai_dap_an_nhap": "gia_tri", "che_do_so_khop": "tuong_duong",
+            "meta": {"dap_an_cuoi": "2"},
+            "solution_steps": [
+                {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "b1",
+                 "bieu_thuc_ket_qua": "$3x^2-3$", "danh_sach_goi_y": ["gợi ý"]},
+            ],
+            "loi_giai_chi_tiet": "giai",
+        }]}
+
+
+def test_sinh_va_luu_bo_qua_cau_co_bieu_thuc_ket_qua_hong(db):
+    """AI sinh câu có bieu_thuc_ket_qua hỏng ($ thừa) → KHÔNG được lưu vào DB (bị bỏ qua
+    như câu rỗng/hỏng khác), thay vì lưu rồi chỉ cảnh báo (lỗi âm thầm, lộ ra khi HS làm)."""
+    dang = _seed_danh_muc(db)
+    so_luong_truoc = db.query(Problem).count()
+    ket_qua = sinh_va_luu(
+        db,
+        {"chuyen_de": "X", "dang_id": dang.id, "loai_cau": "TLN", "do_kho": "tb", "so_luong": 1},
+        nguoi_tao_id=None,
+        llm=_FakeLLMBieuThucHong(),
+    )
+    assert ket_qua == []
+    assert db.query(Problem).count() == so_luong_truoc
+
+
+def test_luu_cau_nhap_tu_choi_bieu_thuc_ket_qua_hong(db):
+    """luu_cau_nhap (luồng "AI tạo bước và gợi ý", GV bấm Lưu) cũng phải chặn — không chỉ
+    luồng sinh hàng loạt."""
+    import pytest
+
+    cau = {
+        "chuyen_de": "X", "loai_cau": "TLN", "do_kho": "tb", "de_bai": "Tính đạo hàm.",
+        "meta": {"dap_an_cuoi": "2"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "b1",
+             "bieu_thuc_ket_qua": "$3x^2-3$", "danh_sach_goi_y": ["gợi ý"]},
+        ],
+        "loi_giai_chi_tiet": "giai",
+    }
+    with pytest.raises(ValueError, match="không parse được"):
+        luu_cau_nhap(db, cau, nguoi_tao_id=None)
 
 
 # ----- Parse JSON bền + retry (chống lỗi 500) -----

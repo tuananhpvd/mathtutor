@@ -7,6 +7,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.core.matching.cas import buoc_co_bieu_thuc_khong_hop_le
 from app.llm.client import SO_LAN_THU, LLMClient
 from app.llm.question_gen import sinh_buoc_goi_y, sinh_nhap, validate_cau_hoi
 from app.models.danh_muc import Dang
@@ -36,6 +37,9 @@ def _luu_mot_cau(db: Session, cau: dict, nguoi_tao_id: int | None) -> Problem:
     # Phòng thủ kiểu dữ liệu để KHÔNG bao giờ sập khi LLM trả bất thường.
     steps = cau.get("solution_steps")
     steps = steps if isinstance(steps, list) else []
+    loi_buoc = buoc_co_bieu_thuc_khong_hop_le(steps)
+    if loi_buoc:
+        raise ValueError("; ".join(loi_buoc))
     meta = cau.get("meta")
     meta = meta if isinstance(meta, dict) else {}
     loai = _enum_an_toan(LoaiCau, cau.get("loai_cau"), LoaiCau.TLN)

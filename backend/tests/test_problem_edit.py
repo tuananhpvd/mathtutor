@@ -344,3 +344,40 @@ def test_xoa_vinh_vien_yeu_cau_bi_an_truoc(client, db):
     r = client.delete(f"/api/problems/{p.id}/vinh-vien", headers=_h(gtok))
     assert r.status_code == 400
     assert "ẩn" in r.json()["detail"]
+
+
+# ----- Chặn lưu khi bieu_thuc_ket_qua không parse được (v142 — trước chỉ cảnh báo, sự cố
+# thực tế: HS nhập đúng nhưng "chuẩn" lưu hỏng ($ thừa) nên CAS luôn báo không parse được) --
+
+def test_tao_cau_hoi_bieu_thuc_ket_qua_hong_bi_chan(client, db):
+    """bieu_thuc_ket_qua còn sót $...$ (AI/GV lỡ để lọt) → 400, KHÔNG được lưu."""
+    _, gv, _, _ = seed_all(db)
+    tok = _token(client, "gv_test")
+    r = client.post("/api/problems", json={
+        "loai_cau": "TLN", "do_kho": "tb", "de_bai": "Tính đạo hàm.",
+        "chuyen_de": "Khảo sát hàm số", "meta": {"dap_an_cuoi": "2"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "b1",
+             "bieu_thuc_ket_qua": "$3x^2-3$", "danh_sach_goi_y": ["gợi ý"]},
+        ],
+    }, headers=_h(tok))
+    assert r.status_code == 400
+    assert "không parse được" in r.json()["detail"]
+
+
+def test_sua_cau_hoi_bieu_thuc_ket_qua_hong_bi_chan_va_giu_nguyen_buoc_cu(client, db):
+    """Sửa câu hỏi với bieu_thuc_ket_qua hỏng → 400, KHÔNG xóa mất bước cũ còn tốt."""
+    _, gv, _, p = seed_all(db)
+    tok = _token(client, "gv_test")
+    r = client.patch(f"/api/problems/{p.id}", json={
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "b1",
+             "bieu_thuc_ket_qua": "$3x^2-3$", "danh_sach_goi_y": ["gợi ý"]},
+        ],
+    }, headers=_h(tok))
+    assert r.status_code == 400
+    assert "không parse được" in r.json()["detail"]
+    # Bước cũ của bài p vẫn còn nguyên (không bị xóa trước khi validate fail)
+    r2 = client.get(f"/api/problems/{p.id}", headers=_h(tok))
+    assert r2.status_code == 200
+    assert len(r2.json()["solution_steps"]) > 0

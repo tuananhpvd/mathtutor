@@ -6,6 +6,7 @@ from app.auth.security import hash_password
 from app.models.lop import Lop
 from app.models.problem import Problem, TrangThaiDuyet
 from app.models.solution_step import SolutionStep
+from app.models.turn import Turn
 from app.models.user import User, VaiTro
 
 
@@ -223,6 +224,38 @@ def test_tn4pa_bat_buoc_suy_luan_hai_pha(client, db):
                     json={"noi_dung": "", "dap_an_nhap": "B"}, headers=_h(tok))
     assert r.json()["da_xong"] is True
     assert r.json()["y_dinh"] == "ket_thuc"
+
+
+def test_tn4pa_gui_lai_bieu_thuc_dung_sau_khi_da_mo_khoa_khong_bao_sai(client, db):
+    """Sự cố thực tế production (v143): sau khi làm đúng bước bắt buộc và ĐÃ MỞ KHÓA đáp
+    án, buoc_hien_tai chuyển sang bước KẾ TIẾP (không tồn tại/rỗng với câu 1 bước). Nếu HS
+    lỡ gửi LẠI đúng biểu thức đó (thay vì bấm A-D), hệ thống KHÔNG được so khớp với "chuẩn"
+    rỗng của bước kế — trước đây luôn báo "nhập lại biểu thức hợp lệ" dù HS nhập đúng
+    tuyệt đối, kể cả gửi lại chính biểu thức vừa đúng."""
+    seed_all(db)
+    p = _seed_tn4pa(db, bat_buoc=True)
+    tok = _token(client, "hs_test")
+
+    r = client.post("/api/sessions", json={"problem_id": p.id}, headers=_h(tok))
+    sid = r.json()["session_id"]
+
+    # Nhập biểu thức đúng lần 1 → mở khóa đáp án
+    r = client.post(f"/api/sessions/{sid}/message",
+                    json={"noi_dung": "y'=4x-4", "dap_an_nhap": "4*x-4"}, headers=_h(tok))
+    assert r.json()["cho_chon_dap_an"] is True
+
+    # Gửi LẠI CHÍNH XÁC biểu thức đó (thay vì bấm A-D) — không được rơi về KHONG_PHAN_TICH_DUOC
+    r = client.post(f"/api/sessions/{sid}/message",
+                    json={"noi_dung": "Em trả lời: 4x-4", "dap_an_nhap": "4*x-4"}, headers=_h(tok))
+    assert r.status_code == 200, r.text
+    assert r.json()["cho_chon_dap_an"] is True  # vẫn còn mở khóa, không bị khóa lại
+
+    turn_gv_cuoi = (
+        db.query(Turn).filter(Turn.session_id == sid, Turn.vai_tro == "gia_su")
+        .order_by(Turn.id.desc()).first()
+    )
+    assert turn_gv_cuoi.ket_qua_so_khop is None or \
+        turn_gv_cuoi.ket_qua_so_khop.get("ket_qua") != "KHONG_PHAN_TICH_DUOC"
 
 
 def test_tn4pa_chon_ngay_hai_pha(client, db):
