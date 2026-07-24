@@ -187,7 +187,13 @@ def ho_so_nang_luc(
             continue
         cd = p.chuyen_de or "(Chưa phân loại)"
         dang = f"{cd} › {p.dang.ten}" if p.dang else f"{cd} › (Chưa phân dạng)"
-        dang_meta.setdefault(dang, {"dang_id": p.dang_id, "chuyen_de": p.chuyen_de})
+        # "dang_ten" (tên dạng THUẦN, không ghép chuyên đề) — khác "ten" của row (luôn là chuỗi
+        # "chuyên đề › dạng" ghép sẵn để hiển thị) — cần cho FE khớp đúng key group
+        # chuyên_đề/dạng ở màn Giao nhiệm vụ (vd tự mở đúng dạng khi bấm "Giao bài ngay").
+        dang_meta.setdefault(dang, {
+            "dang_id": p.dang_id, "chuyen_de": p.chuyen_de,
+            "dang_ten": p.dang.ten if p.dang else None,
+        })
         dang_phien.setdefault(dang, []).append(s)
         loai = p.loai_cau.value
         xong = s.trang_thai == TrangThaiSession.hoan_thanh

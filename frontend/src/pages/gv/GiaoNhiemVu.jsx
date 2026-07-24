@@ -55,9 +55,13 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
   const [qBai, setQBai] = useState('')
   const [filterLoai, setFilterLoai] = useState('')
   const [filterDo, setFilterDo] = useState('')
-  // Accordion state
-  const [openCd, setOpenCd] = useState(() => new Set())
-  const [openDang, setOpenDang] = useState(() => new Set())
+  // Accordion state — đến từ "Giao bài ngay" thì tự mở sẵn đúng chuyên đề/dạng đang yếu
+  // (dùng dangTenThuan — tên dạng THUẦN, khớp đúng key group bên dưới — không phải dangTen
+  // vốn là chuỗi "chuyên đề › dạng" ghép sẵn chỉ để hiển thị banner/tiêu đề).
+  const [openCd, setOpenCd] = useState(() => new Set(goiY ? [goiY.chuyenDe] : []))
+  const [openDang, setOpenDang] = useState(
+    () => new Set(goiY ? [`${goiY.chuyenDe}::${goiY.dangTenThuan}`] : [])
+  )
 
   const [hsDeXuat, setHsDeXuat] = useState(() => (goiY ? String(goiY.hocSinhId) : ''))
   const [deXuat, setDeXuat] = useState(null)

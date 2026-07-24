@@ -84,9 +84,10 @@ export default function GiaoVienApp({ onLogout }) {
   // { id, ts } | null — cờ theo dõi cần nhảy tới + làm nổi bật khi GV bấm thông báo
   // "⚠️/🆘 ..." ở chuông (nội dung không phù hợp / khẩn cấp).
   const [focusCo, setFocusCo] = useState(null)
-  // { hocSinhId, hoTen, dangId, dangTen } | null — bấm "Giao bài ngay" ở 1 dạng yếu cụ thể
-  // (Tiến bộ học sinh) → nhảy sang Giao nhiệm vụ, lọc sẵn đúng HS + đúng dạng. GiaoNhiemVu tự
-  // gọi onGoiYDone() sau khi áp dụng xong nên không cần "ts" chống trùng như focusYc/focusCo.
+  // { hocSinhId, hoTen, dangId, dangTen, chuyenDe, dangTenThuan } | null — bấm "Giao bài
+  // ngay" ở 1 dạng yếu cụ thể (Tiến bộ học sinh) → nhảy sang Giao nhiệm vụ, lọc sẵn đúng HS +
+  // đúng dạng (kèm tự mở đúng chuyên đề/dạng trong danh sách câu hỏi). GiaoNhiemVu tự gọi
+  // onGoiYDone() sau khi áp dụng xong nên không cần "ts" chống trùng như focusYc/focusCo.
   const [goiYNv, setGoiYNv] = useState(null)
 
   function navigate(key) {
@@ -95,7 +96,11 @@ export default function GiaoVienApp({ onLogout }) {
   }
 
   function giaoBaiNgay(hs, r) {
-    setGoiYNv({ hocSinhId: hs.hoc_sinh_id, hoTen: hs.ho_ten, dangId: r.dang_id, dangTen: r.ten })
+    setGoiYNv({
+      hocSinhId: hs.hoc_sinh_id, hoTen: hs.ho_ten, dangId: r.dang_id,
+      dangTen: r.ten, // "chuyên đề › dạng" ghép sẵn — chỉ để hiển thị (banner/tiêu đề)
+      chuyenDe: r.chuyen_de, dangTenThuan: r.dang_ten, // tên thuần — để khớp key mở accordion
+    })
     navigate('nhiem_vu')
   }
 
