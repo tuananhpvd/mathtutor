@@ -1,14 +1,6 @@
 import { Badge, Button, Card, CardBody, CardHeader } from './ui'
+import { TONE_NHAN, BAR_NHAN } from '../utils/nangLuc'
 
-const TONE_NHAN = {
-  manh: 'success', kha: 'warning', can_cai_thien: 'danger', chua_du_lieu: 'neutral',
-}
-const NHAN_TEXT = {
-  manh: 'Mạnh', kha: 'Khá', can_cai_thien: 'Cần cải thiện', chua_du_lieu: 'Chưa đủ dữ liệu',
-}
-const BAR = {
-  manh: 'bg-success', kha: 'bg-warning', can_cai_thien: 'bg-danger', chua_du_lieu: 'bg-surface-2',
-}
 const TIN_CAY = { cao: 'Độ tin cậy cao', trung_binh: 'Độ tin cậy trung bình', thap: 'Độ tin cậy thấp' }
 
 // Xu hướng (đo bằng điểm quá trình: ít sai/ít cần gợi ý hơn = tiến bộ).
@@ -52,17 +44,17 @@ function HangNhom({ r }) {
           <MuiTenXuHuong xh={r.xu_huong} />
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          <Badge tone={TONE_NHAN[r.nhan]}>{NHAN_TEXT[r.nhan]}</Badge>
+          <Badge tone={TONE_NHAN[r.nhan]}>{r.nhan_hien_thi}</Badge>
           <b className="text-sm text-ink w-10 text-right">
             {r.diem_thanh_thao == null ? '—' : `${pct}%`}
           </b>
         </span>
       </div>
       <div className="h-2 w-full rounded-full bg-surface-2 overflow-hidden">
-        <div className={`h-full ${BAR[r.nhan]}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${BAR_NHAN[r.nhan]}`} style={{ width: `${pct}%` }} />
       </div>
       <p className="text-[11px] text-muted mt-1">
-        Hoàn thành {r.so_hoan_thanh}/{r.so_phien} · {r.ty_le_hoan_thanh}%
+        {r.ly_do} · Hoàn thành {r.so_hoan_thanh}/{r.so_phien} · {r.ty_le_hoan_thanh}%
         {r.goi_y_tb >= 1 ? ` · dùng gợi ý TB ${r.goi_y_tb}` : ''}
       </p>
       <ChanDoanVatLon r={r} />
@@ -70,8 +62,9 @@ function HangNhom({ r }) {
   )
 }
 
-// Cột chẩn đoán "vật lộn" — chỉ hiện các dấu hiệu > 0 (không có thì không chiếm chỗ). KHÔNG
-// nằm trong điểm thành thạo, chỉ là bức tranh hành trình để GV/HS thấy chỗ cần quan tâm.
+// Cột chẩn đoán "vật lộn" — chỉ hiện các dấu hiệu > 0 (không có thì không chiếm chỗ). Đây là
+// bức tranh hành trình đầy đủ cho GV/HS; riêng "cạn gợi ý" ở các bài ĐÃ HOÀN THÀNH cũng là
+// một phần tín hiệu trong điểm thành thạo ở trên (xem "ly_do"), không còn tách biệt hoàn toàn.
 function ChanDoanVatLon({ r }) {
   const dau = [
     r.so_lan_het_goi_y > 0 && { icon: '🚧', text: `cạn gợi ý ${r.so_lan_het_goi_y} lần` },

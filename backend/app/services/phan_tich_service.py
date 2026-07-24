@@ -32,12 +32,35 @@ NGUONG_MAU_TOI_THIEU = 5
 
 NHAN_LOAI = {"TN4PA": "Trắc nghiệm ABCD", "TNDS": "Đúng/Sai 4 ý", "TLN": "Trả lời ngắn"}
 
+# Nhãn hiển thị TIẾNG VIỆT duy nhất cho từng mức "nhan" — nguồn CHUẨN cho mọi màn (Phân tích
+# năng lực, Báo cáo phụ huynh...). FE không tự đặt nhãn riêng nữa để tránh lệch nhau
+# (từng có nơi ghi "Mạnh", nơi ghi "Tốt" cho cùng nhãn "manh").
+NHAN_HIEN_THI = {
+    "manh": "Vững",
+    "kha": "Ổn",
+    "can_cai_thien": "Cần luyện thêm",
+    "chua_du_lieu": "Chưa đủ dữ liệu",
+}
 
-def _diem_thanh_thao(ty_le_hoan_thanh: float, diem_tb: float, goi_y_tb: float) -> int:
-    """Điểm thành thạo 0–100 (minh bạch): chủ yếu theo điểm + tỉ lệ hoàn thành,
-    trừ điểm nếu phụ thuộc nhiều vào gợi ý."""
-    diem = 0.6 * diem_tb + 0.4 * ty_le_hoan_thanh
-    phat = min(0.2, max(0.0, goi_y_tb) * 0.05)
+
+def _diem_thanh_thao(ty_le_hoan_thanh: float, diem_chat_luong_tb: float, het_goi_y_tb: float) -> int:
+    """Điểm thành thạo 0–100.
+
+    `diem_chat_luong_tb`: trung bình tín hiệu CHẤT LƯỢNG làm bài của các phiên hoàn thành (lấy
+    qua `_diem_xu_huong` — ưu tiên diem_qua_trinh, trừ dần theo số lần sai/không hiểu; phiên cũ
+    chưa có thì fallback diem). Dùng tín hiệu này thay vì `diem` thô vì diem TN4PA/TLN hoàn
+    thành LUÔN = 1.0 (chỉ TNDS có bậc thang) — nếu tính thẳng vào công thức thì gần như ai làm
+    xong cũng được coi là thành thạo, bất kể loay hoay bao nhiêu.
+
+    `ty_le_hoan_thanh`: trọng số PHỤ — hoàn thành bài là điều kiện cần nhưng không đủ để nói
+    "thành thạo", nên chỉ chiếm 0.25 (trước đây 0.4).
+
+    `het_goi_y_tb`: trung bình số lần CẠN gợi ý (so_lan_het_goi_y — không reset trong phiên,
+    khác cap_goi_y_hien_tai vốn reset mỗi khi trả lời đúng) của các phiên hoàn thành. Phạt thêm
+    nếu học sinh liên tục phải dùng hết bậc gợi ý cao nhất mới ra được bài.
+    """
+    diem = 0.75 * diem_chat_luong_tb + 0.25 * ty_le_hoan_thanh
+    phat = min(0.15, max(0.0, het_goi_y_tb) * 0.3)
     return round(max(0.0, min(1.0, diem - phat)) * 100)
 
 
@@ -51,18 +74,40 @@ def _phan_loai(mastery: int | None) -> str:
     return "can_cai_thien"
 
 
+def _ly_do_diem(mastery: int | None, so_phien: int, ty_le: float, het_goi_y_tb: float) -> str:
+    """Câu giải thích ngắn VÌ SAO ra mức điểm này — để nhìn vào là hiểu ngay, không phải đoán."""
+    if mastery is None:
+        if so_phien > 0:
+            return "Đã bắt đầu nhưng chưa hoàn thành bài nào ở đây."
+        return "Chưa có bài nào."
+    kho_khan = []
+    if het_goi_y_tb >= 1:
+        kho_khan.append("còn cần nhiều gợi ý")
+    if ty_le < 0.6:
+        kho_khan.append("hay bỏ dở giữa chừng")
+    if kho_khan:
+        return "Còn " + " và ".join(kho_khan) + "."
+    if mastery >= 75:
+        return "Làm bài tốt, ít cần trợ giúp."
+    return "Hoàn thành ổn, thỉnh thoảng vẫn cần gợi ý."
+
+
 def _gom() -> dict:
-    return {"so_phien": 0, "so_hoan_thanh": 0, "_diem": [], "_goi_y": [], "_tg": [],
-            "het_goi_y": 0, "xem_ly_thuyet": 0, "nho_thay_co": 0}
+    return {"so_phien": 0, "so_hoan_thanh": 0, "_diem": [], "_goi_y": [], "_het_goi_y_ct": [],
+            "_tg": [], "het_goi_y": 0, "xem_ly_thuyet": 0, "nho_thay_co": 0}
 
 
 def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
     htc = g["so_hoan_thanh"]
     ty_le = (htc / g["so_phien"]) if g["so_phien"] else 0.0
-    diem_tb = (sum(g["_diem"]) / len(g["_diem"])) if g["_diem"] else 0.0
+    diem_chat_luong_tb = (sum(g["_diem"]) / len(g["_diem"])) if g["_diem"] else 0.0
     goi_y_tb = (sum(g["_goi_y"]) / len(g["_goi_y"])) if g["_goi_y"] else 0.0
+    het_goi_y_tb = (
+        (sum(g["_het_goi_y_ct"]) / len(g["_het_goi_y_ct"])) if g["_het_goi_y_ct"] else 0.0
+    )
     tg_tb = round(sum(g["_tg"]) / len(g["_tg"])) if g["_tg"] else None
-    mastery = _diem_thanh_thao(ty_le, diem_tb, goi_y_tb) if htc >= 1 else None
+    mastery = _diem_thanh_thao(ty_le, diem_chat_luong_tb, het_goi_y_tb) if htc >= 1 else None
+    nhan = _phan_loai(mastery)
     row = {
         "ten": ten,
         "so_phien": g["so_phien"],
@@ -70,10 +115,15 @@ def _ket_nhom(ten: str, g: dict, extra: dict | None = None) -> dict:
         "ty_le_hoan_thanh": round(ty_le * 100),
         "diem_thanh_thao": mastery,
         "goi_y_tb": round(goi_y_tb, 1),
+        "het_goi_y_tb": round(het_goi_y_tb, 1),
         "thoi_gian_tb_giay": tg_tb,
-        "nhan": _phan_loai(mastery),
-        # Cột chẩn đoán (KHÔNG đưa vào công thức điểm thành thạo — chỉ để GV thấy hành trình
-        # vật lộn: cạn gợi ý / tự xem lại lý thuyết / nhờ thầy cô ở dạng này bao nhiêu lần).
+        "nhan": nhan,
+        "nhan_hien_thi": NHAN_HIEN_THI[nhan],
+        "ly_do": _ly_do_diem(mastery, g["so_phien"], ty_le, het_goi_y_tb),
+        # Cột chẩn đoán — hiện cho GV thấy hành trình vật lộn: cạn gợi ý / tự xem lại lý
+        # thuyết / nhờ thầy cô ở dạng này bao nhiêu lần (tính trên MỌI phiên, kể cả chưa
+        # xong). Riêng "cạn gợi ý" của các phiên ĐÃ XONG cũng là một phần của công thức điểm
+        # thành thạo ở trên (qua het_goi_y_tb) — không còn tách biệt hoàn toàn như trước.
         "so_lan_het_goi_y": g["het_goi_y"],
         "so_lan_xem_ly_thuyet": g["xem_ly_thuyet"],
         "so_lan_nho_thay_co": g["nho_thay_co"],
@@ -145,8 +195,10 @@ def ho_so_nang_luc(
             g["nho_thay_co"] += nho_map.get(s.id, 0)
             if xong:
                 g["so_hoan_thanh"] += 1
-                g["_diem"].append(s.diem if s.diem is not None else 1.0)
+                chat_luong = _diem_xu_huong(s)
+                g["_diem"].append(chat_luong if chat_luong is not None else 1.0)
                 g["_goi_y"].append(s.cap_goi_y_hien_tai or 0)
+                g["_het_goi_y_ct"].append(s.so_lan_het_goi_y or 0)
                 if s.thoi_gian_giay is not None:
                     g["_tg"].append(s.thoi_gian_giay)
 
@@ -233,8 +285,10 @@ def ban_do_nang_luc(db: Session, hoc_sinh_ids: list[int]) -> dict:
         g["so_phien"] += 1
         if s.trang_thai == TrangThaiSession.hoan_thanh:
             g["so_hoan_thanh"] += 1
-            g["_diem"].append(s.diem if s.diem is not None else 1.0)
+            chat_luong = _diem_xu_huong(s)
+            g["_diem"].append(chat_luong if chat_luong is not None else 1.0)
             g["_goi_y"].append(s.cap_goi_y_hien_tai or 0)
+            g["_het_goi_y_ct"].append(s.so_lan_het_goi_y or 0)
 
     hang = []
     for cd in sorted({k[0] for k in o_gom}):
@@ -625,7 +679,7 @@ def _de_xuat_theo_luat(tong_ht, diem_manh, diem_yeu, ds_loai,
 
     for r in diem_yeu:
         ly_do = []
-        if r["goi_y_tb"] >= 1:
+        if r["het_goi_y_tb"] >= 1:
             ly_do.append("còn phụ thuộc gợi ý")
         if r["ty_le_hoan_thanh"] < 60:
             ly_do.append("tỉ lệ hoàn thành thấp")

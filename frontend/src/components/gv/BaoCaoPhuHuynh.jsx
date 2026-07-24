@@ -10,9 +10,6 @@ const NHAN_XU_HUONG = {
   on_dinh: '➡️ Ổn định',
   chua_du: 'Chưa đủ dữ liệu để đánh giá',
 }
-const NHAN_MUC = {
-  manh: 'Tốt', kha: 'Khá', can_cai_thien: 'Cần cải thiện', chua_du_lieu: 'Chưa đủ dữ liệu',
-}
 const NHAN_TIN_CAY = { cao: 'cao', trung_binh: 'trung bình', thap: 'thấp (còn ít bài)' }
 
 function dinhDangNgay(s) {
@@ -116,7 +113,7 @@ function ThanBaoCao({ bc, khoang }) {
                   <td className="py-1.5 text-right">
                     {d.diem_thanh_thao != null ? `${d.diem_thanh_thao}%` : '—'}
                   </td>
-                  <td className="py-1.5 text-right">{NHAN_MUC[d.nhan] || '—'}</td>
+                  <td className="py-1.5 text-right">{d.nhan_hien_thi || '—'}</td>
                 </tr>
               ))}
             </tbody>

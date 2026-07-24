@@ -87,8 +87,9 @@ def test_ban_do_lop_don_chung_phien(db):
     ket = ban_do_nang_luc(db, [hs.id, hs2.id])
     o = next(h for h in ket["hang"] if h["chuyen_de"] == "Tích phân")["o"]["tb"]
     assert o["so_hoan_thanh"] == 2
-    # điểm TB = 0.5, tỉ lệ hoàn thành 1.0 → 0.6*0.5 + 0.4*1.0 = 0.7 → 70
-    assert o["diem_thanh_thao"] == 70
+    # chất lượng TB (không có diem_qua_trinh → fallback diem) = 0.5, tỉ lệ hoàn thành 1.0,
+    # không cạn gợi ý lần nào → 0.75*0.5 + 0.25*1.0 = 0.625 → 62 (round-half-to-even)
+    assert o["diem_thanh_thao"] == 62
 
 
 def test_api_ban_do_quyen(db, client):

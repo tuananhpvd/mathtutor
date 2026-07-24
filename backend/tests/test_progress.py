@@ -469,7 +469,9 @@ def test_so_sanh_7_ngay(db, client):
 
 def test_chan_doan_vat_lon_theo_dang(db):
     """ho_so_nang_luc thêm cột chẩn đoán theo dạng/loại: số lần cạn gợi ý / xem lý thuyết /
-    nhờ thầy cô — KHÔNG đưa vào điểm thành thạo, chỉ để GV thấy hành trình vật lộn."""
+    nhờ thầy cô — để GV thấy hành trình vật lộn. so_lan_het_goi_y của các phiên ĐÃ HOÀN
+    THÀNH giờ CŨNG góp phần vào điểm thành thạo (xem test_het_goi_y_giam_diem_thanh_thao),
+    khác với trước đây khi cột này chỉ để hiển thị, hoàn toàn tách biệt khỏi công thức."""
     from app.models.session import Session as SessionModel
     from app.models.session import TrangThaiSession
     from app.models.yeu_cau_tro_giup import YeuCauTroGiup
@@ -491,8 +493,23 @@ def test_chan_doan_vat_lon_theo_dang(db):
     assert dang["so_lan_het_goi_y"] == 2
     assert dang["so_lan_xem_ly_thuyet"] == 3
     assert dang["so_lan_nho_thay_co"] == 1
-    # Không lẫn vào điểm thành thạo (vẫn tính như cũ, chỉ theo điểm + tỉ lệ + gợi ý TB)
     assert "diem_thanh_thao" in dang
+    # 1 bài, cạn gợi ý 2 lần → phạt kịch trần (min 0.15), mastery < 100
+    assert dang["diem_thanh_thao"] < 100
+    assert dang["nhan_hien_thi"]  # nhãn hiển thị chuẩn hoá luôn có mặt
+    assert dang["ly_do"]  # câu giải thích ngắn luôn có mặt
+
+
+def test_het_goi_y_giam_diem_thanh_thao():
+    """so_lan_het_goi_y (KHÔNG reset trong phiên) giờ ảnh hưởng thật đến điểm thành thạo —
+    khác với cap_goi_y_hien_tai (reset về 0 mỗi khi trả lời đúng) trước đây gần như vô dụng
+    để phát hiện học sinh đã vật lộn cả phiên rồi mới đúng ở bước cuối."""
+    from app.services.phan_tich_service import _diem_thanh_thao
+
+    khong_vat_lon = _diem_thanh_thao(ty_le_hoan_thanh=1.0, diem_chat_luong_tb=1.0, het_goi_y_tb=0.0)
+    vat_lon = _diem_thanh_thao(ty_le_hoan_thanh=1.0, diem_chat_luong_tb=1.0, het_goi_y_tb=2.0)
+    assert khong_vat_lon == 100
+    assert vat_lon < khong_vat_lon
 
 
 def test_me_hieu_qua(db, client):
