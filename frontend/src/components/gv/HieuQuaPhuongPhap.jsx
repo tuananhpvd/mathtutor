@@ -20,7 +20,7 @@ import ChonLop from './ChonLop'
 // Sequential tím nhạt→đậm cho mức gợi ý 0/1/2/3+ (đã chạy validate_palette: PASS) — dùng
 // chung từ utils/chartColors.js, không khai báo mảng hex riêng nữa.
 const MAU_MUC = THANG_TIM_MUC_GOI_Y
-const NHAN_MUC = ['Mức 0 — tự làm', 'Mức 1', 'Mức 2', 'Mức 3+']
+const NHAN_MUC = ['Mức 0 - tự làm', 'Mức 1', 'Mức 2', 'Mức 3+']
 
 function StatTile({ nhan, gia_tri, phu }) {
   return (
@@ -68,7 +68,7 @@ function ThanhPhanBo({ pb }) {
 }
 
 function XuHuong({ xh }) {
-  if (!xh?.du_du_lieu) return <span className="text-xs text-muted">— chưa đủ dữ liệu</span>
+  if (!xh?.du_du_lieu) return <span className="text-xs text-muted">- chưa đủ dữ liệu</span>
   if (xh.xu_huong === 'giam') {
     return <span className="text-xs text-success font-medium">↓ Giảm (tiến bộ)</span>
   }
@@ -112,7 +112,7 @@ export default function HieuQuaPhuongPhap() {
     <Card>
       <CardHeader
         title="Hiệu quả phương pháp gợi mở"
-        subtitle="Thống kê mô tả tính từ toàn bộ phiên đã hoàn thành — mức gợi ý cao nhất học sinh cần trước khi tự tìm ra đáp án. Dùng làm minh chứng báo cáo."
+        subtitle="Thống kê mô tả tính từ toàn bộ phiên đã hoàn thành - mức gợi ý cao nhất học sinh cần trước khi tự tìm ra đáp án. Dùng làm minh chứng báo cáo."
         action={
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <ChonLop value={lopId} onChange={setLopId} choPhepGop nhan="Phạm vi" />
@@ -125,7 +125,7 @@ export default function HieuQuaPhuongPhap() {
       <CardBody className="flex flex-col gap-4">
         {!pb.tong ? (
           <p className="text-sm text-muted">
-            Chưa có phiên hoàn thành nào — số liệu sẽ tự tích lũy khi học sinh luyện tập.
+            Chưa có phiên hoàn thành nào - số liệu sẽ tự tích lũy khi học sinh luyện tập.
           </p>
         ) : (
           <>
@@ -159,15 +159,15 @@ export default function HieuQuaPhuongPhap() {
                   {data.hoc_sinhs.map((r) => (
                     <tr key={r.hoc_sinh_id} className="border-b border-border/60">
                       <td className="py-2 pr-3 text-ink">{r.ho_ten}</td>
-                      <td className="py-2 pr-3 text-muted">{r.lop_ten || '—'}</td>
+                      <td className="py-2 pr-3 text-muted">{r.lop_ten || '-'}</td>
                       <td className="py-2 pr-3 text-right text-ink">{r.so_bai}</td>
                       <td className="py-2 pr-3 text-right text-ink">
-                        {r.ty_le_tu_lam == null ? '—' : `${r.ty_le_tu_lam}%`}
+                        {r.ty_le_tu_lam == null ? '-' : `${r.ty_le_tu_lam}%`}
                       </td>
                       <td className="py-2 pr-3 text-right text-ink">
                         {r.xu_huong_goi_y.du_du_lieu
                           ? `${r.xu_huong_goi_y.dau} → ${r.xu_huong_goi_y.gan_nhat}`
-                          : '—'}
+                          : '-'}
                       </td>
                       <td className="py-2"><XuHuong xh={r.xu_huong_goi_y} /></td>
                     </tr>

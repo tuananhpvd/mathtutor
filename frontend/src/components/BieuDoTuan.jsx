@@ -43,7 +43,7 @@ export default function BieuDoTuan({ data, tieu_de = 'Diễn biến các tuần 
   return (
     <Card>
       <CardHeader title={tieu_de}
-        subtitle="Tuần 1 = tuần bắt đầu luyện tập · Cột: bài hoàn thành mỗi tuần · Đường: trong đó tự làm không cần gợi ý — đường càng bám sát cột càng tự lập" />
+        subtitle="Tuần 1 = tuần bắt đầu luyện tập · Cột: bài hoàn thành mỗi tuần · Đường: trong đó tự làm không cần gợi ý - đường càng bám sát cột càng tự lập" />
       <CardBody>
         {!coBai ? (
           <p className="text-sm text-muted">Chưa có bài hoàn thành nào trong các tuần gần đây.</p>

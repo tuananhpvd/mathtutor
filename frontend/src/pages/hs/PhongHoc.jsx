@@ -40,13 +40,13 @@ function BangHoanThanh({
       <div className="h-12 w-12 rounded-full bg-success text-white grid place-items-center">
         <Check size={26} strokeWidth={2.5} />
       </div>
-      <p className="text-lg font-semibold text-success">Trả lời đúng — Hoàn thành bài!</p>
+      <p className="text-lg font-semibold text-success">Trả lời đúng - Hoàn thành bài!</p>
       <p className="text-sm text-ink">
         Tổng thời gian làm bài: <b>{dinhDangThoiGian(thoi_gian)}</b>
       </p>
       <p className="text-sm text-ink">
         {khongCanGoiY ? (
-          <>Em tự làm hoàn toàn không cần gợi ý — quá xuất sắc!</>
+          <>Em tự làm hoàn toàn không cần gợi ý - quá xuất sắc!</>
         ) : (
           <>
             Hành trình của em: dùng <b>{so_lan_khong_hieu || 0}</b> lượt xin gợi ý, thử lại{' '}
@@ -76,11 +76,11 @@ function BangHoanThanh({
                     ) : da === 'Sai' ? (
                       <b className="text-danger">S</b>
                     ) : (
-                      '—'
+                      '-'
                     )}
                   </td>
                   <td className="px-3 py-1.5 text-right border border-border">
-                    {thoi_gian_y[k] != null ? dinhDangThoiGian(thoi_gian_y[k]) : '—'}
+                    {thoi_gian_y[k] != null ? dinhDangThoiGian(thoi_gian_y[k]) : '-'}
                   </td>
                 </tr>
               )
@@ -132,7 +132,7 @@ function KhayDapAn({ problem, trangThai, gui, dangGui }) {
           <>
             <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink flex items-start gap-2">
               <Lock size={16} strokeWidth={2.2} className="shrink-0 mt-0.5 text-primary" />
-              <span>Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này —
+              <span>Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này -
                 làm đúng để chọn được đáp án nhé!</span>
             </div>
             <CardBuoc
@@ -512,7 +512,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 {/* Nhắc khi hết gợi ý — thay cho khối 3 nút cũ; các lối tắt đã có sẵn trong khối */}
                 {hetGoiY && (
                   <div className="rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-ink text-center">
-                    Em đã dùng hết gợi ý cho bước này — thử <b>xem lý thuyết</b> hoặc{' '}
+                    Em đã dùng hết gợi ý cho bước này - thử <b>xem lý thuyết</b> hoặc{' '}
                     <b>nhờ thầy/cô</b> bên dưới nhé. Em vẫn có thể hỏi gia sư hoặc thử nộp đáp án.
                   </div>
                 )}
@@ -604,7 +604,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                       ref={cauHoiRef}
                       value={cauHoi}
                       onChange={setCauHoi}
-                      placeholder="Có chỗ nào chưa rõ, hỏi ở đây (vd: vì sao lại làm vậy ạ?)... — bấm vào ô để nhập công thức"
+                      placeholder="Có chỗ nào chưa rõ, hỏi ở đây (vd: vì sao lại làm vậy ạ?)... - bấm vào ô để nhập công thức"
                       rows={2}
                       luonHienBangCT={false}
                       textareaClassName="bg-surface border border-border"

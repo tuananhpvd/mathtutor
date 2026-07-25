@@ -8,7 +8,7 @@ const NHA_CUNG_CAP = [
   { value: 'gemini', label: 'Google Gemini (khuyến nghị)', model: 'gemini-2.5-flash' },
   { value: 'anthropic', label: 'Anthropic Claude', model: 'claude-opus-4-8' },
   { value: 'openai', label: 'OpenAI', model: 'gpt-4o-mini' },
-  { value: 'stub', label: 'Tắt (mẫu cố định, demo)', model: '—' },
+  { value: 'stub', label: 'Tắt (mẫu cố định, demo)', model: '-' },
 ]
 
 function KhoaApi({ label, p, provider, value, onChange, daDat }) {
@@ -46,7 +46,7 @@ const NHAN_TANG_TU_KHOA = {
   tu_khoa_ngoai_pham_vi: {
     Icon: Compass,
     title: 'Ngoài phạm vi môn Toán',
-    hint: 'Chỉ nhắc nhẹ hướng về bài học — KHÔNG gắn cờ, KHÔNG báo GV.',
+    hint: 'Chỉ nhắc nhẹ hướng về bài học - KHÔNG gắn cờ, KHÔNG báo GV.',
   },
 }
 
@@ -131,7 +131,7 @@ function KhoiTuKhoa({ khoa, items, onDoi }) {
                 render: (r) =>
                   r.la_mac_dinh ? (
                     <Lock size={13} strokeWidth={2.2} className="inline text-muted"
-                      title="Từ khóa mặc định — chỉ tắt được, không xóa" />
+                      title="Từ khóa mặc định - chỉ tắt được, không xóa" />
                   ) : (
                     <button type="button" className="text-danger" title="Xóa từ khóa tự thêm"
                       onClick={() => xoa(r)}>
@@ -381,7 +381,7 @@ export default function CauHinh() {
     setMsgPt(''); setError(''); setDangQuet(true)
     try {
       const r = await api.adminQuetPhanTich()
-      setMsgPt(`Đã quét ${r.da_quet} học sinh — cập nhật ${r.da_cap_nhat}, lỗi ${r.loi}.`)
+      setMsgPt(`Đã quét ${r.da_quet} học sinh - cập nhật ${r.da_cap_nhat}, lỗi ${r.loi}.`)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -592,7 +592,7 @@ export default function CauHinh() {
           </div>
           <div className="flex items-end gap-2 sm:col-span-2">
             <Input
-              label="Ngưỡng nghỉ (giây) — chặn thời gian rời đi khi tính giờ làm bài"
+              label="Ngưỡng nghỉ (giây) - chặn thời gian rời đi khi tính giờ làm bài"
               type="number"
               min={30}
               value={nghi}
@@ -602,7 +602,7 @@ export default function CauHinh() {
           </div>
           <p className="text-[11px] text-muted sm:col-span-2">
             Khoảng cách giữa 2 lần học sinh thao tác vượt ngưỡng này được coi là "rời đi" và chỉ
-            tính tối đa bằng ngưỡng — để thời gian hoàn thành phản ánh đúng công sức thực, kể cả khi
+            tính tối đa bằng ngưỡng - để thời gian hoàn thành phản ánh đúng công sức thực, kể cả khi
             học sinh "quay lại làm sau".
           </p>
           {msg && <p className="text-sm text-success sm:col-span-2">{msg}</p>}
@@ -612,7 +612,7 @@ export default function CauHinh() {
 
       <Card className="break-inside-avoid mb-5">
         <CardHeader title="Từ khóa lọc an toàn"
-          subtitle="Tự thêm/bật/tắt từ khóa mà không cần sửa code — áp dụng ngay cho ô chat hỏi gia sư và 'Nhờ thầy/cô'. Từ khóa mặc định (biểu tượng khóa) chỉ tắt được, không xóa được, để giữ nền an toàn."
+          subtitle="Tự thêm/bật/tắt từ khóa mà không cần sửa code - áp dụng ngay cho ô chat hỏi gia sư và 'Nhờ thầy/cô'. Từ khóa mặc định (biểu tượng khóa) chỉ tắt được, không xóa được, để giữ nền an toàn."
           action={
             <Button variant="secondary" size="sm" onClick={() => setHienImportTuKhoa(true)}>
               Import từ file mẫu
@@ -642,7 +642,7 @@ export default function CauHinh() {
             </div>
             {ketQuaThu && (
               ketQuaThu.an_toan
-                ? <Badge tone="success">An toàn — không khớp từ khóa nào</Badge>
+                ? <Badge tone="success">An toàn - không khớp từ khóa nào</Badge>
                 : <Badge tone={ketQuaThu.khan_cap ? 'danger' : 'warning'}>{ketQuaThu.ly_do}</Badge>
             )}
           </div>
@@ -756,7 +756,7 @@ export default function CauHinh() {
 
       <Card className="break-inside-avoid mb-5">
         <CardHeader title="Tự động phân tích năng lực (AI)"
-          subtitle="Hệ thống tự tái sinh nhận định AI cho học sinh đến hạn — GV/HS không cần bấm tay." />
+          subtitle="Hệ thống tự tái sinh nhận định AI cho học sinh đến hạn - GV/HS không cần bấm tay." />
         <CardBody className="flex flex-col gap-4">
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" className="h-4 w-4 accent-primary"
@@ -792,7 +792,7 @@ export default function CauHinh() {
 
       <Card className="break-inside-avoid mb-5">
         <CardHeader title="Chủ động nhắc GV (học sinh cần chú ý)"
-          subtitle="Mỗi tuần tự đẩy vào chuông của GV danh sách HS đang yếu — không tốn lượt AI." />
+          subtitle="Mỗi tuần tự đẩy vào chuông của GV danh sách HS đang yếu - không tốn lượt AI." />
         <CardBody className="flex flex-col gap-4">
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" className="h-4 w-4 accent-primary"
@@ -847,7 +847,7 @@ export default function CauHinh() {
 
       <Card className="break-inside-avoid mb-5">
         <CardHeader title="Hướng dẫn Phòng học"
-          subtitle="Nội dung hiện khi học sinh bấm nút 'Hướng dẫn' trong phòng học — sửa ở đây, không cần sửa code." />
+          subtitle="Nội dung hiện khi học sinh bấm nút 'Hướng dẫn' trong phòng học - sửa ở đây, không cần sửa code." />
         <CardBody>
           <KhoiHuongDan items={cfg.huong_dan_phong_hoc || []} onCapNhatCfg={setCfg} />
         </CardBody>

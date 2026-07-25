@@ -69,7 +69,7 @@ export default function QuanLyGiaoVien() {
                       value={chonLop[g.id] || ''}
                       onChange={(e) => setChonLop((c) => ({ ...c, [g.id]: e.target.value }))}
                       options={[
-                        { value: '', label: '— chọn lớp —' },
+                        { value: '', label: '- chọn lớp -' },
                         ...allLop.map((l) => ({
                           value: String(l.id),
                           label: l.gv_id && l.gv_id !== g.id ? `${l.ten} (đang: ${l.gv_ten})` : l.ten,

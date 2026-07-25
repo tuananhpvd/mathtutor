@@ -52,7 +52,7 @@ export default function QuanLyNoiDungGV() {
               value={gvId}
               onChange={(e) => setGvId(e.target.value)}
               options={[
-                { value: '', label: '— Chọn giáo viên —' },
+                { value: '', label: '- Chọn giáo viên -' },
                 ...gvs.map((g) => ({ value: String(g.id), label: `${g.ho_ten} (${g.dang_nhap})` })),
               ]}
             />

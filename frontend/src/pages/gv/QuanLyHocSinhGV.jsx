@@ -97,7 +97,7 @@ export default function QuanLyHocSinhGV() {
                 onChange={(e) => setForm((f) => ({ ...f, mat_khau: e.target.value }))} required minLength={6} />
               <Select label="Lớp" value={form.lop_id}
                 onChange={(e) => setForm((f) => ({ ...f, lop_id: e.target.value }))}
-                options={[{ value: '', label: '— chọn lớp —' }, ...lopOptions]} required />
+                options={[{ value: '', label: '- chọn lớp -' }, ...lopOptions]} required />
               <Button type="submit" disabled={!form.lop_id}>Tạo học sinh</Button>
               {ok && (
                 <div className="sm:col-span-5">
@@ -130,7 +130,7 @@ export default function QuanLyHocSinhGV() {
                 render: (r) => (
                   <Select className="w-32" value={r.lop_id ? String(r.lop_id) : ''}
                     onChange={(e) => ganLop(r, e.target.value)}
-                    options={[{ value: '', label: '— chọn —' }, ...lopOptions]} />
+                    options={[{ value: '', label: '- chọn -' }, ...lopOptions]} />
                 ),
               },
               {

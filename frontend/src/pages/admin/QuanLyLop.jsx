@@ -46,16 +46,16 @@ export default function QuanLyLop() {
 
   // gvOptionsAdd: dùng cho form Thêm lớp — không có option "Chưa phân công"
   const gvOptionsAdd = [
-    { value: '', label: '— Chọn GV phụ trách —' },
+    { value: '', label: '- Chọn GV phụ trách -' },
     ...gvList.map((g) => ({ value: String(g.id), label: g.ho_ten })),
   ]
   // gvOptions: dùng cho form Sửa lớp — có option "Chưa phân công" để xóa GV
   const gvOptions = [
-    { value: '', label: '— Chưa phân công —' },
+    { value: '', label: '- Chưa phân công -' },
     ...gvList.map((g) => ({ value: String(g.id), label: g.ho_ten })),
   ]
   const lopOptions = [
-    { value: '', label: '— Không gán lớp —' },
+    { value: '', label: '- Không gán lớp -' },
     ...lops.map((l) => ({ value: String(l.id), label: l.ten })),
   ]
 
@@ -156,7 +156,7 @@ export default function QuanLyLop() {
                   <div className="flex items-center justify-between gap-2 p-3 flex-wrap">
                     <div>
                       <span className="font-bold text-ink">{l.ten}</span>
-                      <span className="text-muted text-sm"> · GV: {l.gv_ten || '— chưa phân công —'} · {l.so_hoc_sinh} học sinh</span>
+                      <span className="text-muted text-sm"> · GV: {l.gv_ten || '- chưa phân công -'} · {l.so_hoc_sinh} học sinh</span>
                     </div>
                     <div className="flex gap-1">
                       <Button size="sm" variant="secondary" onClick={() => setImportHsLop(l)}>

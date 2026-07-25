@@ -56,7 +56,7 @@ export default function NhatKy() {
                 { key: 'ho_ten', header: 'Học sinh' },
                 { key: 'chuyen_de', header: 'Chuyên đề' },
                 { key: 'loai_cau', header: 'Loại', render: (r) => <Badge tone="primary">{r.loai_cau}</Badge> },
-                { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '—') },
+                { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '-') },
                 { key: 'tg', header: 'Thời gian', render: (r) => dinhDangThoiGian(r.thoi_gian_giay) },
               ]}
               rows={hoanThanh}

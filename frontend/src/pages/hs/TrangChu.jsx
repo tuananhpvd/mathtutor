@@ -45,7 +45,7 @@ const maxNonNull = (arr) => {
 // Lời chào theo số ngày đã học (X) + số ngày liên tiếp (Y) — khích lệ, không tiêu cực.
 function LoiChao({ so_ngay, chuoi }) {
   if (so_ngay <= 0) {
-    return <>Cùng bắt đầu bài học đầu tiên nào — gia sư sẽ dẫn dắt em từng bước để tự tìm ra lời giải.</>
+    return <>Cùng bắt đầu bài học đầu tiên nào - gia sư sẽ dẫn dắt em từng bước để tự tìm ra lời giải.</>
   }
   if (chuoi >= 1) {
     return (
@@ -366,7 +366,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
                     </div>
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center flex-wrap gap-x-0.5 text-xs text-muted">
-                        {tb.nguoi_gui_ten && <span>— {tb.nguoi_gui_ten}</span>}
+                        {tb.nguoi_gui_ten && <span>- {tb.nguoi_gui_ten}</span>}
                         {tb.tao_luc && <ThoiGianPhanCach iso={tb.tao_luc} />}
                       </div>
                       {tb.lien_ket_id && onLamTiep && (

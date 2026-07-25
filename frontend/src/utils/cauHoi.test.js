@@ -30,7 +30,7 @@ describe('kiemTraDapAnTLN', () => {
 describe('dungDangOptions', () => {
   it('luôn có option rỗng đầu tiên', () => {
     const options = dungDangOptions([])
-    expect(options).toEqual([{ value: '', label: '— Chưa gán dạng —' }])
+    expect(options).toEqual([{ value: '', label: '- Chưa gán dạng -' }])
   })
 
   it('gộp danh sách dạng từ nhiều chuyên đề', () => {

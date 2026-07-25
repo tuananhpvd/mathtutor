@@ -107,7 +107,7 @@ export default function SoanRichText({ value, onChange }) {
       <EditorContent editor={editor} />
       <div className="mt-2">
         <p className="text-[11px] text-muted mb-1.5">
-          Bấm ký hiệu để chèn công thức — tự động bọc trong <b>$...$</b>.
+          Bấm ký hiệu để chèn công thức - tự động bọc trong <b>$...$</b>.
         </p>
         <MathPalette getMf={getMf} onInserted={() => {}} />
       </div>

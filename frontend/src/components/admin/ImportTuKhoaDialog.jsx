@@ -188,11 +188,11 @@ export default function ImportTuKhoaDialog({ cfg, onClose, onSaved }) {
                       <tr key={i} className={`border-t border-border ${r.ly_do ? 'bg-danger-soft' : ''}`}>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-danger' : 'text-ink'}`}>
                           {r.tang ? TANG_LABEL[r.tang] : (
-                            <span className="italic">{r.tang_raw || '—'}</span>
+                            <span className="italic">{r.tang_raw || '-'}</span>
                           )}
                         </td>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-danger' : 'text-ink'}`}>
-                          {r.tu_khoa || <span className="italic text-muted">—</span>}
+                          {r.tu_khoa || <span className="italic text-muted">-</span>}
                         </td>
                         <td className="px-3 py-2">
                           {r.ly_do ? (

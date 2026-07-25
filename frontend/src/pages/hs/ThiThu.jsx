@@ -14,7 +14,7 @@ import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
 import Formula from '../../components/Formula'
 import { dinhDangThoiGian } from '../../utils/format'
 
-const TEN_PHAN = { I: 'Phần I — Trắc nghiệm ABCD', II: 'Phần II — Đúng/Sai 4 ý', III: 'Phần III — Trả lời ngắn' }
+const TEN_PHAN = { I: 'Phần I - Trắc nghiệm ABCD', II: 'Phần II - Đúng/Sai 4 ý', III: 'Phần III - Trả lời ngắn' }
 const MOI_TRANG_DE = 10
 
 function renderVanBan(text) {

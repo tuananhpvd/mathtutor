@@ -32,7 +32,7 @@ function TheNhanXet({ nhanXet, trang, onTrang }) {
               <div key={tb.id} className="rounded-xl border border-gv/30 bg-gv/5 px-4 py-3">
                 <p className="text-sm text-ink whitespace-pre-wrap break-words">{tb.noi_dung}</p>
                 <div className="flex items-center flex-wrap gap-x-0.5 text-xs text-muted mt-1.5">
-                  {tb.nguoi_gui_ten && <span>— {tb.nguoi_gui_ten}</span>}
+                  {tb.nguoi_gui_ten && <span>- {tb.nguoi_gui_ten}</span>}
                   {tb.tao_luc && <ThoiGianPhanCach iso={tb.tao_luc} />}
                 </div>
               </div>
@@ -97,7 +97,7 @@ export default function TienDo({ onLuyenDang }) {
             ds={nhipNgay.map((d) => ({ ...d, so: d.so_bai }))}
             donVi="bài hoàn thành"
             tieu_de="Nhịp học của em"
-            phu_de="Số bài hoàn thành mỗi ngày · 30 ngày gần nhất — đường liền nhịp là học đều"
+            phu_de="Số bài hoàn thành mỗi ngày · 30 ngày gần nhất - đường liền nhịp là học đều"
           />
           <BieuDoVung
             ds={nhipNgay.map((d) => ({ ...d, so: d.so_phut }))}

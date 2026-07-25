@@ -38,12 +38,12 @@ function ThanBaoCao({ bc, khoang }) {
     <div className="bao-cao-trang text-ink">
       <div className="border-b-2 border-primary pb-3 mb-4">
         <h1 className="text-xl font-bold text-primary">BÁO CÁO KẾT QUẢ HỌC TẬP</h1>
-        <p className="text-sm text-muted">Môn Toán 12 — Gia sư MathTutor</p>
+        <p className="text-sm text-muted">Môn Toán 12 - Gia sư MathTutor</p>
       </div>
 
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-4">
         <p><span className="text-muted">Học sinh:</span> <b>{hoc_sinh.ho_ten}</b></p>
-        <p><span className="text-muted">Lớp:</span> <b>{hoc_sinh.lop_ten || '—'}</b></p>
+        <p><span className="text-muted">Lớp:</span> <b>{hoc_sinh.lop_ten || '-'}</b></p>
         <p className="col-span-2"><span className="text-muted">Khoảng thời gian:</span>{' '}
           <b><KhoangText {...khoang} /></b></p>
       </div>
@@ -63,11 +63,11 @@ function ThanBaoCao({ bc, khoang }) {
       </div>
       <p className="text-sm mb-1">
         <span className="text-muted">Xu hướng gần đây:</span>{' '}
-        <b>{NHAN_XU_HUONG[tong_quan.xu_huong] || '—'}</b>
+        <b>{NHAN_XU_HUONG[tong_quan.xu_huong] || '-'}</b>
       </p>
       {!tong_quan.du_lieu_du && (
         <p className="text-xs text-muted mb-3">
-          (Độ tin cậy đánh giá còn {NHAN_TIN_CAY[tong_quan.do_tin_cay] || 'thấp'} — em cần luyện
+          (Độ tin cậy đánh giá còn {NHAN_TIN_CAY[tong_quan.do_tin_cay] || 'thấp'} - em cần luyện
           thêm bài để nhận xét chính xác hơn.)
         </p>
       )}
@@ -78,18 +78,18 @@ function ThanBaoCao({ bc, khoang }) {
       ) : (
         <ul className="list-disc pl-5 text-sm mb-3">
           {diem_manh.map((d) => (
-            <li key={d.ten}>{d.ten}{d.diem_thanh_thao != null && <> — thành thạo {d.diem_thanh_thao}%</>}</li>
+            <li key={d.ten}>{d.ten}{d.diem_thanh_thao != null && <> - thành thạo {d.diem_thanh_thao}%</>}</li>
           ))}
         </ul>
       )}
 
       <h2 className="font-bold text-ink mt-4 mb-2">3. Nội dung cần cải thiện</h2>
       {diem_yeu.length === 0 ? (
-        <p className="text-sm text-muted mb-3">Không có dạng nào đang ở mức yếu — em đang học tốt!</p>
+        <p className="text-sm text-muted mb-3">Không có dạng nào đang ở mức yếu - em đang học tốt!</p>
       ) : (
         <ul className="list-disc pl-5 text-sm mb-3">
           {diem_yeu.map((d) => (
-            <li key={d.ten}>{d.ten}{d.diem_thanh_thao != null && <> — mới đạt {d.diem_thanh_thao}%</>}</li>
+            <li key={d.ten}>{d.ten}{d.diem_thanh_thao != null && <> - mới đạt {d.diem_thanh_thao}%</>}</li>
           ))}
         </ul>
       )}
@@ -112,9 +112,9 @@ function ThanBaoCao({ bc, khoang }) {
                   <td className="py-1.5 pr-2">{d.ten}</td>
                   <td className="py-1.5 text-right">{d.so_hoan_thanh ?? 0}</td>
                   <td className="py-1.5 text-right">
-                    {d.diem_thanh_thao != null ? `${d.diem_thanh_thao}%` : '—'}
+                    {d.diem_thanh_thao != null ? `${d.diem_thanh_thao}%` : '-'}
                   </td>
-                  <td className="py-1.5 text-right">{d.nhan_hien_thi || '—'}</td>
+                  <td className="py-1.5 text-right">{d.nhan_hien_thi || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -256,7 +256,7 @@ export default function BaoCaoPhuHuynh({ students }) {
         <CardBody className="flex flex-col gap-4">
           <div className="max-w-xs">
             <Select label="Lớp" value={lopId} onChange={(e) => doiLop(e.target.value)}
-              options={[{ value: '', label: '— Chọn lớp —' }, ...lopOptions]} />
+              options={[{ value: '', label: '- Chọn lớp -' }, ...lopOptions]} />
           </div>
 
           {lopId && (

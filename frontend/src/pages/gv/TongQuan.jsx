@@ -164,7 +164,7 @@ export default function TongQuan({ onNavigate }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <BangXepHangThoiGian
           title="Dạng bài học sinh mất nhiều thời gian"
-          subtitle={`Tối đa 3 dạng — thời gian TRUNG BÌNH mỗi lượt (chỉ nhóm có từ ${tk.nguong_luot ?? 5} lượt)`}
+          subtitle={`Tối đa 3 dạng - thời gian TRUNG BÌNH mỗi lượt (chỉ nhóm có từ ${tk.nguong_luot ?? 5} lượt)`}
           rows={tk.dang_mat_thoi_gian}
           nhan={(r) => r.ten}
           empty="Chưa đủ dữ liệu để xếp hạng."

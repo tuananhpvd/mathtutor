@@ -21,7 +21,7 @@ function FormTomTat({ danhMuc, dangSua, onDong, onXong }) {
   const dangOptions = useMemo(() => {
     const cd = danhMuc.find((c) => String(c.id) === chuyenDeId)
     return [
-      { value: '', label: '— Cấp chuyên đề (không chọn dạng) —' },
+      { value: '', label: '- Cấp chuyên đề (không chọn dạng) -' },
       ...(cd?.dang_list || []).map((d) => ({ value: String(d.id), label: d.ten })),
     ]
   }, [danhMuc, chuyenDeId])
@@ -40,7 +40,7 @@ function FormTomTat({ danhMuc, dangSua, onDong, onXong }) {
   }
   async function dongNeuXacNhan() {
     if (coThayDoi() && !await confirm(
-      'Bạn có thay đổi chưa lưu. Đóng lại sẽ mất các thay đổi này — vẫn đóng chứ?',
+      'Bạn có thay đổi chưa lưu. Đóng lại sẽ mất các thay đổi này - vẫn đóng chứ?',
       { title: 'Có thay đổi chưa lưu', labelYes: 'Đóng, bỏ thay đổi', labelNo: 'Ở lại' }
     )) return
     onDong()
@@ -233,7 +233,7 @@ export default function QuanLyLyThuyet() {
       {ds && ds.length === 0 && !formMo && (
         <Card>
           <CardBody className="py-10 text-center text-muted">
-            Chưa có tóm tắt lý thuyết nào — bấm "Tạo tóm tắt mới" để soạn bản đầu tiên.
+            Chưa có tóm tắt lý thuyết nào - bấm "Tạo tóm tắt mới" để soạn bản đầu tiên.
           </CardBody>
         </Card>
       )}

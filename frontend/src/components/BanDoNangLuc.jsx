@@ -36,7 +36,7 @@ function O({ o, chuyen_de, dk }) {
           className="h-11 rounded border border-dashed border-border bg-surface-2 grid place-items-center text-muted text-xs"
           title={`${chuyen_de} · ${NHAN_KHO[dk]}: chưa đủ dữ liệu (${ly_do})`}
         >
-          —
+          -
         </div>
       </td>
     )
@@ -83,10 +83,10 @@ export default function BanDoNangLuc({
   return (
     <Card>
       <CardHeader title={tieu_de} action={action}
-        subtitle={subtitle || 'Điểm thành thạo 0–100 theo chuyên đề × độ khó — ô càng đậm càng vững; ô xám là chưa đủ dữ liệu (khác ô yếu).'} />
+        subtitle={subtitle || 'Điểm thành thạo 0–100 theo chuyên đề × độ khó - ô càng đậm càng vững; ô xám là chưa đủ dữ liệu (khác ô yếu).'} />
       <CardBody className="flex flex-col gap-3">
         {data.hang.length === 0 ? (
-          <p className="text-sm text-muted">Chưa có dữ liệu — bản đồ sẽ tự tô màu khi luyện tập.</p>
+          <p className="text-sm text-muted">Chưa có dữ liệu - bản đồ sẽ tự tô màu khi luyện tập.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse min-w-96">

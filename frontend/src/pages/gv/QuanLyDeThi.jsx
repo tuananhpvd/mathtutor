@@ -68,7 +68,7 @@ function ChonDoiTuongPhatHanh({ de, onDong, onXong }) {
   return (
     <Card>
       <CardHeader title={`Phát hành: ${de.ten}`}
-        subtitle="Chọn đối tượng nhận đề — mặc định phát hành cho tất cả học sinh thầy/cô chủ nhiệm."
+        subtitle="Chọn đối tượng nhận đề - mặc định phát hành cho tất cả học sinh thầy/cô chủ nhiệm."
         action={<Button variant="secondary" size="sm" onClick={onDong}><X size={14} strokeWidth={2.4} /> Đóng</Button>} />
       <CardBody className="flex flex-col gap-3">
         <div className="flex gap-2">
@@ -123,9 +123,9 @@ function ChonDoiTuongPhatHanh({ de, onDong, onXong }) {
 }
 
 const PHAN = [
-  { ma: 'I', loai: 'TN4PA', ten: 'Phần I — Trắc nghiệm ABCD', chuan: 12, diem: '0,25đ/câu' },
-  { ma: 'II', loai: 'TNDS', ten: 'Phần II — Đúng/Sai 4 ý', chuan: 4, diem: 'bậc thang, tối đa 1đ/câu' },
-  { ma: 'III', loai: 'TLN', ten: 'Phần III — Trả lời ngắn', chuan: 6, diem: '0,5đ/câu' },
+  { ma: 'I', loai: 'TN4PA', ten: 'Phần I - Trắc nghiệm ABCD', chuan: 12, diem: '0,25đ/câu' },
+  { ma: 'II', loai: 'TNDS', ten: 'Phần II - Đúng/Sai 4 ý', chuan: 4, diem: 'bậc thang, tối đa 1đ/câu' },
+  { ma: 'III', loai: 'TLN', ten: 'Phần III - Trả lời ngắn', chuan: 6, diem: '0,5đ/câu' },
 ]
 const NHAN_KHO = { de: 'Dễ', tb: 'TB', kho: 'Khó' }
 
@@ -273,7 +273,7 @@ function TaoDeForm({ onDong, onXong }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Tên đề" value={ten} onChange={(e) => setTen(e.target.value)}
-            placeholder="VD: Đề thi thử số 1 — Khảo sát hàm số" />
+            placeholder="VD: Đề thi thử số 1 - Khảo sát hàm số" />
           <Input label="Thời gian (phút)" type="number" min={10} max={180}
             value={phut} onChange={(e) => setPhut(e.target.value)} className="max-w-40" />
         </div>
@@ -300,7 +300,7 @@ function TaoDeForm({ onDong, onXong }) {
             ))}
             <p className={`text-xs font-semibold ${tongDiemTuDo > 10 ? 'text-danger' : 'text-muted'}`}>
               Tổng điểm hiện tại: {tongDiemTuDo}đ / tối đa 10đ
-              {tongDiemTuDo > 10 && ' — vượt quá, cần giảm bớt!'}
+              {tongDiemTuDo > 10 && ' - vượt quá, cần giảm bớt!'}
             </p>
           </div>
         )}
@@ -360,7 +360,7 @@ function TaoDeForm({ onDong, onXong }) {
                   {dangTron ? 'Đang trộn...' : <><Shuffle size={14} strokeWidth={2.2} /> Trộn ngay</>}
                 </Button>
                 <span className="text-xs text-muted">
-                  Kết quả đổ vào 3 phần bên dưới — thầy/cô xem lại, chỉnh tay từng câu rồi mới Tạo đề.
+                  Kết quả đổ vào 3 phần bên dưới - thầy/cô xem lại, chỉnh tay từng câu rồi mới Tạo đề.
                 </span>
               </div>
               {canhBao.length > 0 && (
@@ -379,7 +379,7 @@ function TaoDeForm({ onDong, onXong }) {
         {/* Tab các phần (chế độ Tự do chỉ hiện phần đã bật) */}
         {mode === 'tu_do' && phanHienThi.length === 0 && (
           <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">
-            Chưa bật phần nào — tick chọn ít nhất 1 phần ở trên để chọn câu hỏi.
+            Chưa bật phần nào - tick chọn ít nhất 1 phần ở trên để chọn câu hỏi.
           </p>
         )}
         <div className="flex gap-2 flex-wrap">
@@ -399,13 +399,13 @@ function TaoDeForm({ onDong, onXong }) {
           <div key={p.ma} className="flex flex-col gap-2">
             <p className="text-sm text-muted">
               {mode === 'chuan'
-                ? <>{p.ten} ({p.diem}) — chuẩn {p.chuan} câu, đang chọn <b className="text-ink">{chon[p.ma].length}</b></>
-                : <>{p.ten} — {diemPhan[p.ma]}đ/phần, đang chọn <b className="text-ink">{chon[p.ma].length}</b> câu
+                ? <>{p.ten} ({p.diem}) - chuẩn {p.chuan} câu, đang chọn <b className="text-ink">{chon[p.ma].length}</b></>
+                : <>{p.ten} - {diemPhan[p.ma]}đ/phần, đang chọn <b className="text-ink">{chon[p.ma].length}</b> câu
                     {chon[p.ma].length > 0 && <> (≈ {(Number(diemPhan[p.ma]) / chon[p.ma].length).toFixed(2)}đ/câu)</>}</>}
             </p>
             {theoLoai[p.loai].length === 0 && (
               <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">
-                Chưa có câu {p.loai} nào đã duyệt trong ngân hàng — tạo/duyệt thêm ở mục Câu hỏi.
+                Chưa có câu {p.loai} nào đã duyệt trong ngân hàng - tạo/duyệt thêm ở mục Câu hỏi.
               </p>
             )}
             <div className="flex flex-col gap-1.5 max-h-80 overflow-y-auto pr-1">
@@ -434,7 +434,7 @@ function TaoDeForm({ onDong, onXong }) {
             {dangLuu ? 'Đang lưu...' : `Tạo đề (${tongCau} câu)`}
           </Button>
           <span className="text-xs text-muted">
-            Đề tạo xong ở trạng thái NHÁP — bấm "Phát hành" thì học sinh mới thấy.
+            Đề tạo xong ở trạng thái NHÁP - bấm "Phát hành" thì học sinh mới thấy.
           </span>
         </div>
       </CardBody>
@@ -482,7 +482,7 @@ function KetQuaLop({ deId, ten, onDong }) {
                       {r.diem}/{r.diem_toi_da}
                     </td>
                     <td className="py-2 pr-3 text-right text-muted">
-                      {r.nop_luc ? new Date(r.nop_luc).toLocaleString('vi-VN') : '—'}
+                      {r.nop_luc ? new Date(r.nop_luc).toLocaleString('vi-VN') : '-'}
                     </td>
                     <td className="py-2 text-right">
                       <Button size="sm" variant="ghost" onClick={() => setChiTietBaiId(r.bai_thi_id)}>
@@ -760,7 +760,7 @@ export default function QuanLyDeThi({ quanLy = false }) {
       {taoMo && <TaoDeForm onDong={() => setTaoMo(false)}
         onXong={(canhBao) => {
           setTaoMo(false)
-          const canhBaoText = (canhBao && canhBao.length > 0) ? ` — ${canhBao.join(' · ')}` : ''
+          const canhBaoText = (canhBao && canhBao.length > 0) ? ` - ${canhBao.join(' · ')}` : ''
           setThongBao(`Đã tạo đề (đang ở trạng thái nháp).${canhBaoText}`)
           setTimeout(() => setThongBao(''), canhBaoText ? 8000 : 4000)
           tai()
@@ -784,7 +784,7 @@ export default function QuanLyDeThi({ quanLy = false }) {
           <CardBody className="py-10 text-center text-muted">
             {quanLy
               ? 'Chưa có giáo viên nào tạo đề thi thử.'
-              : 'Chưa có đề nào — bấm "Tạo đề mới" để ghép đề đầu tiên từ ngân hàng câu hỏi.'}
+              : 'Chưa có đề nào - bấm "Tạo đề mới" để ghép đề đầu tiên từ ngân hàng câu hỏi.'}
           </CardBody>
         </Card>
       )}

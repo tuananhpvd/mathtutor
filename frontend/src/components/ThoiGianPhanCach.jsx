@@ -17,7 +17,7 @@ export default function ThoiGianPhanCach({ iso }) {
 // Dùng trong ô bảng: HH:MM:SS · DD/MM/YYYY
 export function CotThoiGian({ iso }) {
   const tg = phanTachTg(iso)
-  if (!tg) return <span className="text-muted">—</span>
+  if (!tg) return <span className="text-muted">-</span>
   return (
     <span className="whitespace-nowrap">
       {tg.gio}

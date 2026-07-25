@@ -59,7 +59,7 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
     if (!await confirm(msg)) return
     try {
       const res = await api.deleteProblem(r.id)
-      if (res?.an) setError('Câu hỏi đã có phiên học của HS — đã ẩn khỏi danh sách HS (dữ liệu được giữ lại).')
+      if (res?.an) setError('Câu hỏi đã có phiên học của HS - đã ẩn khỏi danh sách HS (dữ liệu được giữ lại).')
       await tai()
     } catch (e) { setError(e.message) }
   }

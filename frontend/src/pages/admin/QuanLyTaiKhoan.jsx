@@ -149,7 +149,7 @@ export default function QuanLyTaiKhoan() {
               {
                 key: 'act', header: '',
                 render: (r) =>
-                  r.vai_tro === 'admin' ? <span className="text-muted">—</span> : (
+                  r.vai_tro === 'admin' ? <span className="text-muted">-</span> : (
                     <div className="flex justify-end gap-1">
                       <Button size="sm" variant="secondary" onClick={() => setSua(r)}>Sửa</Button>
                       <Button size="sm" variant={r.trang_thai === 'hoat_dong' ? 'warning' : 'success'} onClick={() => doiTrangThai(r)}>

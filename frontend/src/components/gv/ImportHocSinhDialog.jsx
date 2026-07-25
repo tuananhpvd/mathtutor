@@ -126,7 +126,7 @@ export default function ImportHocSinhDialog({ lop, onKiemTra, onImport, onClose,
         {/* Header */}
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">
-            Thêm danh sách học sinh — {lop.ten}
+            Thêm danh sách học sinh - {lop.ten}
           </h2>
         </div>
 
@@ -194,13 +194,13 @@ export default function ImportHocSinhDialog({ lop, onKiemTra, onImport, onClose,
                         className={`border-t border-border ${r.ly_do ? 'bg-red-50' : ''}`}
                       >
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
-                          {r.ho_ten || <span className="text-muted italic">—</span>}
+                          {r.ho_ten || <span className="text-muted italic">-</span>}
                         </td>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
-                          {r.dang_nhap || <span className="text-muted italic">—</span>}
+                          {r.dang_nhap || <span className="text-muted italic">-</span>}
                         </td>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
-                          {r.mat_khau || <span className="text-muted italic">—</span>}
+                          {r.mat_khau || <span className="text-muted italic">-</span>}
                         </td>
                         <td className="px-3 py-2">
                           {r.ly_do ? (

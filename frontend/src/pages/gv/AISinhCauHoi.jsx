@@ -87,7 +87,7 @@ function ODanAnh({ anhDan, onDanAnh, onXoaAnh, onNhanDang, dangDoc, loaiCau }) {
     <div className="rounded-lg border border-dashed border-border bg-surface-2 px-4 py-3 flex flex-col gap-2">
       <p className="text-sm font-semibold text-ink">Dán ảnh đề bài (tùy chọn)</p>
       <p className="text-xs text-muted">
-        Chụp/copy ảnh đề rồi bấm vào ô dưới và dán (Ctrl+V) — AI sẽ đọc ảnh và tự điền đề bài{loaiCau === 'TN4PA' ? '/phương án' : loaiCau === 'TNDS' ? '/4 ý' : ''} bên dưới để anh/chị kiểm tra lại trước khi tạo. Ảnh chỉ dùng để đọc, không được lưu lại.
+        Chụp/copy ảnh đề rồi bấm vào ô dưới và dán (Ctrl+V) - AI sẽ đọc ảnh và tự điền đề bài{loaiCau === 'TN4PA' ? '/phương án' : loaiCau === 'TNDS' ? '/4 ý' : ''} bên dưới để anh/chị kiểm tra lại trước khi tạo. Ảnh chỉ dùng để đọc, không được lưu lại.
       </p>
       {anhDan ? (
         <div className="flex flex-col gap-2">
@@ -257,7 +257,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
     return (
       <Card>
         <CardHeader title="Xem trước bản nháp AI vừa tạo"
-          subtitle="Kiểm tra/sửa trước khi lưu — chưa có gì được ghi vào ngân hàng câu hỏi." />
+          subtitle="Kiểm tra/sửa trước khi lưu - chưa có gì được ghi vào ngân hàng câu hỏi." />
         <CardBody className="flex flex-col gap-3">
           {nhap.canh_bao?.length > 0 && (
             <ul className="text-xs text-warning bg-warning-soft rounded-md px-3 py-2 list-disc pl-5">
@@ -295,7 +295,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
       <CardHeader title={<span className="inline-flex items-center gap-1.5">
           <GraduationCap size={18} strokeWidth={2.2} /> AI tạo bước và gợi ý
         </span>}
-        subtitle="Thầy/cô viết đề bài (và phương án/ý nếu có) — AI chỉ giải ra đáp án đúng, chia đúng số bước, viết đúng số gợi ý mỗi bước theo yêu cầu." />
+        subtitle="Thầy/cô viết đề bài (và phương án/ý nếu có) - AI chỉ giải ra đáp án đúng, chia đúng số bước, viết đúng số gợi ý mỗi bước theo yêu cầu." />
       <CardBody className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-5">
         {/* Cột trái: form nhập */}
         <div className="flex flex-col gap-4">
@@ -336,7 +336,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
           />
 
           <TexField
-            label="Đề bài — công thức đặt trong $...$ (bấm vào ô rồi chọn ký hiệu bên phải để chèn)"
+            label="Đề bài - công thức đặt trong $...$ (bấm vào ô rồi chọn ký hiệu bên phải để chèn)"
             value={form.de_bai}
             onChange={(v) => setForm((f) => ({ ...f, de_bai: v }))}
             multiline
@@ -491,7 +491,7 @@ export default function AISinhCauHoi() {
       <TaoBuocGoiYPanel danhMuc={danhMuc} onLuuXong={taiChoDuyet} />
 
       <Card>
-        <CardHeader title="Sinh câu hỏi bằng AI (hàng loạt)" subtitle="AI tự bịa đề — câu sinh ra ở trạng thái Chờ duyệt; chỉ Đã duyệt mới tới học sinh." />
+        <CardHeader title="Sinh câu hỏi bằng AI (hàng loạt)" subtitle="AI tự sinh đề - câu sinh ra ở trạng thái Chờ duyệt; chỉ Đã duyệt mới tới học sinh." />
         <CardBody className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           <Select
             label="Chuyên đề"
@@ -504,7 +504,7 @@ export default function AISinhCauHoi() {
             value={form.dang_id ?? ''}
             onChange={(e) => setForm((f) => ({ ...f, dang_id: e.target.value ? Number(e.target.value) : null }))}
             options={[
-              { value: '', label: '— không chọn dạng —' },
+              { value: '', label: '- không chọn dạng -' },
               ...dangList.map((d) => ({ value: String(d.id), label: d.ten })),
             ]}
           />

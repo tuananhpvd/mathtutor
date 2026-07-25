@@ -172,7 +172,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
               {/* Hình minh họa (tùy chọn) — hiện ở cột phải màn HS làm bài */}
               <div className="flex flex-col gap-1.5">
                 <p className="text-xs text-muted">
-                  Hình minh họa (không bắt buộc — PNG/JPG/WebP, tối đa 3MB)
+                  Hình minh họa (không bắt buộc - PNG/JPG/WebP, tối đa 3MB)
                 </p>
                 {bai.hinh_anh ? (
                   <div className="flex items-start gap-3">
@@ -325,7 +325,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                           checked={!!item.bat_buoc_suy_luan}
                           onChange={(e) => setY(idx, { bat_buoc_suy_luan: e.target.checked })}
                         />
-                        Bắt buộc suy luận (nhập biểu thức, CAS chấm) trước khi chốt Đúng/Sai —
+                        Bắt buộc suy luận (nhập biểu thức, CAS chấm) trước khi chốt Đúng/Sai -
                         cần điền "Biểu thức kết quả" ở bước ý {item.ky_hieu} bên dưới.
                       </label>
                     </div>
@@ -369,7 +369,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                       registerActive={register}
                     />
                     <div>
-                      <p className="text-xs text-muted mb-1">Biểu thức kết quả (cú pháp SymPy — KHÔNG bọc $)</p>
+                      <p className="text-xs text-muted mb-1">Biểu thức kết quả (cú pháp SymPy - KHÔNG bọc $)</p>
                       <input
                         value={s.bieu_thuc_ket_qua || ''}
                         onChange={(e) => setStep(si, { bieu_thuc_ket_qua: e.target.value })}
@@ -412,7 +412,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                   đây là bài giải đầy đủ CHỈ hiện cho HS sau khi hoàn thành, nếu GV bật. */}
               <div className="flex flex-col gap-2 rounded-md border border-border bg-surface-2 p-3">
                 <TexField
-                  label="Lời giải chi tiết (tùy chọn — HS chỉ thấy sau khi hoàn thành bài)"
+                  label="Lời giải chi tiết (tùy chọn - HS chỉ thấy sau khi hoàn thành bài)"
                   value={bai.loi_giai_chi_tiet || ''}
                   onChange={(v) => setBai((b) => ({ ...b, loi_giai_chi_tiet: v }))}
                   multiline

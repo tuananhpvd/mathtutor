@@ -31,7 +31,7 @@ function s(val) { return String(val ?? '').trim() }
 
 // Trạng thái khớp ảnh cho 1 dòng: '' → không có; có trong map → khớp; còn lại → chưa upload.
 function trangThaiHinh(ten, anhMap) {
-  if (!ten) return { Icon: null, text: '—', cls: 'text-muted' }
+  if (!ten) return { Icon: null, text: '-', cls: 'text-muted' }
   if (anhMap[ten]) return { Icon: Check, text: ten, cls: 'text-green-600' }
   return { Icon: AlertTriangle, text: ten, cls: 'text-amber-600' }
 }
@@ -286,9 +286,9 @@ function PreviewTN4PA({ rows, anhMap }) {
         {rows.map((r) => (
           <tr key={r.dong} className={`border-t border-border ${r.ly_do ? 'bg-red-50' : ''}`}>
             <td className="px-2 py-1.5 text-muted">{r.dong}</td>
-            <td className={`px-2 py-1.5 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.chuyen_de || '—'}</td>
-            <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
-            <td className="px-2 py-1.5 text-ink">{r.meta?.dap_an_dung || '—'}</td>
+            <td className={`px-2 py-1.5 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.chuyen_de || '-'}</td>
+            <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '-'}</td>
+            <td className="px-2 py-1.5 text-ink">{r.meta?.dap_an_dung || '-'}</td>
             <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
             <td className="px-2 py-1.5 whitespace-nowrap">
               <OTrangThaiHinh ten={r.hinh_ten} anhMap={anhMap} />
@@ -321,15 +321,15 @@ function PreviewTNDS({ rows, anhMap }) {
           return (
             <tr key={r.dong} className={`border-t border-border ${r.ly_do ? 'bg-red-50' : ''}`}>
               <td className="px-2 py-1.5 text-muted">{r.dong}</td>
-              <td className={`px-2 py-1.5 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.chuyen_de || '—'}</td>
-              <td className={`px-2 py-1.5 max-w-[140px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
+              <td className={`px-2 py-1.5 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.chuyen_de || '-'}</td>
+              <td className={`px-2 py-1.5 max-w-[140px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '-'}</td>
               {['a','b','c','d'].map((k, i) => (
                 <td key={k} className="px-2 py-1.5 text-ink whitespace-nowrap">
                   {y[i]
                     ? (y[i].dap_an === 'Dung'
                         ? <Check size={13} strokeWidth={2.6} className="text-green-600" />
                         : <X size={13} strokeWidth={2.6} className="text-red-600" />)
-                    : '—'}
+                    : '-'}
                 </td>
               ))}
               <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
@@ -363,9 +363,9 @@ function PreviewTLN({ rows, anhMap }) {
         {rows.map((r) => (
           <tr key={r.dong} className={`border-t border-border ${r.ly_do ? 'bg-red-50' : ''}`}>
             <td className="px-2 py-1.5 text-muted">{r.dong}</td>
-            <td className={`px-2 py-1.5 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.chuyen_de || '—'}</td>
-            <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
-            <td className="px-2 py-1.5 text-ink font-mono">{r.meta?.dap_an_cuoi || '—'}</td>
+            <td className={`px-2 py-1.5 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.chuyen_de || '-'}</td>
+            <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '-'}</td>
+            <td className="px-2 py-1.5 text-ink font-mono">{r.meta?.dap_an_cuoi || '-'}</td>
             <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
             <td className="px-2 py-1.5 whitespace-nowrap">
               <OTrangThaiHinh ten={r.hinh_ten} anhMap={anhMap} />
@@ -476,7 +476,7 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">Import câu hỏi từ Excel</h2>
           <p className="text-xs text-muted mt-0.5">
-            Câu hỏi import sẽ có trạng thái <strong>Chờ duyệt + Riêng tư</strong> — duyệt xong mới hiện với HS.
+            Câu hỏi import sẽ có trạng thái <strong>Chờ duyệt + Riêng tư</strong> - duyệt xong mới hiện với HS.
           </p>
         </div>
 

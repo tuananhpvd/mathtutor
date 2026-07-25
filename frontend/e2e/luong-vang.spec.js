@@ -58,7 +58,7 @@ test('HS làm trọn vẹn 1 bài TLN: đăng nhập → chọn bài → giải 
   await page.getByRole('button', { name: 'Gửi câu trả lời' }).click()
 
   // Hoàn thành bài
-  await expect(page.getByText('Trả lời đúng — Hoàn thành bài!')).toBeVisible()
+  await expect(page.getByText('Trả lời đúng - Hoàn thành bài!')).toBeVisible()
 })
 
 test('GV duyệt câu hỏi: câu chờ duyệt (tạo qua import) → bấm Duyệt → thành Đã duyệt', async ({ page, request }) => {

@@ -63,7 +63,7 @@ export default function DangKy({ onXong, onQuayLai }) {
           <p className="mt-1 text-sm text-muted">
             {buoc === 1
               ? 'Nhập mã lớp thầy/cô đã cho để vào đúng lớp của em.'
-              : 'Bước cuối — đặt tài khoản để đăng nhập những lần sau.'}
+              : 'Bước cuối - đặt tài khoản để đăng nhập những lần sau.'}
           </p>
         </div>
 

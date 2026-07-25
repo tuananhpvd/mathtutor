@@ -172,7 +172,7 @@ export default function VeDoThiDialog({ initialSpec, onDong, onXongHinh }) {
         <div className="px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 className="font-bold text-lg text-ink">Vẽ đồ thị từ hàm số</h2>
           <p className="text-xs text-muted mt-0.5">
-            Chỉ cần nhập f(x) — hệ thống tự tính tiệm cận, cực trị và vẽ đường cong bằng CAS
+            Chỉ cần nhập f(x) - hệ thống tự tính tiệm cận, cực trị và vẽ đường cong bằng CAS
             (không phải AI đoán).
           </p>
         </div>

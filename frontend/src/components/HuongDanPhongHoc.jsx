@@ -17,13 +17,13 @@ const MAC_DINH = [
   {
     Icon: Compass,
     tieu_de: 'Gia sư dẫn dắt, không cho đáp án',
-    mo_ta: 'Gia sư sẽ đặt câu hỏi gợi mở để em tự tìm ra cách làm — đúng/sai do máy chấm '
+    mo_ta: 'Gia sư sẽ đặt câu hỏi gợi mở để em tự tìm ra cách làm - đúng/sai do máy chấm '
       + '(CAS), không phải AI tự quyết định, và đáp án luôn được khóa tới khi em hoàn thành.',
   },
   {
     Icon: Lightbulb,
     tieu_de: 'Gợi ý có giới hạn, tăng dần',
-    mo_ta: 'Nút "Gợi ý" hiện rõ số lượt còn lại (vd 2/3) — gợi ý sau cụ thể hơn gợi ý trước. '
+    mo_ta: 'Nút "Gợi ý" hiện rõ số lượt còn lại (vd 2/3) - gợi ý sau cụ thể hơn gợi ý trước. '
       + 'Hết gợi ý mà vẫn chưa hiểu, em bấm "Nhờ thầy/cô" để được hỗ trợ trực tiếp.',
   },
   {

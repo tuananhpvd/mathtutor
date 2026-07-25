@@ -74,7 +74,7 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
       <div>
         <h2 className="text-xl font-semibold text-black">Nhiệm vụ của em</h2>
         <p className="text-black/90 text-sm mt-1">
-          Bài tập thầy/cô giao riêng cho em — hoàn thành để tiến bộ đúng trọng tâm nhé.
+          Bài tập thầy/cô giao riêng cho em - hoàn thành để tiến bộ đúng trọng tâm nhé.
         </p>
       </div>
 

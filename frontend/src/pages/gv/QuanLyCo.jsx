@@ -117,7 +117,7 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
             <Table
               columns={[
                 { key: 'id', header: '#', className: 'w-12' },
-                { key: 'hoc_sinh_ten', header: 'Học sinh', render: (r) => r.hoc_sinh_ten || '—' },
+                { key: 'hoc_sinh_ten', header: 'Học sinh', render: (r) => r.hoc_sinh_ten || '-' },
                 {
                   key: 'bai', header: 'Bài',
                   render: (r) => r.chuyen_de
@@ -129,7 +129,7 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
                   header: 'Loại cờ',
                   render: (r) => NHAN_CO[r.loai_co] || r.loai_co,
                 },
-                { key: 'ghi_chu', header: 'Ghi chú', render: (r) => r.ghi_chu || '—' },
+                { key: 'ghi_chu', header: 'Ghi chú', render: (r) => r.ghi_chu || '-' },
                 {
                   key: 'trang_thai',
                   header: 'Trạng thái',

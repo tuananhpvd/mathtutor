@@ -97,7 +97,7 @@ export function SuaCauHoi({ id, danhMuc, onDong, onLuuXong }) {
                 onChange={(e) => setDaXacNhanDapAn(e.target.checked)} />
               <span>
                 Câu này do <b>AI sinh</b>, chưa duyệt. Tôi đã đối chiếu <b>đáp án</b> với{' '}
-                <b>lời giải chi tiết</b> bên trên và xác nhận khớp nhau — chưa tích thì lưu xong
+                <b>lời giải chi tiết</b> bên trên và xác nhận khớp nhau - chưa tích thì lưu xong
                 vẫn giữ trạng thái chờ duyệt (không hỏi duyệt luôn).
               </span>
             </label>
@@ -153,7 +153,7 @@ export function TaoCauHoi({ danhMuc, onDong, onLuuXong }) {
   return (
     <KhungModal tieu_de="Tạo câu hỏi mới" error={error} onDong={onDong}>
       <p className="text-[12px] text-muted bg-surface-2 rounded-md px-3 py-2 mb-3">
-        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu <b>đã duyệt, sẵn sàng dùng ngay</b> —
+        Chọn loại câu hỏi để hiện đúng cấu trúc nhập. Câu mới được lưu <b>đã duyệt, sẵn sàng dùng ngay</b> -
         học sinh trong lớp em phụ trách tự chọn luyện được, hoặc giao thẳng qua "Giao nhiệm vụ".
       </p>
       <ThanCauHoiForm

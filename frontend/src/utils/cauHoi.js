@@ -15,7 +15,7 @@ export function kiemTraDapAnTLN(v) {
 // Tập hợp danh sách dạng → options (dùng chung).
 export function dungDangOptions(danhMuc) {
   return [
-    { value: '', label: '— Chưa gán dạng —' },
+    { value: '', label: '- Chưa gán dạng -' },
     ...danhMuc.flatMap((cd) =>
       cd.dang_list.map((d) => ({ value: String(d.id), label: `${cd.ten} › ${d.ten}`, cd: cd.ten }))
     ),

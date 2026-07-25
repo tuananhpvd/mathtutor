@@ -226,7 +226,7 @@ export default function QuanLyLopGV() {
     try {
       const result = await api.gvImportLopBatch(chuaTrung)
       tai()
-      const msgs = [`Đã tạo ${result.da_tao.length} lớp: ${result.da_tao.join(', ') || '—'}`]
+      const msgs = [`Đã tạo ${result.da_tao.length} lớp: ${result.da_tao.join(', ') || '-'}`]
       if (result.bo_qua.length > 0)
         msgs.push(`Bỏ qua ${result.bo_qua.length} tên đã tồn tại: ${result.bo_qua.join(', ')}`)
       setImportMsg(msgs.join(' · '))
@@ -365,7 +365,7 @@ export default function QuanLyLopGV() {
                     </>
                   ) : (
                     <>
-                      <span className="text-sm text-muted">Chưa mở — lớp không nhận đăng ký</span>
+                      <span className="text-sm text-muted">Chưa mở - lớp không nhận đăng ký</span>
                       <Button size="sm" className="ml-auto" onClick={() => taoMa(l)}>Tạo mã</Button>
                     </>
                   )}

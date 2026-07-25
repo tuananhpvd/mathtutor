@@ -159,7 +159,7 @@ export default function ChuongThongBao({ onMoLienKet } = {}) {
                   </div>
                   <p className="text-sm text-ink mt-1 leading-relaxed break-words">{renderNoiDung(tb.noi_dung)}</p>
                   {tb.nguoi_gui_ten && (
-                    <p className="text-[11px] text-muted mt-1">— {tb.nguoi_gui_ten}</p>
+                    <p className="text-[11px] text-muted mt-1">- {tb.nguoi_gui_ten}</p>
                   )}
                   {tb.lien_ket_loai && onMoLienKet && (
                     <p className="text-[11px] text-primary mt-1 font-medium">→ Xem chi tiết</p>

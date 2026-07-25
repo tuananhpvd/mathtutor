@@ -133,7 +133,7 @@ export default function XemLaiBai({ sessionId, onDong }) {
             {/* Lời giải chuẩn từng bước */}
             <Card>
               <CardHeader title="Gợi ý các bước làm"
-                subtitle="Các bước thầy/cô đã soạn — em đối chiếu với cách làm của mình nhé" />
+                subtitle="Các bước thầy/cô đã soạn - em đối chiếu với cách làm của mình nhé" />
               <CardBody className="flex flex-col gap-3">
                 {data.loi_giai.length === 0 && (
                   <p className="text-sm text-muted">Bài này không có bước lời giải chi tiết.</p>
@@ -143,7 +143,7 @@ export default function XemLaiBai({ sessionId, onDong }) {
                     className="rounded-md border border-border px-3 py-2 flex flex-col gap-1">
                     <p className="text-xs font-semibold text-muted">
                       Bước {b.thu_tu}
-                      {b.pham_vi && b.pham_vi !== 'ca_bai' ? ` — ý ${b.pham_vi})` : ''}
+                      {b.pham_vi && b.pham_vi !== 'ca_bai' ? ` - ý ${b.pham_vi})` : ''}
                     </p>
                     <div className="text-sm text-ink">{renderVanBan(b.mo_ta)}</div>
                     {b.bieu_thuc_ket_qua && (

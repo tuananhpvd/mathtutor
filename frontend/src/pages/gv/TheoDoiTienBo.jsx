@@ -138,8 +138,8 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
                   { label: 'Học sinh', val: tongHs },
                   { label: 'Bài đã làm', val: tongBaiLam },
                   { label: 'Hoàn thành', val: tongHoanThanh },
-                  { label: 'Tỉ lệ đúng TB', val: tlTB !== null ? `${Math.round(tlTB * 100)}%` : '—' },
-                  { label: 'TB bài/HS', val: tongHs ? (tongBaiLam / tongHs).toFixed(1) : '—' },
+                  { label: 'Tỉ lệ đúng TB', val: tlTB !== null ? `${Math.round(tlTB * 100)}%` : '-' },
+                  { label: 'TB bài/HS', val: tongHs ? (tongBaiLam / tongHs).toFixed(1) : '-' },
                   { label: 'Tổng thời gian', val: dinhDangThoiGian(tongThoiGian) },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl bg-surface-2 px-4 py-4">
@@ -356,7 +356,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
       await api.createFlag(gcSession.session_id, gcGhiChu.trim())
       setGcSession(null)
       setGcGhiChu('')
-      setThongBaoOk('Đã gắn cờ — xem ở mục "Cờ theo dõi".')
+      setThongBaoOk('Đã gắn cờ - xem ở mục "Cờ theo dõi".')
       setTimeout(() => setThongBaoOk(''), 4000)
     } catch { /* bỏ qua, giữ hộp thoại để GV thử lại */ }
     finally { setGcDangGui(false) }
@@ -406,7 +406,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
       {soSanh && soSanh.length > 1 && (
         <Card>
           <CardHeader title="So sánh các lớp"
-            subtitle="Mỗi lớp một dòng trên cùng bộ chỉ số — thay cho việc trộn chung mọi lớp thành một con số" />
+            subtitle="Mỗi lớp một dòng trên cùng bộ chỉ số - thay cho việc trộn chung mọi lớp thành một con số" />
           <CardBody className="pt-0">
             <Table
               columns={[
@@ -428,7 +428,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                 },
                 {
                   key: 'dang_yeu_dau', header: 'Dạng yếu nổi bật',
-                  render: (r) => (r.du_mau && r.dang_yeu_dau) ? r.dang_yeu_dau : '—',
+                  render: (r) => (r.du_mau && r.dang_yeu_dau) ? r.dang_yeu_dau : '-',
                 },
               ]}
               rows={soSanh}
@@ -436,7 +436,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
             />
             <p className="text-xs text-muted mt-2">
               Lưu ý khi so sánh: các lớp có thể được giao nhiệm vụ/đề khác nhau nên mức tiếp xúc
-              không giống nhau — đừng kết luận về học sinh chỉ từ bảng này.
+              không giống nhau - đừng kết luận về học sinh chỉ từ bảng này.
             </p>
           </CardBody>
         </Card>
@@ -451,7 +451,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
               { key: 'ho_ten', header: 'Học sinh' },
               { key: 'chuyen_de', header: 'Chuyên đề' },
               { key: 'loai_cau', header: 'Loại', render: (r) => <Badge tone="primary">{r.loai_cau}</Badge> },
-              { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '—') },
+              { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '-') },
               { key: 'tg', header: 'Thời gian', render: (r) => dinhDangThoiGian(r.thoi_gian_giay) },
               {
                 key: 'luc',
@@ -485,7 +485,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
         tieu_de="Bản đồ năng lực lớp"
         subtitle={
           tenLopBanDo
-            ? `Lớp ${tenLopBanDo} — nhìn 1 lần biết lớp vững/yếu ở chuyên đề × độ khó nào; ô xám = chưa đủ dữ liệu.`
+            ? `Lớp ${tenLopBanDo} - nhìn 1 lần biết lớp vững/yếu ở chuyên đề × độ khó nào; ô xám = chưa đủ dữ liệu.`
             : 'Chưa được phân lớp nào.'
         }
       />
@@ -502,7 +502,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                   nghĩa thống kê. */}
               {!tongHop.du_mau ? (
                 <p className="text-sm text-muted">
-                  Chưa đủ dữ liệu để xếp hạng — mới {tongHop.so_hoc_sinh_co_du_lieu} học sinh có
+                  Chưa đủ dữ liệu để xếp hạng - mới {tongHop.so_hoc_sinh_co_du_lieu} học sinh có
                   dữ liệu (cần từ {tongHop.nguong_mau}). Số liệu lúc này dễ gây hiểu sai.
                 </p>
               ) : tongHop.dang_yeu_chung.length === 0 ? (
@@ -588,7 +588,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
               <Table
                 columns={[
                   { key: 'ho_ten', header: 'Học sinh' },
-                  { key: 'lop_ten', header: 'Lớp', render: (r) => r.lop_ten || '—' },
+                  { key: 'lop_ten', header: 'Lớp', render: (r) => r.lop_ten || '-' },
                   { key: 'lam', header: 'Đã làm', render: (r) => tongHopHs(r).lam },
                   { key: 'xong', header: 'Hoàn thành', render: (r) => tongHopHs(r).xong },
                   { key: 'tb', header: 'Tỉ lệ đúng TB', render: (r) => `${tongHopHs(r).tb}%` },
@@ -649,7 +649,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                   mau="var(--color-gv)"
                   donVi="bài hoàn thành"
                   tieu_de={`Nhịp học 30 ngày: ${hsChon.ho_ten}`}
-                  phu_de="Số bài hoàn thành mỗi ngày — đường liền nhịp là học đều"
+                  phu_de="Số bài hoàn thành mỗi ngày - đường liền nhịp là học đều"
                 />
               )}
               <BieuDoTuan data={hqChon}

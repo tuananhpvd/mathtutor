@@ -49,7 +49,7 @@ function HangNhom({ r }) {
         <span className="flex items-center gap-2 shrink-0">
           <Badge tone={TONE_NHAN[r.nhan]}>{r.nhan_hien_thi}</Badge>
           <b className="text-sm text-ink w-10 text-right">
-            {r.diem_thanh_thao == null ? '—' : `${pct}%`}
+            {r.diem_thanh_thao == null ? '-' : `${pct}%`}
           </b>
         </span>
       </div>
@@ -150,12 +150,12 @@ export default function PhanTichNangLuc({
               </div>
               {theoLuat ? (
                 <p className="text-[11px] text-warning mt-2">
-                  Nhận định tạm theo quy tắc — chưa gọi được AI (có thể đã hết lượt trong ngày).
+                  Nhận định tạm theo quy tắc - chưa gọi được AI (có thể đã hết lượt trong ngày).
                   Hệ thống sẽ tự nâng cấp khi AI sẵn sàng.
                 </p>
               ) : pt.nen_cap_nhat ? (
                 <p className="text-[11px] text-warning mt-2">
-                  Có dữ liệu mới — nên bấm "Cập nhật" để phân tích lại.
+                  Có dữ liệu mới - nên bấm "Cập nhật" để phân tích lại.
                 </p>
               ) : daMoiNhat ? (
                 <p className="text-[11px] text-muted mt-2 inline-flex items-center gap-1">
@@ -167,7 +167,7 @@ export default function PhanTichNangLuc({
             <p className="text-sm text-muted">
               {coData
                 ? (tuDong
-                    ? 'Hệ thống sẽ tự động phân tích — hoặc bấm "Tạo phân tích" để xem ngay.'
+                    ? 'Hệ thống sẽ tự động phân tích - hoặc bấm "Tạo phân tích" để xem ngay.'
                     : 'Chưa có bản phân tích. Bấm "Tạo phân tích" để hệ thống diễn giải hồ sơ bên dưới.')
                 : 'Cần hoàn thành ít nhất một bài để có phân tích.'}
               {' '}Phần số liệu & đề xuất bên dưới luôn sẵn có.
@@ -185,7 +185,7 @@ export default function PhanTichNangLuc({
         <CardBody className="flex flex-col gap-4">
           {!pt.du_lieu_du && (
             <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">
-              Số liệu còn ít — nhận định mang tính tham khảo, sẽ chính xác hơn khi luyện thêm.
+              Số liệu còn ít - nhận định mang tính tham khảo, sẽ chính xác hơn khi luyện thêm.
             </p>
           )}
 

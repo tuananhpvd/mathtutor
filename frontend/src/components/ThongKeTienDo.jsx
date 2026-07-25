@@ -176,13 +176,13 @@ export default function ThongKeTienDo({ tk }) {
                     <span className="inline-flex items-center gap-1 text-success">
                       <Zap size={13} strokeWidth={2.4} /> Nhanh nhất
                     </span>
-                    <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '—'}</b>
+                    <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '-'}</b>
                   </div>
                   <div className="flex items-center justify-between text-sm mt-0.5">
                     <span className="inline-flex items-center gap-1 text-muted">
                       <Hourglass size={13} strokeWidth={2.4} /> Chậm nhất
                     </span>
-                    <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '—'}</b>
+                    <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '-'}</b>
                   </div>
                 </div>
               ))}
@@ -230,7 +230,7 @@ export default function ThongKeTienDo({ tk }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           <BangXepHangThoiGian
             title="Dạng bài mất nhiều thời gian"
-            subtitle="Tối đa 3 dạng — theo tổng thời gian hoàn thành"
+            subtitle="Tối đa 3 dạng - theo tổng thời gian hoàn thành"
             rows={tk.dang_mat_thoi_gian || []}
             nhan={(r) => r.ten}
             empty="Chưa có dữ liệu hoàn thành."

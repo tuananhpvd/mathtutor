@@ -11,7 +11,7 @@ export function phanTachTg(iso) {
 
 // Định dạng thời gian giây → "Xs" / "Xm Ys".
 export function dinhDangThoiGian(giay) {
-  if (giay == null) return '—'
+  if (giay == null) return '-'
   const s = Math.max(0, Math.round(giay))
   if (s < 60) return `${s} giây`
   const phut = Math.floor(s / 60)

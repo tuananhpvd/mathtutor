@@ -144,13 +144,13 @@ export default function HocSinhApp({ onLogout }) {
   async function canhBaoNeuCanRoiTrang() {
     if (page === 'phong_hoc' && dangDoPhongHoc) {
       return confirm(
-        'Em đang làm dở bài này. Em có thể quay lại làm tiếp sau — nhưng nếu rời khỏi bây giờ, em có chắc muốn thoát không?',
+        'Em đang làm dở bài này. Em có thể quay lại làm tiếp sau - nhưng nếu rời khỏi bây giờ, em có chắc muốn thoát không?',
         { title: 'Đang làm bài dở', labelYes: 'Rời khỏi', labelNo: 'Ở lại làm tiếp' }
       )
     }
     if (page === 'thi_thu' && dangLamThiThu) {
       return confirm(
-        'Em đang làm bài thi, chưa nộp bài. Nếu rời khỏi bây giờ, bài thi sẽ vẫn ở trạng thái chưa nộp — em có chắc muốn thoát không?',
+        'Em đang làm bài thi, chưa nộp bài. Nếu rời khỏi bây giờ, bài thi sẽ vẫn ở trạng thái chưa nộp - em có chắc muốn thoát không?',
         { title: 'Đang làm bài thi', labelYes: 'Rời khỏi', labelNo: 'Ở lại làm tiếp' }
       )
     }

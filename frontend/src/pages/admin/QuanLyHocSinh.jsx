@@ -39,7 +39,7 @@ export default function QuanLyHocSinh() {
   useEffect(tai, [])
 
   const lopOptions = [
-    { value: '', label: '— Không gán lớp —' },
+    { value: '', label: '- Không gán lớp -' },
     ...allLop.map((l) => ({ value: String(l.id), label: l.ten })),
   ]
 
@@ -101,7 +101,7 @@ export default function QuanLyHocSinh() {
                     onChange={(e) => ganLop(r, e.target.value)} options={lopOptions} />
                 ),
               },
-              { key: 'gv_ten', header: 'GV phụ trách', render: (r) => r.gv_ten || '—' },
+              { key: 'gv_ten', header: 'GV phụ trách', render: (r) => r.gv_ten || '-' },
               {
                 key: 'trang_thai', header: 'Trạng thái',
                 render: (r) => (

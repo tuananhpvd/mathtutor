@@ -201,17 +201,17 @@ export default function ImportTaiKhoanDialog({ onClose, onSaved }) {
                     {rows.map((r, i) => (
                       <tr key={i} className={`border-t border-border ${r.ly_do ? 'bg-red-50' : ''}`}>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
-                          {r.ho_ten || <span className="italic text-muted">—</span>}
+                          {r.ho_ten || <span className="italic text-muted">-</span>}
                         </td>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
-                          {r.dang_nhap || <span className="italic text-muted">—</span>}
+                          {r.dang_nhap || <span className="italic text-muted">-</span>}
                         </td>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
-                          {r.mat_khau || <span className="italic text-muted">—</span>}
+                          {r.mat_khau || <span className="italic text-muted">-</span>}
                         </td>
                         <td className={`px-3 py-2 ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>
                           {r.vai_tro ? NHAN_VAI[r.vai_tro] : (
-                            <span className="italic text-red-500">{r.vai_tro_raw || '—'}</span>
+                            <span className="italic text-red-500">{r.vai_tro_raw || '-'}</span>
                           )}
                         </td>
                         <td className="px-3 py-2">

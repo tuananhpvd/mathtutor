@@ -339,7 +339,7 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
               <div className="rounded-md bg-primary-soft border border-primary/30 px-3 py-2 text-xs
                 text-ink flex items-center justify-between gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5">
-                  <Target size={13} strokeWidth={2.4} /> Đến từ "Giao bài ngay" — đang khoá đúng dạng yếu <b>«{presetDang.ten}»</b>.
+                  <Target size={13} strokeWidth={2.4} /> Đến từ "Giao bài ngay" - đang khoá đúng dạng yếu <b>«{presetDang.ten}»</b>.
                 </span>
                 <button onClick={() => { setPresetDang(null); layDeXuat(undefined, null) }}
                   className="text-primary hover:underline shrink-0 font-medium">
@@ -351,7 +351,7 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
               <div className="min-w-[200px]">
                 <Select label="Chọn học sinh để gợi ý" value={hsDeXuat}
                   onChange={(e) => { setHsDeXuat(e.target.value); setPresetDang(null) }}
-                  options={[{ value: '', label: '— Chọn học sinh —' },
+                  options={[{ value: '', label: '- Chọn học sinh -' },
                     ...hocSinhs.map((h) => ({ value: String(h.id), label: h.ho_ten }))]} />
               </div>
               <Button size="sm" variant="secondary" onClick={() => layDeXuat()}
@@ -371,7 +371,7 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
                 </p>
               ) : (
                 <p className="text-xs text-muted">
-                  Dạng yếu: {deXuat.dang_yeu.join(', ') || '—'} · {deXuat.bai.length} bài đề xuất.
+                  Dạng yếu: {deXuat.dang_yeu.join(', ') || '-'} · {deXuat.bai.length} bài đề xuất.
                 </p>
               )
             )}
@@ -428,7 +428,7 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
               {/* Chưa chọn HS thì không biết em nào đã làm bài nào → nhắc chọn HS trước */}
               {soHsChon === 0 ? (
                 <p className="rounded-md bg-warning-soft border border-warning/30 px-3 py-2 text-xs text-ink">
-                  Hãy <b>chọn học sinh trước</b> — khi đó hệ thống sẽ tự làm mờ những bài các em
+                  Hãy <b>chọn học sinh trước</b> - khi đó hệ thống sẽ tự làm mờ những bài các em
                   đã hoàn thành để thầy/cô không giao trùng.
                 </p>
               ) : (

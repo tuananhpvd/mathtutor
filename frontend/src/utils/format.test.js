@@ -19,9 +19,9 @@ describe('phanTachTg', () => {
 })
 
 describe('dinhDangThoiGian', () => {
-  it('trả về — khi không có giá trị', () => {
-    expect(dinhDangThoiGian(null)).toBe('—')
-    expect(dinhDangThoiGian(undefined)).toBe('—')
+  it('trả về - khi không có giá trị', () => {
+    expect(dinhDangThoiGian(null)).toBe('-')
+    expect(dinhDangThoiGian(undefined)).toBe('-')
   })
 
   it('định dạng dưới 60 giây', () => {
