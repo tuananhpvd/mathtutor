@@ -104,6 +104,60 @@ def test_no_token_returns_403_or_401(client):
     assert r.status_code in (401, 403)
 
 
+def test_doi_mat_khau_vo_hieu_hoa_token_cu(client, db):
+    """Điểm trừ bảo mật #1: đổi mật khẩu → MỌI JWT phát trước đó hết hiệu lực ngay
+    (trước đây token cũ vẫn sống tới 8h vì JWT stateless không mang token_version)."""
+    seed_users(db)
+    token_cu = _get_token(client, "hs1", "hs123")
+    h = {"Authorization": f"Bearer {token_cu}"}
+    # Token còn dùng được TRƯỚC khi đổi mật khẩu
+    assert client.get("/api/hs/ho-so", headers=h).status_code == 200
+    # HS tự đổi mật khẩu (request này qua auth TRƯỚC khi version tăng nên vẫn 200)
+    r = client.patch("/api/hs/ho-so", headers=h, json={"mat_khau": "matkhaumoi"})
+    assert r.status_code == 200
+    # Token cũ giờ đã hết hiệu lực (version lệch)
+    assert client.get("/api/hs/ho-so", headers=h).status_code == 401
+    # Đăng nhập lại bằng mật khẩu mới → token mới dùng được bình thường
+    token_moi = _get_token(client, "hs1", "matkhaumoi")
+    assert client.get(
+        "/api/hs/ho-so", headers={"Authorization": f"Bearer {token_moi}"}
+    ).status_code == 200
+
+
+def test_token_doi_truoc_khong_co_tv_van_dung_duoc(client, db):
+    """Tương thích ngược: token đời trước (KHÔNG có claim 'tv') vẫn hợp lệ khi tài khoản chưa
+    từng đổi mật khẩu (token_version=0) — không đá văng ai lúc mới triển khai tính năng này."""
+    from app.auth.security import create_access_token
+
+    seed_users(db)
+    hs = db.query(User).filter(User.dang_nhap == "hs1").first()
+    token_khong_tv = create_access_token({"sub": str(hs.id), "vai_tro": hs.vai_tro.value})
+    r = client.get("/api/hs/ho-so", headers={"Authorization": f"Bearer {token_khong_tv}"})
+    assert r.status_code == 200
+
+
+def test_khoa_tai_khoan_vo_hieu_hoa_token_ca_sau_khi_mo_lai(client, db):
+    """Khóa tài khoản = công tắc thu hồi THẬT: token cũ chết ngay (do bị khóa), VÀ vẫn chết cả
+    sau khi MỞ khóa lại (version đã tăng) — tránh token bị lộ 'sống lại' khi mở khóa về sau."""
+    from app.services.admin_service import doi_trang_thai_tai_khoan
+
+    seed_users(db)
+    hs = db.query(User).filter(User.dang_nhap == "hs1").first()
+    token = _get_token(client, "hs1", "hs123")
+    h = {"Authorization": f"Bearer {token}"}
+    assert client.get("/api/hs/ho-so", headers=h).status_code == 200
+    # Khóa → token cũ 401
+    doi_trang_thai_tai_khoan(db, hs.id, "khoa")
+    assert client.get("/api/hs/ho-so", headers=h).status_code == 401
+    # Mở khóa lại → token cũ VẪN 401 (không sống lại); đăng nhập lại mới dùng được
+    doi_trang_thai_tai_khoan(db, hs.id, "hoat_dong")
+    assert client.get("/api/hs/ho-so", headers=h).status_code == 401
+    token_moi = _get_token(client, "hs1", "hs123")
+    assert client.get(
+        "/api/hs/ho-so", headers={"Authorization": f"Bearer {token_moi}"}
+    ).status_code == 200
+
+
 def test_bcrypt_ghim_duoi_4_0():
     """`passlib` 1.7.4 (chưa có bản vá chính thức) crash với bcrypt>=4.0 (mất
     thuộc tính `__about__` nội bộ mà passlib dựa vào) — pyproject.toml đang ghim

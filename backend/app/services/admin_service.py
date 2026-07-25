@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.auth.security import hash_password
+from app.auth.security import hash_password, vo_hieu_hoa_token_cu
 from app.config import SO_GOI_Y_MAC_DINH, settings
 from app.core.guard.safety import (
     TU_KHOA_KHAN_CAP_MAC_DINH,
@@ -247,6 +247,7 @@ def cap_nhat_ho_so_admin(db: Session, admin: User, ho_ten: str | None, mat_khau:
         admin.ho_ten = ho_ten.strip()
     if mat_khau:
         admin.mat_khau_hash = hash_password(mat_khau)
+        vo_hieu_hoa_token_cu(admin)  # đổi mật khẩu → thu hồi mọi token cũ
     db.commit()
     db.refresh(admin)
     return admin
@@ -313,6 +314,7 @@ def sua_tai_khoan(db: Session, user_id: int, du_lieu: dict) -> User:
         user.ho_ten = du_lieu["ho_ten"].strip()
     if "mat_khau" in du_lieu and du_lieu["mat_khau"]:
         user.mat_khau_hash = hash_password(du_lieu["mat_khau"])
+        vo_hieu_hoa_token_cu(user)  # admin đổi mật khẩu tài khoản này → thu hồi mọi token cũ
     if "vai_tro" in du_lieu and du_lieu["vai_tro"]:
         if du_lieu["vai_tro"] not in {"gv", "hs"}:
             raise ValueError("Vai trò không hợp lệ")
@@ -489,6 +491,9 @@ def doi_trang_thai_tai_khoan(db: Session, user_id: int, trang_thai: str) -> User
     if user.vai_tro == VaiTro.admin:
         raise ValueError("Không thể khóa tài khoản admin")
     user.trang_thai = TrangThaiUser(trang_thai)
+    if user.trang_thai == TrangThaiUser.khoa:
+        # Khóa = công tắc thu hồi thật: token cũ chết ngay VÀ vẫn chết cả sau khi mở khóa lại.
+        vo_hieu_hoa_token_cu(user)
     db.commit()
     db.refresh(user)
     return user

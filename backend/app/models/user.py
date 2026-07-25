@@ -27,6 +27,11 @@ class User(Base):
     ho_ten: Mapped[str] = mapped_column(String(200), nullable=False)
     dang_nhap: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     mat_khau_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    # Số phiên bản token: mọi JWT của user mang theo giá trị này lúc phát; đổi mật khẩu /
+    # khóa tài khoản / buộc đăng xuất mọi thiết bị sẽ TĂNG nó lên → mọi token cũ (mang version
+    # thấp hơn, hoặc token đời trước KHÔNG có claim này = coi như 0) lập tức hết hiệu lực. Đây
+    # là "công tắc thu hồi" cho mô hình JWT vốn stateless (xem auth/deps.py + vo_hieu_hoa_token_cu).
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     trang_thai: Mapped[TrangThaiUser] = mapped_column(
         Enum(TrangThaiUser), default=TrangThaiUser.hoat_dong, nullable=False
     )

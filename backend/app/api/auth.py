@@ -57,7 +57,9 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tài khoản đã bị khóa")
 
     xoa_lich_su_sai(body.dang_nhap)
-    token = create_access_token({"sub": str(user.id), "vai_tro": user.vai_tro.value})
+    token = create_access_token(
+        {"sub": str(user.id), "vai_tro": user.vai_tro.value, "tv": user.token_version}
+    )
     return LoginResponse(
         access_token=token,
         vai_tro=user.vai_tro.value,
@@ -102,7 +104,9 @@ def dang_ky(body: DangKyBangMaRequest, request: Request, db: Session = Depends(g
             ghi_nhan_sai_ma(_ip(request))
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    token = create_access_token({"sub": str(hs.id), "vai_tro": hs.vai_tro.value})
+    token = create_access_token(
+        {"sub": str(hs.id), "vai_tro": hs.vai_tro.value, "tv": hs.token_version}
+    )
     return LoginResponse(
         access_token=token,
         vai_tro=hs.vai_tro.value,

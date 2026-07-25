@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from app.auth.security import hash_password
+from app.auth.security import hash_password, vo_hieu_hoa_token_cu
 from app.models.lop import Lop
 from app.models.user import User
 
@@ -26,6 +26,7 @@ def cap_nhat_ho_so(db: Session, hs: User, ho_ten: str | None, mat_khau: str | No
         hs.ho_ten = ho_ten.strip()
     if mat_khau:
         hs.mat_khau_hash = hash_password(mat_khau)
+        vo_hieu_hoa_token_cu(hs)  # đổi mật khẩu → thu hồi mọi token cũ
     db.commit()
     db.refresh(hs)
     return hs

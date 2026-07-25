@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 
-from app.auth.security import hash_password
+from app.auth.security import hash_password, vo_hieu_hoa_token_cu
 from app.core.ma_lop import dinh_dang
 from app.models.flag import Flag, TrangThaiCo
 from app.models.lop import Lop
@@ -143,6 +143,7 @@ def cap_nhat_ho_so(db: Session, gv: User, ho_ten: str | None, mat_khau: str | No
         gv.ho_ten = ho_ten.strip()
     if mat_khau:
         gv.mat_khau_hash = hash_password(mat_khau)
+        vo_hieu_hoa_token_cu(gv)  # đổi mật khẩu → thu hồi mọi token cũ
     db.commit()
     db.refresh(gv)
     return gv
@@ -316,6 +317,7 @@ def sua_hs_gv(db: Session, gv_id: int, hs_id: int, du_lieu: dict) -> User:
         hs.ho_ten = du_lieu["ho_ten"].strip()
     if "mat_khau" in du_lieu and du_lieu["mat_khau"]:
         hs.mat_khau_hash = hash_password(du_lieu["mat_khau"])
+        vo_hieu_hoa_token_cu(hs)  # GV đổi mật khẩu HS → thu hồi mọi token cũ của HS
     db.commit()
     db.refresh(hs)
     return hs
@@ -338,6 +340,10 @@ def khoa_hs_gv(db: Session, gv_id: int, hs_id: int, trang_thai: str) -> User:
         raise ValueError("Không có quyền với học sinh này")
     hs = db.get(User, hs_id)
     hs.trang_thai = TrangThaiUser(trang_thai)
+    if hs.trang_thai == TrangThaiUser.khoa:
+        # Khóa = công tắc thu hồi thật: token cũ chết ngay VÀ vẫn chết cả sau khi mở khóa lại
+        # (tránh token bị lộ "sống lại" khi tài khoản được mở khóa về sau).
+        vo_hieu_hoa_token_cu(hs)
     db.commit()
     db.refresh(hs)
     return hs

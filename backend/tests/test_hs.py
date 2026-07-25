@@ -36,12 +36,18 @@ def test_hs_xem_ho_so(db, client):
 def test_hs_sua_ho_ten_va_mat_khau(db, client):
     _seed(db)
     h = _h(client, "hs1")
-    client.patch("/api/hs/ho-so", headers=h, json={"ho_ten": "Trò A1", "mat_khau": "moi123"})
-    r = client.get("/api/hs/ho-so", headers=h).json()
-    assert r["ho_ten"] == "Trò A1"
-    # mật khẩu mới đăng nhập được
-    assert client.post("/api/auth/login",
-                       json={"dang_nhap": "hs1", "mat_khau": "moi123"}).status_code == 200
+    # PATCH trả về hồ sơ đã cập nhật NGAY trong response (request này qua auth trước khi đổi
+    # mật khẩu nên vẫn 200); không GET lại bằng token cũ h vì đổi mật khẩu đã thu hồi nó.
+    r = client.patch("/api/hs/ho-so", headers=h, json={"ho_ten": "Trò A1", "mat_khau": "moi123"})
+    assert r.status_code == 200
+    assert r.json()["ho_ten"] == "Trò A1"
+    # Token cũ đã bị thu hồi ngay sau khi đổi mật khẩu
+    assert client.get("/api/hs/ho-so", headers=h).status_code == 401
+    # Mật khẩu mới đăng nhập được; token mới xác nhận ho_ten đã lưu thật
+    dn = client.post("/api/auth/login", json={"dang_nhap": "hs1", "mat_khau": "moi123"})
+    assert dn.status_code == 200
+    h2 = {"Authorization": f"Bearer {dn.json()['access_token']}"}
+    assert client.get("/api/hs/ho-so", headers=h2).json()["ho_ten"] == "Trò A1"
 
 
 def test_hs_khong_thay_doi_duoc_trang_thai_qua_ho_so(db, client):

@@ -28,6 +28,15 @@ def _get_current_user(
     user = db.get(User, user_id)
     if user is None or user.trang_thai.value == "khoa":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tài khoản không tồn tại hoặc bị khóa")
+    # Thu hồi token: token mang "tv" (token_version lúc phát) — lệch với version hiện tại trong
+    # DB nghĩa là mật khẩu đã đổi / tài khoản bị khóa-mở / buộc đăng xuất SAU khi token này phát.
+    # Token đời trước (không có claim "tv") → .get mặc định 0, khớp token_version=0 của tài khoản
+    # chưa từng đổi mật khẩu, nên KHÔNG bị đá văng oan lúc mới triển khai tính năng này.
+    if payload.get("tv", 0) != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Phiên đăng nhập đã hết hiệu lực — vui lòng đăng nhập lại.",
+        )
     return user
 
 
