@@ -1,3 +1,6 @@
+import {
+  BookOpen, CheckCircle2, CircleAlert, LifeBuoy, Lightbulb, Sparkles, Target,
+} from 'lucide-react'
 import { Badge, Button, Card, CardBody, CardHeader } from './ui'
 import { TONE_NHAN, BAR_NHAN } from '../utils/nangLuc'
 
@@ -67,9 +70,9 @@ function HangNhom({ r }) {
 // một phần tín hiệu trong điểm thành thạo ở trên (xem "ly_do"), không còn tách biệt hoàn toàn.
 function ChanDoanVatLon({ r }) {
   const dau = [
-    r.so_lan_het_goi_y > 0 && { icon: '🚧', text: `cạn gợi ý ${r.so_lan_het_goi_y} lần` },
-    r.so_lan_xem_ly_thuyet > 0 && { icon: '📖', text: `xem lại lý thuyết ${r.so_lan_xem_ly_thuyet} lần` },
-    r.so_lan_nho_thay_co > 0 && { icon: '🙋', text: `nhờ thầy/cô ${r.so_lan_nho_thay_co} lần` },
+    r.so_lan_het_goi_y > 0 && { Icon: CircleAlert, text: `cạn gợi ý ${r.so_lan_het_goi_y} lần` },
+    r.so_lan_xem_ly_thuyet > 0 && { Icon: BookOpen, text: `xem lại lý thuyết ${r.so_lan_xem_ly_thuyet} lần` },
+    r.so_lan_nho_thay_co > 0 && { Icon: LifeBuoy, text: `nhờ thầy/cô ${r.so_lan_nho_thay_co} lần` },
   ].filter(Boolean)
   if (dau.length === 0) return null
   return (
@@ -77,7 +80,7 @@ function ChanDoanVatLon({ r }) {
       {dau.map((d, i) => (
         <span key={i} className="inline-flex items-center gap-1 rounded bg-warning-soft
           text-warning text-[11px] font-medium px-1.5 py-0.5">
-          {d.icon} {d.text}
+          <d.Icon size={12} strokeWidth={2.4} /> {d.text}
         </span>
       ))}
     </div>
@@ -155,8 +158,8 @@ export default function PhanTichNangLuc({
                   Có dữ liệu mới — nên bấm "Cập nhật" để phân tích lại.
                 </p>
               ) : daMoiNhat ? (
-                <p className="text-[11px] text-muted mt-2">
-                  🤖 Đã tự động phân tích - đây đã là phân tích mới nhất.
+                <p className="text-[11px] text-muted mt-2 inline-flex items-center gap-1">
+                  <Sparkles size={12} strokeWidth={2.4} /> Đã tự động phân tích - đây đã là phân tích mới nhất.
                 </p>
               ) : null}
             </>
@@ -188,7 +191,9 @@ export default function PhanTichNangLuc({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-semibold text-success mb-1">✅ Điểm mạnh</p>
+              <p className="text-sm font-semibold text-success mb-1 inline-flex items-center gap-1.5">
+                <CheckCircle2 size={15} strokeWidth={2.4} /> Điểm mạnh
+              </p>
               {pt.diem_manh.length === 0 ? (
                 <p className="text-sm text-muted">Chưa xác định rõ.</p>
               ) : (
@@ -200,9 +205,11 @@ export default function PhanTichNangLuc({
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-danger mb-1">🎯 Cần cải thiện</p>
+              <p className="text-sm font-semibold text-danger mb-1 inline-flex items-center gap-1.5">
+                <Target size={15} strokeWidth={2.4} /> Cần cải thiện
+              </p>
               {pt.diem_yeu.length === 0 ? (
-                <p className="text-sm text-muted">Không có dạng nào đáng lo. 👍</p>
+                <p className="text-sm text-muted">Không có dạng nào đáng lo.</p>
               ) : (
                 <ul className="text-sm text-ink flex flex-col gap-1.5">
                   {pt.diem_yeu.map((r, i) => (
@@ -227,7 +234,9 @@ export default function PhanTichNangLuc({
 
           {deXuat?.length > 0 && (
             <div className="rounded-lg bg-primary-soft/60 px-4 py-3">
-              <p className="text-sm font-semibold text-primary mb-1">💡 Đề xuất</p>
+              <p className="text-sm font-semibold text-primary mb-1 inline-flex items-center gap-1.5">
+                <Lightbulb size={15} strokeWidth={2.4} /> Đề xuất
+              </p>
               <ul className="text-sm text-ink list-disc pl-5 flex flex-col gap-1">
                 {deXuat.map((t, i) => <li key={i}>{t}</li>)}
               </ul>

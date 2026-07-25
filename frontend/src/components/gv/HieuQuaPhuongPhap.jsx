@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { Download } from 'lucide-react'
 import { api } from '../../api'
 import { Button, Card, CardBody, CardHeader } from '../ui'
 import { THANG_TIM_MUC_GOI_Y } from '../../utils/chartColors'
@@ -116,7 +117,7 @@ export default function HieuQuaPhuongPhap() {
           <div className="flex items-center gap-2 flex-wrap justify-end">
             <ChonLop value={lopId} onChange={setLopId} choPhepGop nhan="Phạm vi" />
             <Button variant="secondary" size="sm" onClick={taiCsv} disabled={dangTai || !pb.tong}>
-              {dangTai ? 'Đang tải...' : '⬇ Xuất CSV'}
+              {dangTai ? 'Đang tải...' : <><Download size={14} strokeWidth={2.2} /> Xuất CSV</>}
             </Button>
           </div>
         }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Lightbulb, Target } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -331,12 +332,14 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
 
           {/* Gợi ý theo điểm yếu */}
           <div className="rounded-xl border border-border bg-surface-2/40 p-3 flex flex-col gap-2">
-            <p className="text-sm font-semibold text-ink">💡 Gợi ý bài theo điểm yếu</p>
+            <p className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+              <Lightbulb size={15} strokeWidth={2.4} /> Gợi ý bài theo điểm yếu
+            </p>
             {presetDang && (
               <div className="rounded-md bg-primary-soft border border-primary/30 px-3 py-2 text-xs
                 text-ink flex items-center justify-between gap-2 flex-wrap">
-                <span>
-                  🎯 Đến từ "Giao bài ngay" — đang khoá đúng dạng yếu <b>«{presetDang.ten}»</b>.
+                <span className="inline-flex items-center gap-1.5">
+                  <Target size={13} strokeWidth={2.4} /> Đến từ "Giao bài ngay" — đang khoá đúng dạng yếu <b>«{presetDang.ten}»</b>.
                 </span>
                 <button onClick={() => { setPresetDang(null); layDeXuat(undefined, null) }}
                   className="text-primary hover:underline shrink-0 font-medium">
@@ -590,7 +593,9 @@ export default function GiaoNhiemVu({ goiY, onGoiYDone }) {
           </div>
 
           {loi && <p className="text-sm text-danger">{loi}</p>}
-          {ok && <p className="text-sm text-success">✓ {ok}</p>}
+          {ok && <p className="text-sm text-success inline-flex items-center gap-1.5">
+            <CheckCircle2 size={14} strokeWidth={2.4} /> {ok}
+          </p>}
           <div>
             <Button onClick={gui} disabled={dangGui}>
               {dangGui ? 'Đang giao...' : 'Giao nhiệm vụ'}

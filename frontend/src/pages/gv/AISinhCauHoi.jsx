@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
+import { Check, GraduationCap, Search, Sparkles } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -93,7 +94,7 @@ function ODanAnh({ anhDan, onDanAnh, onXoaAnh, onNhanDang, dangDoc, loaiCau }) {
           <img src={anhDan.dataUrl} alt="Ảnh đề đã dán" className="max-h-40 max-w-full rounded-md border border-border" />
           <div className="flex flex-wrap gap-2">
             <Button onClick={onNhanDang} disabled={dangDoc}>
-              {dangDoc ? 'AI đang đọc ảnh...' : '🔎 Nhận dạng từ ảnh'}
+              {dangDoc ? 'AI đang đọc ảnh...' : <><Search size={14} strokeWidth={2.2} /> Nhận dạng từ ảnh</>}
             </Button>
             <Button variant="secondary" onClick={onXoaAnh} disabled={dangDoc}>Xóa ảnh</Button>
           </div>
@@ -268,7 +269,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
             bai={nhap.cau} setBai={(fn) => setNhap((n) => ({ ...n, cau: typeof fn === 'function' ? fn(n.cau) : fn }))}
             dangOptions={dangOptions}
             onLuu={luu} onDong={huyXemTruoc} dangLuu={dangLuu}
-            nutLuuText="✅ Lưu câu hỏi (chờ duyệt)"
+            nutLuuText={<><Check size={14} strokeWidth={2.2} /> Lưu câu hỏi (chờ duyệt)</>}
             nutLuuDisabled={!daXacNhanDapAn}
             xacNhanDapAn={
               // AI có thể giải đúng nhưng chọn đáp án lệch với chính lời giải của nó (sự cố
@@ -291,7 +292,9 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
 
   return (
     <Card>
-      <CardHeader title="🎓 AI tạo bước và gợi ý"
+      <CardHeader title={<span className="inline-flex items-center gap-1.5">
+          <GraduationCap size={18} strokeWidth={2.2} /> AI tạo bước và gợi ý
+        </span>}
         subtitle="Thầy/cô viết đề bài (và phương án/ý nếu có) — AI chỉ giải ra đáp án đúng, chia đúng số bước, viết đúng số gợi ý mỗi bước theo yêu cầu." />
       <CardBody className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-5">
         {/* Cột trái: form nhập */}
@@ -392,7 +395,7 @@ function TaoBuocGoiYPanel({ danhMuc, onLuuXong }) {
           {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
           <div>
             <Button onClick={tao} disabled={dangTao}>
-              {dangTao ? 'AI đang giải và soạn gợi ý...' : '🤖 Tạo bước và gợi ý bằng AI'}
+              {dangTao ? 'AI đang giải và soạn gợi ý...' : <><Sparkles size={14} strokeWidth={2.2} /> Tạo bước và gợi ý bằng AI</>}
             </Button>
           </div>
         </div>

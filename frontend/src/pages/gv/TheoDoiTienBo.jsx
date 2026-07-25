@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Flag, MessageCircle, Target, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Table } from '../../components/ui'
 import { dinhDangThoiGian } from '../../utils/format'
@@ -122,7 +123,7 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
             <p className="text-xl font-bold text-ink">Thống kê lớp {tenLop}</p>
             <p className="text-sm text-muted mt-0.5">{coData}/{tongHs} học sinh có dữ liệu</p>
           </div>
-          <button onClick={onDong} className="text-muted hover:text-ink text-2xl leading-none">✕</button>
+          <button onClick={onDong} className="text-muted hover:text-ink"><X size={22} strokeWidth={2} /></button>
         </div>
 
         {/* Body — 2 cột (xếp chồng trên màn hình nhỏ) */}
@@ -175,7 +176,9 @@ function ThongKeLopDialog({ tenLop, stats, onDong }) {
                 <div className="rounded-xl bg-surface-2 px-4 py-4">
                   <p className="text-sm text-muted mb-2">Chưa làm bài nào</p>
                   {chuaLam.length === 0
-                    ? <p className="text-sm text-success">Tất cả đã làm 👍</p>
+                    ? <p className="text-sm text-success inline-flex items-center gap-1">
+                        <CheckCircle2 size={14} strokeWidth={2.4} /> Tất cả đã làm
+                      </p>
                     : chuaLam.slice(0, 3).map((h) => (
                       <p key={h.hoc_sinh_id} className="text-sm text-ink leading-relaxed">{h.ho_ten}</p>
                     ))}
@@ -461,7 +464,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                 render: (r) => (
                   <Button size="sm" variant="secondary"
                     onClick={() => { setGcSession(r); setGcGhiChu('') }}>
-                    🚩 Gắn cờ
+                    <Flag size={14} strokeWidth={2.2} /> Gắn cờ
                   </Button>
                 ),
               },
@@ -503,7 +506,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                   dữ liệu (cần từ {tongHop.nguong_mau}). Số liệu lúc này dễ gây hiểu sai.
                 </p>
               ) : tongHop.dang_yeu_chung.length === 0 ? (
-                <p className="text-sm text-muted">Không có dạng chung đáng lo. 👍</p>
+                <p className="text-sm text-muted">Không có dạng chung đáng lo.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {tongHop.dang_yeu_chung.map((d, i) => (
@@ -523,7 +526,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
             <div>
               <p className="text-sm font-semibold text-warning mb-2">Học sinh cần chú ý</p>
               {tongHop.hoc_sinh_can_chu_y.length === 0 ? (
-                <p className="text-sm text-muted">Không có học sinh nào cần lưu ý đặc biệt. 👍</p>
+                <p className="text-sm text-muted">Không có học sinh nào cần lưu ý đặc biệt.</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
                   {tongHop.hoc_sinh_can_chu_y.map((h) => (
@@ -626,10 +629,10 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
             <div className="flex items-center gap-2">
               <Button size="sm"
                 onClick={() => setNhanXetHs({ id: hsChon.hoc_sinh_id, ho_ten: hsChon.ho_ten })}>
-                💬 Gửi nhận xét
+                <MessageCircle size={14} strokeWidth={2.2} /> Gửi nhận xét
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setChon(null)}>
-                ✕ Thu gọn
+                <X size={14} strokeWidth={2.2} /> Thu gọn
               </Button>
             </div>
           </div>
@@ -655,7 +658,9 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                 tieu_de={`Bản đồ năng lực: ${hsChon.ho_ten}`} />
               <MucTieuPanel
                 key={chon}
-                tieuDe="🎯 Mục tiêu của học sinh"
+                tieuDe={<span className="inline-flex items-center gap-1.5">
+                  <Target size={16} strokeWidth={2.4} /> Mục tiêu của học sinh
+                </span>}
                 phuDe="Đặt mục tiêu cho em hoặc dùng gợi ý theo điểm yếu"
                 taiDs={() => api.gvMucTieu(chon)}
                 taiDeXuat={() => api.gvMucTieuDeXuat(chon)}
@@ -673,8 +678,8 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
       <HieuQuaPhuongPhap />
 
       {thongBaoOk && (
-        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5">
-          ✓ {thongBaoOk}
+        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5 inline-flex items-center gap-1.5">
+          <CheckCircle2 size={14} strokeWidth={2.4} /> {thongBaoOk}
         </div>
       )}
 
@@ -682,7 +687,9 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh] flex flex-col">
             <div className="px-5 pt-5 pb-3 border-b border-border shrink-0">
-              <h2 className="font-bold text-lg text-ink">🚩 Gắn cờ thủ công</h2>
+              <h2 className="font-bold text-lg text-ink inline-flex items-center gap-2">
+                <Flag size={17} strokeWidth={2.2} /> Gắn cờ thủ công
+              </h2>
               <p className="text-sm text-muted mt-0.5">
                 {gcSession.ho_ten ? `${gcSession.ho_ten} · ` : ''}
                 {gcSession.chuyen_de || `Phiên #${gcSession.session_id}`}

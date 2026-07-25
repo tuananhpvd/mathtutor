@@ -655,7 +655,7 @@ def quet_tai_sinh(db: Session, llm) -> dict:
 
 
 _XU_HUONG_HS = {
-    "tien_bo": "Gần đây em đang TIẾN BỘ — cố gắng duy trì nhé! 🚀",
+    "tien_bo": "Gần đây em đang TIẾN BỘ — cố gắng duy trì nhé!",
     "giam": "Gần đây kết quả hơi đi xuống — em đừng nản, ôn lại phần còn lúng túng nhé.",
 }
 _XU_HUONG_GV = {

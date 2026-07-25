@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -81,7 +82,7 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
         <p className="text-sm text-muted">Đang tải...</p>
       ) : ds.length === 0 ? (
         <Card><CardBody>
-          <p className="text-sm text-muted">Hiện chưa có nhiệm vụ nào. 🎉</p>
+          <p className="text-sm text-muted">Hiện chưa có nhiệm vụ nào.</p>
         </CardBody></Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
@@ -127,7 +128,9 @@ export default function NhiemVu({ onChon, focusId, onFocusDone }) {
                         </div>
                         <div className="shrink-0">
                           {b.da_hoan_thanh ? (
-                            <Badge tone="success">✓ Hoàn thành</Badge>
+                            <Badge tone="success">
+                              <Check size={12} strokeWidth={2.6} className="inline -mt-0.5 mr-0.5" /> Hoàn thành
+                            </Badge>
                           ) : (
                             <Button size="sm" onClick={() => onChon?.(b.problem_id)}>Làm bài</Button>
                           )}

@@ -46,7 +46,7 @@ function BangHoanThanh({
       </p>
       <p className="text-sm text-ink">
         {khongCanGoiY ? (
-          <>Em tự làm hoàn toàn không cần gợi ý — quá xuất sắc! 🌟</>
+          <>Em tự làm hoàn toàn không cần gợi ý — quá xuất sắc!</>
         ) : (
           <>
             Hành trình của em: dùng <b>{so_lan_khong_hieu || 0}</b> lượt xin gợi ý, thử lại{' '}
@@ -271,7 +271,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
       setNhoMo(false)
       setNhoText('')
       // Hiện nội dung nhờ vào khung chat
-      const chatNd = nd ? `🙋 Nhờ thầy/cô: ${nd}` : '🙋 Em cần thầy/cô giúp đỡ ở bước này.'
+      const chatNd = nd ? `Nhờ thầy/cô: ${nd}` : 'Em cần thầy/cô giúp đỡ ở bước này.'
       setTurns((ts) => [...ts, { vai_tro: 'hoc_sinh', noi_dung: chatNd }])
       setNhoOk('Đã gửi yêu cầu tới thầy/cô. Em sẽ nhận được trả lời sớm nhé!')
       setTimeout(() => setNhoOk(''), 5000)

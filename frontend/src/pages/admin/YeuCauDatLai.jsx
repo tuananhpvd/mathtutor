@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Select } from '../../components/ui'
 
@@ -46,7 +47,7 @@ export default function YeuCauDatLai() {
     <div className="flex flex-col gap-4">
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
-          {error} <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+          {error} <button onClick={() => setError('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
 
@@ -127,8 +128,10 @@ export default function YeuCauDatLai() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh]
             overflow-y-auto p-6 flex flex-col gap-4">
-            <h2 className={`text-lg font-bold ${modal.hanh_dong === 'duyet' ? 'text-success' : 'text-danger'}`}>
-              {modal.hanh_dong === 'duyet' ? '✅ Duyệt yêu cầu đặt lại' : '❌ Từ chối yêu cầu'}
+            <h2 className={`text-lg font-bold inline-flex items-center gap-2 ${modal.hanh_dong === 'duyet' ? 'text-success' : 'text-danger'}`}>
+              {modal.hanh_dong === 'duyet'
+                ? <><Check size={18} strokeWidth={2.4} /> Duyệt yêu cầu đặt lại</>
+                : <><X size={18} strokeWidth={2.4} /> Từ chối yêu cầu</>}
             </h2>
             <p className="text-sm">
               Học sinh: <strong>{modal.yc.ho_ten_hs}</strong>

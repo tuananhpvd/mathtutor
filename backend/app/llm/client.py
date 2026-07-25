@@ -73,8 +73,8 @@ class StubLLMClient(LLMClient):
         # Kết thúc / tóm tắt: dùng lời cố định, KHÔNG in y_goi_y (là chỉ thị nội bộ).
         if y_dinh == "ket_thuc":
             return pick([
-                "Tuyệt vời, em đã hoàn thành bài rồi! Em tự đi hết các bước rất chắc chắn. 🎉",
-                "Hoàn thành rồi đấy! Mạch suy nghĩ của em mạch lạc lắm, giỏi quá. 🎉",
+                "Tuyệt vời, em đã hoàn thành bài rồi! Em tự đi hết các bước rất chắc chắn.",
+                "Hoàn thành rồi đấy! Mạch suy nghĩ của em mạch lạc lắm, giỏi quá.",
             ])
         if y_dinh == "tom_tat":
             return pick([
@@ -93,7 +93,7 @@ class StubLLMClient(LLMClient):
             ])
         if y_dinh == "xac_nhan_dung":
             return pick([
-                f"Chính xác rồi! 👏 Ta sang bước tiếp nhé: {y_goi_y}",
+                f"Chính xác rồi! Ta sang bước tiếp nhé: {y_goi_y}",
                 f"Rất tốt, đúng rồi đó! Giờ tới bước tiếp theo: {y_goi_y}",
                 f"Đúng rồi, em làm tốt lắm! Đi tiếp nào: {y_goi_y}",
             ])

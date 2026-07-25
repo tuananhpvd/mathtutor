@@ -175,7 +175,7 @@ export default function TrangChu({ onChonBai, onLamTiep, onTiepTucLam, onDieuHuo
         to-primary-soft-2 p-6 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-5 items-center">
         <div>
           <h2 className="text-2xl font-semibold text-ink text-balance">
-            Chào em{ho_ten ? `, ${ho_ten}` : ''}! 👋
+            Chào em{ho_ten ? `, ${ho_ten}` : ''}!
           </h2>
           <p className="text-sm text-muted mt-2 max-w-[42ch] leading-relaxed">
             <LoiChao so_ngay={soNgayHoc} chuoi={chuoiNgay} />

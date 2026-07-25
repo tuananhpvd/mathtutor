@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { AlertTriangle, Check, X } from 'lucide-react'
 import { api } from '../../api'
 import { Button } from '../ui'
 import { kiemTraDapAnTLN } from '../../utils/cauHoi'
@@ -30,9 +31,26 @@ function s(val) { return String(val ?? '').trim() }
 
 // Trạng thái khớp ảnh cho 1 dòng: '' → không có; có trong map → khớp; còn lại → chưa upload.
 function trangThaiHinh(ten, anhMap) {
-  if (!ten) return { text: '—', cls: 'text-muted' }
-  if (anhMap[ten]) return { text: `✓ ${ten}`, cls: 'text-green-600' }
-  return { text: `⚠ ${ten}`, cls: 'text-amber-600' }
+  if (!ten) return { Icon: null, text: '—', cls: 'text-muted' }
+  if (anhMap[ten]) return { Icon: Check, text: ten, cls: 'text-green-600' }
+  return { Icon: AlertTriangle, text: ten, cls: 'text-amber-600' }
+}
+
+function OTrangThaiHinh({ ten, anhMap }) {
+  const { Icon, text, cls } = trangThaiHinh(ten, anhMap)
+  return (
+    <span className={`inline-flex items-center gap-1 ${cls}`}>
+      {Icon && <Icon size={12} strokeWidth={2.4} />} {text}
+    </span>
+  )
+}
+
+function HopLeBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-green-600">
+      <Check size={12} strokeWidth={2.4} /> Hợp lệ
+    </span>
+  )
 }
 
 // -------- Template generators --------
@@ -272,13 +290,13 @@ function PreviewTN4PA({ rows, anhMap }) {
             <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
             <td className="px-2 py-1.5 text-ink">{r.meta?.dap_an_dung || '—'}</td>
             <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
-            <td className={`px-2 py-1.5 whitespace-nowrap ${trangThaiHinh(r.hinh_ten, anhMap).cls}`}>
-              {trangThaiHinh(r.hinh_ten, anhMap).text}
+            <td className="px-2 py-1.5 whitespace-nowrap">
+              <OTrangThaiHinh ten={r.hinh_ten} anhMap={anhMap} />
             </td>
             <td className="px-2 py-1.5">
               {r.ly_do
                 ? <span className="text-red-600">{r.ly_do}</span>
-                : <span className="text-green-600">✓ Hợp lệ</span>}
+                : <HopLeBadge />}
             </td>
           </tr>
         ))}
@@ -307,17 +325,21 @@ function PreviewTNDS({ rows, anhMap }) {
               <td className={`px-2 py-1.5 max-w-[140px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
               {['a','b','c','d'].map((k, i) => (
                 <td key={k} className="px-2 py-1.5 text-ink whitespace-nowrap">
-                  {y[i] ? (y[i].dap_an === 'Dung' ? '✓' : '✗') : '—'}
+                  {y[i]
+                    ? (y[i].dap_an === 'Dung'
+                        ? <Check size={13} strokeWidth={2.6} className="text-green-600" />
+                        : <X size={13} strokeWidth={2.6} className="text-red-600" />)
+                    : '—'}
                 </td>
               ))}
               <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
-              <td className={`px-2 py-1.5 whitespace-nowrap ${trangThaiHinh(r.hinh_ten, anhMap).cls}`}>
-                {trangThaiHinh(r.hinh_ten, anhMap).text}
+              <td className="px-2 py-1.5 whitespace-nowrap">
+                <OTrangThaiHinh ten={r.hinh_ten} anhMap={anhMap} />
               </td>
               <td className="px-2 py-1.5">
                 {r.ly_do
                   ? <span className="text-red-600">{r.ly_do}</span>
-                  : <span className="text-green-600">✓ Hợp lệ</span>}
+                  : <HopLeBadge />}
               </td>
             </tr>
           )
@@ -345,13 +367,13 @@ function PreviewTLN({ rows, anhMap }) {
             <td className={`px-2 py-1.5 max-w-[200px] truncate ${r.ly_do ? 'text-red-700' : 'text-ink'}`}>{r.de_bai || '—'}</td>
             <td className="px-2 py-1.5 text-ink font-mono">{r.meta?.dap_an_cuoi || '—'}</td>
             <td className="px-2 py-1.5 text-ink">{r.do_kho}</td>
-            <td className={`px-2 py-1.5 whitespace-nowrap ${trangThaiHinh(r.hinh_ten, anhMap).cls}`}>
-              {trangThaiHinh(r.hinh_ten, anhMap).text}
+            <td className="px-2 py-1.5 whitespace-nowrap">
+              <OTrangThaiHinh ten={r.hinh_ten} anhMap={anhMap} />
             </td>
             <td className="px-2 py-1.5">
               {r.ly_do
                 ? <span className="text-red-600">{r.ly_do}</span>
-                : <span className="text-green-600">✓ Hợp lệ</span>}
+                : <HopLeBadge />}
             </td>
           </tr>
         ))}
@@ -538,8 +560,8 @@ export default function ImportCauHoiDialog({ onClose, onSaved }) {
             {Object.keys(anhMap).length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {Object.keys(anhMap).map((ten) => (
-                  <span key={ten} className="text-[11px] bg-green-50 text-green-700 rounded px-1.5 py-0.5">
-                    ✓ {ten}
+                  <span key={ten} className="text-[11px] bg-green-50 text-green-700 rounded px-1.5 py-0.5 inline-flex items-center gap-1">
+                    <Check size={10} strokeWidth={2.8} /> {ten}
                   </span>
                 ))}
               </div>

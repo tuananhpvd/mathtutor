@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from '../../components/ui'
 import SuaTaiKhoanModal from '../../components/admin/SuaTaiKhoanModal'
@@ -113,7 +114,7 @@ export default function QuanLyLop() {
     <div className="flex flex-col gap-5">
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
-          {error} <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+          {error} <button onClick={() => setError('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
 
@@ -204,7 +205,7 @@ export default function QuanLyLop() {
       {importMsg && (
         <p className="text-sm text-success bg-green-50 rounded-md px-3 py-2">
           {importMsg}{' '}
-          <button onClick={() => setImportMsg('')} className="ml-2 font-bold text-muted">✕</button>
+          <button onClick={() => setImportMsg('')} className="ml-2 text-muted"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AlertTriangle, CircleAlert, Compass, Lock, X } from 'lucide-react'
 import { api } from '../../api'
 import ImportTuKhoaDialog from '../../components/admin/ImportTuKhoaDialog'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table } from '../../components/ui'
@@ -32,16 +33,19 @@ function KhoaApi({ label, p, provider, value, onChange, daDat }) {
 
 const NHAN_TANG_TU_KHOA = {
   tu_khoa_khan_cap: {
-    title: '🆘 Khẩn cấp / dấu hiệu tự hại',
+    Icon: CircleAlert,
+    title: 'Khẩn cấp / dấu hiệu tự hại',
     hint: 'Ưu tiên cao nhất. HS gõ trúng 1 từ ở đây sẽ nhận phản hồi ấm áp trong khung chat '
       + '(KHÔNG chặn lỗi kỹ thuật) và GV được báo ngay ở mức khẩn cấp.',
   },
   tu_khoa_khong_phu_hop: {
-    title: '⚠️ Nội dung không phù hợp',
+    Icon: AlertTriangle,
+    title: 'Nội dung không phù hợp',
     hint: 'Gắn cờ báo GV (mức thường), phản hồi thân thiện hướng học sinh quay lại bài học.',
   },
   tu_khoa_ngoai_pham_vi: {
-    title: '↩️ Ngoài phạm vi môn Toán',
+    Icon: Compass,
+    title: 'Ngoài phạm vi môn Toán',
     hint: 'Chỉ nhắc nhẹ hướng về bài học — KHÔNG gắn cờ, KHÔNG báo GV.',
   },
 }
@@ -80,7 +84,9 @@ function KhoiTuKhoa({ khoa, items, onDoi }) {
       <button type="button" onClick={() => setMoRong((v) => !v)}
         className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-surface-2 text-left">
         <div>
-          <p className="text-sm font-semibold text-ink">{meta.title}</p>
+          <p className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+            <meta.Icon size={14} strokeWidth={2.4} /> {meta.title}
+          </p>
           <p className="text-[11px] text-muted">{meta.hint}</p>
         </div>
         <span className="text-xs text-muted whitespace-nowrap">
@@ -91,7 +97,7 @@ function KhoiTuKhoa({ khoa, items, onDoi }) {
       {moRong && (
         <div className="p-4 flex flex-col gap-3 border-t border-border">
           <Input
-            placeholder="🔍 Tìm từ khóa..."
+            placeholder="Tìm từ khóa..."
             value={timKiem}
             onChange={(e) => setTimKiem(e.target.value)}
           />
@@ -124,11 +130,12 @@ function KhoiTuKhoa({ khoa, items, onDoi }) {
                 className: 'w-10 text-center',
                 render: (r) =>
                   r.la_mac_dinh ? (
-                    <span title="Từ khóa mặc định — chỉ tắt được, không xóa">🔒</span>
+                    <Lock size={13} strokeWidth={2.2} className="inline text-muted"
+                      title="Từ khóa mặc định — chỉ tắt được, không xóa" />
                   ) : (
-                    <button type="button" className="text-danger font-bold" title="Xóa từ khóa tự thêm"
+                    <button type="button" className="text-danger" title="Xóa từ khóa tự thêm"
                       onClick={() => xoa(r)}>
-                      ✕
+                      <X size={13} strokeWidth={2.4} />
                     </button>
                   ),
               },
@@ -605,7 +612,7 @@ export default function CauHinh() {
 
       <Card className="break-inside-avoid mb-5">
         <CardHeader title="Từ khóa lọc an toàn"
-          subtitle="Tự thêm/bật/tắt từ khóa mà không cần sửa code — áp dụng ngay cho ô chat hỏi gia sư và 'Nhờ thầy/cô'. Từ khóa mặc định (🔒) chỉ tắt được, không xóa được, để giữ nền an toàn."
+          subtitle="Tự thêm/bật/tắt từ khóa mà không cần sửa code — áp dụng ngay cho ô chat hỏi gia sư và 'Nhờ thầy/cô'. Từ khóa mặc định (biểu tượng khóa) chỉ tắt được, không xóa được, để giữ nền an toàn."
           action={
             <Button variant="secondary" size="sm" onClick={() => setHienImportTuKhoa(true)}>
               Import từ file mẫu

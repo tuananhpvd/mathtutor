@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MessageCircle } from 'lucide-react'
 import { api } from '../../api'
 import ThongKeTienDo from '../../components/ThongKeTienDo'
 import PhanTichNangLuc from '../../components/PhanTichNangLuc'
@@ -18,7 +19,9 @@ function TheNhanXet({ nhanXet, trang, onTrang }) {
   const dsTrang = nhanXet.slice((trangAnToan - 1) * MOI_TRANG_NX, trangAnToan * MOI_TRANG_NX)
   return (
     <Card>
-      <CardHeader title="💬 Nhận xét của thầy/cô"
+      <CardHeader title={<span className="inline-flex items-center gap-1.5">
+          <MessageCircle size={16} strokeWidth={2.2} /> Nhận xét của thầy/cô
+        </span>}
         subtitle={nhanXet.length > 0 ? `${nhanXet.length} lời nhắn từ giáo viên` : undefined} />
       <CardBody className="flex flex-col gap-3">
         {nhanXet.length === 0 ? (

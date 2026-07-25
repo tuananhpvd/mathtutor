@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, useConfirm } from '../../components/ui'
 import NoiDungLyThuyet from '../../components/NoiDungLyThuyet'
@@ -79,7 +80,7 @@ function FormTomTat({ danhMuc, dangSua, onDong, onXong }) {
   return (
     <Card>
       <CardHeader title={dangSua ? 'Sửa tóm tắt lý thuyết' : 'Tạo tóm tắt lý thuyết mới'}
-        action={<Button variant="secondary" size="sm" onClick={dongNeuXacNhan}>✕ Đóng</Button>} />
+        action={<Button variant="secondary" size="sm" onClick={dongNeuXacNhan}><X size={14} strokeWidth={2.4} /> Đóng</Button>} />
       <CardBody>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Cột trái — nhập liệu */}
@@ -210,7 +211,9 @@ export default function QuanLyLyThuyet() {
       </div>
 
       {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
-      {thongBao && <p className="text-sm text-success bg-success-soft rounded-md px-3 py-2">✓ {thongBao}</p>}
+      {thongBao && <p className="text-sm text-success bg-success-soft rounded-md px-3 py-2 inline-flex items-center gap-1.5">
+        <Check size={14} strokeWidth={2.4} /> {thongBao}
+      </p>}
 
       {formMo && (
         <FormTomTat

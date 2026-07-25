@@ -95,7 +95,7 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
     # Lưu turn HS để khi tải lại session vẫn thấy ngữ cảnh nhờ thầy/cô — đồng thời làm MỐC CẮT
     # cho "Xem chi tiết" (GV xem toàn bộ hội thoại từ đầu ĐẾN ĐÚNG turn này, xem
     # chi_tiet_hoi_thoai() bên dưới).
-    chat_nd = f"🙋 Nhờ thầy/cô: {noi_dung_sach}" if noi_dung_sach else "🙋 Em cần thầy/cô giúp đỡ ở bước này."
+    chat_nd = f"Nhờ thầy/cô: {noi_dung_sach}" if noi_dung_sach else "Em cần thầy/cô giúp đỡ ở bước này."
     turn = Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd)
     db.add(turn)
     db.flush()  # có turn.id trước khi gán

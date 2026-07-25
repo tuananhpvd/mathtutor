@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { Check } from 'lucide-react'
 import { Button } from '../ui'
 
 function validateRow(row) {
@@ -205,7 +206,9 @@ export default function ImportHocSinhDialog({ lop, onKiemTra, onImport, onClose,
                           {r.ly_do ? (
                             <span className="text-red-600 text-xs">{r.ly_do}</span>
                           ) : (
-                            <span className="text-green-600 text-xs">✓ Mới</span>
+                            <span className="text-green-600 text-xs inline-flex items-center gap-1">
+                              <Check size={11} strokeWidth={2.6} /> Mới
+                            </span>
                           )}
                         </td>
                       </tr>

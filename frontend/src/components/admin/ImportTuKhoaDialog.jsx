@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { Check } from 'lucide-react'
 import { api } from '../../api'
 import { Button } from '../ui'
 
@@ -197,7 +198,9 @@ export default function ImportTuKhoaDialog({ cfg, onClose, onSaved }) {
                           {r.ly_do ? (
                             <span className="text-danger text-xs">{r.ly_do}</span>
                           ) : (
-                            <span className="text-success text-xs">✓ Mới</span>
+                            <span className="text-success text-xs inline-flex items-center gap-1">
+                              <Check size={11} strokeWidth={2.6} /> Mới
+                            </span>
                           )}
                         </td>
                       </tr>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AlertTriangle, Check, Flag, Folder, Image, MessageCircle, User, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Select, Table, useConfirm } from '../../components/ui'
 import ImportCauHoiDialog from '../../components/gv/ImportCauHoiDialog'
@@ -96,15 +97,15 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
   return (
     <div className="flex flex-col gap-4">
       {importOk && (
-        <p className="text-success text-sm bg-success-soft rounded-md px-3 py-2">
-          ✓ {importOk}
-          <button onClick={() => setImportOk('')} className="ml-2 font-bold">✕</button>
+        <p className="text-success text-sm bg-success-soft rounded-md px-3 py-2 inline-flex items-center gap-1.5">
+          <Check size={14} strokeWidth={2.4} /> {importOk}
+          <button onClick={() => setImportOk('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
           {error}
-          <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+          <button onClick={() => setError('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
       {!loading && <ThongKeChuyenDe danhMuc={danhMuc} rows={rows} />}
@@ -146,7 +147,9 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
                     <span>
                       {r.chuyen_de}
                       {r.dang_ten && <span className="text-muted"> › {r.dang_ten}</span>}
-                      {r.hinh_anh && <span title="Có hình minh họa" className="ml-1">🖼️</span>}
+                      {r.hinh_anh && (
+                        <Image size={13} strokeWidth={2.2} className="inline ml-1 -mt-0.5 text-muted" title="Có hình minh họa" />
+                      )}
                     </span>
                   ),
                 },
@@ -264,15 +267,25 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh]
             overflow-y-auto p-6 flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-danger">⚠️ Xóa vĩnh viễn câu hỏi #{modalXoaVV.r.id}</h2>
+            <h2 className="text-lg font-bold text-danger inline-flex items-center gap-2">
+              <AlertTriangle size={18} strokeWidth={2.2} /> Xóa vĩnh viễn câu hỏi #{modalXoaVV.r.id}
+            </h2>
             <p className="text-sm text-muted">
               Hành động này <strong>không thể hoàn tác</strong>. Toàn bộ dữ liệu liên quan sẽ bị xóa:
             </p>
             <div className="bg-danger-soft rounded-lg px-4 py-3 text-sm flex flex-col gap-1">
-              <span>🗂 <strong>{modalXoaVV.anhHuong.so_phien}</strong> phiên học</span>
-              <span>👤 <strong>{modalXoaVV.anhHuong.so_hoc_sinh}</strong> học sinh bị ảnh hưởng</span>
-              <span>💬 <strong>{modalXoaVV.anhHuong.so_luot}</strong> lượt hội thoại</span>
-              <span>🚩 <strong>{modalXoaVV.anhHuong.so_co}</strong> cờ theo dõi</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Folder size={13} strokeWidth={2.2} /> <strong>{modalXoaVV.anhHuong.so_phien}</strong> phiên học
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <User size={13} strokeWidth={2.2} /> <strong>{modalXoaVV.anhHuong.so_hoc_sinh}</strong> học sinh bị ảnh hưởng
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <MessageCircle size={13} strokeWidth={2.2} /> <strong>{modalXoaVV.anhHuong.so_luot}</strong> lượt hội thoại
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Flag size={13} strokeWidth={2.2} /> <strong>{modalXoaVV.anhHuong.so_co}</strong> cờ theo dõi
+              </span>
             </div>
             <label className="flex items-start gap-2 text-sm cursor-pointer">
               <input

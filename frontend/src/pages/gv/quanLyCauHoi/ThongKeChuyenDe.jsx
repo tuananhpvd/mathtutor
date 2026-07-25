@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BarChart3 } from 'lucide-react'
 import { Badge, Card, CardBody } from '../../../components/ui'
 import { NHAN_LOAI } from './constants'
 
@@ -228,7 +229,9 @@ export function ThongKeChuyenDe({ danhMuc, rows }) {
     <Card className="overflow-hidden">
       <div className="border-l-4 border-primary">
         <CardBody className="flex flex-col gap-3 pt-5">
-          <p className="text-sm font-bold text-ink">📊 Thống kê ngân hàng câu hỏi</p>
+          <p className="text-sm font-bold text-ink inline-flex items-center gap-1.5">
+            <BarChart3 size={15} strokeWidth={2.4} /> Thống kê ngân hàng câu hỏi
+          </p>
           <TomTatTongQuan rows={rows} />
           <div className="flex flex-col gap-2.5">
             {danhMuc.map((cd) => {

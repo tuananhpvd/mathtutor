@@ -7,29 +7,44 @@
  */
 
 import { useEffect, useState } from 'react'
+import { Compass, Lightbulb, PenLine } from 'lucide-react'
 import { api } from '../api'
 import { Button } from './ui'
 
+// Icon (component lucide) chỉ đặt cho bộ MẶC ĐỊNH của TA — các bước Admin tự soạn qua trang
+// Cấu hình vẫn dùng field "icon" (chuỗi tự do, có thể là emoji) từ server, xem renderIcon().
 const MAC_DINH = [
   {
-    icon: '🧭',
+    Icon: Compass,
     tieu_de: 'Gia sư dẫn dắt, không cho đáp án',
     mo_ta: 'Gia sư sẽ đặt câu hỏi gợi mở để em tự tìm ra cách làm — đúng/sai do máy chấm '
       + '(CAS), không phải AI tự quyết định, và đáp án luôn được khóa tới khi em hoàn thành.',
   },
   {
-    icon: '💡',
+    Icon: Lightbulb,
     tieu_de: 'Gợi ý có giới hạn, tăng dần',
     mo_ta: 'Nút "Gợi ý" hiện rõ số lượt còn lại (vd 2/3) — gợi ý sau cụ thể hơn gợi ý trước. '
       + 'Hết gợi ý mà vẫn chưa hiểu, em bấm "Nhờ thầy/cô" để được hỗ trợ trực tiếp.',
   },
   {
-    icon: '✍️',
+    Icon: PenLine,
     tieu_de: 'Nhập công thức & hỏi tự do',
     mo_ta: 'Bấm vào bảng ký hiệu dưới ô trả lời để chèn phân số, căn, lũy thừa... Em cũng có '
       + 'thể gõ câu hỏi tự do (vd "vì sao lại làm vậy ạ?") vào ô chat để gia sư giải thích ngắn.',
   },
 ]
+
+// Server gửi "icon" là khóa tên (bộ mặc định do BE quản, xem admin_service.py) hoặc chuỗi tự
+// do (Admin tự gõ ở trang Cấu hình) — khóa biết trước map sang icon lucide-react, còn lại
+// hiển thị nguyên ký tự đã nhập.
+const ICON_THEO_KHOA = { compass: Compass, lightbulb: Lightbulb, pen: PenLine }
+
+function renderIcon(b) {
+  const IconTuKhoa = typeof b.icon === 'string' ? ICON_THEO_KHOA[b.icon] : null
+  const Icon = b.Icon || IconTuKhoa
+  if (Icon) return <Icon size={32} strokeWidth={1.8} className="text-primary" />
+  return <span className="text-3xl">{b.icon}</span>
+}
 
 // open/onClose: điều khiển bởi PhongHoc.jsx (nút "Hướng dẫn").
 export default function HuongDanPhongHoc({ open, onClose }) {
@@ -67,7 +82,7 @@ export default function HuongDanPhongHoc({ open, onClose }) {
           ))}
         </div>
         <div className="text-center flex flex-col gap-2">
-          <div className="text-3xl">{b.icon}</div>
+          <div className="flex justify-center">{renderIcon(b)}</div>
           <p className="font-semibold text-ink">{b.tieu_de}</p>
           <p className="text-sm text-muted leading-relaxed">{b.mo_ta}</p>
         </div>

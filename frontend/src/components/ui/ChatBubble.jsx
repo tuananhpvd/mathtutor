@@ -1,3 +1,4 @@
+import { GraduationCap } from 'lucide-react'
 import Formula from '../Formula'
 
 // Tách $...$ thành công thức KaTeX, còn lại là chữ thường.
@@ -31,7 +32,9 @@ export default function ChatBubble({ vai_tro, children, text }) {
         }`}
       >
         {laGiaoVien && (
-          <p className="text-[11px] font-bold text-gv mb-1">👩‍🏫 Thầy/cô trả lời</p>
+          <p className="text-[11px] font-bold text-gv mb-1 inline-flex items-center gap-1">
+            <GraduationCap size={13} strokeWidth={2.4} /> Thầy/cô trả lời
+          </p>
         )}
         {text != null ? renderNoiDung(text) : children}
       </div>

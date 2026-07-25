@@ -1,3 +1,4 @@
+import { Clock, Hourglass, Zap } from 'lucide-react'
 import { Card, CardBody, CardHeader } from './ui'
 import BangXepHangThoiGian from './BangXepHangThoiGian'
 import TongQuanTienDo from './TongQuanTienDo'
@@ -165,18 +166,22 @@ export default function ThongKeTienDo({ tk }) {
         <Card className="h-full flex flex-col">
           <CardHeader title="Theo thời gian" subtitle="Thời gian hoàn thành bài theo mức độ" />
           <CardBody className="flex flex-col gap-3 flex-1">
-            <TheSo icon="⏱️" label="Tổng thời gian làm bài"
+            <TheSo icon={<Clock size={22} strokeWidth={2} />} label="Tổng thời gian làm bài"
               value={dinhDangThoiGian(tg.tong_thoi_gian_giay)} tone="primary" />
             <div className="flex flex-col gap-2">
               {MUC.map(([k, ten]) => (
                 <div key={k} className="rounded-lg border border-border px-3 py-2.5">
                   <p className="text-sm font-semibold text-ink mb-1">{ten}</p>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="inline-flex items-center gap-1 text-success">⚡ Nhanh nhất</span>
+                    <span className="inline-flex items-center gap-1 text-success">
+                      <Zap size={13} strokeWidth={2.4} /> Nhanh nhất
+                    </span>
                     <b>{tg.nhanh_nhat[k] != null ? dinhDangThoiGian(tg.nhanh_nhat[k]) : '—'}</b>
                   </div>
                   <div className="flex items-center justify-between text-sm mt-0.5">
-                    <span className="inline-flex items-center gap-1 text-muted">🐢 Chậm nhất</span>
+                    <span className="inline-flex items-center gap-1 text-muted">
+                      <Hourglass size={13} strokeWidth={2.4} /> Chậm nhất
+                    </span>
                     <b>{tg.cham_nhat[k] != null ? dinhDangThoiGian(tg.cham_nhat[k]) : '—'}</b>
                   </div>
                 </div>

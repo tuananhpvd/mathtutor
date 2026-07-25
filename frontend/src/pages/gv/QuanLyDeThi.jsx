@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, Check, CheckCircle2, Shuffle, Target, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -68,7 +69,7 @@ function ChonDoiTuongPhatHanh({ de, onDong, onXong }) {
     <Card>
       <CardHeader title={`Phát hành: ${de.ten}`}
         subtitle="Chọn đối tượng nhận đề — mặc định phát hành cho tất cả học sinh thầy/cô chủ nhiệm."
-        action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+        action={<Button variant="secondary" size="sm" onClick={onDong}><X size={14} strokeWidth={2.4} /> Đóng</Button>} />
       <CardBody className="flex flex-col gap-3">
         <div className="flex gap-2">
           {[['tat_ca', 'Tất cả học sinh'], ['tuy_chon', 'Tùy chọn lớp / học sinh']].map(([v, nhan]) => (
@@ -255,7 +256,7 @@ function TaoDeForm({ onDong, onXong }) {
         subtitle={mode === 'chuan'
           ? 'Chọn câu ĐÃ DUYỆT từ ngân hàng của thầy/cô cho từng phần. Chuẩn 2025: 12 + 4 + 6 câu = 10 điểm, 90 phút.'
           : 'Chế độ Tự do: chọn phần muốn đưa vào đề, tự đặt điểm mỗi phần (tổng tối đa 10 điểm).'}
-        action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+        action={<Button variant="secondary" size="sm" onClick={onDong}><X size={14} strokeWidth={2.4} /> Đóng</Button>} />
       <CardBody className="flex flex-col gap-4">
         <div className="flex gap-2">
           {[['chuan', 'Chuẩn 2025'], ['tu_do', 'Tự do']].map(([v, nhan]) => (
@@ -308,8 +309,8 @@ function TaoDeForm({ onDong, onXong }) {
         <div className="rounded-lg border border-border bg-surface-2/60 px-4 py-3 flex flex-col gap-3">
           <button className="flex items-center justify-between text-left"
             onClick={() => setTronMo((m) => !m)}>
-            <span className="text-sm font-semibold text-ink">
-              🎲 Trộn đề tự động theo ma trận
+            <span className="text-sm font-semibold text-ink inline-flex items-center gap-1.5">
+              <Shuffle size={15} strokeWidth={2.4} /> Trộn đề tự động theo ma trận
             </span>
             <span className="text-muted text-sm">{tronMo ? '▲ Thu gọn' : '▼ Mở'}</span>
           </button>
@@ -356,7 +357,7 @@ function TaoDeForm({ onDong, onXong }) {
               )}
               <div className="flex items-center gap-3">
                 <Button size="sm" onClick={tron} disabled={dangTron}>
-                  {dangTron ? 'Đang trộn...' : '🎲 Trộn ngay'}
+                  {dangTron ? 'Đang trộn...' : <><Shuffle size={14} strokeWidth={2.2} /> Trộn ngay</>}
                 </Button>
                 <span className="text-xs text-muted">
                   Kết quả đổ vào 3 phần bên dưới — thầy/cô xem lại, chỉnh tay từng câu rồi mới Tạo đề.
@@ -364,7 +365,11 @@ function TaoDeForm({ onDong, onXong }) {
               </div>
               {canhBao.length > 0 && (
                 <div className="text-xs text-warning bg-warning-soft rounded-md px-3 py-2 flex flex-col gap-0.5">
-                  {canhBao.map((c, i) => <span key={i}>⚠ {c}</span>)}
+                  {canhBao.map((c, i) => (
+                    <span key={i} className="inline-flex items-center gap-1">
+                      <AlertTriangle size={12} strokeWidth={2.4} /> {c}
+                    </span>
+                  ))}
                 </div>
               )}
             </>
@@ -452,7 +457,7 @@ function KetQuaLop({ deId, ten, onDong }) {
     <>
       <Card>
         <CardHeader title={`Kết quả: ${ten}`}
-          action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+          action={<Button variant="secondary" size="sm" onClick={onDong}><X size={14} strokeWidth={2.4} /> Đóng</Button>} />
         <CardBody>
           {error && <p className="text-sm text-danger">{error}</p>}
           {ds && ds.length === 0 && <p className="text-sm text-muted">Chưa có học sinh nào nộp bài.</p>}
@@ -576,7 +581,9 @@ function GoiYNhiemVu({ hocSinhId, dangId, dangTen }) {
             <Button size="sm" onClick={giao} disabled={chon.size === 0 || dangGiao}>
               {dangGiao ? 'Đang giao...' : `Giao ${chon.size} bài`}
             </Button>
-            {ok && <span className="text-xs text-success">✓ {ok}</span>}
+            {ok && <span className="text-xs text-success inline-flex items-center gap-1">
+              <Check size={11} strokeWidth={2.6} /> {ok}
+            </span>}
           </div>
         </>
       )}
@@ -598,7 +605,7 @@ function ChiTietBaiGV({ baiId, onDong }) {
     <Card>
       <CardHeader title={kq ? `Chi tiết bài làm: ${kq.ho_ten}` : 'Chi tiết bài làm'}
         subtitle={kq ? kq.ten_de : ''}
-        action={<Button variant="secondary" size="sm" onClick={onDong}>✕ Đóng</Button>} />
+        action={<Button variant="secondary" size="sm" onClick={onDong}><X size={14} strokeWidth={2.4} /> Đóng</Button>} />
       <CardBody className="flex flex-col gap-3">
         {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
         {!kq && !error && <p className="text-sm text-muted">Đang tải...</p>}
@@ -621,9 +628,11 @@ function ChiTietBaiGV({ baiId, onDong }) {
                     <span className="font-semibold text-ink">Câu {c.thu_tu}</span>
                     <Badge tone="neutral">Phần {c.phan}</Badge>
                     {c.dung
-                      ? <Badge tone="success">✓ Đúng · +{c.diem}đ</Badge>
+                      ? <Badge tone="success"><Check size={12} strokeWidth={2.6} className="inline -mt-0.5 mr-0.5" /> Đúng · +{c.diem}đ</Badge>
                       : <Badge tone="danger">
-                          {c.da_tra_loi ? `✗ Sai · ${c.diem > 0 ? `+${c.diem}đ` : '0đ'}` : 'Bỏ trống · 0đ'}
+                          {c.da_tra_loi
+                            ? <><X size={12} strokeWidth={2.6} className="inline -mt-0.5 mr-0.5" /> Sai · {c.diem > 0 ? `+${c.diem}đ` : '0đ'}</>
+                            : 'Bỏ trống · 0đ'}
                         </Badge>}
                   </div>
                   <div className="text-sm text-ink">{renderDe(c.problem.de_bai)}</div>
@@ -659,7 +668,7 @@ function ChiTietBaiGV({ baiId, onDong }) {
                       <div>
                         <Button size="sm" variant="ghost"
                           onClick={() => setGoiYMo(goiYMo === c.dang_id ? null : c.dang_id)}>
-                          🎯 Giao nhiệm vụ luyện lại dạng "{c.dang_ten}"
+                          <Target size={14} strokeWidth={2.2} /> Giao nhiệm vụ luyện lại dạng "{c.dang_ten}"
                         </Button>
                       </div>
                       {goiYMo === c.dang_id && (
@@ -744,12 +753,14 @@ export default function QuanLyDeThi({ quanLy = false }) {
       </div>
 
       {error && <p className="text-sm text-danger bg-danger-soft rounded-md px-3 py-2">{error}</p>}
-      {thongBao && <p className="text-sm text-success bg-success-soft rounded-md px-3 py-2">✓ {thongBao}</p>}
+      {thongBao && <p className="text-sm text-success bg-success-soft rounded-md px-3 py-2 inline-flex items-center gap-1.5">
+        <CheckCircle2 size={14} strokeWidth={2.4} /> {thongBao}
+      </p>}
 
       {taoMo && <TaoDeForm onDong={() => setTaoMo(false)}
         onXong={(canhBao) => {
           setTaoMo(false)
-          const canhBaoText = (canhBao && canhBao.length > 0) ? ` ⚠ ${canhBao.join(' · ')}` : ''
+          const canhBaoText = (canhBao && canhBao.length > 0) ? ` — ${canhBao.join(' · ')}` : ''
           setThongBao(`Đã tạo đề (đang ở trạng thái nháp).${canhBaoText}`)
           setTimeout(() => setThongBao(''), canhBaoText ? 8000 : 4000)
           tai()

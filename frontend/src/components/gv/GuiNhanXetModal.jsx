@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import { api } from '../../api'
 import { Button } from '../ui'
 
@@ -49,7 +50,7 @@ export default function GuiNhanXetModal({ hsId, hoTen, onClose, onSent }) {
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-ink">Nội dung nhận xét</label>
             <Button size="sm" variant="secondary" onClick={goiYAi} disabled={dangNhap || dangGui}>
-              {dangNhap ? 'Đang lấy gợi ý...' : '✨ AI gợi ý'}
+              {dangNhap ? 'Đang lấy gợi ý...' : <><Sparkles size={14} strokeWidth={2.2} /> AI gợi ý</>}
             </Button>
           </div>
           <textarea

@@ -89,7 +89,7 @@ def _bao_hs_gap_kho(db: Session, session: SessionModel) -> None:
         vi_tri = f" (bước {session.buoc_hien_tai})"
     noi_dung = (
         f"Hệ thống nhận thấy em đang gặp khó ở «{phan}»{vi_tri}. "
-        f"Thầy/cô đã được báo để hỗ trợ em. Em có thể bấm '🙋 Nhờ thầy/cô' "
+        f"Thầy/cô đã được báo để hỗ trợ em. Em có thể bấm 'Nhờ thầy/cô' "
         f"ngay trong bài nếu cần giúp đỡ nhé."
     )
     db.add(ThongBao(

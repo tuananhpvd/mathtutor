@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { BookOpen, Lightbulb, X } from 'lucide-react'
 import { api } from '../api'
 import { Badge, Button, Card, CardBody, CardHeader, ChatBubble } from './ui'
 import Formula from './Formula'
@@ -76,8 +77,12 @@ export default function XemLaiBai({ sessionId, onDong }) {
     <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto">
       <div className="mx-auto w-full max-w-3xl min-h-full bg-bg p-4 sm:p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">📖 Xem lại bài</h2>
-          <Button variant="secondary" onClick={onDong}>Đóng ✕</Button>
+          <h2 className="text-lg font-semibold text-ink inline-flex items-center gap-2">
+            <BookOpen size={18} strokeWidth={2.2} /> Xem lại bài
+          </h2>
+          <Button variant="secondary" onClick={onDong}>
+            Đóng <X size={14} strokeWidth={2.4} />
+          </Button>
         </div>
 
         {error && (
@@ -161,7 +166,7 @@ export default function XemLaiBai({ sessionId, onDong }) {
                     {tk.diem != null && <Badge tone="primary">Điểm: {tk.diem}</Badge>}
                     <Badge tone={tk.cap_goi_y_max === 0 ? 'success' : 'neutral'}>
                       {tk.cap_goi_y_max === 0
-                        ? 'Tự làm không cần gợi ý 🎉'
+                        ? 'Tự làm không cần gợi ý'
                         : `Gợi ý cao nhất: mức ${tk.cap_goi_y_max}`}
                     </Badge>
                     <Badge tone="neutral">{tk.so_luot_hs} lượt trả lời</Badge>
@@ -185,7 +190,9 @@ export default function XemLaiBai({ sessionId, onDong }) {
                     {data.hanh_trinh.map((t, i) => (
                       <div key={i} className="flex flex-col gap-0.5">
                         {t.vai_tro === 'gia_su' && t.cap_goi_y > 0 && (
-                          <p className="text-[11px] text-muted pl-1">💡 gợi ý mức {t.cap_goi_y}</p>
+                          <p className="text-[11px] text-muted pl-1 inline-flex items-center gap-1">
+                            <Lightbulb size={11} strokeWidth={2.4} /> gợi ý mức {t.cap_goi_y}
+                          </p>
                         )}
                         <ChatBubble vai_tro={t.vai_tro}>
                           {renderVanBan(t.noi_dung)}

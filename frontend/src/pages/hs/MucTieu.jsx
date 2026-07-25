@@ -1,3 +1,4 @@
+import { Target } from 'lucide-react'
 import { api } from '../../api'
 import MucTieuPanel from '../../components/MucTieuPanel'
 
@@ -12,7 +13,9 @@ export default function MucTieu() {
         </p>
       </div>
       <MucTieuPanel
-        tieuDe="🎯 Danh sách mục tiêu"
+        tieuDe={<span className="inline-flex items-center gap-1.5">
+          <Target size={16} strokeWidth={2.4} /> Danh sách mục tiêu
+        </span>}
         phuDe="Em có thể tự đặt, hoặc dùng gợi ý dựa trên điểm yếu"
         taiDs={api.hsMucTieu}
         taiDeXuat={api.hsMucTieuDeXuat}

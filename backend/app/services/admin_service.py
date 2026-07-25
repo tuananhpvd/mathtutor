@@ -82,24 +82,28 @@ CAU_HINH_MAC_DINH: dict = {
         for t in TU_KHOA_NGOAI_PHAM_VI_MAC_DINH
     ],
     # Hướng dẫn 3 bước cho HS khi vào Phòng học (nút "Hướng dẫn") — Admin chỉnh nội dung
-    # qua trang Cấu hình, không cần sửa code. Mỗi phần tử: {icon, tieu_de, mo_ta}.
+    # qua trang Cấu hình, không cần sửa code. Mỗi phần tử: {icon, tieu_de, mo_ta}. "icon" của
+    # BỘ MẶC ĐỊNH này là 1 khóa tên (compass/lightbulb/pen) — FE map sang icon lucide-react
+    # tương ứng (renderIcon() trong HuongDanPhongHoc.jsx); nếu Admin tự đổi thành ký tự khác
+    # (kể cả emoji), FE hiển thị nguyên ký tự đó — trường tự do, không ràng buộc chỉ nhận 3
+    # khóa trên.
     "huong_dan_phong_hoc": [
         {
-            "icon": "🧭",
+            "icon": "compass",
             "tieu_de": "Gia sư dẫn dắt, không cho đáp án",
             "mo_ta": "Gia sư sẽ đặt câu hỏi gợi mở để em tự tìm ra cách làm — đúng/sai do máy "
                      "chấm (CAS), không phải AI tự quyết định, và đáp án luôn được khóa tới khi "
                      "em hoàn thành.",
         },
         {
-            "icon": "💡",
+            "icon": "lightbulb",
             "tieu_de": "Gợi ý có giới hạn, tăng dần",
             "mo_ta": "Nút \"Gợi ý\" hiện rõ số lượt còn lại (vd 2/3) — gợi ý sau cụ thể hơn gợi ý "
                      "trước. Hết gợi ý mà vẫn chưa hiểu, em bấm \"Nhờ thầy/cô\" để được hỗ trợ "
                      "trực tiếp.",
         },
         {
-            "icon": "✍️",
+            "icon": "pen",
             "tieu_de": "Nhập công thức & hỏi tự do",
             "mo_ta": "Bấm vào bảng ký hiệu dưới ô trả lời để chèn phân số, căn, lũy thừa... Em "
                      "cũng có thể gõ câu hỏi tự do (vd \"vì sao lại làm vậy ạ?\") vào ô chat để "

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { LineChart, Table2, X } from 'lucide-react'
 import { api } from '../../../api'
 import { Button, Input, Select } from '../../../components/ui'
 import VeDoThiDialog from '../../../components/gv/VeDoThiDialog'
@@ -195,12 +196,12 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                       </Button>
                       {bai.meta?.hinh_spec?.loai === 'do_thi' && (
                         <Button type="button" size="sm" variant="secondary" onClick={() => setVeDoThiMo(true)}>
-                          📈 Vẽ lại
+                          <LineChart size={14} strokeWidth={2.2} /> Vẽ lại
                         </Button>
                       )}
                       {bai.meta?.hinh_spec?.loai === 'bang_bien_thien' && (
                         <Button type="button" size="sm" variant="secondary" onClick={() => setVeBBTMo(true)}>
-                          📋 Vẽ lại
+                          <Table2 size={14} strokeWidth={2.2} /> Vẽ lại
                         </Button>
                       )}
                     </div>
@@ -224,10 +225,10 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" size="sm" variant="secondary" onClick={() => setVeDoThiMo(true)}>
-                        📈 Vẽ đồ thị từ hàm số
+                        <LineChart size={14} strokeWidth={2.2} /> Vẽ đồ thị từ hàm số
                       </Button>
                       <Button type="button" size="sm" variant="secondary" onClick={() => setVeBBTMo(true)}>
-                        📋 Vẽ bảng biến thiên
+                        <Table2 size={14} strokeWidth={2.2} /> Vẽ bảng biến thiên
                       </Button>
                     </div>
                   </div>
@@ -398,7 +399,7 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                             onClick={() => xoaGoiY(si, gi)}
                             className="text-danger text-xs hover:underline pt-2"
                           >
-                            ✕
+                            <X size={13} strokeWidth={2.4} />
                           </button>
                         </div>
                       ))}

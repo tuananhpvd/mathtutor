@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Printer } from 'lucide-react'
 import { api } from '../../api'
 import { Button, Card, CardBody, CardHeader, Select } from '../../components/ui'
 
 /* Nhãn thân thiện phụ huynh (tránh thuật ngữ nội bộ). */
 const NHAN_XU_HUONG = {
-  tien_bo: '📈 Đang tiến bộ',
-  giam: '📉 Có dấu hiệu giảm',
-  on_dinh: '➡️ Ổn định',
+  tien_bo: '↗ Đang tiến bộ',
+  giam: '↘ Có dấu hiệu giảm',
+  on_dinh: '→ Ổn định',
   chua_du: 'Chưa đủ dữ liệu để đánh giá',
 }
 const NHAN_TIN_CAY = { cao: 'cao', trung_binh: 'trung bình', thap: 'thấp (còn ít bài)' }
@@ -145,7 +146,9 @@ function BaoCaoModal({ tieuDe, cacHs, khoang, onDong }) {
         <div className="khong-in flex items-center justify-between gap-3 px-5 py-3 border-b border-border sticky top-0 bg-surface rounded-t-xl">
           <p className="font-bold text-ink truncate">{tieuDe}</p>
           <div className="flex items-center gap-2 shrink-0">
-            <Button size="sm" onClick={() => window.print()}>🖨️ In / Lưu PDF</Button>
+            <Button size="sm" onClick={() => window.print()}>
+              <Printer size={14} strokeWidth={2.2} /> In / Lưu PDF
+            </Button>
             <Button size="sm" variant="secondary" onClick={onDong}>Đóng</Button>
           </div>
         </div>

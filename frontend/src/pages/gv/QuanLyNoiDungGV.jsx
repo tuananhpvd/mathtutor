@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { api } from '../../api'
 import { Card, CardBody, CardHeader, Select } from '../../components/ui'
 import QuanLyDanhMuc from './QuanLyDanhMuc'
@@ -30,7 +31,7 @@ export default function QuanLyNoiDungGV() {
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
           {error}
-          <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+          <button onClick={() => setError('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select } from '../../components/ui'
 
@@ -42,7 +43,7 @@ export default function QuanLyGiaoVien() {
     <div className="flex flex-col gap-5">
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
-          {error} <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+          {error} <button onClick={() => setError('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
 

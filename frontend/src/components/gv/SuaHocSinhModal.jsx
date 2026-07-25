@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import { api } from '../../api'
 import { Button, Input, Select } from '../ui'
 
@@ -33,7 +34,7 @@ export default function SuaHocSinhModal({ hs, lopOptions = [], showLop, onClose,
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-ink">Sửa học sinh</h3>
-          <button onClick={onClose} className="text-muted hover:text-ink text-lg">✕</button>
+          <button onClick={onClose} className="text-muted hover:text-ink"><X size={18} strokeWidth={2} /></button>
         </div>
         {err && <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2 mb-3">{err}</p>}
         <div className="flex flex-col gap-3">

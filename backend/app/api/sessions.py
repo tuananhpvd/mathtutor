@@ -87,7 +87,7 @@ def _cho_chon_dung_sai(problem, session) -> bool | None:
 
 def _so_goi_y_toi_da(problem, buoc_so: int, y_hien_tai: str | None = None) -> int | None:
     """Số gợi ý tối đa của bước/ý hiện tại (đọc từ danh_sach_goi_y) — để FE hiện
-    '💡 Gợi ý (x/y)' và tự đổi nút khi hết gợi ý. None nếu không xác định được."""
+    'Gợi ý cho em (x/y)' và tự đổi nút khi hết gợi ý. None nếu không xác định được."""
     steps = problem.solution_steps if problem else []
     if problem and problem.loai_cau.value == "TNDS" and y_hien_tai:
         s = next((s for s in steps if s.pham_vi == y_hien_tai), None)

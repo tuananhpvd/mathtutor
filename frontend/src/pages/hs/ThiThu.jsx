@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { Check, Clock, GraduationCap, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -208,9 +209,9 @@ function ManLamBai({ bai, onNopXong }) {
         <h2 className="text-lg font-bold text-ink">{bai.ten_de}</h2>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted">Thời gian còn lại</span>
-          <span className={`font-mono text-lg font-bold px-3 py-1 rounded-md ${
+          <span className={`font-mono text-lg font-bold px-3 py-1 rounded-md inline-flex items-center gap-1.5 ${
             gapGio ? 'bg-danger-soft text-danger' : 'bg-surface-2 text-ink'}`}>
-            ⏱ {dinhDangThoiGian(Math.max(0, conLai))}
+            <Clock size={16} strokeWidth={2.4} /> {dinhDangThoiGian(Math.max(0, conLai))}
           </span>
           <Button variant="primary" onClick={nop} disabled={dangNop}>
             {dangNop ? 'Đang nộp...' : 'Nộp bài'}
@@ -381,8 +382,12 @@ function ManKetQua({ kq, onQuayLai, onLuyenBai }) {
                 <span className="font-semibold text-ink">Câu {c.thu_tu}</span>
                 <Badge tone="neutral">Phần {c.phan}</Badge>
                 {c.dung
-                  ? <Badge tone="success">✓ Đúng · +{c.diem}đ</Badge>
-                  : <Badge tone="danger">{c.da_tra_loi ? `✗ Sai · ${c.diem > 0 ? `+${c.diem}đ` : '0đ'}` : 'Bỏ trống · 0đ'}</Badge>}
+                  ? <Badge tone="success"><Check size={12} strokeWidth={2.6} className="inline -mt-0.5 mr-0.5" /> Đúng · +{c.diem}đ</Badge>
+                  : <Badge tone="danger">
+                      {c.da_tra_loi
+                        ? <><X size={12} strokeWidth={2.6} className="inline -mt-0.5 mr-0.5" /> Sai · {c.diem > 0 ? `+${c.diem}đ` : '0đ'}</>
+                        : 'Bỏ trống · 0đ'}
+                    </Badge>}
               </div>
               <div className="text-sm text-ink">{renderVanBan(c.problem.de_bai)}</div>
               {c.problem.hinh_anh && (
@@ -415,7 +420,7 @@ function ManKetQua({ kq, onQuayLai, onLuyenBai }) {
               {!c.dung && (
                 <div>
                   <Button size="sm" variant="ghost" onClick={() => onLuyenBai(c.problem.id)}>
-                    🎓 Luyện lại câu này với gia sư
+                    <GraduationCap size={14} strokeWidth={2.2} /> Luyện lại câu này với gia sư
                   </Button>
                 </div>
               )}

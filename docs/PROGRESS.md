@@ -4,7 +4,43 @@
 > local, KHÔNG lên GitHub — nên mọi quyết định/trạng thái cần nhớ hãy ghi vào đây hoặc vào `docs/`.
 > **Đọc cùng `CLAUDE.md` đầu mỗi phiên. Mỗi lần làm xong việc đáng kể, CẬP NHẬT file này.**
 
-## 1. Trạng thái tổng quan (cập nhật 2026-07-25, phiên bản **v154**)
+## 1. Trạng thái tổng quan (cập nhật 2026-07-25, phiên bản **v155**)
+
+- **✨ (v155) ui: rà soát toàn bộ codebase, loại bỏ emoji trang trí/chức năng, thay bằng
+  `lucide-react`.** User yêu cầu "chuyên nghiệp hiện đại" — rà cả frontend (44 file) lẫn
+  backend (text do BE sinh: thông báo, gợi ý mặc định, cột mốc streak).
+  - **Quy tắc mới** (`frontend/src/styles/README.md`): KHÔNG dùng emoji ở bất kỳ đâu trong UI,
+    kể cả câu chào/động viên thuần văn bản (trước đây cho phép — nay bỏ hẳn theo lựa chọn của
+    user khi được hỏi). Icon chức năng dùng `lucide-react`, tái dùng icon đã có trong codebase
+    (`Check`/`X`/`AlertTriangle`/`Target`/`Lightbulb`/`Sparkles`/`Flag`/`Printer`... — xem bảng
+    ánh xạ đầy đủ trong code).
+  - **Ngoại lệ giữ nguyên có chủ đích** (không phải sót):
+    - `tutor_service.py`/`tro_giup_service.py` (BE): tiêu đề thông báo GV `🆘 KHẨN CẤP` (nghi
+      khủng hoảng/tự hại) vs `⚠️` (nội dung cần chú ý thường) — hỏi lại user riêng, user chọn
+      GIỮ NGUYÊN vì đây là tín hiệu an toàn HS giúp GV phân biệt mức độ khẩn cấp ngay trên tiêu
+      đề thông báo (chuông thông báo chỉ render text thuần, không có icon), không phải trang
+      trí — không đụng vào an toàn HS như một tác dụng phụ của việc dọn thẩm mỹ.
+    - `MathPalette.jsx`: `⌫` (backspace) — ký hiệu kỹ thuật cạnh √/π/∫, không phải emoji trang
+      trí.
+    - `CauHinh.jsx` field `icon: '✨'` (giá trị mặc định khi Admin thêm bước hướng dẫn mới) và
+      `data/seed/problems.json` (`✓` trong `loi_giai_y`, nội dung lời giải nội bộ KHÔNG hiển
+      thị cho HS) — dữ liệu tự do người dùng nhập / nội dung nội bộ, không phải UI chrome cố
+      định.
+    - `GiaoVienApp.jsx`/`QuanLyCo.jsx`: code comment mô tả đúng hành vi BE ở trên, không đổi.
+  - **Đổi HỢP ĐỒNG dữ liệu BE↔FE** cho `huong_dan_phong_hoc` (hướng dẫn 3 bước ở Phòng học):
+    `admin_service.py` gửi `icon` là KHÓA TÊN (`"compass"`/`"lightbulb"`/`"pen"`) thay vì emoji
+    thô; `HuongDanPhongHoc.jsx`'s `renderIcon()` map khóa biết trước sang icon `lucide-react`,
+    khóa lạ (Admin tự gõ ký tự khác ở trang Cấu hình) vẫn hiển thị nguyên ký tự — không giới
+    hạn ô nhập tự do của Admin.
+  - Cột mốc streak (`chuoi_ngay_service.py`, 8 tiêu đề `🎯⭐🌟💪🏆🔥🏅`) và văn bản
+    `StubLLMClient`/`phan_tich_service.py` (emoji động viên/xu hướng) → bỏ hẳn, không thay thế
+    (là text thuần render trong chuông thông báo, không có chỗ gắn icon).
+  - Build-test-fix: `ruff check app/` sạch (lỗi ở `migrate.py` gốc, có từ trước, không liên
+    quan phiên này) · import smoke OK · `pytest` **627/627** (xác nhận 2 test
+    `test_hs_huong_dan_phong_hoc_*` chỉ kiểm cấu trúc key, không kiểm giá trị `icon` cụ thể nên
+    không vỡ) · `eslint`/`vitest` (23/23) sạch · `vite build` thành công.
+
+## 1a. Trạng thái trước đó (v154)
 
 - **🔒 (v154) security: thu hồi token qua `token_version` — token cũ HẾT hiệu lực ngay khi đổi
   mật khẩu / khóa tài khoản (điểm trừ bảo mật #1 từ rà soát ngoài).** Trước đây JWT stateless
@@ -35,7 +71,7 @@
     vòng đời hội thoại (thêm retention policy + xóa cứng khi triển khai trường thật), #3 kiểm
     thử xâm nhập độc lập (thêm SAST/quét phụ thuộc vào CI + thuê pentest trước khi scale).
 
-## 1a. Trạng thái trước đó (v153)
+## 1b. Trạng thái trước đó (v153)
 
 - **✨ (v153) ui: cảnh báo rời trang khi HS đang làm dở (phòng học/thi thử) + mỗi câu 1 dòng ở
   "Đánh giá tổng quan".** User yêu cầu: (1) đang ở phòng học mà bài chưa xong, bấm "Quay lại
@@ -67,7 +103,7 @@
     stub tôi đặt — tốn 1 lượt gọi Gemini thật) để xác nhận văn bản nhiều câu render đúng mỗi
     câu 1 dòng. `eslint`/`vitest` 23/23 · `vite build` sạch (không đổi backend).
 
-## 1b. Trạng thái trước đó (v152)
+## 1c. Trạng thái trước đó (v152)
 
 - **🐞 (v152) fix: "Giao bài ngay" (v151) chọn đúng HS nhưng KHÔNG mở sẵn đúng chuyên đề/dạng
   trong danh sách câu hỏi.** User phản hồi ngay sau khi thử v151: chỉ panel "Gợi ý theo điểm
@@ -87,7 +123,7 @@
     câu hỏi trong dạng đó kèm checkbox để chọn. `pytest` 624/624 · `eslint`/`vitest` 23/23 ·
     `vite build` sạch.
 
-## 1c. Trạng thái trước đó (v151)
+## 1d. Trạng thái trước đó (v151)
 
 - **✨ (v151) ui: nút "Giao bài ngay" ở mục "Cần cải thiện" (Tiến bộ chi tiết học sinh, GV).**
   User: bấm nút này cần chuyển nhanh tới trang Giao nhiệm vụ, lọc sẵn đúng tên HS + đúng
@@ -111,7 +147,7 @@
     đúng dạng bị khoá, tiêu đề tự điền. Đã xoá sạch 2 phiên test sau khi xác nhận (điểm về lại
     64% như cũ). `eslint`/`vitest` 23/23/`vite build` sạch (không đổi backend).
 
-## 1d. Trạng thái trước đó (v150)
+## 1e. Trạng thái trước đó (v150)
 
 - **🔧 (v150) fix: khóa trần "manh" khi tỉ lệ hoàn thành quá thấp — phát hiện qua kiểm chứng
   v149 bằng DỮ LIỆU THẬT trên production.** Sau khi đưa v149 lên (công thức điểm thành thạo
@@ -134,7 +170,7 @@
     vừa phát hiện từ dữ liệu thật. `ruff` sạch · `pytest` 624/624 (không đổi frontend, không
     cần chạy lại eslint/vitest/build).
 
-## 1e. Trạng thái trước đó (v149)
+## 1f. Trạng thái trước đó (v149)
 
 - **🔧 (v149) fix: cải tổ công thức "điểm thành thạo" (mạnh/yếu) — trước đây một dạng bài có
   thể hiện "98% Mạnh" dù HS đã "cạn gợi ý 5 lần"/"nhờ thầy cô 1 lần".** User phát hiện qua ảnh
@@ -167,7 +203,7 @@
     tới điểm, thêm `test_het_goi_y_giam_diem_thanh_thao`). `ruff` sạch · `pytest` 623/623 ·
     `eslint`/`vitest` 23/23 · `vite build` sạch.
 
-## 1f. Trạng thái trước đó (v148)
+## 1g. Trạng thái trước đó (v148)
 
 - **⚡ (v148) chore: tối ưu cổng chặn push (v146) — cache theo "commit sha + hash script
   kiểm tra", commit đã xác nhận sạch rồi thì BỎ QUA (~2 giây thay vì ~7 phút).** User phản
@@ -182,7 +218,7 @@
     lọt lên remote) — lượt 1 (cache trống): chạy đủ 404.9s, ghi cache đúng. Lượt 2 (cùng
     commit, cùng script): bỏ qua, 2.0s. Đã xóa toàn bộ tag/script test tạm sau khi xong.
 
-## 1g. Trạng thái trước đó (v147)
+## 1h. Trạng thái trước đó (v147)
 
 - **🐞 (v147) fix: "Nhận dạng đề từ ảnh" hiện công thức chữ thô (vd "overrightarrowAB" thay vì
   $\overrightarrow{AB}$) — Gemini escape THỪA 1 lớp backslash khi phiên âm LaTeX từ ảnh.**
@@ -214,7 +250,7 @@
     backslash — bài học từ sự cố escape bash→JS trước đây trong session này). `ruff` sạch ·
     `pytest` 622/622.
 
-## 1h. Trạng thái trước đó (v146)
+## 1i. Trạng thái trước đó (v146)
 
 - **🔧 (v146) chore: cổng chặn PUSH tự động — chạy đủ 3 job CI (backend/frontend/e2e) cục bộ
   TRƯỚC khi cho phép `git push`, không còn dựa vào việc tự nhớ chạy.** User phản ánh: gần đây
@@ -237,7 +273,7 @@
     xanh, 437s — bao gồm e2e 3/3 pass. Đây CHÍNH LÀ phép thử "trung thực" cho thay đổi này:
     không chỉ đọc lại code, mà chạy thật đúng cơ chế vừa dựng lên.
 
-## 1i. Trạng thái trước đó (v145)
+## 1j. Trạng thái trước đó (v145)
 
 - **ui: (v145) Màn làm bài "Thi thử" (HS) — thêm nhãn "Thời gian còn lại" ngay trước đồng hồ
   đếm ngược.** `frontend/src/pages/hs/ThiThu.jsx`: chèn `<span className="text-sm text-muted">`
@@ -260,7 +296,7 @@
     biệt hoàn toàn `dev.db`, tự dọn) — cả 3 "luồng vàng" pass, xác nhận đúng nguyên nhân +
     đúng chỗ sửa (không chỉ đoán qua ảnh CI). `eslint`/`vite build`/`vitest` 23/23 cũng sạch.
 
-## 1j. Trạng thái trước đó (v144)
+## 1k. Trạng thái trước đó (v144)
 
 - **ui: (v144) "Hỗ trợ học sinh" (phía GV) — nút "Gửi trả lời" chuyển lên NGAY DƯỚI ô nhập,
   TRƯỚC phần "Xem trước" — áp dụng lại đúng cách sửa v143 (phía HS) sang phía GV.**
@@ -272,7 +308,7 @@
   dung, chụp ảnh xác nhận nút đúng vị trí) — đã dọn sạch dữ liệu test (yêu cầu, turn, thông
   báo, cờ liên quan) sau khi xong.
 
-## 1k. Trạng thái trước đó (v143)
+## 1l. Trạng thái trước đó (v143)
 
 - **✨ (v143) feat: màn "Chọn bài" (HS) thêm bộ lọc "Nhiệm vụ" — Tất cả / Sắp hết hạn / Mới
   nhất.** Dữ liệu lấy từ `api.hsNhiemVu()` (nhiệm vụ được giao), không cần API mới.
@@ -321,7 +357,7 @@
     "Xem chi tiết" → "Trả lời", gõ nội dung, chụp ảnh xác nhận nút đúng vị trí) — đã dọn sạch
     dữ liệu test (yêu cầu, turn, thông báo, cờ liên quan) sau khi xong.
 
-## 1l. Trạng thái trước đó (v142)
+## 1m. Trạng thái trước đó (v142)
 
 - **🐞 (v142) fix: TN4PA báo sai "nhập lại biểu thức hợp lệ" sau khi HS đã làm ĐÚNG và mở
   khóa đáp án — root cause thật của bug user báo qua ảnh chụp; + chặn LƯU khi
@@ -384,7 +420,7 @@
     số chiều → KHONG_PHAN_TICH_DUOC, dung_dang vs tuong_duong, hồi quy không phá bug gốc
     v142/biểu thức đại số thường). `ruff` sạch · `pytest` 617/617.
 
-## 1m. Trạng thái trước đó (v141)
+## 1n. Trạng thái trước đó (v141)
 
 - **✨ (v141) feat: quy tắc LaTeX góc/vectơ/aligned/suy-ra cho AI sinh công thức.** Theo yêu cầu
   bổ sung định dạng: góc 1 đỉnh `$\widehat{A}$`, góc 3 điểm `$\widehat{ABC}$`, vectơ 1 chữ
@@ -407,7 +443,7 @@
     đều chứa đủ 6 quy tắc), sửa 1 test cũ do đổi câu chữ diễn đạt (nội dung yêu cầu không đổi).
     `ruff` sạch · `pytest` 600/600.
 
-## 1n. Trạng thái trước đó (v140)
+## 1o. Trạng thái trước đó (v140)
 
 - **🐞 (v140) fix: sửa CI đỏ do v139 — ESLint `react-hooks/refs` báo lỗi cả những chỗ
   `{...common}` có sẵn từ trước.** GitHub Actions báo job `frontend` fail ngay sau khi push
@@ -426,7 +462,7 @@
   - **Bài học**: trước khi đề xuất "đưa lên github" cho thay đổi frontend, PHẢI chạy
     `npm run lint` (không chỉ `build`) — v139 bỏ sót bước này nên lỗi lọt qua tới CI.
 
-## 1o. Trạng thái trước đó (v139)
+## 1p. Trạng thái trước đó (v139)
 
 - **🐞 (v139) fix: công thức trong "lời giải chi tiết" (AI sinh) không hiện KaTeX do prompt
   quên yêu cầu bọc $...$; ui: ô "Lời giải chi tiết" (form sửa câu hỏi) chia 2 cột nhập/xem
@@ -453,7 +489,7 @@
     nhập GV, mở form sửa câu hỏi, điền lời giải nhiều dòng công thức, chụp ảnh xác nhận 2 cột
     cao bằng nhau và công thức render đúng).
 
-## 1p. Trạng thái trước đó (v138)
+## 1q. Trạng thái trước đó (v138)
 
 - **🎨 (v138) ui: redesign 3 màn HS (TrangChu/PhongHoc/ChonBai) theo handoff — bỏ emoji chức
   năng, gom màu nhấn, dọn hex hard-code.** Theo `design_handoff_ui_redesign/README.md` +
@@ -498,7 +534,7 @@
     tiếp qua backend thay vì đoán mật khẩu thật của dev.db) — 0 lỗi console/runtime; hover
     tận nơi xác nhận tooltip GV render đúng icon (DOM check + screenshot).
 
-## 1q. Trạng thái trước đó (v137)
+## 1r. Trạng thái trước đó (v137)
 
 - **🐞 (v137) fix: chặn AI CHÉP đáp án theo khuôn mẫu prompt (few-shot leakage) + bắt GV xác
   nhận trước khi duyệt câu AI sinh.** Phát hiện qua user: lời giải chi tiết AI viết đúng
@@ -537,7 +573,7 @@
     có câu TNDS nào do AI sinh để so sánh, đang chạy LLM stub). Nên kiểm chứng thêm khi có
     mạng thật: sinh vài câu TNDS xem 4 ý còn ra đúng khuôn xen kẽ không.
 
-## 1r. Trạng thái trước đó (v136)
+## 1s. Trạng thái trước đó (v136)
 
 - **🐞 (v136) fix: GV không còn giao trùng bài HS đã hoàn thành khi giao nhiệm vụ.**
   Trước đây `tao_nhiem_vu` chỉ kiểm bài tồn tại/đã duyệt/thuộc GV — không kiểm hoàn thành, dù
@@ -561,7 +597,7 @@
     chặn xem HS lớp khác), `ruff`/`eslint`/`vite build` sạch, `vitest` 23/23. Xác minh route
     mới có thật trong app đang chạy qua `/openapi.json`.
 
-## 1s. Trạng thái trước đó (v135)
+## 1t. Trạng thái trước đó (v135)
 
 - **✨ (v135) feat: HS TỰ đăng ký bằng MÃ LỚP — gỡ nút thắt "phải chờ GV nhập tay từng em".**
   Trước đây chỉ GV/Admin tạo được tài khoản HS, nên không GV nào triển khai thì không HS nào
@@ -606,7 +642,7 @@
     RÀNG BUỘC, dùng `repr()` sẽ sinh escape kiểu Python (`\t`) làm hỏng schema (đã xảy ra, khôi
     phục từ backup).
 
-## 1t. Trạng thái trước đó (v134)
+## 1u. Trạng thái trước đó (v134)
 
 - **✨ (v134) feat: thống kê GV chuyển sang đơn vị LỚP (không còn gộp mọi lớp GV phụ trách).**
   Gộp nhiều lớp làm chìm khác biệt giữa các lớp và để lớp đông lấn át lớp nhỏ; đơn vị thống
@@ -644,7 +680,7 @@
     sạch, `vitest` 23/23. Xác minh thêm bằng script đọc thẳng `dev.db` qua ORM (không chỉ tin
     HTTP 200) sau sự cố backend không nạp code mới do socket cổng 8000 bị treo.
 
-## 1u. Trạng thái trước đó (v133)
+## 1v. Trạng thái trước đó (v133)
 
 - **🐞 (v133) fix: GV "Trả lời thêm" không còn làm MẤT các câu trả lời cũ.** Lỗi lộ ra sau khi
   v132 cho phép trả lời tiếp ở yêu cầu đã trả lời.
@@ -665,7 +701,7 @@
   - **Bài học**: khi một trường bị ghi đè (`tra_loi`) được dùng làm nguồn hiển thị LỊCH SỬ thì
     sớm muộn sẽ mất dữ liệu hiển thị — nguồn lịch sử phải là bảng append-only (`Turn`).
 
-## 1v. Trạng thái trước đó (v132)
+## 1w. Trạng thái trước đó (v132)
 
 - **✨ (v132) ui: gộp phòng học về MỘT khối soạn — khu vực trả lời & trò chuyện tách rõ, nhờ
   thầy/cô inline.** Thuần frontend, KHÔNG đụng backend/API/lõi/guard/nguyên tắc bất biến — hợp
@@ -691,7 +727,7 @@
     bản tái cấu trúc; các chỉnh màu/bố cục sau đó không chạm đường E2E kiểm). Lưu ý: máy dev
     cạn RAM có lúc làm vite E2E OOM — không phải lỗi code.
 
-## 1w. Trạng thái trước đó (v131)
+## 1x. Trạng thái trước đó (v131)
 
 - **✨ (v131) feat: mục tiêu HS nhiều dòng + nút admin "Nhắc GV ngay" + nút "Hủy" ở gợi ý.**
   - **#2b — Mục tiêu HS đa dạng (redesign)**: trước chỉ đặt theo tuần/chủ đề. Nay HS chọn
@@ -714,7 +750,7 @@
     `ruff`/`eslint`/`vite build` sạch; migration round-trip + chạy trên dev.db thật (data còn
     nguyên); Playwright xác minh HS tạo mục tiêu nhiều dòng qua accordion OK; E2E 3 luồng vàng 3/3.
 
-## 1x. Trạng thái trước đó (v130)
+## 1y. Trạng thái trước đó (v130)
 
 - **✨ (v130) feat: chủ động nhắc GV mỗi tuần "N học sinh cần chú ý" (digest điểm yếu).**
   Trước đây phân tích điểm yếu là "kéo" (GV phải mở trang mới thấy) — giờ hệ thống CHỦ ĐỘNG
@@ -733,7 +769,7 @@
   - 4 test mới `test_nhac_gv.py` (gửi khi có HS yếu / dedup 7 ngày / gửi lại sau 7 ngày / không
     gửi khi lớp sạch). `pytest` 536/536 (+4), `ruff`/`eslint`/`vite build` sạch.
 
-## 1y. Trạng thái trước đó (v129)
+## 1z. Trạng thái trước đó (v129)
 
 - **✨ (v129) ui: fix DỨT ĐIỂM cả lớp lỗi tràn ngang mobile — kẹp mọi grid card về 1 cột.**
   Thuần frontend/CSS.
@@ -751,7 +787,7 @@
     không tràn. Verify UI phải đảm bảo thành phần cần kiểm THỰC SỰ render với dữ liệu.
   - `eslint`/`vite build` sạch, E2E 3 luồng vàng 3/3 — không hồi quy.
 
-## 1z. Trạng thái trước đó (v128)
+## 1aa. Trạng thái trước đó (v128)
 
 - **✨ (v128) ui: thêm nút "Giao bài nhanh" nổi bật ở header GV, đặt TRƯỚC chuông thông báo.**
   Thuần frontend.
@@ -764,7 +800,7 @@
     + bấm điều hướng đúng trang; HS không có nút. `eslint`/`vite build` sạch, E2E 3 luồng 3/3
     (lần fail giữa chừng do kẹt port tiến trình sót — kill port chạy lại sạch, không phải lỗi code).
 
-## 1aa. Trạng thái trước đó (v127)
+## 1ab. Trạng thái trước đó (v127)
 
 - **✨ (v127) ui: fix 5 thẻ tràn ngang trên điện thoại (Bài đang làm dở, Theo dạng bài/Theo
   loại câu hỏi, Dạng bài/Loại câu hỏi mất nhiều thời gian).** Thuần frontend/CSS.
@@ -782,7 +818,7 @@
     test PASS (scrollW 375 = viewport). TrangChu + Tiến độ HS đều sạch.
   - `eslint`/`vite build`/`vitest` 23/23, `playwright` 3 luồng vàng 3/3 — không hồi quy.
 
-## 1ab. Trạng thái trước đó (v126)
+## 1ac. Trạng thái trước đó (v126)
 
 - **✨ (v126) Làm DỨT ĐIỂM docs lỗi thời (Hướng B — thu hẹp về phần ổn định + trỏ nguồn tự
   đúng), thay cho cảnh báo tạm ở v125.** Thuần tài liệu, KHÔNG đụng code.
@@ -803,7 +839,7 @@
   - **Nhân tiện sửa lỗi cascade tái diễn**: quy trình cascade nhãn `## 1aX.` trong file này lại
     tạo trùng nhãn (v122 và v121 cùng `1d`) — đã sửa; cần cẩn thận nhãn CŨ NHẤT mỗi lần dời.
 
-## 1ac. Trạng thái trước đó (v125)
+## 1ad. Trạng thái trước đó (v125)
 
 - **✨ (v125) #5–#8 (P2, đợt rà soát 2026-07-18): nén PROGRESS.md, cập nhật docs, gắn Sentry,
   đưa E2E vào CI.** Toàn bộ danh sách rà soát 2 đợt (14 mục + 8 mục) giờ đã đóng, trừ #12/#13
@@ -830,7 +866,7 @@
     Git Bash trên máy này có lỗi môi trường `spawn UNKNOWN` khi Playwright tự fork worker,
     không liên quan code, chỉ cần dùng PowerShell).
 
-## 1ad. Trạng thái trước đó (v124)
+## 1ae. Trạng thái trước đó (v124)
 
 - **✨ (v124) Nâng chuẩn mật khẩu tối thiểu 4 → 6 ký tự (đợt rà soát mới 2026-07-18).** Tài
   khoản GV/quản lý dùng "1234" quá yếu dù đã có throttle chống dò (`auth/throttle.py`).
@@ -849,7 +885,7 @@
     nhắc lại). Còn mở (P2, làm khi rảnh): nén PROGRESS.md (>170KB), cập nhật docs TESTING/
     ARCHITECTURE cho Alembic+E2E, Sentry, đưa `npm run e2e` vào CI.
 
-## 1ae. Trạng thái trước đó (v123)
+## 1af. Trạng thái trước đó (v123)
 
 - **✨ (v123) #11 (mục P0/P1 cuối cùng còn code được): E2E Playwright 3 "luồng vàng" trên trình
   duyệt thật + #14 viết lại mục 7 (lỗi thời từ v32).** Với v123, TOÀN BỘ 14 mục đợt rà soát
@@ -874,7 +910,7 @@
     `process` trong vite.config bằng `import process from 'node:process'`), `vitest` 23/23,
     `playwright` 3/3 (chạy 2 lần liên tiếp xác nhận lặp lại được).
 
-## 1af. Trạng thái trước đó (v122)
+## 1ag. Trạng thái trước đó (v122)
 
 - **✨ (v122) #8 (P0): chặn batch import khổng lồ + giới hạn tổng dung lượng request toàn
   app.** Rà lại 3 endpoint import hàng loạt (`ImportTaiKhoanRequest.tai_khoans`,
@@ -888,7 +924,7 @@
     base64 (giới hạn nghiệp vụ ≤10MB) + mọi batch import.
   - 5 test mới (3 batch quá giới hạn bị 422 + 2 middleware). `pytest` 531/531, `ruff` sạch.
 
-## 1ag. Trạng thái trước đó (v121)
+## 1ah. Trạng thái trước đó (v121)
 
 - **✨ (v121) #7 (P0): chuyển hẳn sang Alembic — thay cơ chế tự viết
   `_migrate_them_cot()` (ADD COLUMN thủ công, không rollback/dry-run). User CHỦ ĐỘNG hỏi lại

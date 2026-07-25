@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AlertTriangle, Check, X } from 'lucide-react'
 import { api } from '../../../api'
 import Formula from '../../../components/Formula'
 import FormulaEditor from '../../../components/FormulaEditor'
@@ -74,7 +75,7 @@ export default function ChuyenDoiLatexSympy() {
             className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center
               rounded-full bg-surface-2 text-muted hover:bg-danger-soft hover:text-danger transition-colors"
           >
-            ✕
+            <X size={12} strokeWidth={2.6} />
           </button>
         )}
       </div>
@@ -89,13 +90,13 @@ export default function ChuyenDoiLatexSympy() {
               <p className="text-[10px] text-muted">Cú pháp SymPy</p>
               {sympy && !dangChuyenDoi && !conOTrong && (
                 <button type="button" onClick={saoChep} className="text-[10px] text-primary hover:underline">
-                  {daSaoChep ? '✓ Đã sao chép' : 'Sao chép'}
+                  {daSaoChep ? <><Check size={11} strokeWidth={2.6} className="inline -mt-0.5" /> Đã sao chép</> : 'Sao chép'}
                 </button>
               )}
             </div>
             {conOTrong ? (
-              <p className="text-xs text-warning">
-                ⚠ Còn ô trống (□) chưa điền trong công thức — điền xong mới dịch được.
+              <p className="text-xs text-warning inline-flex items-center gap-1">
+                <AlertTriangle size={12} strokeWidth={2.4} /> Còn ô trống (□) chưa điền trong công thức — điền xong mới dịch được.
               </p>
             ) : dangChuyenDoi ? (
               <p className="text-xs text-muted">Đang dịch...</p>

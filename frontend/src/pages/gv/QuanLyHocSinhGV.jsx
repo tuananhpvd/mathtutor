@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, Select, Table, useConfirm } from '../../components/ui'
 import SuaHocSinhModal from '../../components/gv/SuaHocSinhModal'
@@ -77,7 +78,7 @@ export default function QuanLyHocSinhGV() {
     <div className="flex flex-col gap-5">
       {error && (
         <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">
-          {error} <button onClick={() => setError('')} className="ml-2 font-bold">✕</button>
+          {error} <button onClick={() => setError('')} className="ml-2"><X size={14} strokeWidth={2.4} /></button>
         </p>
       )}
 
@@ -170,7 +171,9 @@ export default function QuanLyHocSinhGV() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[88vh]
             overflow-y-auto p-6 flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-warning">⚠️ Đặt lại tiến độ: {modalDatLai.ho_ten}</h2>
+            <h2 className="text-lg font-bold text-warning inline-flex items-center gap-2">
+              <AlertTriangle size={18} strokeWidth={2.2} /> Đặt lại tiến độ: {modalDatLai.ho_ten}
+            </h2>
             <p className="text-sm text-muted">
               Sau khi xác nhận, các thông tin sau sẽ bị ẩn đi và <strong>không thể hoàn tác</strong>:
             </p>

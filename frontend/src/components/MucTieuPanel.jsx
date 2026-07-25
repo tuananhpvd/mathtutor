@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Lightbulb, Target } from 'lucide-react'
 import { api } from '../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, useConfirm } from './ui'
 
@@ -175,11 +176,17 @@ export default function MucTieuPanel({
   return (
     <Card>
       <CardHeader
-        title={tieuDe || '🎯 Mục tiêu học tập'}
+        title={tieuDe || (
+          <span className="inline-flex items-center gap-1.5">
+            <Target size={16} strokeWidth={2.4} /> Mục tiêu học tập
+          </span>
+        )}
         subtitle={phuDe}
         action={choPhepThem && (
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={layDeXuat}>💡 Gợi ý</Button>
+            <Button size="sm" variant="secondary" onClick={layDeXuat}>
+              <Lightbulb size={14} strokeWidth={2.4} /> Gợi ý
+            </Button>
             <Button size="sm" onClick={() => setMoForm((v) => !v)}>
               {moForm ? 'Đóng' : '+ Đặt mục tiêu'}
             </Button>
@@ -323,7 +330,7 @@ export default function MucTieuPanel({
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {mt.da_dat && <Badge tone="success">✓ Đạt</Badge>}
+                    {mt.da_dat && <Badge tone="success">Đạt</Badge>}
                     <button onClick={() => xoa(mt)} className="text-xs text-danger hover:underline">Xóa</button>
                   </div>
                 </div>
@@ -332,8 +339,8 @@ export default function MucTieuPanel({
                   <div className="flex flex-col gap-1.5 mt-0.5">
                     {mt.muc.map((d, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <span className="text-xs text-ink flex-1 min-w-0 truncate">
-                          {d.da_dat ? '✅' : '•'} {nhanDong(d)}
+                        <span className="text-xs text-ink flex-1 min-w-0 truncate inline-flex items-center gap-1">
+                          {d.da_dat ? <CheckCircle2 size={12} strokeWidth={2.4} className="text-success shrink-0" /> : '•'} {nhanDong(d)}
                         </span>
                         <span className="text-xs font-medium text-muted shrink-0">
                           {d.hien_tai}/{d.chi_tieu_so}

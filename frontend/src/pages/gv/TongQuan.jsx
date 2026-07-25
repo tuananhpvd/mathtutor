@@ -81,7 +81,7 @@ export default function TongQuan({ onNavigate }) {
       <div className="rounded-card border border-border bg-gradient-to-br from-primary-soft
         to-primary-soft-2 p-6 flex flex-col gap-5">
         <h2 className="text-2xl font-semibold text-ink text-balance">
-          Chào thầy/cô{ho_ten ? `, ${ho_ten}` : ''}! 👋
+          Chào thầy/cô{ho_ten ? `, ${ho_ten}` : ''}!
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <MiniHeroGV icon={LifeBuoy} value={soHoTro} cap="yêu cầu hỗ trợ học sinh chờ trả lời"

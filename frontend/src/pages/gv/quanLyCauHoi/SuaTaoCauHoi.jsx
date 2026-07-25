@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { api } from '../../../api'
 import { useConfirm } from '../../../components/ui'
 import { chuanHoaSteps, dungDangOptions, kiemTraDapAnTLN } from '../../../utils/cauHoi'
@@ -13,7 +14,7 @@ function KhungModal({ tieu_de, error, children, onDong }) {
         p-4 sm:p-6 shadow-[var(--shadow-pop)]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-ink">{tieu_de}</h3>
-          <button onClick={onDong} className="text-muted hover:text-ink text-lg">✕</button>
+          <button onClick={onDong} className="text-muted hover:text-ink"><X size={18} strokeWidth={2} /></button>
         </div>
         {error && <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2 mb-3">{error}</p>}
         {children}

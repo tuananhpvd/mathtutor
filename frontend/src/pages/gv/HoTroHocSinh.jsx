@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CheckCircle2, X } from 'lucide-react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, CardHeader, ChatBubble, useConfirm } from '../../components/ui'
 import Formula from '../../components/Formula'
@@ -73,7 +74,7 @@ function ModalChiTiet({
                 </Button>
               )}
               <Button size="sm" variant="secondary" onClick={onDong} disabled={dangGui}>
-                Đóng ✕
+                Đóng <X size={14} strokeWidth={2.4} />
               </Button>
             </div>
           </div>
@@ -353,7 +354,9 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
   return (
     <div className="flex flex-col gap-4">
       {ok && (
-        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5">✓ {ok}</div>
+        <div className="rounded-lg bg-success-soft text-success text-sm px-4 py-2.5 inline-flex items-center gap-1.5">
+          <CheckCircle2 size={14} strokeWidth={2.4} /> {ok}
+        </div>
       )}
       {loi && !traLoiId && (
         <div className="rounded-lg bg-danger-soft text-danger text-sm px-4 py-2.5">{loi}</div>
@@ -367,7 +370,7 @@ export default function HoTroHocSinh({ focusYc, onFocusDone }) {
             {loading ? (
               <p className="text-sm text-muted">Đang tải...</p>
             ) : choXuLy.length === 0 ? (
-              <p className="text-sm text-muted">Không có yêu cầu nào đang chờ. 👍</p>
+              <p className="text-sm text-muted">Không có yêu cầu nào đang chờ.</p>
             ) : (
               <>
                 {choHienThi.map((yc) => (

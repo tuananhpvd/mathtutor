@@ -34,7 +34,9 @@ Import gọn: `import { Button, Card, Badge } from '../../components/ui'`.
 - **GV/Admin:** sidebar trái điều hướng (icon-only ở tablet, đầy đủ chữ ở desktop, drawer ở mobile) + topbar tiêu đề, nội dung bảng/biểu đồ.
 
 ## Icon
-Dùng **`lucide-react`** cho MỌI icon chức năng (nút, nhãn thẻ, trạng thái, tiêu đề card — xem cách dùng trong `RoleLayout.jsx`, `TongQuan.jsx`, `Dashboard.jsx`). KHÔNG dùng emoji làm icon chức năng hay trong tooltip biểu đồ. Emoji chỉ chấp nhận trong câu chào thuần văn bản (vd "Chào em 👋"), không thay thế icon.
+Dùng **`lucide-react`** cho MỌI icon chức năng (nút, nhãn thẻ, trạng thái, tiêu đề card — xem cách dùng trong `RoleLayout.jsx`, `TongQuan.jsx`, `Dashboard.jsx`). **KHÔNG dùng emoji ở bất kỳ đâu trong UI** (kể cả câu chào/động viên thuần văn bản — quy ước trước đây cho phép emoji ở đây đã bỏ, xem PROGRESS.md việc "loại bỏ emoji") — icon chức năng dùng `lucide-react`, câu chào/động viên chỉ dùng chữ, không kèm icon hay emoji.
+
+Ngoại lệ duy nhất: nội dung do NGƯỜI DÙNG tự nhập/tự cấu hình (vd ô "icon" tự do khi Admin thêm bước hướng dẫn mới ở trang Cấu hình, seed data demo) — đây là dữ liệu do người dùng chọn, không phải UI cố định của app, nên không bị ràng buộc quy tắc này.
 
 ## Màu sắc
 - Tối đa 1 màu CTA cam nổi bật trên mỗi màn hình cho hành động chính; các nút khác trong cùng nhóm dùng `secondary` đồng nhất, không phối nhiều variant màu (`warning`/`indigo`/`success`) cạnh nhau trừ khi thể hiện đúng trạng thái nghiệp vụ khác nhau.
