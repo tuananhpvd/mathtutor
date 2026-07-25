@@ -30,7 +30,7 @@ function Chay($ten, [scriptblock]$lenh) {
 
 # ---- job "backend" (ci.yml) ----
 Set-Location "$root\backend"
-Chay "backend: ruff check app/" { & .venv\Scripts\python.exe -m ruff check app/ }
+Chay "backend: ruff check app/ migrate.py" { & .venv\Scripts\python.exe -m ruff check app/ migrate.py }
 Chay "backend: import smoke test" { & .venv\Scripts\python.exe -c "import app.main" }
 Chay "backend: pytest -q" { & .venv\Scripts\python.exe -m pytest -q }
 

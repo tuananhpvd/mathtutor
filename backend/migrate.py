@@ -31,7 +31,6 @@ Lưu ý:
 """
 
 import argparse
-import io
 import json
 import sys
 from pathlib import Path
@@ -58,7 +57,6 @@ TABLES = [
     "progress",        # hoc_sinh_id
     "flags",           # session_id (nullable) + turn_id (nullable)
     "phan_tich_hs",    # hoc_sinh_id
-    "yeu_cau_dat_lai", # cột cũ, giữ lại để tương thích
 ]
 
 # Cột JSON: SQLite lưu dạng chuỗi → cần parse thành dict/list khi import
@@ -182,18 +180,17 @@ def cmd_import(db_url: str) -> None:
     sys.path.insert(0, str(Path(__file__).parent))
 
     # Import toàn bộ models để đăng ký với Base
-    import app.models.cauhinh          # noqa: F401
-    import app.models.danh_muc         # noqa: F401
-    import app.models.flag             # noqa: F401
-    import app.models.lop              # noqa: F401
-    import app.models.phan_tich        # noqa: F401
-    import app.models.problem          # noqa: F401
-    import app.models.progress         # noqa: F401
-    import app.models.session          # noqa: F401
-    import app.models.solution_step    # noqa: F401
-    import app.models.turn             # noqa: F401
-    import app.models.user             # noqa: F401
-    import app.models.yeu_cau_dat_lai  # noqa: F401
+    import app.models.cauhinh  # noqa: F401
+    import app.models.danh_muc  # noqa: F401
+    import app.models.flag  # noqa: F401
+    import app.models.lop  # noqa: F401
+    import app.models.phan_tich  # noqa: F401
+    import app.models.problem  # noqa: F401
+    import app.models.progress  # noqa: F401
+    import app.models.session  # noqa: F401
+    import app.models.solution_step  # noqa: F401
+    import app.models.turn  # noqa: F401
+    import app.models.user  # noqa: F401
     from app.db.base import Base
 
     if not BACKUP_FILE.exists():
@@ -236,22 +233,26 @@ def cmd_import(db_url: str) -> None:
 
         # 1. cau_hinh — không FK
         n = _insert_table(conn, "cau_hinh", data.get("cau_hinh", []))
-        _log(n, "cau_hinh"); total += n
+        _log(n, "cau_hinh")
+        total += n
 
         # 2. chuyen_de — nguoi_tao_id nullable → insert NULL, cập nhật sau
         n = _insert_table(conn, "chuyen_de", data.get("chuyen_de", []),
                           skip_cols={"nguoi_tao_id"})
-        _log(n, "chuyen_de"); total += n
+        _log(n, "chuyen_de")
+        total += n
 
         # 3. users — lop_id nullable → insert NULL, cập nhật sau
         user_rows = data.get("users", [])
         user_lop_map = {r["id"]: r.get("lop_id") for r in user_rows}
         n = _insert_table(conn, "users", user_rows, skip_cols={"lop_id"})
-        _log(n, "users"); total += n
+        _log(n, "users")
+        total += n
 
         # 4. lop — gv_id references users (đã có)
         n = _insert_table(conn, "lop", data.get("lop", []))
-        _log(n, "lop"); total += n
+        _log(n, "lop")
+        total += n
 
         # 5. Cập nhật users.lop_id (giải quyết vòng users↔lop)
         updated = 0
@@ -275,39 +276,43 @@ def cmd_import(db_url: str) -> None:
 
         # 7. dang
         n = _insert_table(conn, "dang", data.get("dang", []))
-        _log(n, "dang"); total += n
+        _log(n, "dang")
+        total += n
 
         # 8. problems
         n = _insert_table(conn, "problems", data.get("problems", []))
-        _log(n, "problems"); total += n
+        _log(n, "problems")
+        total += n
 
         # 9. solution_steps
         n = _insert_table(conn, "solution_steps", data.get("solution_steps", []))
-        _log(n, "solution_steps"); total += n
+        _log(n, "solution_steps")
+        total += n
 
         # 10. sessions
         n = _insert_table(conn, "sessions", data.get("sessions", []))
-        _log(n, "sessions"); total += n
+        _log(n, "sessions")
+        total += n
 
         # 11. turns
         n = _insert_table(conn, "turns", data.get("turns", []))
-        _log(n, "turns"); total += n
+        _log(n, "turns")
+        total += n
 
         # 12. progress
         n = _insert_table(conn, "progress", data.get("progress", []))
-        _log(n, "progress"); total += n
+        _log(n, "progress")
+        total += n
 
         # 13. flags
         n = _insert_table(conn, "flags", data.get("flags", []))
-        _log(n, "flags"); total += n
+        _log(n, "flags")
+        total += n
 
         # 14. phan_tich_hs
         n = _insert_table(conn, "phan_tich_hs", data.get("phan_tich_hs", []))
-        _log(n, "phan_tich_hs"); total += n
-
-        # 15. yeu_cau_dat_lai (bảng cũ, có thể rỗng)
-        n = _insert_table(conn, "yeu_cau_dat_lai", data.get("yeu_cau_dat_lai", []))
-        if n: _log(n, "yeu_cau_dat_lai"); total += n
+        _log(n, "phan_tich_hs")
+        total += n
 
         # Reset sequences để INSERT tiếp theo không bị lỗi duplicate ID
         print("\n  🔄 Reset sequences ID...")
