@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Target } from 'lucide-react'
 import { api } from '../../api'
-import { Badge, Button, Card, CardBody, Select } from '../../components/ui'
+import { Badge, Button, Card, CardBody, CardHeader, Select } from '../../components/ui'
 import Formula from '../../components/Formula'
 import XemLaiBai from '../../components/XemLaiBai'
 
@@ -33,6 +33,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
   const [bai, setBai] = useState([])
   const [trangThaiBai, setTrangThaiBai] = useState({}) // {problem_id: {session_id, trang_thai}}
   const [nhiemVu, setNhiemVu] = useState([]) // ds nhiệm vụ được giao (từ api.hsNhiemVu())
+  const [pt, setPt] = useState(null) // phân tích năng lực (cho thẻ "Gợi ý cho em")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [xemLaiSid, setXemLaiSid] = useState(null) // session_id đang mở xem lại
@@ -50,11 +51,12 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
     async function load() {
       try {
         // Các call độc lập: lỗi phụ không chặn danh sách bài
-        const [dmResult, baiResult, ttResult, nvResult] = await Promise.allSettled([
+        const [dmResult, baiResult, ttResult, nvResult, ptResult] = await Promise.allSettled([
           api.getDanhMuc(),
           api.listProblems(),
           api.getPhienCuaToi(),
           api.hsNhiemVu(),
+          api.getPhanTichMe(),
         ])
         if (dmResult.status === 'fulfilled') setDanhMuc(dmResult.value)
         if (baiResult.status === 'fulfilled') setBai(baiResult.value)
@@ -65,6 +67,7 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
           setTrangThaiBai(map)
         }
         if (nvResult.status === 'fulfilled') setNhiemVu(nvResult.value || [])
+        if (ptResult.status === 'fulfilled') setPt(ptResult.value)
       } finally {
         setLoading(false)
       }
@@ -72,20 +75,30 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
     load()
   }, [])
 
+  // Áp 1 bộ lọc {chuyen_de?, dang_id?, trang_thai?} — dùng chung cho locBanDau (điều hướng từ
+  // trang khác) và nút "Luyện ngay" của thẻ "Gợi ý cho em" (áp ngay tại chỗ, không điều hướng).
+  function apDungLoc(loc) {
+    if (loc.trang_thai) setFTrangThai(loc.trang_thai)
+    if (loc.chuyen_de && danhMuc.length > 0) {
+      const cd = danhMuc.find((c) => c.ten === loc.chuyen_de)
+      if (cd) setFChuyenDeId(String(cd.id))
+      if (loc.dang_id) setFDangId(String(loc.dang_id))
+    }
+  }
+
   // Áp bộ lọc ban đầu (vd từ "Luyện ngay" trang Tiến độ: chuyên đề + dạng; hoặc từ "Tiếp tục
   // làm" trang chủ: trạng thái "Đang làm dở"). trang_thai áp ngay, không đợi danh mục tải.
   useEffect(() => {
     if (!locBanDau) return
-    const t = setTimeout(() => {
-      if (locBanDau.trang_thai) setFTrangThai(locBanDau.trang_thai)
-      if (danhMuc.length > 0) {
-        const cd = danhMuc.find((c) => c.ten === locBanDau.chuyen_de)
-        if (cd) setFChuyenDeId(String(cd.id))
-        if (locBanDau.dang_id) setFDangId(String(locBanDau.dang_id))
-      }
-    }, 0)
+    const t = setTimeout(() => apDungLoc(locBanDau), 0)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [danhMuc, locBanDau])
+
+  function luyenNgay(r) {
+    apDungLoc({ chuyen_de: r.chuyen_de, dang_id: r.dang_id })
+    setTrang(1)
+  }
 
   // Dạng của chuyên đề đang chọn
   const dangList = useMemo(() => {
@@ -226,6 +239,29 @@ export default function ChonBai({ onChon, onLamTiep, locBanDau }) {
           ]}
         />
       </div>
+
+      {pt?.diem_yeu?.length > 0 && (
+        <Card>
+          <CardHeader
+            title={<span className="inline-flex items-center gap-1.5">
+                <Target size={16} strokeWidth={2.2} /> Gợi ý cho em
+              </span>}
+            subtitle="Dạng bài em nên luyện thêm, dựa trên năng lực gần đây"
+          />
+          <CardBody>
+            <ul className="text-sm text-ink flex flex-col gap-1.5">
+              {pt.diem_yeu.map((r, i) => (
+                <li key={i} className="flex items-center justify-between gap-2">
+                  <span>• {r.ten} <b className="text-danger">{r.diem_thanh_thao}%</b></span>
+                  {r.dang_id && (
+                    <Button size="sm" onClick={() => luyenNgay(r)}>Luyện ngay</Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
 
       {loading && <p className="text-muted text-sm">Đang tải danh sách bài...</p>}
       {error && <p className="text-danger text-sm bg-danger-soft rounded-md px-3 py-2">{error}</p>}
