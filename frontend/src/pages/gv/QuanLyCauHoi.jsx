@@ -126,7 +126,17 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
         </div>
         {!toanQuyen && (
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setImportMo(true)}>Import từ Excel</Button>
+            {/* TẠM KHÓA: mẫu Excel hiện chưa có cột bước/gợi ý, nên câu import vào phòng học
+                không có bước nào — HS bí cũng không có gợi ý để xin, và khung chat không dựng
+                được dải phân cách bước. Giữ nút hiện (mờ) để thầy/cô biết chức năng vẫn còn,
+                sẽ mở lại khi mẫu Excel bổ sung đủ bước + gợi ý. */}
+            <Button
+              variant="secondary"
+              disabled
+              title="Tạm khóa: mẫu Excel chưa có cột bước và gợi ý nên câu import sẽ thiếu phần dẫn dắt trong phòng học. Thầy/cô dùng 'Tạo câu hỏi mới' hoặc mục AI sinh câu hỏi trong lúc chờ."
+            >
+              Import từ Excel (tạm khóa)
+            </Button>
             <Button onClick={() => setTaoMoi(true)}>+ Tạo câu hỏi mới</Button>
           </div>
         )}

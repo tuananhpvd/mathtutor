@@ -20,6 +20,87 @@ from app.models.session import TrangThaiSession
 from app.models.turn import Turn, VaiTroTurn
 from app.services.progress_service import cap_nhat_tien_do
 
+# Câu chốt khi HS làm ĐÚNG một bước/ý. TẤT ĐỊNH (không gọi LLM) — cố ý, vì đây là sự kiện
+# xảy ra thường xuyên nhất trong bài: để LLM sinh thêm 1 lượt riêng sẽ làm GẤP ĐÔI số lượt gọi
+# (quota Gemini free tier rất hẹp). Đổi lại một chút "cứng" ở đúng câu khen, nhưng mạch hội
+# thoại đúng: chốt đúng (bước CŨ) → dải phân cách → dẫn vào bước MỚI (LLM diễn đạt).
+_LOI_CHOT_DUNG = (
+    "Chính xác rồi!",
+    "Đúng rồi, em làm tốt lắm!",
+    "Chuẩn rồi nhé, em tính đúng.",
+)
+
+
+def _loi_chot_dung(session: SessionModel) -> str:
+    """Chọn câu chốt theo tiến trình phiên — xoay vòng cho đỡ lặp, nhưng TẤT ĐỊNH (cùng một
+    trạng thái luôn cho cùng một câu) để test ổn định, không dùng random."""
+    i = (session.buoc_hien_tai or 0) + (session.so_y_dung or 0)
+    return _LOI_CHOT_DUNG[i % len(_LOI_CHOT_DUNG)]
+
+
+# Lời dẫn cuối cùng khi MỌI phương án dự phòng đều không qua được chốt chặn — thuần văn bản
+# cố định, không mang theo bất kỳ nội dung nào do LLM sinh nên không thể lộ đáp án.
+_DU_PHONG_TRUNG_TINH = (
+    "Thầy/cô chưa diễn đạt được ý này cho gọn. Em thử làm bước hiện tại và nhập kết quả vào "
+    "Khu vực trả lời nhé - nếu cần, bấm \"Gợi ý cho em\" hoặc \"Nhờ thầy/cô\"."
+)
+
+
+def _van_ban_du_phong(chi_thi: dict) -> str:
+    """Lời dẫn TẤT ĐỊNH thay cho phản hồi LLM bị chốt chặn rò rỉ.
+
+    Trước đây HS thấy nguyên chuỗi kỹ thuật "[Nội dung bị lọc - có thể chứa đáp án]" — một
+    dòng lỗi hệ thống đập thẳng vào mắt (kể cả ở câu chào mở đầu phiên), vừa khó hiểu vừa
+    không giúp em biết phải làm gì tiếp. Nay thay bằng lời dẫn bám đúng ý định sư phạm của
+    lượt đó. Cùng tinh thần "API lỗi → trả gợi ý mặc định từ ý gợi ý, không sập" (CLAUDE.md
+    mục 7).
+
+    Nguồn chữ: hằng số trong file này + "y_goi_y" (gợi ý GV/AI đã soạn sẵn trong CSDL, vốn
+    đã dành để cho HS đọc) — KHÔNG dùng lại chữ do LLM vừa sinh, nên không thể kéo theo đáp
+    án đã lọt. Người gọi vẫn rà kết quả này qua chốt chặn lần nữa (xem _ap_chot_chan).
+    """
+    y_dinh = chi_thi.get("y_dinh") or ""
+    y_goi_y = (chi_thi.get("y_goi_y") or "").strip()
+    y_dang_xet = chi_thi.get("y_dang_xet")
+
+    if y_dinh == "ket_thuc":
+        return "Em đã hoàn thành bài rồi! Cùng xem lại phần tổng kết bên dưới nhé."
+    if y_dinh == "tom_tat":
+        return "Em đã xét xong các ý. Thử nhìn lại mạch suy luận vừa rồi một lượt nhé."
+    if y_dinh == "xac_nhan_dung":
+        return "Chính xác rồi! Ta sang phần tiếp theo nhé."
+    if y_dinh == "chuyen_y" and y_dang_xet:
+        return (f"Mình chuyển sang ý {y_dang_xet} nhé. Em đọc kỹ mệnh đề rồi trả lời vào "
+                f"Khu vực trả lời.")
+    # Gợi ý: dùng thẳng ý gợi ý đã soạn trong CSDL (an toàn, vốn để cho HS đọc) thay vì bản
+    # diễn đạt của LLM. KHÔNG áp dụng cho "dinh_huong" (lượt mở đầu) — ở đó y_goi_y cũng là
+    # gợi ý bậc 1, đưa ra ngay sẽ cho không em một lượt gợi ý chưa hề xin.
+    if y_dinh in ("goi_y", "het_goi_y") and y_goi_y:
+        return f"Gợi ý cho em: {y_goi_y}"
+    if y_dinh == "dan_buoc_moi":
+        return ("Giờ ta sang phần tiếp theo nhé. Em đọc kỹ việc cần làm ở Khu vực trả lời rồi "
+                "thử làm, chưa rõ thì bấm \"Gợi ý cho em\".")
+    return ("Mình cùng bắt đầu nhé. Em đọc kỹ đề rồi làm bước đang mở, nhập kết quả vào Khu "
+            "vực trả lời - chưa rõ chỗ nào thì bấm \"Gợi ý cho em\" nhé.")
+
+
+def _ap_chot_chan(
+    van_ban_raw: str, chi_thi: dict, gia_tri_chuan: str | None, loai_cau: str
+) -> tuple[str, bool]:
+    """Rà rò rỉ 1 phản hồi trước khi gửi HS → (văn bản gửi đi, có bị chốt chặn không).
+
+    Bị chốt → thay bằng lời dẫn dự phòng, RỒI RÀ LẠI chính lời dẫn đó (bất biến #3: rà MỌI
+    phản hồi gửi HS). Dự phòng mà vẫn dính (vd gợi ý GV soạn có chứa giá trị đáp án) thì lùi
+    tiếp về lời trung tính không mang nội dung bài.
+    """
+    if kiem_tra_ro_ri(van_ban_raw, gia_tri_chuan, loai_cau).muc_do != MucDoRoRi.ro_ri:
+        return van_ban_raw, False
+
+    du_phong = _van_ban_du_phong(chi_thi)
+    if kiem_tra_ro_ri(du_phong, gia_tri_chuan, loai_cau).muc_do == MucDoRoRi.ro_ri:
+        du_phong = _DU_PHONG_TRUNG_TINH
+    return du_phong, True
+
 
 def _nguong_nghi_giay(db: Session) -> int:
     """Ngưỡng nghỉ (giây) từ cấu hình admin; lỗi → mặc định 180s."""
@@ -433,12 +514,13 @@ def tao_phien(
     # Chốt chặn: kiểm tra rò rỉ đáp án trước khi gửi HS — kể cả lời chào mở đầu phiên,
     # đúng tinh thần bất biến #3 (CLAUDE.md): rà MỌI phản hồi, không chỉ các lượt sau.
     gia_tri_chuan = (problem.meta or {}).get("dap_an_cuoi") or (problem.meta or {}).get("dap_an_dung")
-    chot = kiem_tra_ro_ri(van_ban_raw, gia_tri_chuan, problem.loai_cau.value)
-    van_ban = chot.van_ban_thay_the if chot.muc_do == MucDoRoRi.ro_ri else van_ban_raw
-    bi_chot = chot.muc_do == MucDoRoRi.ro_ri
+    van_ban, bi_chot = _ap_chot_chan(
+        van_ban_raw, chi_thi.to_dict(), gia_tri_chuan, problem.loai_cau.value
+    )
 
     turn_mo_dau = Turn(session_id=session.id, vai_tro=VaiTroTurn.gia_su, noi_dung=van_ban,
-                       cap_goi_y=0, co_bi_chot_chan=bi_chot)
+                       cap_goi_y=0, co_bi_chot_chan=bi_chot,
+                       buoc=session.buoc_hien_tai, y=session.y_hien_tai)
     db.add(turn_mo_dau)
     _gan_co_ro_ri_neu_bi_chot(db, session, turn_mo_dau, bi_chot)
     _tu_dong_gan_co_chot_chan(db, session, bi_chot)
@@ -457,12 +539,17 @@ def xu_ly_luot(
     llm: LLMClient,
 ) -> dict:
     loai_cau = problem.loai_cau.value
+    # buoc/y của lượt HS = trạng thái TRƯỚC khi xử lý (bước mà em đang trả lời) — khác lượt
+    # gia sư bên dưới lấy trạng thái SAU, để khi bước chuyển thì dải phân cách rơi đúng vào
+    # giữa "câu trả lời của bước cũ" và "lời dẫn sang bước mới".
     db.add(Turn(
         session_id=session.id,
         vai_tro=VaiTroTurn.hoc_sinh,
         noi_dung=noi_dung,
         dap_an_nhap=str(dap_an_nhap) if dap_an_nhap is not None else None,
         cap_goi_y=session.cap_goi_y_hien_tai,
+        buoc=session.buoc_hien_tai,
+        y=session.y_hien_tai,
     ))
 
     trang_thai = _restore_state(session, problem)
@@ -541,6 +628,27 @@ def xu_ly_luot(
     if cung_buoc_y and not can_thang_truoc and _da_can_thang_goi_y(trang_thai_moi):
         session.so_lan_het_goi_y = (session.so_lan_het_goi_y or 0) + 1
 
+    # HS làm đúng VÀ vừa chuyển bước/ý → tách làm 2 lượt cho liền mạch:
+    #   (1) câu chốt khen — thuộc bước CŨ, nằm TRƯỚC dải phân cách
+    #   (2) lời dẫn vào bước MỚI — thuộc bước MỚI, nằm SAU dải phân cách
+    # Trước đây gộp 1 lượt "xac_nhan_dung" (vừa khen vừa kèm gợi ý bước mới) nên câu khen bị
+    # đẩy sang phía bước sau, đọc rất ngược. Đổi ý định thành "dinh_huong" để LLM chỉ dẫn vào
+    # bước mới, phần khen đã có lượt riêng lo.
+    # Điều kiện cuối: bước/ý mới phải TỒN TẠI thật. TN4PA vẫn tăng buoc_hien_tai thêm 1 dù bài
+    # chỉ có 1 bước (dùng làm mốc mở khóa chọn đáp án) — lúc đó không có bước nào để "dẫn vào",
+    # lượt này là "khen + mời chọn phương án", giữ nguyên 1 lượt như cũ.
+    tach_loi_chot = (
+        chi_thi.y_dinh == "xac_nhan_dung"
+        and not cung_buoc_y
+        and not trang_thai_moi.da_xong
+        and trang_thai_moi.buoc_data() is not None
+    )
+    if tach_loi_chot:
+        # KHÔNG dùng lại "dinh_huong" (ý định của lượt MỞ ĐẦU) — LLM sẽ chào "Chào em!" lần nữa
+        # giữa buổi học, nghe rất ngược. "dan_buoc_moi" có luật riêng: không chào, không khen
+        # lại (đã có lượt khen), chỉ dẫn vào bước mới.
+        chi_thi.y_dinh = "dan_buoc_moi"
+
     # Ý đang xét trước khi ghi đè (để dồn thời gian vào đúng ý — TNDS)
     y_truoc = session.y_hien_tai
 
@@ -591,9 +699,26 @@ def xu_ly_luot(
 
     # Chốt chặn: kiểm tra rò rỉ đáp án trước khi gửi HS
     gia_tri_chuan = (problem.meta or {}).get("dap_an_cuoi") or (problem.meta or {}).get("dap_an_dung")
-    chot = kiem_tra_ro_ri(van_ban_raw, gia_tri_chuan, loai_cau)
-    van_ban = chot.van_ban_thay_the if chot.muc_do == MucDoRoRi.ro_ri else van_ban_raw
-    bi_chot = chot.muc_do == MucDoRoRi.ro_ri
+    van_ban, bi_chot = _ap_chot_chan(van_ban_raw, chi_thi.to_dict(), gia_tri_chuan, loai_cau)
+
+    # Lượt CHỐT KHEN — thêm TRƯỚC lượt dẫn để đúng thứ tự hội thoại, gắn bước/ý CŨ để dải
+    # phân cách (dựng ở FE) rơi vào ĐÚNG khoảng giữa lượt này và lượt dẫn bước mới.
+    van_ban_chot = None
+    if tach_loi_chot:
+        van_ban_chot = _loi_chot_dung(session)
+        # Rà cả câu chốt (bất biến #3: rà MỌI phản hồi gửi HS) — dù đây là hằng số cố định
+        # không mang dữ liệu bài, giữ phép rà để sau này ai sửa hằng số vẫn an toàn.
+        if kiem_tra_ro_ri(van_ban_chot, gia_tri_chuan, loai_cau).muc_do == MucDoRoRi.ro_ri:
+            van_ban_chot = "Chính xác rồi!"
+        db.add(Turn(
+            session_id=session.id,
+            vai_tro=VaiTroTurn.gia_su,
+            noi_dung=van_ban_chot,
+            cap_goi_y=0,
+            buoc=buoc_y_truoc[0],
+            y=buoc_y_truoc[1],
+        ))
+        db.flush()  # chốt thứ tự id: lượt khen phải đứng trước lượt dẫn
 
     turn_phan_hoi = Turn(
         session_id=session.id,
@@ -602,6 +727,10 @@ def xu_ly_luot(
         ket_qua_so_khop=ket_qua_dict,
         cap_goi_y=trang_thai_moi.cap_goi_y_hien_tai,
         co_bi_chot_chan=bi_chot,
+        # Trạng thái SAU xử lý (session.* đã cập nhật ở trên) — nếu bước vừa chuyển thì lượt
+        # này thuộc về bước MỚI, đúng như nội dung nó đang dẫn dắt.
+        buoc=trang_thai_moi.buoc_hien_tai,
+        y=trang_thai_moi.y_hien_tai,
     )
     db.add(turn_phan_hoi)
     _gan_co_ro_ri_neu_bi_chot(db, session, turn_phan_hoi, bi_chot)
@@ -618,6 +747,9 @@ def xu_ly_luot(
 
     return {
         "van_ban": van_ban,
+        # Câu chốt khen của bước CŨ (None nếu lượt này không chuyển bước) — FE hiện thành 1
+        # bong bóng riêng TRƯỚC dải phân cách.
+        "van_ban_chot": van_ban_chot,
         "y_dinh": chi_thi.y_dinh,
         "buoc_hien_tai": trang_thai_moi.buoc_hien_tai,
         "cap_goi_y": trang_thai_moi.cap_goi_y_hien_tai,

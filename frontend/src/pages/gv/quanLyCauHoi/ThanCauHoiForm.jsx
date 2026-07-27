@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LineChart, Table2, X } from 'lucide-react'
+import { AlertTriangle, LineChart, Table2, X } from 'lucide-react'
 import { api } from '../../../api'
 import { Button, Input, Select } from '../../../components/ui'
 import VeDoThiDialog from '../../../components/gv/VeDoThiDialog'
@@ -368,6 +368,21 @@ export function ThanCauHoiForm({ bai, setBai, dangOptions, choChonLoai, onLuu, o
                       onChange={(v) => setStep(si, { mo_ta: v })}
                       registerActive={register}
                     />
+                    {/* Nhắc mềm, KHÔNG chặn lưu (tránh phá luồng nhập nhanh của thầy/cô):
+                        mô tả bước là nhãn hiện trên "dải phân cách bước" trong khung chat của
+                        HS — bỏ trống thì em chỉ thấy "Bước 2/3" trống trơn, không biết bước
+                        này cần làm gì. */}
+                    {!(s.mo_ta || '').trim() && (
+                      <p className="text-xs text-warning bg-warning-soft rounded px-2 py-1
+                        inline-flex items-start gap-1.5">
+                        <AlertTriangle size={13} strokeWidth={2.4} className="shrink-0 mt-0.5" />
+                        <span>
+                          Chưa có mô tả bước. Học sinh sẽ chỉ thấy nhãn "Bước {s.thu_tu}" trong
+                          khung chat mà không biết bước này cần làm gì. Vẫn lưu được, nhưng nên
+                          điền cho rõ.
+                        </span>
+                      </p>
+                    )}
                     <div>
                       <p className="text-xs text-muted mb-1">Biểu thức kết quả (cú pháp SymPy - KHÔNG bọc $)</p>
                       <input

@@ -96,7 +96,8 @@ def tao_yeu_cau(db: Session, hs_id: int, session_id: int, noi_dung: str | None =
     # cho "Xem chi tiết" (GV xem toàn bộ hội thoại từ đầu ĐẾN ĐÚNG turn này, xem
     # chi_tiet_hoi_thoai() bên dưới).
     chat_nd = f"Nhờ thầy/cô: {noi_dung_sach}" if noi_dung_sach else "Em cần thầy/cô giúp đỡ ở bước này."
-    turn = Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd)
+    turn = Turn(session_id=session_id, vai_tro=VaiTroTurn.hoc_sinh, noi_dung=chat_nd,
+                buoc=session.buoc_hien_tai, y=session.y_hien_tai)
     db.add(turn)
     db.flush()  # có turn.id trước khi gán
     yc.turn_id = turn.id
@@ -258,8 +259,13 @@ def tra_loi(db: Session, gv_id: int, yc_id: int, noi_dung: str) -> dict:
     if not noi_dung:
         raise ValueError("Nội dung trả lời không được để trống")
 
-    # Chèn câu trả lời GV vào khung hội thoại của bài.
-    db.add(Turn(session_id=yc.session_id, vai_tro=VaiTroTurn.giao_vien, noi_dung=noi_dung))
+    # Chèn câu trả lời GV vào khung hội thoại của bài. Gắn buoc/y theo bước HIỆN TẠI của phiên
+    # (không phải bước lúc HS bấm nhờ): lượt này nằm CUỐI khung chat, mà HS có thể đã đi tiếp
+    # vài bước trong lúc chờ — gắn bước cũ sẽ khiến FE dựng 1 dải phân cách "lùi bước", gây rối.
+    phien = db.get(SessionModel, yc.session_id)
+    db.add(Turn(session_id=yc.session_id, vai_tro=VaiTroTurn.giao_vien, noi_dung=noi_dung,
+                buoc=phien.buoc_hien_tai if phien else None,
+                y=phien.y_hien_tai if phien else None))
     yc.trang_thai = TrangThaiTroGiup.da_tra_loi
     yc.tra_loi = noi_dung
     yc.gv_id = gv_id

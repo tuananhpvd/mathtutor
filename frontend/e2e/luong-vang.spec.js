@@ -48,12 +48,15 @@ test('HS làm trọn vẹn 1 bài TLN: đăng nhập → chọn bài → giải 
   await card.getByRole('button', { name: 'Bắt đầu' }).click()
 
   // Phòng học mở, bước 1/2: tính f'(x) = 3x^2 - 3
-  await expect(page.getByText('Bước 1/2')).toBeVisible()
+  // Scope vào thẻ <p> (card "Bước x/y" ở Khu vực trả lời) — "dải phân cách bước" trong khung
+  // chat (v159) cũng hiện cùng chữ "Bước x/y" ở thẻ <span> khi bước chuyển, nên getByText mù
+  // sẽ khớp 2 phần tử (strict mode violation) từ bước 2 trở đi.
+  await expect(page.locator('p', { hasText: 'Bước 1/2' })).toBeVisible()
   await nhapMathField(page, '3x^2-3')
   await page.getByRole('button', { name: 'Gửi câu trả lời' }).click()
 
   // Đúng bước 1 → sang bước 2/2: tìm a = 1
-  await expect(page.getByText('Bước 2/2')).toBeVisible()
+  await expect(page.locator('p', { hasText: 'Bước 2/2' })).toBeVisible()
   await nhapMathField(page, '1')
   await page.getByRole('button', { name: 'Gửi câu trả lời' }).click()
 

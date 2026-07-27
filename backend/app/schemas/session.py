@@ -26,6 +26,9 @@ class GửiTinRequest(BaseModel):
 
 class PhanHoiResponse(BaseModel):
     van_ban: str
+    # Câu chốt khen thuộc bước CŨ khi HS vừa làm đúng & chuyển bước — FE hiện thành bong bóng
+    # riêng TRƯỚC dải phân cách. None nếu lượt này không chuyển bước.
+    van_ban_chot: str | None = None
     y_dinh: str
     buoc_hien_tai: int
     cap_goi_y: int
@@ -43,6 +46,8 @@ class PhanHoiResponse(BaseModel):
     so_goi_y_toi_da: int | None = None    # số gợi ý tối đa của bước/ý hiện tại
     so_lan_khong_hieu: int | None = None  # số lần xin gợi ý/không hiểu CẢ PHIÊN
     tong_so_lan_sai: int | None = None    # số lần trả lời sai CẢ PHIÊN
+    # Mô tả các bước ĐÃ tới {khóa bước/ý → mô tả} — nhãn cho dải phân cách bước ở FE.
+    mo_ta_cac_buoc: dict | None = None
 
 
 class TurnResponse(BaseModel):
@@ -50,6 +55,10 @@ class TurnResponse(BaseModel):
     noi_dung: str
     dap_an_nhap: str | None = None
     cap_goi_y: int
+    # Bước/ý lượt này thuộc về — FE dựng "dải phân cách bước" trong khung chat.
+    # None với lượt tạo trước khi có cột này (lịch sử cũ) → FE bỏ qua, không dựng phân cách.
+    buoc: int | None = None
+    y: str | None = None
 
 
 class ChiTietPhienResponse(BaseModel):
@@ -77,6 +86,7 @@ class ChiTietPhienResponse(BaseModel):
     thoi_gian_y: dict | None = None
     dap_an_y: dict | None = None
     so_goi_y_toi_da: int | None = None
+    mo_ta_cac_buoc: dict | None = None  # {khóa bước/ý → mô tả} các bước ĐÃ tới
     so_lan_khong_hieu: int | None = None
     tong_so_lan_sai: int | None = None
     turns: list[TurnResponse]

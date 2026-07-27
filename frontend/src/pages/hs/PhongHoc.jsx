@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ArrowLeft, BookOpen, Check, CircleHelp, Lightbulb, Lock, Send, X,
+  ArrowDown, ArrowLeft, ArrowRight, BookOpen, Check, CircleHelp, Lightbulb, Lock, Send, X,
 } from 'lucide-react'
 import { api } from '../../api'
 import { Button, Card, CardBody, ChatBubble, TypingBubble } from '../../components/ui'
+import { dungDongChat } from '../../utils/dongChat'
 import Formula from '../../components/Formula'
 import HuongDanPhongHoc from '../../components/HuongDanPhongHoc'
 import MixedChatInput from '../../components/MixedChatInput'
@@ -102,6 +103,76 @@ function BangHoanThanh({
   )
 }
 
+// Dải phân cách bước trong khung chat (M1) — "mốc chương hồi" đánh dấu HS vừa sang bước/ý
+// mới. Chỉ hiện ĐÚNG 1 lần tại điểm chuyển, không lặp nhãn trên từng bong bóng.
+// Mô tả rỗng (GV bỏ trống) → chỉ hiện nhãn bước, KHÔNG để dòng trống lủng lẳng.
+function PhanCachBuoc({ nhan, moTa }) {
+  return (
+    <div className="flex items-center gap-2 py-1" role="separator">
+      <span className="h-px flex-1 bg-border" />
+      <span className="shrink-0 rounded-full bg-primary-soft px-3 py-1 text-center">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-primary">{nhan}</span>
+        {/* Mô tả bước hay chứa công thức ($y'=0$...) → phải qua renderDeBai như mọi nơi khác,
+            không in chữ thô. */}
+        {moTa && <span className="text-xs text-ink"> · {renderDeBai(moTa)}</span>}
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  )
+}
+
+// TN4PA đã mở khóa đáp án NHƯNG vẫn còn bước suy luận: cho HS tự chọn đi tiếp hay chốt luôn.
+// Trước đây hệ thống tự mở thẳng chip A-D ngay sau bước 1, nên các bước còn lại thành vô
+// nghĩa (vẫn hiện tên bước mà không có gì để làm).
+function ChonCheDoTN4PA({ cheDo, onChon }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      <button
+        type="button"
+        onClick={() => onChon('chon_dap_an')}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs
+          font-semibold transition-colors ${cheDo === 'chon_dap_an'
+            ? 'border-primary bg-primary text-white'
+            : 'border-primary/40 bg-primary-soft text-primary hover:bg-primary hover:text-white'}`}
+      >
+        <Check size={13} strokeWidth={2.6} />
+        Em đã có đáp án
+      </button>
+      <button
+        type="button"
+        onClick={() => onChon('lam_tiep')}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs
+          font-semibold transition-colors ${cheDo === 'lam_tiep'
+            ? 'border-primary bg-primary text-white'
+            : 'border-primary/40 bg-primary-soft text-primary hover:bg-primary hover:text-white'}`}
+      >
+        <ArrowRight size={13} strokeWidth={2.6} />
+        Tiếp tục nhận gợi ý
+      </button>
+    </div>
+  )
+}
+
+// Chip nối khung chat → Khu vực trả lời (M2). Chỉ gắn dưới lượt gia sư MỚI NHẤT (không rải
+// khắp lịch sử): đọc xong gợi ý thì biết ngay phải nhập ở đâu. Bấm vào sẽ cuộn tới + nháy
+// sáng khay đáp án.
+function ChipTraLoiODay({ onBam }) {
+  return (
+    <div className="flex justify-start">
+      <button
+        type="button"
+        onClick={onBam}
+        className="inline-flex items-center gap-1.5 rounded-full border border-primary/40
+          bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary transition-colors
+          hover:bg-primary hover:text-white"
+      >
+        <ArrowDown size={13} strokeWidth={2.6} />
+        Nhập câu trả lời ở Khu vực trả lời
+      </button>
+    </div>
+  )
+}
+
 // Card hiện thị bước hiện tại + mô tả (chỉ dùng cho TLN)
 function CardBuoc({ buoc_hien_tai, tong_buoc, buoc_mo_ta }) {
   if (!buoc_mo_ta) return null
@@ -119,21 +190,33 @@ function CardBuoc({ buoc_hien_tai, tong_buoc, buoc_mo_ta }) {
 
 // Khay đáp án — biến hình theo loại câu & pha mở khóa (tái dùng 3 component nhập đáp án).
 // Đây là vùng "bài làm được máy chấm" (dap_an_nhap), tách khỏi ô trò chuyện (noi_dung).
-function KhayDapAn({ problem, trangThai, gui, dangGui }) {
+function KhayDapAn({ problem, trangThai, gui, dangGui, conBuocTN4PA, cheDoTN4PA }) {
   const loai = problem.loai_cau
+  // TN4PA: đã mở khóa đáp án nhưng CÒN bước suy luận → tôn trọng lựa chọn của HS (2 nút trong
+  // hội thoại). Mặc định "làm tiếp" để em vẫn có việc để làm, thay vì bị đẩy thẳng sang chọn
+  // A-D và bỏ qua các bước còn lại.
+  const dangSuyLuanTN4PA = trangThai.cho_chon_dap_an === false
+    || (conBuocTN4PA && cheDoTN4PA !== 'chon_dap_an')
   return (
     <div className="rounded-[10px] border border-border bg-bg p-3">
       <p className="text-[11px] font-bold uppercase tracking-wide text-primary mb-2">
         Khu vực trả lời
       </p>
       {loai === 'TN4PA' && (
-        trangThai.cho_chon_dap_an === false ? (
+        dangSuyLuanTN4PA ? (
           // Pha suy luận: HS nhập biểu thức kết quả của bước (CAS chấm) trước khi mở A–D
           <>
             <div className="rounded-lg border border-primary/30 bg-primary-soft/60 px-3 py-2 mb-3 text-sm text-ink flex items-start gap-2">
               <Lock size={16} strokeWidth={2.2} className="shrink-0 mt-0.5 text-primary" />
-              <span>Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này -
-                làm đúng để chọn được đáp án nhé!</span>
+              {trangThai.cho_chon_dap_an === false ? (
+                <span>Các phương án A–D sẽ <b>mở khóa</b> ngay khi em tính đúng bước này -
+                  làm đúng để chọn được đáp án nhé!</span>
+              ) : (
+                // Đã mở khóa nhưng em chọn "Tiếp tục nhận gợi ý" → nói đúng trạng thái, đừng
+                // lặp lại câu "sẽ mở khóa" (gây hiểu nhầm là chưa mở).
+                <span>Phương án A–D đã <b>mở khóa</b> - em có thể làm nốt các bước cho chắc,
+                  hoặc bấm <b>"Em đã có đáp án"</b> ở khung trò chuyện để chọn luôn.</span>
+              )}
             </div>
             <CardBuoc
               buoc_hien_tai={trangThai.buoc_hien_tai}
@@ -214,6 +297,9 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     so_goi_y_toi_da: null,
     so_lan_khong_hieu: 0,
     tong_so_lan_sai: 0,
+    // {"1": "Tính y′"} hoặc {"a": "..."} (TNDS) — nhãn cho dải phân cách bước; server chỉ trả
+    // các bước HS ĐÃ tới nên không lộ bước sau.
+    mo_ta_cac_buoc: {},
   })
 
   // Báo cho HocSinhApp biết bài NÀY còn dở dang hay đã xong — để cảnh báo trước khi HS rời
@@ -229,6 +315,19 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
   const [zoomHinh, setZoomHinh] = useState(null)
   const [hienHuongDan, setHienHuongDan] = useState(false)
   const chatRef = useRef(null)
+  // Khay đáp án — chip "Nhập câu trả lời ở Khu vực trả lời" (M2) cuộn tới + nháy sáng chỗ này.
+  const khayRef = useRef(null)
+  const [nhayKhay, setNhayKhay] = useState(false)
+  // TN4PA đã mở khóa đáp án mà vẫn còn bước: 'lam_tiep' (mặc định - làm nốt các bước) hoặc
+  // 'chon_dap_an' (chốt luôn). HS tự chọn qua 2 nút trong khung hội thoại.
+  const [cheDoTN4PA, setCheDoTN4PA] = useState('lam_tiep')
+
+  function toiKhuVucTraLoi() {
+    khayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setNhayKhay(true)
+    setTimeout(() => setNhayKhay(false), 1200)
+  }
+
   // Hỏi tự do (chat với gia sư — không kèm đáp án): câu hỏi khái niệm, "vì sao", bối rối...
   const [cauHoi, setCauHoi] = useState('')
   const cauHoiRef = useRef(null)
@@ -290,7 +389,11 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
   function apDungChiTietPhien(ct) {
     setProblem({ loai_cau: ct.loai_cau, de_bai: ct.de_bai, hinh_anh: ct.hinh_anh, meta: ct.meta, chuyen_de: ct.chuyen_de, chuyen_de_id: ct.chuyen_de_id, dang_id: ct.dang_id, dang_ten: ct.dang_ten })
     setSid(ct.session_id)
-    setTurns(ct.turns.map((t) => ({ vai_tro: t.vai_tro, noi_dung: t.noi_dung })))
+    // Giữ buoc/y để dựng dải phân cách bước — lịch sử cũ (trước khi có 2 cột này) trả null,
+    // dungDongChat() tự bỏ qua nên không dựng phân cách sai.
+    setTurns(ct.turns.map((t) => ({
+      vai_tro: t.vai_tro, noi_dung: t.noi_dung, buoc: t.buoc ?? null, y: t.y ?? null,
+    })))
     setTrangThai({
       buoc_hien_tai: ct.buoc_hien_tai,
       y_hien_tai: ct.y_hien_tai,
@@ -309,6 +412,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
       so_goi_y_toi_da: ct.so_goi_y_toi_da ?? null,
       so_lan_khong_hieu: ct.so_lan_khong_hieu ?? 0,
       tong_so_lan_sai: ct.tong_so_lan_sai ?? 0,
+      mo_ta_cac_buoc: ct.mo_ta_cac_buoc || {},
     })
   }
 
@@ -347,13 +451,32 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     setDangGui(true)
     setError('')
 
-    const hsText = noi_dung || (dap_an_nhap != null ? `Em chọn: ${dap_an_nhap}` : '')
-    if (hsText) setTurns((ts) => [...ts, { vai_tro: 'hoc_sinh', noi_dung: hsText }])
-
+    // Lượt HS gắn bước ĐANG trả lời (trạng thái trước khi gửi) — khớp cách backend ghi vào
+    // turns.buoc, để dải phân cách rơi đúng giữa "trả lời bước cũ" và "lời dẫn bước mới".
+    const buocTruoc = trangThai.buoc_hien_tai
     const yTruoc = trangThai.y_hien_tai
+    const hsText = noi_dung || (dap_an_nhap != null ? `Em chọn: ${dap_an_nhap}` : '')
+    if (hsText) {
+      setTurns((ts) => [...ts, {
+        vai_tro: 'hoc_sinh', noi_dung: hsText, buoc: buocTruoc, y: yTruoc,
+      }])
+    }
+
     try {
       const res = await api.sendMessage(sid, { dap_an_nhap, noi_dung, yeu_cau_goi_y })
-      setTurns((ts) => [...ts, { vai_tro: 'gia_su', noi_dung: res.van_ban }])
+      setTurns((ts) => [...ts, ...[
+        // Câu chốt khen (nếu có) thuộc bước CŨ → nằm TRƯỚC dải phân cách, rồi mới tới lời
+        // dẫn vào bước mới. Nhờ vậy mạch đọc là: em trả lời → khen → ─ bước mới ─ → gợi ý.
+        res.van_ban_chot && {
+          vai_tro: 'gia_su', noi_dung: res.van_ban_chot, buoc: buocTruoc, y: yTruoc,
+        },
+        {
+          vai_tro: 'gia_su',
+          noi_dung: res.van_ban,
+          buoc: res.buoc_hien_tai ?? buocTruoc,
+          y: res.y_hien_tai ?? null,
+        },
+      ].filter(Boolean)])
       setTrangThai((tt) => {
         const ttY = { ...tt.trang_thai_y }
         if (problem?.loai_cau === 'TNDS' && dap_an_nhap != null && yTruoc) {
@@ -378,6 +501,7 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
           so_goi_y_toi_da: res.so_goi_y_toi_da ?? tt.so_goi_y_toi_da,
           so_lan_khong_hieu: res.so_lan_khong_hieu ?? tt.so_lan_khong_hieu,
           tong_so_lan_sai: res.tong_so_lan_sai ?? tt.tong_so_lan_sai,
+          mo_ta_cac_buoc: res.mo_ta_cac_buoc ?? tt.mo_ta_cac_buoc,
         }
       })
     } catch (e) {
@@ -410,6 +534,18 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
   // Hết thang gợi ý của bước/ý hiện tại → nút "Gợi ý" đổi thành mời Nhờ thầy/cô.
   const hetGoiY = trangThai.so_goi_y_toi_da != null &&
     trangThai.cap_goi_y >= trangThai.so_goi_y_toi_da - 1
+  // Xen dải phân cách bước vào danh sách lượt hội thoại (logic thuần ở utils/dongChat.js).
+  const dongChat = dungDongChat(turns, {
+    loaiCau: problem?.loai_cau,
+    tongBuoc: trangThai.tong_buoc,
+    moTaCacBuoc: trangThai.mo_ta_cac_buoc,
+  })
+  // TN4PA: đã đủ điều kiện chọn đáp án NHƯNG vẫn còn bước suy luận chưa làm → cho HS tự
+  // quyết (2 nút trong hội thoại) thay vì hệ thống tự đẩy sang chọn A-D.
+  const conBuocTN4PA = problem?.loai_cau === 'TN4PA'
+    && trangThai.cho_chon_dap_an === true
+    && trangThai.tong_buoc != null
+    && trangThai.buoc_hien_tai <= trangThai.tong_buoc
 
   return (
     <div className="flex flex-col gap-4">
@@ -484,9 +620,18 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
       <Card>
         <CardBody className="flex flex-col gap-3 pt-5">
             <div ref={chatRef} className="flex flex-col gap-3 overflow-y-auto max-h-[48vh] min-h-[180px] rounded-lg border border-border bg-surface-2/30 p-3">
-              {turns.map((t, i) => (
-                <ChatBubble key={i} vai_tro={t.vai_tro} text={t.noi_dung} />
+              {dongChat.map((d, i) => (
+                d.kieu === 'phan_cach'
+                  ? <PhanCachBuoc key={i} nhan={d.nhan} moTa={d.moTa} />
+                  : <ChatBubble key={i} vai_tro={d.turn.vai_tro} text={d.turn.noi_dung} />
               ))}
+              {/* Chip nối sang Khu vực trả lời — chỉ dưới lượt gia sư MỚI NHẤT, và chỉ khi
+                  bài chưa xong (xong rồi thì không còn gì để nhập). */}
+              {!daXong && !dangGui && turns.at(-1)?.vai_tro !== 'hoc_sinh' && turns.length > 0 && (
+                conBuocTN4PA
+                  ? <ChonCheDoTN4PA cheDo={cheDoTN4PA} onChon={(c) => { setCheDoTN4PA(c); toiKhuVucTraLoi() }} />
+                  : <ChipTraLoiODay onBam={toiKhuVucTraLoi} />
+              )}
               {dangGui && <TypingBubble />}
             </div>
             {nhoOk && (
@@ -516,43 +661,6 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                     <b>nhờ thầy/cô</b> bên dưới nhé. Em vẫn có thể hỏi gia sư hoặc thử nộp đáp án.
                   </div>
                 )}
-
-                {/* Hàng thao tác: chỉ "Gợi ý cho em" dùng màu nhấn (indigo), còn lại đồng nhất
-                    secondary — nằm TRÊN khu vực trả lời */}
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    variant="indigo"
-                    disabled={dangGui || daXong || hetGoiY}
-                    onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
-                  >
-                    <Lightbulb size={16} strokeWidth={2.2} />
-                    <span>
-                      {hetGoiY
-                        ? 'Đã dùng hết gợi ý'
-                        : trangThai.so_goi_y_toi_da != null
-                          ? `Gợi ý cho em (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
-                          : 'Gợi ý cho em'}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={!sid}
-                    onClick={() => { setNhoMo((v) => !v); setNhoText('') }}
-                  >
-                    <CircleHelp size={16} strokeWidth={2.2} />
-                    <span>Nhờ thầy/cô</span>
-                  </Button>
-                  {hetGoiY && (
-                    <Button variant="secondary" onClick={moLyThuyet}>
-                      <BookOpen size={16} strokeWidth={2.2} />
-                      <span>Xem lý thuyết</span>
-                    </Button>
-                  )}
-                  <Button variant="secondary" onClick={onChonBai}>
-                    <ArrowLeft size={16} strokeWidth={2.2} />
-                    <span>Quay lại làm sau</span>
-                  </Button>
-                </div>
 
                 {/* Nhờ thầy/cô — inline ngay trong khối (không còn modal toàn màn) */}
                 {nhoMo && (
@@ -592,9 +700,15 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                   <p className="text-sm text-warning bg-warning-soft rounded-md px-3 py-2">{error}</p>
                 )}
 
-                {/* 2 cột: KHU VỰC TRẢ LỜI (trái, máy chấm) · TRÒ CHUYỆN với gia sư (phải, phụ) */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-                  <KhayDapAn problem={problem} trangThai={trangThai} gui={gui} dangGui={dangGui} />
+                {/* 2 cột: KHU VỰC TRẢ LỜI (trái, máy chấm) · TRÒ CHUYỆN với gia sư (phải, phụ).
+                    Đặt NGAY dưới khung chat (trước đây bị hàng nút thao tác chen vào giữa như
+                    một "bức tường") — để quan hệ "đọc gợi ý xong thì nhập ngay đây" hiển nhiên. */}
+                <div ref={khayRef} className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                  <div className={`rounded-[10px] transition-shadow duration-300 ${
+                    nhayKhay ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                    <KhayDapAn problem={problem} trangThai={trangThai} gui={gui} dangGui={dangGui}
+                      conBuocTN4PA={conBuocTN4PA} cheDoTN4PA={cheDoTN4PA} />
+                  </div>
 
                   <div className="rounded-[10px] border border-border bg-bg p-3">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-muted mb-1.5">
@@ -617,6 +731,43 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                       }
                     />
                   </div>
+                </div>
+
+                {/* Hàng thao tác phụ trợ — đặt DƯỚI khu vực trả lời để không cắt ngang mạch
+                    "đọc gợi ý → nhập đáp án". Chỉ "Gợi ý cho em" dùng màu nhấn (indigo). */}
+                <div className="flex flex-wrap justify-center gap-2 border-t border-border pt-3">
+                  <Button
+                    variant="indigo"
+                    disabled={dangGui || daXong || hetGoiY}
+                    onClick={() => gui({ noi_dung: 'Xin thầy/cô gợi ý thêm cho em', yeu_cau_goi_y: true })}
+                  >
+                    <Lightbulb size={16} strokeWidth={2.2} />
+                    <span>
+                      {hetGoiY
+                        ? 'Đã dùng hết gợi ý'
+                        : trangThai.so_goi_y_toi_da != null
+                          ? `Gợi ý cho em (${Math.min(trangThai.cap_goi_y + 1, trangThai.so_goi_y_toi_da)}/${trangThai.so_goi_y_toi_da})`
+                          : 'Gợi ý cho em'}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={!sid}
+                    onClick={() => { setNhoMo((v) => !v); setNhoText('') }}
+                  >
+                    <CircleHelp size={16} strokeWidth={2.2} />
+                    <span>Nhờ thầy/cô</span>
+                  </Button>
+                  {hetGoiY && (
+                    <Button variant="secondary" onClick={moLyThuyet}>
+                      <BookOpen size={16} strokeWidth={2.2} />
+                      <span>Xem lý thuyết</span>
+                    </Button>
+                  )}
+                  <Button variant="secondary" onClick={onChonBai}>
+                    <ArrowLeft size={16} strokeWidth={2.2} />
+                    <span>Quay lại làm sau</span>
+                  </Button>
                 </div>
               </div>
             )}

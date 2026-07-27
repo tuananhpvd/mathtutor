@@ -98,6 +98,28 @@ def _so_goi_y_toi_da(problem, buoc_so: int, y_hien_tai: str | None = None) -> in
     return len(s.danh_sach_goi_y or []) or None
 
 
+def _mo_ta_cac_buoc(problem, session) -> dict:
+    """Mô tả các bước HS ĐÃ TỚI — để FE dựng nhãn cho "dải phân cách bước" trong khung chat.
+
+    Tra ĐỘNG theo solution_steps hiện hành (không lưu nguyên văn vào turns), nên GV sửa mô tả
+    bước thì lịch sử hội thoại hiển thị theo bản MỚI, không bị lệch.
+
+    CHỈ trả bước đã tới, KHÔNG trả bước tương lai — mô tả bước sau là một dạng gợi ý trước,
+    lộ ra sẽ phá nguyên tắc gợi ý leo thang. Khóa: ký hiệu ý (TNDS) hoặc số thứ tự bước.
+    """
+    if problem is None:
+        return {}
+    steps = problem.solution_steps or []
+    if problem.loai_cau.value == "TNDS":
+        # Ý đã tới = đã xong hoặc đang làm (theo trang_thai_y của phiên).
+        da_toi = {k for k, v in (session.trang_thai_y or {}).items() if v in ("xong", "dang_lam")}
+        if session.y_hien_tai:
+            da_toi.add(session.y_hien_tai)
+        return {s.pham_vi: s.mo_ta for s in steps if s.pham_vi in da_toi and s.mo_ta}
+    return {str(s.thu_tu): s.mo_ta for s in steps
+            if s.thu_tu <= session.buoc_hien_tai and s.mo_ta}
+
+
 def _dap_an_y_neu_xong(problem, da_xong: bool) -> dict | None:
     """TNDS: đáp án đúng từng ý {a: 'Dung', ...} — CHỈ trả khi phiên đã hoàn thành.
 
@@ -234,6 +256,7 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
         thoi_gian_y=session.thoi_gian_y,
         dap_an_y=_dap_an_y_neu_xong(problem, session.trang_thai.value == "hoan_thanh"),
         so_goi_y_toi_da=_so_goi_y_toi_da(problem, session.buoc_hien_tai, session.y_hien_tai),
+        mo_ta_cac_buoc=_mo_ta_cac_buoc(problem, session),
         so_lan_khong_hieu=session.so_lan_khong_hieu,
         tong_so_lan_sai=session.tong_so_lan_sai,
         turns=[
@@ -242,6 +265,8 @@ def chi_tiet_phien(session_id: int, current_user: CurrentUser, db: Session = Dep
                 noi_dung=t.noi_dung,
                 dap_an_nhap=t.dap_an_nhap,
                 cap_goi_y=t.cap_goi_y,
+                buoc=t.buoc,
+                y=t.y,
             )
             for t in turns
         ],
@@ -413,4 +438,5 @@ def gui_tin(
     result["so_goi_y_toi_da"] = _so_goi_y_toi_da(
         problem, result["buoc_hien_tai"], result.get("y_hien_tai")
     )
+    result["mo_ta_cac_buoc"] = _mo_ta_cac_buoc(problem, session)
     return PhanHoiResponse(**result)

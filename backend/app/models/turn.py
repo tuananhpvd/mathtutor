@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, Text
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -24,6 +24,13 @@ class Turn(Base):
     dap_an_nhap: Mapped[str | None] = mapped_column(Text, nullable=True)
     ket_qua_so_khop: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     cap_goi_y: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Bước/ý mà lượt này thuộc về — để FE dựng "dải phân cách bước" trong khung chat, kể cả
+    # khi HS "Làm tiếp" (tải lại lịch sử). CHỈ lưu SỐ THỨ TỰ bước (và ký hiệu ý với TNDS),
+    # KHÔNG lưu nguyên văn mô tả: mô tả được tra ĐỘNG lúc render theo bản solution_steps mới
+    # nhất, nên GV sửa mô tả bước thì lịch sử hiển thị theo bản mới, không bị lệch.
+    # Nullable: lượt tạo TRƯỚC khi có cột này = NULL → FE không dựng phân cách (thoái lui êm).
+    buoc: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    y: Mapped[str | None] = mapped_column(String(10), nullable=True)
     co_bi_chot_chan: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     thoi_diem: Mapped[datetime] = mapped_column(
         UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False

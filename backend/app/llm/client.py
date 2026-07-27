@@ -91,6 +91,14 @@ class StubLLMClient(LLMClient):
                 f"Ta cùng phân tích bài này từ từ. {y_goi_y}",
                 f"Mình vào bài thôi. {y_goi_y}",
             ])
+        # Dẫn vào bước/ý MỚI sau khi HS vừa làm đúng — KHÔNG chào lại (đang giữa buổi học),
+        # KHÔNG khen lại (đã có lượt chốt khen riêng ngay trước đó).
+        if y_dinh == "dan_buoc_moi":
+            return pick([
+                f"Giờ ta sang phần tiếp theo nhé. {y_goi_y}",
+                f"Tiếp tục nào. {y_goi_y}",
+                f"Ta đi tiếp phần sau. {y_goi_y}",
+            ])
         if y_dinh == "xac_nhan_dung":
             return pick([
                 f"Chính xác rồi! Ta sang bước tiếp nhé: {y_goi_y}",

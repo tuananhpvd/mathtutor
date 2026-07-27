@@ -181,9 +181,15 @@ def xu_ly_tn4pa(
         buoc_tiep = _tim_buoc_tiep(st)
         # Mở khóa đáp án sau khi làm đúng tối thiểu 1 bước (đẩy buoc_hien_tai > 1).
         st.buoc_hien_tai = buoc_tiep if buoc_tiep is not None else st.buoc_hien_tai + 1
-        return _chi_thi(st, "xac_nhan_dung",
-                        "khen HS tính đúng bước này, mời em chọn phương án phù hợp",
-                        ngu_canh_hs), st
+        if buoc_tiep is None:
+            # HẾT bước suy luận → giờ mới mời chọn phương án.
+            return _chi_thi(st, "xac_nhan_dung",
+                            "khen HS tính đúng, mời em chọn phương án phù hợp",
+                            ngu_canh_hs), st
+        # CÒN bước → dẫn vào bước kế như TLN, KHÔNG mời chọn đáp án ngay (trước đây luôn mời
+        # nên các bước còn lại thành vô nghĩa dù vẫn hiện tên bước). HS vẫn được quyền chốt
+        # sớm: FE hiện 2 nút "Em đã có đáp án" / "Làm tiếp" vì đáp án đã đủ điều kiện mở khóa.
+        return _chi_thi(st, "xac_nhan_dung", _lay_goi_y(st), ngu_canh_hs), st
 
     # Sai biểu thức bước
     _tang_sai(st)
@@ -239,7 +245,10 @@ def xu_ly_tnds(
     if not la_chon_dung_sai:
         if ket_qua_y == KetQuaSoKhop.DUNG:
             st.da_suy_luan = True
-            st.cap_goi_y_hien_tai = 0
+            # KHÔNG reset cap_goi_y ở đây: HS vẫn Ở LẠI đúng ý này (chỉ chuyển từ pha suy luận
+            # sang pha chốt Đúng/Sai), mà cả 2 pha dùng CHUNG một thang gợi ý của ý đó. Reset
+            # về 0 khiến lần xin gợi ý kế tiếp lặp lại gợi ý ĐẦU TIÊN em vừa đọc — nhìn như gia
+            # sư đi lùi. Thang chỉ reset khi thật sự CHUYỂN Ý (xem cuối hàm).
             st.so_lan_sai_lien_tiep = 0
             return _chi_thi(st, "xac_nhan_dung",
                             "khen HS suy luận đúng, mời em kết luận Đúng/Sai cho ý này",

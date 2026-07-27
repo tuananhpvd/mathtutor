@@ -59,8 +59,16 @@ def test_loi_chao_mo_dau_bi_chot_chan_neu_ro_ri(db):
 
     # HS KHÔNG được thấy đáp án "5" trong câu chào — dù LLM (provider) trả về rò rỉ
     assert "Đáp án là 5" not in van_ban
-    assert van_ban == "[Nội dung bị lọc — có thể chứa đáp án]"
+
+    # ... và cũng KHÔNG được thấy chuỗi kỹ thuật "[Nội dung bị lọc...]" như trước đây: câu
+    # ĐẦU TIÊN của phiên mà là một dòng lỗi hệ thống thì HS vừa hoang mang vừa không biết
+    # phải làm gì. Nay thay bằng lời dẫn thân thiện, hướng em về Khu vực trả lời.
+    assert "bị lọc" not in van_ban
+    assert "[" not in van_ban
+    assert "Khu vực trả lời" in van_ban
 
     from app.models.turn import Turn
     turn = db.query(Turn).filter(Turn.session_id == session.id).first()
+    # Vẫn phải bị đánh dấu chốt chặn để GV thấy cờ rò rỉ (chỉ đổi chữ gửi HS, không nới lỏng).
     assert turn.co_bi_chot_chan is True
+    assert turn.noi_dung == van_ban

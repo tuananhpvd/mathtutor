@@ -254,6 +254,60 @@ def test_tnds_khong_phan_tich():
     assert "Đúng hoặc Sai" in ct.y_goi_y or "chọn" in ct.y_goi_y
 
 
+def test_tnds_suy_luan_dung_khong_lui_ve_goi_y_dau():
+    """Suy luận đúng trong 1 ý → chuyển sang pha chốt Đúng/Sai NHƯNG VẪN ở ý đó, nên thang
+    gợi ý phải GIỮ NGUYÊN cấp. Trước đây reset về 0 khiến lần xin gợi ý kế tiếp lặp lại đúng
+    gợi ý ĐẦU TIÊN em vừa đọc — nhìn như gia sư đi lùi."""
+    st = make_tnds(y_hien_tai="a",
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    # Xin gợi ý 1 lần → lên cấp 1 (gợi ý a2)
+    ct, st = xu_ly_tnds(st, None, "", yeu_cau_goi_y=True)
+    assert st.cap_goi_y_hien_tai == 1
+    assert "gợi ý a2" in ct.y_goi_y
+
+    # Suy luận đúng → sang pha chốt, VẪN ý a
+    ct, st = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "", bat_buoc_suy_luan_y=True)
+    assert st.y_hien_tai == "a"
+    assert st.cap_goi_y_hien_tai == 1, "không được reset thang gợi ý khi còn ở cùng 1 ý"
+
+    # Xin gợi ý tiếp → phải ĐI TỚI (a3), không quay lại a1
+    ct, st = xu_ly_tnds(st, None, "", yeu_cau_goi_y=True)
+    assert "gợi ý a3" in ct.y_goi_y
+    assert "gợi ý a1" not in ct.y_goi_y
+
+
+def test_tnds_chuyen_y_thi_moi_reset_thang_goi_y():
+    """Ngược lại: CHUYỂN Ý thì thang gợi ý phải về 0 (ý mới có thang riêng)."""
+    st = make_tnds(y_hien_tai="a", cap_goi_y_hien_tai=2,
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    ct, st = xu_ly_tnds(st, KetQuaSoKhop.DUNG, "", la_chon_dung_sai=True)
+    assert st.y_hien_tai == "b"
+    assert st.cap_goi_y_hien_tai == 0
+
+
+def test_tn4pa_con_buoc_thi_khong_moi_chon_dap_an_ngay():
+    """Bài có NHIỀU bước suy luận: làm đúng bước 1 → dẫn vào bước 2, KHÔNG mời chọn phương án
+    ngay (trước đây luôn mời nên các bước còn lại thành vô nghĩa dù vẫn hiện tên bước)."""
+    steps = [
+        {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "b1", "bieu_thuc_ket_qua": "1",
+         "danh_sach_goi_y": ["g1"]},
+        {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "b2", "bieu_thuc_ket_qua": "2",
+         "danh_sach_goi_y": ["g2 cua buoc 2"]},
+    ]
+    st = TrangThaiPhien(loai_cau="TN4PA", steps=steps)
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.DUNG, "", bat_buoc_suy_luan=True)
+    assert st2.buoc_hien_tai == 2
+    assert "chọn phương án" not in ct.y_goi_y
+    assert "g2 cua buoc 2" in ct.y_goi_y
+
+
+def test_tn4pa_het_buoc_thi_moi_chon_dap_an():
+    """Bài 1 bước: làm đúng → hết bước suy luận → GIỜ mới mời chọn phương án."""
+    st = make_tn4pa()
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.DUNG, "", bat_buoc_suy_luan=True)
+    assert "chọn phương án" in ct.y_goi_y
+
+
 def test_orchestrator_tnds_khong_import_llm():
     import ast
     import pathlib
