@@ -13,9 +13,9 @@ class MucConItem(BaseModel):
 
 
 class TaoMucTieuRequest(BaseModel):
-    loai: str = Field(..., description="tuan | chu_de | nhieu")
+    loai: str = Field(..., description="tuan | ngay | chu_de | nhieu")
     tieu_de: str | None = None
-    chi_tieu_so: int | None = Field(None, ge=1)  # cho tuan | chu_de (không dùng cho 'nhieu')
+    chi_tieu_so: int | None = Field(None, ge=1)  # cho tuan|ngay|chu_de (không dùng cho 'nhieu')
     dang_id: int | None = None
     chuyen_de: str | None = None
     han: datetime | None = None

@@ -11,6 +11,8 @@ class MucTieu(Base):
     """Mục tiêu học tập của HS (B1).
 
     - loai = 'tuan': hoàn thành `chi_tieu_so` bài trong 7 ngày kể từ moc_bat_dau.
+    - loai = 'ngay': hoàn thành `chi_tieu_so` bài trong 1 ngày kể từ moc_bat_dau — CÙNG cơ chế
+      tính với 'tuan' (khác mỗi độ rộng cửa sổ), xem _tien_do() trong muc_tieu_service.py.
     - loai = 'chu_de': hoàn thành `chi_tieu_so` bài thuộc dạng `dang_id` (từ moc_bat_dau).
     - loai = 'nhieu': gồm NHIỀU dòng con (`muc_con` JSON) — mỗi dòng là 1 bộ lọc riêng kèm số
       lượng, VD [{"dang_id":3,"chi_tieu_so":3}, {"do_kho":"kho","chi_tieu_so":2}]. Mỗi dòng đếm

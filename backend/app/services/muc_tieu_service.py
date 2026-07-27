@@ -18,7 +18,7 @@ from app.models.user import User
 from app.services import thong_bao_service
 from app.services.gv_service import _so_huu_hs
 
-LOAI_HOP_LE = {"tuan", "chu_de", "nhieu"}
+LOAI_HOP_LE = {"tuan", "ngay", "chu_de", "nhieu"}
 LOAI_CAU_HOP_LE = {"TN4PA", "TNDS", "TLN"}
 DO_KHO_HOP_LE = {"de", "tb", "kho"}
 
@@ -82,8 +82,10 @@ def _prog_muc(muc: dict, comp: list[dict], moc: datetime | None) -> int:
 
 def _tien_do(mt: MucTieu, comp: list[dict]) -> int:
     moc = _naive(mt.moc_bat_dau)
-    if mt.loai == "tuan":
-        den = (moc + timedelta(days=7)) if moc else None
+    if mt.loai in ("tuan", "ngay"):
+        # 'ngay' dùng CHUNG logic với 'tuan' — chỉ khác độ rộng cửa sổ tính (1 ngày thay vì 7).
+        so_ngay = 1 if mt.loai == "ngay" else 7
+        den = (moc + timedelta(days=so_ngay)) if moc else None
         return len({c["pid"] for c in comp
                     if c["luc"] and moc and den and moc <= c["luc"] < den})
     if mt.loai == "chu_de":
@@ -226,11 +228,15 @@ def tao(
             dang = db.get(Dang, dang_id)
             if dang is None:
                 raise ValueError("Dạng không tồn tại")
-        else:  # tuan
+        else:  # tuan | ngay
             dang_id = None
         if not tieu_de:
-            tieu_de = (f"Hoàn thành {chi_tieu_so} bài dạng «{dang.ten}»" if dang
-                       else f"Hoàn thành {chi_tieu_so} bài trong tuần này")
+            if dang:
+                tieu_de = f"Hoàn thành {chi_tieu_so} bài dạng «{dang.ten}»"
+            elif loai == "ngay":
+                tieu_de = f"Hoàn thành {chi_tieu_so} bài trong ngày hôm nay"
+            else:
+                tieu_de = f"Hoàn thành {chi_tieu_so} bài trong tuần này"
         mt = MucTieu(
             hoc_sinh_id=hoc_sinh_id, nguoi_tao_id=nguoi_tao_id, nguon=nguon, loai=loai,
             tieu_de=tieu_de, dang_id=dang_id if loai == "chu_de" else None,
@@ -252,14 +258,45 @@ def tao(
     return {"id": mt.id}
 
 
+def _khoa_goi_y(loai: str, dang_id: int | None) -> tuple:
+    """Khóa định danh 1 gợi ý — dùng để so với mục tiêu ĐANG CÓ, tránh gợi ý lại cái đã có."""
+    return (loai, dang_id)
+
+
+def _dang_co_chua_dat(db: Session, hoc_sinh_id: int, comp: list[dict]) -> set[tuple]:
+    """Khóa các mục tiêu ĐANG HOẠT ĐỘNG (chưa hủy) VÀ CHƯA ĐẠT của HS — dùng để lọc de_xuat()
+    khỏi gợi ý lại cái HS đã đặt rồi. Mục tiêu ĐÃ ĐẠT thì KHÔNG chặn (để lại "sáng" lên, HS có
+    thể chọn tiếp một chỉ tiêu mới cùng loại — đúng góp ý: "khi nào hoàn thành thì mục tiêu đó
+    mới sáng lên để chọn tiếp")."""
+    goals = (
+        db.query(MucTieu)
+        .filter(MucTieu.hoc_sinh_id == hoc_sinh_id, MucTieu.da_huy == False)  # noqa: E712
+        .all()
+    )
+    khoa: set[tuple] = set()
+    for g in goals:
+        if g.loai not in ("chu_de", "tuan", "ngay"):
+            continue
+        if _tien_do(g, comp) >= g.chi_tieu_so:
+            continue  # đã đạt → không chặn, để gợi ý có thể xuất hiện lại
+        khoa.add(_khoa_goi_y(g.loai, g.dang_id))
+    return khoa
+
+
 def de_xuat(db: Session, hoc_sinh_id: int) -> list[dict]:
-    """Gợi ý mục tiêu (chưa lưu) từ điểm yếu + một mục tiêu tuần mặc định."""
+    """Gợi ý mục tiêu (chưa lưu) từ điểm yếu + các mục tiêu mặc định (tuần/ngày) — BỎ QUA gợi ý
+    nào đã có mục tiêu đang hoạt động, chưa đạt, khớp cùng loại/dạng (tránh HS thêm trùng)."""
     from app.services.phan_tich_service import ho_so_nang_luc
+
+    comp = _ds_hoan_thanh(db, hoc_sinh_id)
+    da_co = _dang_co_chua_dat(db, hoc_sinh_id, comp)
 
     ho_so = ho_so_nang_luc(db, hoc_sinh_id)
     goi_y: list[dict] = []
     for r in (ho_so.get("diem_yeu") or [])[:3]:
         if not r.get("dang_id"):
+            continue
+        if _khoa_goi_y("chu_de", r["dang_id"]) in da_co:
             continue
         ten_dang = r["ten"].split("›")[-1].strip()
         goi_y.append({
@@ -269,10 +306,16 @@ def de_xuat(db: Session, hoc_sinh_id: int) -> list[dict]:
             "dang_id": r["dang_id"],
             "chuyen_de": r.get("chuyen_de"),
         })
-    goi_y.append({
-        "loai": "tuan", "tieu_de": "Hoàn thành 5 bài trong tuần này",
-        "chi_tieu_so": 5, "dang_id": None, "chuyen_de": None,
-    })
+    if _khoa_goi_y("tuan", None) not in da_co:
+        goi_y.append({
+            "loai": "tuan", "tieu_de": "Hoàn thành 5 bài trong tuần này",
+            "chi_tieu_so": 5, "dang_id": None, "chuyen_de": None,
+        })
+    if _khoa_goi_y("ngay", None) not in da_co:
+        goi_y.append({
+            "loai": "ngay", "tieu_de": "Hoàn thành 3 bài trong ngày hôm nay",
+            "chi_tieu_so": 3, "dang_id": None, "chuyen_de": None,
+        })
     return goi_y
 
 

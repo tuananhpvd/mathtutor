@@ -3,7 +3,7 @@ import { CheckCircle2, Lightbulb, Target } from 'lucide-react'
 import { api } from '../api'
 import { Badge, Button, Card, CardBody, CardHeader, Input, useConfirm } from './ui'
 
-const NHAN_LOAI = { tuan: 'Theo tuần', chu_de: 'Theo chủ đề', nhieu: 'Kế hoạch' }
+const NHAN_LOAI = { tuan: 'Theo tuần', ngay: 'Theo ngày', chu_de: 'Theo chủ đề', nhieu: 'Kế hoạch' }
 const NHAN_NGUON = { hs: 'Em tự đặt', gv: 'Thầy/cô đặt', he_thong: 'Gợi ý' }
 const NHAN_LOAI_CAU = { TN4PA: 'Trắc nghiệm', TNDS: 'Đúng/Sai', TLN: 'Trả lời ngắn' }
 const NHAN_DO_KHO = { de: 'Dễ', tb: 'Trung bình', kho: 'Khó' }
@@ -51,6 +51,9 @@ export default function MucTieuPanel({
   const [ds, setDs] = useState([])
   const [bais, setBais] = useState([])       // ngân hàng câu (chỉ để đếm số câu mỗi nhóm)
   const [deXuat, setDeXuat] = useState(null)
+  // Index các dòng gợi ý ĐÃ bấm "+ Thêm" trong lần mở hiện tại — chỉ mờ/khóa đúng dòng đó,
+  // KHÔNG đóng cả danh sách (khác hành vi cũ). Reset mỗi lần mở lại danh sách gợi ý mới.
+  const [daThemGoiY, setDaThemGoiY] = useState(() => new Set())
   const [moForm, setMoForm] = useState(false)
 
   // Bộ lọc + duyệt
@@ -132,14 +135,21 @@ export default function MucTieuPanel({
 
   const tongBai = dongs.reduce((s, d) => s + d.chi_tieu_so, 0)
 
-  async function layDeXuat() {
+  // Toggle như nút "Đặt mục tiêu/Đóng" — bấm lại thì đóng cả danh sách (1 nút Hủy CHUNG duy
+  // nhất, thay vì mỗi hàng có 1 nút Hủy đều đóng hết như trước).
+  async function toggleDeXuat() {
+    if (deXuat) { setDeXuat(null); return }
+    setDaThemGoiY(new Set())
     try { setDeXuat(await taiDeXuat()) } catch (e) { setLoi(e.message) }
   }
-  async function themTuGoiY(g) {
+  // Bấm "+ Thêm" ở 1 hàng: CHỈ thêm đúng mục tiêu đó rồi mờ/khóa riêng hàng đó — không đóng
+  // danh sách, để em còn thêm tiếp các gợi ý khác trong cùng lượt xem.
+  async function themTuGoiY(g, i) {
     try {
       await taoMt({ loai: g.loai, tieu_de: g.tieu_de, chi_tieu_so: g.chi_tieu_so,
         dang_id: g.dang_id, chuyen_de: g.chuyen_de })
-      setDeXuat(null); tai()
+      setDaThemGoiY((s) => new Set(s).add(i))
+      tai()
     } catch (e) { setLoi(e.message) }
   }
 
@@ -184,8 +194,8 @@ export default function MucTieuPanel({
         subtitle={phuDe}
         action={choPhepThem && (
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={layDeXuat}>
-              <Lightbulb size={14} strokeWidth={2.4} /> Gợi ý
+            <Button size="sm" variant="secondary" onClick={toggleDeXuat}>
+              <Lightbulb size={14} strokeWidth={2.4} /> {deXuat ? 'Đóng gợi ý' : 'Gợi ý'}
             </Button>
             <Button size="sm" onClick={() => setMoForm((v) => !v)}>
               {moForm ? 'Đóng' : '+ Đặt mục tiêu'}
@@ -196,26 +206,30 @@ export default function MucTieuPanel({
       <CardBody className="flex flex-col gap-3">
         {loi && <p className="text-sm text-danger">{loi}</p>}
 
-        {/* Gợi ý */}
+        {/* Gợi ý — đóng CHUNG bằng nút "Đóng gợi ý" ở header (toggle), không còn nút Hủy riêng
+            từng hàng. Mỗi hàng "+ Thêm" chỉ thêm đúng mục tiêu đó rồi mờ/khóa tại chỗ; các
+            hàng khác vẫn bấm được bình thường. */}
         {deXuat && (
           <div className="rounded-xl border border-border bg-surface-2/40 p-3 flex flex-col gap-2">
             <p className="text-sm font-semibold text-ink">Gợi ý mục tiêu</p>
             {deXuat.length === 0 ? (
               <p className="text-xs text-muted">Chưa có gợi ý phù hợp (cần thêm dữ liệu luyện tập).</p>
-            ) : deXuat.map((g, i) => (
-              <div key={i} className="flex items-center justify-between gap-2">
-                <span className="text-sm text-ink">{g.tieu_de}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button size="sm" variant="secondary" onClick={() => themTuGoiY(g)}>+ Thêm</Button>
-                  <Button size="sm" variant="secondary" onClick={() => setDeXuat(null)}>Hủy</Button>
+            ) : deXuat.map((g, i) => {
+              const daThem = daThemGoiY.has(i)
+              return (
+                <div key={i}
+                  className={`flex items-center justify-between gap-2 ${daThem ? 'opacity-50' : ''}`}>
+                  <span className="text-sm text-ink inline-flex items-center gap-1.5">
+                    {daThem && <CheckCircle2 size={14} strokeWidth={2.4} className="text-success shrink-0" />}
+                    {g.tieu_de}
+                  </span>
+                  <Button size="sm" variant="secondary" disabled={daThem}
+                    onClick={() => themTuGoiY(g, i)}>
+                    {daThem ? 'Đã thêm' : '+ Thêm'}
+                  </Button>
                 </div>
-              </div>
-            ))}
-            {deXuat.length === 0 && (
-              <div className="flex justify-end">
-                <Button size="sm" variant="secondary" onClick={() => setDeXuat(null)}>Hủy</Button>
-              </div>
-            )}
+              )
+            })}
           </div>
         )}
 

@@ -1,6 +1,6 @@
 """Tests B1: mục tiêu học tập (HS tự đặt, GV đặt, đề xuất, tiến độ, bộ lọc tùy chọn)."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.auth.security import hash_password
 from app.models.danh_muc import ChuyenDe, Dang
@@ -97,6 +97,96 @@ def test_tien_do_tuan(db, client):
     assert ds[0]["loai"] == "tuan" and ds[0]["hien_tai"] == 1 and ds[0]["da_dat"] is True
 
 
+def test_tien_do_ngay(db, client):
+    s = _seed(db)
+    h = _h(client, "hs1")
+    client.post("/api/muc-tieu/hs", headers=h, json={"loai": "ngay", "chi_tieu_so": 1})
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": s["p1"]}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+    ds = client.get("/api/muc-tieu/hs", headers=h).json()
+    assert ds[0]["loai"] == "ngay" and ds[0]["hien_tai"] == 1 and ds[0]["da_dat"] is True
+    assert "hôm nay" in ds[0]["tieu_de"]
+
+
+def test_tien_do_ngay_cua_so_hep_hon_tuan(db, client):
+    """'ngay' chỉ đếm bài hoàn thành trong ĐÚNG 1 ngày kể từ lúc đặt — hẹp hơn hẳn 'tuan'
+    (7 ngày). Giả lập mục tiêu đã đặt từ 2 ngày trước rồi mới hoàn thành bài HÔM NAY: nằm
+    NGOÀI cửa sổ 1 ngày của 'ngay' (đã đóng từ hôm qua) nhưng vẫn trong cửa sổ 7 ngày của
+    'tuan'."""
+    s = _seed(db)
+    h = _h(client, "hs1")
+    mid_ngay = client.post("/api/muc-tieu/hs", headers=h,
+                           json={"loai": "ngay", "chi_tieu_so": 1}).json()["id"]
+    mid_tuan = client.post("/api/muc-tieu/hs", headers=h,
+                           json={"loai": "tuan", "chi_tieu_so": 1}).json()["id"]
+
+    hai_ngay_truoc = datetime.now(timezone.utc) - timedelta(days=2)
+    for mid in (mid_ngay, mid_tuan):
+        mt = db.get(MucTieu, mid)
+        mt.moc_bat_dau = hai_ngay_truoc
+    db.commit()
+
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": s["p1"]}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    ds = {d["id"]: d for d in client.get("/api/muc-tieu/hs", headers=h).json()}
+    assert ds[mid_ngay]["hien_tai"] == 0 and ds[mid_ngay]["da_dat"] is False
+    assert ds[mid_tuan]["hien_tai"] == 1 and ds[mid_tuan]["da_dat"] is True
+
+
+def test_de_xuat_khong_lap_lai_muc_tieu_chua_dat(db, client):
+    """Đã đặt mục tiêu 'tuan' rồi (CHƯA đạt) → de_xuat() KHÔNG gợi ý lại 'tuan' nữa, tránh HS
+    mở gợi ý ra thấy vẫn còn dòng đã thêm rồi (bug thực tế phát hiện lúc dùng thử: trước đây
+    de_xuat() không hề biết tới các mục tiêu đã có)."""
+    s = _seed(db)
+    h = _h(client, "hs1")
+    client.post("/api/muc-tieu/hs", headers=h, json={"loai": "tuan", "chi_tieu_so": 5})
+    client.post("/api/muc-tieu/hs", headers=h, json={"loai": "ngay", "chi_tieu_so": 3})
+
+    dx = client.get("/api/muc-tieu/hs/de-xuat", headers=h).json()
+    assert not any(g["loai"] == "tuan" for g in dx)
+    assert not any(g["loai"] == "ngay" for g in dx)
+
+
+def test_de_xuat_gan_lai_khi_muc_tieu_da_dat(db, client):
+    """Mục tiêu ĐÃ ĐẠT thì gợi ý cùng loại phải 'sáng lên' lại — đúng góp ý: hoàn thành xong
+    mới cho chọn tiếp một chỉ tiêu mới cùng loại."""
+    s = _seed(db)
+    h = _h(client, "hs1")
+    client.post("/api/muc-tieu/hs", headers=h, json={"loai": "ngay", "chi_tieu_so": 1})
+
+    sid = client.post("/api/sessions", headers=h, json={"problem_id": s["p1"]}).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message", headers=h, json={"dap_an_nhap": "5"})
+
+    dx = client.get("/api/muc-tieu/hs/de-xuat", headers=h).json()
+    assert any(g["loai"] == "ngay" for g in dx)
+
+
+def test_de_xuat_bo_qua_muc_tieu_da_huy(db, client):
+    """Mục tiêu đã bị XÓA (da_huy) không được tính là 'đang có' — gợi ý phải xuất hiện lại."""
+    s = _seed(db)
+    h = _h(client, "hs1")
+    r = client.post("/api/muc-tieu/hs", headers=h, json={"loai": "tuan", "chi_tieu_so": 5})
+    mid = r.json()["id"]
+    client.delete(f"/api/muc-tieu/{mid}", headers=h)
+
+    dx = client.get("/api/muc-tieu/hs/de-xuat", headers=h).json()
+    assert any(g["loai"] == "tuan" for g in dx)
+
+
+def test_de_xuat_diem_yeu_khong_lap_lai_khi_da_co_muc_tieu_dang(db, client):
+    """Gợi ý theo điểm yếu (chu_de) cũng phải lọc trùng dang_id, không chỉ 2 gợi ý mặc định."""
+    s = _seed(db)
+    h = _h(client, "hs1")
+    client.post("/api/muc-tieu/hs", headers=h, json={
+        "loai": "chu_de", "chi_tieu_so": 3, "dang_id": s["dang"],
+    })
+    khoa = muc_tieu_service._khoa_goi_y("chu_de", s["dang"])
+    comp = muc_tieu_service._ds_hoan_thanh(db, s["hs"])
+    da_co = muc_tieu_service._dang_co_chua_dat(db, s["hs"], comp)
+    assert khoa in da_co
+
+
 def test_gv_dat_muc_tieu_bao_hs(db, client):
     s = _seed(db)
     h_gv = _h(client, "gv1")
@@ -125,6 +215,7 @@ def test_de_xuat_co_muc_tieu_tuan(db, client):
     h = _h(client, "hs1")
     dx = client.get("/api/muc-tieu/hs/de-xuat", headers=h).json()
     assert any(g["loai"] == "tuan" for g in dx)
+    assert any(g["loai"] == "ngay" for g in dx)
     # Tạo từ 1 gợi ý
     g = dx[0]
     r = client.post("/api/muc-tieu/hs", headers=h, json={
