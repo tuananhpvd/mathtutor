@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Badge, Button, Card, CardBody, Select, Table } from '../../components/ui'
+import XemLaiBai from '../../components/XemLaiBai'
 
 const NHAN_CO = {
   ro_ri_dap_an: 'Rò rỉ đáp án',
@@ -24,6 +25,7 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
   const [loiNhan, setLoiNhan] = useState('')
   const [dangGui, setDangGui] = useState(false)
   const [noiBatId, setNoiBatId] = useState(null)
+  const [xemLaiSid, setXemLaiSid] = useState(null) // session_id đang mở "Xem hội thoại"
 
   function taiFlags() {
     return api.listFlags(fTT || undefined).then(setRows).catch(() => {})
@@ -140,23 +142,31 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
                 {
                   key: 'hanh_dong',
                   header: '',
-                  render: (r) =>
-                    r.trang_thai === 'cho_xu_ly' ? (
-                      <div className="flex gap-2">
-                        {coTheNhanHs(r.loai_co) ? (
-                          <Button size="sm" variant="success" onClick={() => moXuLy(r)}>
-                            Xử lý & nhắn HS
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="success" onClick={() => capNhat(r.id, 'da_xu_ly')}>
-                            Đã xử lý
-                          </Button>
-                        )}
-                        <Button size="sm" variant="secondary" onClick={() => capNhat(r.id, 'bo_qua')}>
-                          Bỏ qua
+                  render: (r) => (
+                    <div className="flex gap-2 flex-wrap justify-end">
+                      {r.session_id != null && (
+                        <Button size="sm" variant="secondary" onClick={() => setXemLaiSid(r.session_id)}>
+                          Xem hội thoại
                         </Button>
-                      </div>
-                    ) : null,
+                      )}
+                      {r.trang_thai === 'cho_xu_ly' && (
+                        <>
+                          {coTheNhanHs(r.loai_co) ? (
+                            <Button size="sm" variant="success" onClick={() => moXuLy(r)}>
+                              Xử lý & nhắn HS
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="success" onClick={() => capNhat(r.id, 'da_xu_ly')}>
+                              Đã xử lý
+                            </Button>
+                          )}
+                          <Button size="sm" variant="secondary" onClick={() => capNhat(r.id, 'bo_qua')}>
+                            Bỏ qua
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ),
                 },
               ]}
               rows={rows}
@@ -201,6 +211,10 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
             </div>
           </div>
         </div>
+      )}
+
+      {xemLaiSid != null && (
+        <XemLaiBai sessionId={xemLaiSid} vaiTro="gv" onDong={() => setXemLaiSid(null)} />
       )}
     </div>
   )

@@ -124,3 +124,38 @@ test('GV trả lời nhờ trợ giúp: HS nhờ (qua API) → GV xem chi tiết
 
   await expect(page.getByText(/Đã trả lời .*Câu trả lời đã hiện trong bài/)).toBeVisible()
 })
+
+test('GV xem lại hội thoại từ trang Cờ theo dõi (v162)', async ({ page, request }) => {
+  // Dàn cảnh: hs1 làm dở 1 phiên (chưa hoàn thành) rồi gv1 tự gắn cờ thủ công cho phiên đó —
+  // đúng kịch bản thật: GV thấy cờ, cần xem lại hội thoại TRƯỚC khi xử lý.
+  const tokHS = await apiToken(request, 'hs1', 'hs123')
+  const hHS = { Authorization: `Bearer ${tokHS}` }
+  const bai = await (await request.get(`${E2E_API}/problems`, { headers: hHS })).json()
+  const rs = await request.post(`${E2E_API}/sessions`, {
+    headers: hHS, data: { problem_id: bai[0].id },
+  })
+  expect(rs.ok()).toBeTruthy()
+  const sid = (await rs.json()).session_id
+  await request.post(`${E2E_API}/sessions/${sid}/message`, {
+    headers: hHS, data: { noi_dung: 'Đánh dấu E2E xem lại', dap_an_nhap: '3' },
+  })
+
+  const tokGV = await apiToken(request, 'gv1', 'gv123')
+  const rf = await request.post(`${E2E_API}/monitor/flags`, {
+    headers: { Authorization: `Bearer ${tokGV}` },
+    params: { session_id: sid, ghi_chu: 'Can chu y E2E' },
+  })
+  expect(rf.ok()).toBeTruthy()
+
+  await dangNhapUI(page, 'gv1', 'gv123')
+  await page.getByRole('button', { name: 'Cờ theo dõi' }).click()
+
+  const hang = page.getByRole('row').filter({ hasText: 'Can chu y E2E' })
+  await hang.getByRole('button', { name: 'Xem hội thoại' }).click()
+
+  // Overlay mở đúng phiên (đang làm dở), đổi giọng theo vai trò GV và hiện đúng lượt HS
+  // vừa gửi — chứng minh không chỉ mở overlay trống mà tải đúng dữ liệu.
+  await expect(page.getByText(/Xem lại bài của/)).toBeVisible()
+  await expect(page.getByText('Đang làm dở')).toBeVisible()
+  await expect(page.getByText('Đánh dấu E2E xem lại')).toBeVisible()
+})

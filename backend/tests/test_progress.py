@@ -365,7 +365,7 @@ def test_nhat_ky_hoan_thanh_gv(db, client):
     gh = {"Authorization": f"Bearer {_login(client, 'gv1')}"}
     r = client.get("/api/monitor/sessions-hoan-thanh", headers=gh)
     assert r.status_code == 200
-    data = r.json()
+    data = r.json()["rows"]
     assert len(data) == 1
     assert data[0]["ho_ten"] == "HS A"
     assert data[0]["thoi_gian_giay"] is not None

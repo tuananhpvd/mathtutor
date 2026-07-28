@@ -1,16 +1,18 @@
 /*
- * XemLaiBai — overlay toàn màn hình xem lại bài ĐÃ HOÀN THÀNH (B3):
- * lời giải chuẩn từng bước + đáp án đúng + hành trình hội thoại của HS + thống kê.
- * Backend chốt chặn: chỉ trả dữ liệu khi phiên hoan_thanh — component này không
- * quyết định quyền, chỉ hiển thị.
+ * XemLaiBai — overlay toàn màn hình xem lại bài (B3, mở rộng GV ở v162):
+ * lời giải chuẩn từng bước + đáp án đúng + hành trình hội thoại + thống kê.
+ * Dùng chung cho HS (bắt buộc phiên đã hoàn thành) và GV/Admin (xem được cả phiên đang
+ * làm dở) — prop `vaiTro` ('hs' | 'gv') chỉ đổi NHÃN hiển thị, backend mới là nơi chốt
+ * chặn quyền và các trường dữ liệu nhạy cảm (component này không tự quyết định quyền).
  */
 
 import { useEffect, useState } from 'react'
-import { BookOpen, Lightbulb, X } from 'lucide-react'
+import { AlertTriangle, BookOpen, Lightbulb, X } from 'lucide-react'
 import { api } from '../api'
 import { Badge, Button, Card, CardBody, CardHeader, ChatBubble } from './ui'
 import Formula from './Formula'
 import { dinhDangThoiGian } from '../utils/format'
+import { dungDongChat } from '../utils/dongChat'
 
 function renderVanBan(text) {
   return String(text ?? '')
@@ -18,6 +20,38 @@ function renderVanBan(text) {
     .map((p, i) =>
       p.startsWith('$') ? <Formula key={i} latex={p.slice(1, -1)} /> : <span key={i}>{p}</span>
     )
+}
+
+// Nhãn lệch theo vai trò người xem — HS xưng "em", GV/Admin xem hộ nên đổi giọng. Gom hết
+// vào 1 bảng để không rải if/else khắp JSX.
+const NHAN = {
+  hs: {
+    tieuDe: () => 'Xem lại bài',
+    hanhTrinh: 'Hành trình của em',
+    loiGiaiSub: 'Các bước thầy/cô đã soạn - em đối chiếu với cách làm của mình nhé',
+    tuLam: 'Tự làm không cần gợi ý',
+  },
+  gv: {
+    tieuDe: (ten) => `Xem lại bài của ${ten || 'học sinh'}`,
+    hanhTrinh: 'Hành trình làm bài',
+    loiGiaiSub: 'Lời giải chuẩn đã soạn cho bài này',
+    tuLam: 'Tự làm, không dùng gợi ý',
+  },
+}
+
+// Dải phân cách bước — cùng kiểu dáng với khung chat Phòng học (PhongHoc.jsx), dùng lại ở
+// đây để lịch sử xem lại cũng có "mốc chương hồi" khi bài nhiều bước.
+function PhanCachBuoc({ nhan, moTa }) {
+  return (
+    <div className="flex items-center gap-2 py-1" role="separator">
+      <span className="h-px flex-1 bg-border" />
+      <span className="shrink-0 rounded-full bg-primary-soft px-3 py-1 text-center">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-primary">{nhan}</span>
+        {moTa && <span className="text-xs text-ink"> · {renderVanBan(moTa)}</span>}
+      </span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  )
 }
 
 function DapAnChuan({ loai_cau, dap_an }) {
@@ -54,9 +88,10 @@ function DapAnChuan({ loai_cau, dap_an }) {
   )
 }
 
-export default function XemLaiBai({ sessionId, onDong }) {
+export default function XemLaiBai({ sessionId, onDong, vaiTro = 'hs' }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
+  const nhan = NHAN[vaiTro] || NHAN.hs
 
   useEffect(() => {
     let con = true
@@ -76,9 +111,15 @@ export default function XemLaiBai({ sessionId, onDong }) {
   return (
     <div className="fixed inset-0 z-40 bg-black/40 overflow-y-auto">
       <div className="mx-auto w-full max-w-3xl min-h-full bg-bg p-4 sm:p-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-lg font-semibold text-ink inline-flex items-center gap-2">
-            <BookOpen size={18} strokeWidth={2.2} /> Xem lại bài
+            <BookOpen size={18} strokeWidth={2.2} />
+            {nhan.tieuDe(data?.hoc_sinh_ten)}
+            {data && data.trang_thai !== 'hoan_thanh' && (
+              <Badge tone="warning">
+                <AlertTriangle size={12} strokeWidth={2.4} /> Đang làm dở
+              </Badge>
+            )}
           </h2>
           <Button variant="secondary" onClick={onDong}>
             Đóng <X size={14} strokeWidth={2.4} />
@@ -132,8 +173,7 @@ export default function XemLaiBai({ sessionId, onDong }) {
 
             {/* Lời giải chuẩn từng bước */}
             <Card>
-              <CardHeader title="Gợi ý các bước làm"
-                subtitle="Các bước thầy/cô đã soạn - em đối chiếu với cách làm của mình nhé" />
+              <CardHeader title="Gợi ý các bước làm" subtitle={nhan.loiGiaiSub} />
               <CardBody className="flex flex-col gap-3">
                 {data.loi_giai.length === 0 && (
                   <p className="text-sm text-muted">Bài này không có bước lời giải chi tiết.</p>
@@ -160,13 +200,13 @@ export default function XemLaiBai({ sessionId, onDong }) {
             {/* Thống kê hành trình */}
             {tk && (
               <Card>
-                <CardHeader title="Hành trình của em" />
+                <CardHeader title={nhan.hanhTrinh} />
                 <CardBody className="flex flex-col gap-3">
                   <div className="flex gap-2 flex-wrap">
                     {tk.diem != null && <Badge tone="primary">Điểm: {tk.diem}</Badge>}
                     <Badge tone={tk.cap_goi_y_max === 0 ? 'success' : 'neutral'}>
                       {tk.cap_goi_y_max === 0
-                        ? 'Tự làm không cần gợi ý'
+                        ? nhan.tuLam
                         : `Gợi ý cao nhất: mức ${tk.cap_goi_y_max}`}
                     </Badge>
                     <Badge tone="neutral">{tk.so_luot_hs} lượt trả lời</Badge>
@@ -187,18 +227,33 @@ export default function XemLaiBai({ sessionId, onDong }) {
                     )}
                   </div>
                   <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
-                    {data.hanh_trinh.map((t, i) => (
-                      <div key={i} className="flex flex-col gap-0.5">
-                        {t.vai_tro === 'gia_su' && t.cap_goi_y > 0 && (
-                          <p className="text-[11px] text-muted pl-1 inline-flex items-center gap-1">
-                            <Lightbulb size={11} strokeWidth={2.4} /> gợi ý mức {t.cap_goi_y}
-                          </p>
-                        )}
-                        <ChatBubble vai_tro={t.vai_tro}>
-                          {renderVanBan(t.noi_dung)}
-                        </ChatBubble>
-                      </div>
-                    ))}
+                    {dungDongChat(data.hanh_trinh, {
+                      loaiCau: data.problem?.loai_cau,
+                      tongBuoc: data.tong_buoc,
+                      moTaCacBuoc: data.mo_ta_cac_buoc,
+                    }).map((d, i) =>
+                      d.kieu === 'phan_cach' ? (
+                        <PhanCachBuoc key={i} nhan={d.nhan} moTa={d.moTa} />
+                      ) : (
+                        <div key={i} className="flex flex-col gap-0.5">
+                          {d.turn.vai_tro === 'gia_su' && d.turn.cap_goi_y > 0 && (
+                            <p className="text-[11px] text-muted pl-1 inline-flex items-center gap-1">
+                              <Lightbulb size={11} strokeWidth={2.4} /> gợi ý mức {d.turn.cap_goi_y}
+                            </p>
+                          )}
+                          {/* co_bi_chot_chan chỉ backend trả cho GV/Admin — dấu vết lượt AI bị
+                              chốt chặn rò rỉ, giúp GV hiểu vì sao có cờ ro_ri_dap_an. */}
+                          {d.turn.co_bi_chot_chan && (
+                            <p className="text-[11px] text-danger pl-1 inline-flex items-center gap-1">
+                              <AlertTriangle size={11} strokeWidth={2.4} /> lượt này đã bị chốt chặn rò rỉ đáp án
+                            </p>
+                          )}
+                          <ChatBubble vai_tro={d.turn.vai_tro}>
+                            {renderVanBan(d.turn.noi_dung)}
+                          </ChatBubble>
+                        </div>
+                      )
+                    )}
                   </div>
                 </CardBody>
               </Card>

@@ -14,6 +14,7 @@ import BanDoNangLuc from '../../components/BanDoNangLuc'
 import HieuQuaPhuongPhap from '../../components/gv/HieuQuaPhuongPhap'
 import MucTieuPanel from '../../components/MucTieuPanel'
 import BaoCaoPhuHuynh from '../../components/gv/BaoCaoPhuHuynh'
+import XemLaiBai from '../../components/XemLaiBai'
 
 /* ── Tính thống kê lớp từ danh sách HS ───────────────────────────── */
 function tinhThongKeLop(hsLop) {
@@ -297,6 +298,11 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
   const [dangTaiTk, setDangTaiTk] = useState(false)
   const [dangCapNhatAi, setDangCapNhatAi] = useState(false)
   const [nhatKy, setNhatKy] = useState([])
+  const [nhatKyTong, setNhatKyTong] = useState(0)
+  const [baiCuaHsChon, setBaiCuaHsChon] = useState([]) // "Bài đã làm" của HS đang chọn (panel chi tiết)
+  const [baiCuaHsChonTong, setBaiCuaHsChonTong] = useState(0)
+  const [trangBaiHsChon, setTrangBaiHsChon] = useState(1)
+  const [xemLaiSid, setXemLaiSid] = useState(null) // session_id đang mở "Xem lại"
   const [tongHop, setTongHop] = useState(null)
   const [soSanh, setSoSanh] = useState(null)
   const [trangHs, setTrangHs] = useState(1)
@@ -315,9 +321,25 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
   const MOI_TRANG_LOP = 5
 
   useEffect(() => {
-    api.listSessionsHoanThanh().then(setNhatKy).catch(() => {})
+    api
+      .listSessionsHoanThanh({ trang: trangNk, moi_trang: MOI_TRANG })
+      .then((d) => { setNhatKy(d.rows); setNhatKyTong(d.tong) })
+      .catch(() => {})
+  }, [trangNk])
+
+  useEffect(() => {
     api.getSoSanhLop().then(setSoSanh).catch(() => {})
   }, [])
+
+  // "Bài đã làm" của HS đang chọn — phân trang server-side (5/trang), tải lại khi đổi HS
+  // hoặc đổi trang.
+  useEffect(() => {
+    if (!chon) return
+    api
+      .listSessionsHoanThanh({ hoc_sinh_id: chon, trang: trangBaiHsChon, moi_trang: MOI_TRANG })
+      .then((d) => { setBaiCuaHsChon(d.rows); setBaiCuaHsChonTong(d.tong) })
+      .catch(() => {})
+  }, [chon, trangBaiHsChon])
 
   useEffect(() => {
     api
@@ -334,6 +356,9 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
     setPtChon(null)
     setHqChon(null)
     setNhipChon(null)
+    setBaiCuaHsChon([])
+    setBaiCuaHsChonTong(0)
+    setTrangBaiHsChon(1) // "Bài đã làm" tự tải lại qua effect [chon, trangBaiHsChon]
     setDangTaiTk(true)
     Promise.all([api.getThongKeHocSinh(id), api.getPhanTichHocSinh(id),
                  api.getHieuQuaHocSinh(id), api.getNhipNgayHocSinh(id)])
@@ -393,9 +418,12 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
   const tongTrangHs = Math.max(1, Math.ceil(dsLoc.length / MOI_TRANG))
   const trangHsAt = Math.min(trangHs, tongTrangHs)
   const hsTrang = dsLoc.slice((trangHsAt - 1) * MOI_TRANG, trangHsAt * MOI_TRANG)
-  const tongTrangNk = Math.max(1, Math.ceil(nhatKy.length / MOI_TRANG))
+  // Phân trang phía SERVER (v162) — nhatKy chỉ chứa đúng trang hiện tại, tổng số lấy từ
+  // nhatKyTong. Khác các bảng khác trên trang này (vẫn cắt ở FE vì dữ liệu nguồn đã tải hết).
+  const tongTrangNk = Math.max(1, Math.ceil(nhatKyTong / MOI_TRANG))
   const trangNkAt = Math.min(trangNk, tongTrangNk)
-  const nkTrang = nhatKy.slice((trangNkAt - 1) * MOI_TRANG, trangNkAt * MOI_TRANG)
+  const tongTrangBaiHsChon = Math.max(1, Math.ceil(baiCuaHsChonTong / MOI_TRANG))
+  const trangBaiHsChonAt = Math.min(trangBaiHsChon, tongTrangBaiHsChon)
 
   return (
     <div className="flex flex-col gap-4">
@@ -444,7 +472,7 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
 
       <Card>
         <CardHeader title="Nhật ký hoàn thành"
-          subtitle={`${nhatKy.length} bài đã làm xong (kèm thời gian)`} />
+          subtitle={`${nhatKyTong} bài đã làm xong (kèm thời gian)`} />
         <CardBody className="pt-0">
           <Table
             columns={[
@@ -459,17 +487,22 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                 render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
               },
               {
-                key: 'gan_co',
+                key: 'hanh_dong',
                 header: '',
                 render: (r) => (
-                  <Button size="sm" variant="secondary"
-                    onClick={() => { setGcSession(r); setGcGhiChu('') }}>
-                    <Flag size={14} strokeWidth={2.2} /> Gắn cờ
-                  </Button>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="secondary" onClick={() => setXemLaiSid(r.session_id)}>
+                      Xem lại
+                    </Button>
+                    <Button size="sm" variant="secondary"
+                      onClick={() => { setGcSession(r); setGcGhiChu('') }}>
+                      <Flag size={14} strokeWidth={2.2} /> Gắn cờ
+                    </Button>
+                  </div>
                 ),
               },
             ]}
-            rows={nkTrang}
+            rows={nhatKy}
             rowKey={(r) => r.session_id}
             empty="Chưa có bài nào hoàn thành."
           />
@@ -656,6 +689,39 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
                 tieu_de={`Diễn biến 8 tuần gần nhất: ${hsChon.ho_ten}`} />
               <BanDoNangLuc khoa={chon} taiDuLieu={() => api.getBanDoHocSinh(chon)}
                 tieu_de={`Bản đồ năng lực: ${hsChon.ho_ten}`} />
+              <Card>
+                <CardHeader title="Bài đã làm"
+                  subtitle={`${baiCuaHsChonTong} bài đã hoàn thành`} />
+                <CardBody className="pt-0">
+                  <Table
+                    columns={[
+                      { key: 'chuyen_de', header: 'Chuyên đề' },
+                      { key: 'loai_cau', header: 'Loại', render: (r) => <Badge tone="primary">{r.loai_cau}</Badge> },
+                      { key: 'diem', header: 'Điểm', render: (r) => (r.diem != null ? r.diem : '-') },
+                      {
+                        key: 'luc',
+                        header: 'Hoàn thành lúc',
+                        render: (r) => <CotThoiGian iso={r.hoan_thanh_luc} />,
+                      },
+                      {
+                        key: 'hanh_dong',
+                        header: '',
+                        render: (r) => (
+                          <Button size="sm" variant="secondary" onClick={() => setXemLaiSid(r.session_id)}>
+                            Xem lại
+                          </Button>
+                        ),
+                      },
+                    ]}
+                    rows={baiCuaHsChon}
+                    rowKey={(r) => r.session_id}
+                    empty="Học sinh chưa hoàn thành bài nào."
+                  />
+                  <PhanTrang trang={trangBaiHsChonAt} tong={tongTrangBaiHsChon}
+                    onLui={() => setTrangBaiHsChon((t) => Math.max(1, t - 1))}
+                    onToi={() => setTrangBaiHsChon((t) => Math.min(tongTrangBaiHsChon, t + 1))} />
+                </CardBody>
+              </Card>
               <MucTieuPanel
                 key={chon}
                 tieuDe={<span className="inline-flex items-center gap-1.5">
@@ -745,6 +811,10 @@ export default function TheoDoiTienBo({ onGiaoBai }) {
           />
         )
       })()}
+
+      {xemLaiSid != null && (
+        <XemLaiBai sessionId={xemLaiSid} vaiTro="gv" onDong={() => setXemLaiSid(null)} />
+      )}
     </div>
   )
 }

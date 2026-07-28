@@ -145,3 +145,71 @@ def test_xem_lai_gv_va_admin(client, db):
     # Admin → xem được
     r = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(_token(client, "admin_test")))
     assert r.status_code == 200
+
+
+def test_xem_lai_gv_xem_duoc_phien_dang_lam(client, db):
+    """GV xem được phiên HS ĐANG LÀM DỞ (khác HS — xem test_xem_lai_phien_chua_xong_bi_chan_403).
+    Lý do: cờ 'không hiểu nhiều' bắn ra đúng lúc phiên còn dang dở."""
+    hs, gv, admin, p = seed_all(db)
+    tok_hs = _token(client, "hs_test")
+    sid = client.post("/api/sessions", json={"problem_id": p.id},
+                      headers=_h(tok_hs)).json()["session_id"]
+    client.post(f"/api/sessions/{sid}/message",
+                json={"noi_dung": "em nghĩ x=3", "dap_an_nhap": "3"}, headers=_h(tok_hs))
+
+    r = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(_token(client, "gv_test")))
+    assert r.status_code == 200, r.text
+    assert r.json()["trang_thai"] == "dang_lam"
+
+    r = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(_token(client, "admin_test")))
+    assert r.status_code == 200
+
+
+def test_xem_lai_hs_van_bi_chan_phien_dang_lam(client, db):
+    """Nới quyền cho GV KHÔNG được làm hở HS — HS vẫn 403 trên phiên dở của chính mình."""
+    hs, gv, admin, p = seed_all(db)
+    tok_hs = _token(client, "hs_test")
+    sid = client.post("/api/sessions", json={"problem_id": p.id},
+                      headers=_h(tok_hs)).json()["session_id"]
+
+    r = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(tok_hs))
+    assert r.status_code == 403
+
+
+def test_xem_lai_hs_khong_thay_truong_danh_cho_gv(client, db):
+    """Payload trả cho HS KHÔNG được chứa các trường chỉ dành cho GV/Admin."""
+    hs, gv, admin, p = seed_all(db)
+    tok_hs = _token(client, "hs_test")
+    sid = _hoan_thanh_phien(client, tok_hs, p.id)
+
+    data_hs = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(tok_hs)).json()
+    assert data_hs["hoc_sinh_ten"] is None
+    for t in data_hs["hanh_trinh"]:
+        assert t["co_bi_chot_chan"] is None
+        assert t["buoc"] is None
+        assert t["y"] is None
+
+    data_gv = client.get(f"/api/sessions/{sid}/xem-lai",
+                         headers=_h(_token(client, "gv_test"))).json()
+    assert data_gv["hoc_sinh_ten"] == hs.ho_ten
+    assert any(t["co_bi_chot_chan"] is not None for t in data_gv["hanh_trinh"])
+
+
+def test_xem_lai_gv_luon_thay_loi_giai_chi_tiet(client, db):
+    """GV/Admin luôn thấy loi_giai_chi_tiet, kể cả khi đã TẮT hien_loi_giai_chi_tiet cho HS."""
+    hs, gv, admin, p = seed_all(db)
+    tok_gv = _token(client, "gv_test")
+    tok_hs = _token(client, "hs_test")
+    sid = _hoan_thanh_phien(client, tok_hs, p.id)
+
+    r = client.patch(f"/api/problems/{p.id}", headers=_h(tok_gv), json={
+        "loi_giai_chi_tiet": "Giải chi tiết: bước 1 ... bước 2 ...",
+        "hien_loi_giai_chi_tiet": False,
+    })
+    assert r.status_code == 200, r.text
+
+    data_hs = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(tok_hs)).json()
+    assert data_hs["loi_giai_chi_tiet"] is None
+
+    data_gv = client.get(f"/api/sessions/{sid}/xem-lai", headers=_h(tok_gv)).json()
+    assert data_gv["loi_giai_chi_tiet"] == "Giải chi tiết: bước 1 ... bước 2 ..."

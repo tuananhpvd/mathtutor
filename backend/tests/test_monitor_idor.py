@@ -99,7 +99,7 @@ def test_gv_khac_khong_thay_nhat_ky_hoan_thanh_cua_gv_khac(db, client):
     h_gv2 = _h(_login(client, "gv2"))
 
     data = client.get("/api/monitor/sessions-hoan-thanh", headers=h_gv2).json()
-    assert session.id not in [s["session_id"] for s in data]
+    assert session.id not in [s["session_id"] for s in data["rows"]]
 
 
 def test_gv_chinh_chu_van_thao_tac_binh_thuong(db, client):
@@ -118,7 +118,7 @@ def test_gv_chinh_chu_van_thao_tac_binh_thuong(db, client):
     assert r.status_code in (200, 404)  # 404 hợp lệ nếu không có turn nào, KHÔNG phải 403
 
     data = client.get("/api/monitor/sessions-hoan-thanh", headers=h_gv1).json()
-    assert session.id in [s["session_id"] for s in data]
+    assert session.id in [s["session_id"] for s in data["rows"]]
 
 
 def test_admin_thay_toan_bo_khong_bi_loc(db, client):
@@ -129,4 +129,27 @@ def test_admin_thay_toan_bo_khong_bi_loc(db, client):
     assert flag.id in [f["id"] for f in flags]
 
     data = client.get("/api/monitor/sessions-hoan-thanh", headers=h_admin).json()
-    assert session.id in [s["session_id"] for s in data]
+    assert session.id in [s["session_id"] for s in data["rows"]]
+
+
+def test_nhat_ky_hoan_thanh_loc_theo_hoc_sinh_id(db, client):
+    """GV chính chủ lọc theo hoc_sinh_id của HS mình → thấy đúng phiên, kèm tổng số."""
+    gv1, gv2, admin, hs1, session, flag = _seed_2_gv(db)
+    h_gv1 = _h(_login(client, "gv1"))
+
+    r = client.get("/api/monitor/sessions-hoan-thanh",
+                   headers=h_gv1, params={"hoc_sinh_id": hs1.id})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["tong"] == 1
+    assert [s["session_id"] for s in data["rows"]] == [session.id]
+
+
+def test_nhat_ky_hoan_thanh_hoc_sinh_id_ngoai_pham_vi_403(db, client):
+    """GV KHÁC (không sở hữu hs1) lọc theo hoc_sinh_id=hs1 → 403, không dò được session."""
+    gv1, gv2, admin, hs1, session, flag = _seed_2_gv(db)
+    h_gv2 = _h(_login(client, "gv2"))
+
+    r = client.get("/api/monitor/sessions-hoan-thanh",
+                   headers=h_gv2, params={"hoc_sinh_id": hs1.id})
+    assert r.status_code == 403

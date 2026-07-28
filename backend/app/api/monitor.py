@@ -183,22 +183,44 @@ def xem_lich_su_turn(session_id: int, current_user: CurrentUser, db: Session = D
 
 
 @router.get("/sessions-hoan-thanh", dependencies=[require_role(VaiTro.gv, VaiTro.admin)])
-def nhat_ky_hoan_thanh(current_user: CurrentUser, db: Session = Depends(get_db)):
+def nhat_ky_hoan_thanh(
+    current_user: CurrentUser,
+    hoc_sinh_id: int | None = None,
+    trang: int = 1,
+    moi_trang: int = 100,
+    db: Session = Depends(get_db),
+):
     """Nhật ký các phiên đã hoàn thành (kèm thời gian làm bài) cho GV/Admin theo dõi.
 
-    GV chỉ thấy phiên của học sinh lớp mình; Admin/Quản lý thấy toàn hệ thống."""
+    GV chỉ thấy phiên của học sinh lớp mình; Admin/Quản lý thấy toàn hệ thống.
+    `hoc_sinh_id` lọc theo 1 HS cụ thể (dùng cho panel "Tiến độ chi tiết") — GV không sở
+    hữu HS đó → 403, tránh dò session của HS ngoài phạm vi qua tham số này."""
     from app.models.problem import Problem
     from app.models.session import TrangThaiSession
     from app.models.user import User
+
+    if hoc_sinh_id is not None and not co_toan_quyen(current_user):
+        if not hoc_sinh_thuoc_gv(db, current_user.id, hoc_sinh_id):
+            raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
 
     q = db.query(SessionModel).filter(SessionModel.trang_thai == TrangThaiSession.hoan_thanh)
     if not co_toan_quyen(current_user):
         hs_ids = hs_ids_cua_gv(db, current_user.id)
         if not hs_ids:
-            return []
+            return {"rows": [], "tong": 0}
         q = q.filter(SessionModel.hoc_sinh_id.in_(hs_ids))
+    if hoc_sinh_id is not None:
+        q = q.filter(SessionModel.hoc_sinh_id == hoc_sinh_id)
 
-    rows = q.order_by(SessionModel.cap_nhat_luc.desc()).limit(100).all()
+    tong = q.count()
+    moi_trang = max(1, min(moi_trang, 200))
+    trang = max(1, trang)
+    rows = (
+        q.order_by(SessionModel.cap_nhat_luc.desc())
+        .offset((trang - 1) * moi_trang)
+        .limit(moi_trang)
+        .all()
+    )
     ket_qua = []
     for s in rows:
         hs = db.get(User, s.hoc_sinh_id)
@@ -212,4 +234,4 @@ def nhat_ky_hoan_thanh(current_user: CurrentUser, db: Session = Depends(get_db))
             "thoi_gian_giay": s.thoi_gian_giay,
             "hoan_thanh_luc": s.cap_nhat_luc.isoformat(),
         })
-    return ket_qua
+    return {"rows": ket_qua, "tong": tong}

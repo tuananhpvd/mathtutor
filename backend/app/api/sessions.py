@@ -320,11 +320,15 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
         db, current_user.id, session.hoc_sinh_id
     ):
         raise HTTPException(status_code=403, detail="Không có quyền xem học sinh này")
-    if session.trang_thai != TrangThaiSession.hoan_thanh:
+    # HS chỉ xem lại được bài ĐÃ HOÀN THÀNH (đáp án không lộ lúc đang học). GV/Admin xem
+    # được cả phiên đang làm dở — đúng lúc cờ "không hiểu nhiều" bắn ra là lúc phiên còn
+    # dang dở, chặn ở đây thì GV không tra được HS đang bí ở đâu.
+    if current_user.vai_tro == VaiTro.hs and session.trang_thai != TrangThaiSession.hoan_thanh:
         raise HTTPException(
             status_code=403,
             detail="Chỉ xem lại được bài đã hoàn thành. Em hãy hoàn thành bài trước nhé.",
         )
+    la_gv_hoac_admin = current_user.vai_tro in (VaiTro.gv, VaiTro.admin)
 
     problem = db.get(Problem, session.problem_id)
     if problem is None:
@@ -345,8 +349,19 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
     turns = db.query(Turn).filter(Turn.session_id == session_id).order_by(Turn.id).all()
     cap_goi_y_max = max((t.cap_goi_y for t in turns), default=0)
 
+    hoc_sinh_ten = None
+    if la_gv_hoac_admin:
+        from app.models.user import User
+
+        hs = db.get(User, session.hoc_sinh_id)
+        hoc_sinh_ten = hs.ho_ten if hs else None
+
     return {
         "session_id": session.id,
+        "trang_thai": session.trang_thai.value,
+        "hoc_sinh_ten": hoc_sinh_ten,
+        "tong_buoc": _buoc_info(problem, session.buoc_hien_tai, session.y_hien_tai)[1],
+        "mo_ta_cac_buoc": _mo_ta_cac_buoc(problem, session),
         "problem": _strip_answers(problem, dang_cd),
         "dap_an": dap_an,
         "loi_giai": [
@@ -355,9 +370,15 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
             for s in steps
         ],
         "hanh_trinh": [
-            {"vai_tro": t.vai_tro.value, "noi_dung": t.noi_dung,
-             "dap_an_nhap": t.dap_an_nhap, "cap_goi_y": t.cap_goi_y,
-             "thoi_diem": t.thoi_diem.isoformat() if t.thoi_diem else None}
+            {
+                "vai_tro": t.vai_tro.value, "noi_dung": t.noi_dung,
+                "dap_an_nhap": t.dap_an_nhap, "cap_goi_y": t.cap_goi_y,
+                "thoi_diem": t.thoi_diem.isoformat() if t.thoi_diem else None,
+                # 3 trường sau CHỈ dành cho GV/Admin xem xét — không đưa cho HS.
+                "buoc": t.buoc if la_gv_hoac_admin else None,
+                "y": t.y if la_gv_hoac_admin else None,
+                "co_bi_chot_chan": t.co_bi_chot_chan if la_gv_hoac_admin else None,
+            }
             for t in turns
         ],
         "thong_ke": {
@@ -374,9 +395,14 @@ def xem_lai_phien(session_id: int, current_user: CurrentUser, db: Session = Depe
                 session.diem_qua_trinh if current_user.vai_tro != VaiTro.hs else None
             ),
         },
-        # Chỉ trả khi GV đã bật hiển thị — KHÔNG đưa vào _strip_answers() vì hàm đó còn
-        # dùng chung cho lúc ĐANG học (nơi tuyệt đối không được lộ lời giải).
-        "loi_giai_chi_tiet": problem.loi_giai_chi_tiet if problem.hien_loi_giai_chi_tiet else None,
+        # HS chỉ thấy khi GV đã bật hiển thị; GV/Admin luôn thấy (là chủ nội dung, không có
+        # lý do gì bị ẩn phần lời giải mình tự soạn). KHÔNG đưa vào _strip_answers() vì hàm
+        # đó còn dùng chung cho lúc ĐANG học (nơi tuyệt đối không được lộ lời giải).
+        "loi_giai_chi_tiet": (
+            problem.loi_giai_chi_tiet
+            if (la_gv_hoac_admin or problem.hien_loi_giai_chi_tiet)
+            else None
+        ),
     }
 
 

@@ -130,7 +130,14 @@ export const api = {
         (loi_nhan ? `&loi_nhan=${encodeURIComponent(loi_nhan)}` : ''),
       { method: 'PATCH' }
     ),
-  listSessionsHoanThanh: () => request('/monitor/sessions-hoan-thanh'),
+  listSessionsHoanThanh: ({ hoc_sinh_id, trang, moi_trang } = {}) => {
+    const qs = new URLSearchParams()
+    if (hoc_sinh_id != null) qs.set('hoc_sinh_id', hoc_sinh_id)
+    if (trang != null) qs.set('trang', trang)
+    if (moi_trang != null) qs.set('moi_trang', moi_trang)
+    const q = qs.toString()
+    return request('/monitor/sessions-hoan-thanh' + (q ? `?${q}` : ''))
+  },
   createFlag: (session_id, ghi_chu = '') =>
     request(
       `/monitor/flags?session_id=${session_id}` +
