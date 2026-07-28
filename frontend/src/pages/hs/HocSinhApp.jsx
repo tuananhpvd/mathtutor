@@ -35,6 +35,15 @@ function pageFromHash() {
   return NAV_KEYS.includes(h) ? h : DEFAULT_PAGE
 }
 
+// Phiên phòng học đang lưu (F5 hoặc Back/Forward về #phong_hoc đều đọc lại từ đây).
+function docPhongHocLuu() {
+  try {
+    return JSON.parse(sessionStorage.getItem(PHONG_HOC_KEY))
+  } catch {
+    return null
+  }
+}
+
 export default function HocSinhApp({ onLogout }) {
   const confirm = useConfirm()
   const [hoTen, setHoTen] = useState(() => (getSession() || {}).ho_ten || '')
@@ -58,9 +67,7 @@ export default function HocSinhApp({ onLogout }) {
   }
   const [phongHoc, setPhongHoc] = useState(() => {
     // Khôi phục state phòng học khi F5 với hash #phong_hoc
-    if (window.location.hash.slice(1) === 'phong_hoc') {
-      try { return JSON.parse(sessionStorage.getItem(PHONG_HOC_KEY)) } catch { return null }
-    }
+    if (window.location.hash.slice(1) === 'phong_hoc') return docPhongHocLuu()
     return null
   })
   const [locBai, setLocBai] = useState(null) // bộ lọc ban đầu cho ChonBai
@@ -82,6 +89,17 @@ export default function HocSinhApp({ onLogout }) {
     window.location.hash = 'phong_hoc'
     setPage('phong_hoc')
   }
+  // PhongHoc báo lên session_id THẬT ngay khi có (kể cả khi mở bài mới, lúc đầu chỉ biết
+  // problemId). Ghi đè phiên đang lưu thành {sessionId} để Back/F5 mở LẠI ĐÚNG phiên đó —
+  // nếu vẫn để {problemId}, createSession() sẽ tạo phiên MỚI khi bài cũ đã hoàn thành, tức
+  // là Back làm HS bắt đầu lại bài từ đầu thay vì thấy kết quả vừa xong.
+  // CHỈ ghi sessionStorage, TUYỆT ĐỐI không setPhongHoc: prop `key` của PhongHoc tính từ
+  // phongHoc.sessionId/problemId — đổi state ở đây sẽ ép remount và tạo vòng lặp vô tận.
+  function ghiNhanSid(sid) {
+    setActiveSid(sid)
+    if (sid) sessionStorage.setItem(PHONG_HOC_KEY, JSON.stringify({ sessionId: sid }))
+  }
+
   function luyenDang(r) {
     setLocBai({ chuyen_de: r.chuyen_de, dang_id: r.dang_id })
     giuLocBai.current = true
@@ -176,7 +194,10 @@ export default function HocSinhApp({ onLogout }) {
 
   function dieuHuong(key) {
     setLocBai(null)
-    if (key !== 'phong_hoc') sessionStorage.removeItem(PHONG_HOC_KEY)
+    // CỐ Ý KHÔNG xóa PHONG_HOC_KEY khi rời phòng học: trình duyệt vẫn giữ #phong_hoc trong
+    // lịch sử, nên bấm Back phải quay lại đúng bài đó. Xóa key ở đây (bug cũ) khiến Back về
+    // #phong_hoc mà không còn phiên nào để mở → render ra TRANG TRẮNG. Key chỉ bị ghi đè khi
+    // mở bài khác (moBaiMoi/lamTiep) và bị dọn khi đăng xuất.
     window.location.hash = key
     setPage(key)
   }
@@ -187,15 +208,22 @@ export default function HocSinhApp({ onLogout }) {
       // Giữ locBai nếu lần đổi hash này do chính ta chủ động đặt filter; ngược lại xóa như cũ.
       if (giuLocBai.current) giuLocBai.current = false
       else setLocBai(null)
-      if (newPage !== 'phong_hoc') {
-        sessionStorage.removeItem(PHONG_HOC_KEY)
-        setPhongHoc(null)
-      }
+      // Back/Forward về #phong_hoc: state có thể đã bị null khi rời trang lần trước, nên
+      // đọc LẠI phiên từ sessionStorage thay vì để trống (nguyên nhân trang trắng trước đây).
+      if (newPage === 'phong_hoc') setPhongHoc(docPhongHocLuu())
+      else setPhongHoc(null)  // giữ nguyên sessionStorage để Back còn khôi phục được
       setPage(newPage)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  // Lưới an toàn: TUYỆT ĐỐI không để trang trắng. Ở #phong_hoc mà không có phiên nào để mở
+  // (sessionStorage trống/hỏng, HS gõ tay hash, hoặc mở link cũ) → đưa về Chọn bài. Khác với
+  // 2 sửa đổi trên (lo đúng luồng Back), đây là chốt chặn cho MỌI đường còn lại.
+  useEffect(() => {
+    if (page === 'phong_hoc' && !phongHoc) dieuHuong('chon_bai')
+  }, [page, phongHoc])
 
   return (
     <RoleLayout
@@ -205,6 +233,9 @@ export default function HocSinhApp({ onLogout }) {
       active={page === 'phong_hoc' ? 'chon_bai' : page}
       onNavigate={dieuHuongCoCanhBao}
       onLogout={() => {
+        // Dọn phiên phòng học đang lưu — giờ key được GIỮ qua điều hướng (để Back hoạt động),
+        // nên phải xóa ở đây, tránh HS kế tiếp đăng nhập cùng tab còn sót phiên của người trước.
+        sessionStorage.removeItem(PHONG_HOC_KEY)
         clearSession()
         onLogout()
       }}
@@ -232,7 +263,7 @@ export default function HocSinhApp({ onLogout }) {
             sessionId={phongHoc.sessionId}
             onTrangChu={() => dieuHuongCoCanhBao('trang_chu')}
             onChonBai={() => dieuHuongCoCanhBao('chon_bai')}
-            onSid={setActiveSid}
+            onSid={ghiNhanSid}
             onDangDo={setDangDoPhongHoc}
             onLuyenTiep={luyenDangCoCanhBao}
           />

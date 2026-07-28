@@ -73,6 +73,14 @@ test('HS làm trọn vẹn 1 bài TLN: đăng nhập → chọn bài → giải 
   const khungHoanThanh = page.locator('.border-success')
   await expect(khungHoanThanh.getByText('Bài nên luyện tiếp')).not.toBeVisible()
   await expect(khungHoanThanh.getByRole('button', { name: 'Chọn bài khác' })).toBeVisible()
+
+  // REGRESSION (v165): rời phòng học rồi bấm Back của trình duyệt từng ra TRANG TRẮNG —
+  // sessionStorage phiên bị xóa lúc rời nên quay lại #phong_hoc không còn gì để mở. Giờ Back
+  // phải khôi phục đúng bài vừa làm (thấy lại khung hoàn thành).
+  await khungHoanThanh.getByRole('button', { name: 'Chọn bài khác' }).click()
+  await expect(page.getByText('Chọn bài luyện')).toBeVisible()
+  await page.goBack()
+  await expect(page.getByText('Trả lời đúng - Hoàn thành bài!')).toBeVisible()
 })
 
 test('GV duyệt câu hỏi: câu chờ duyệt (tạo qua import) → bấm Duyệt → thành Đã duyệt', async ({ page, request }) => {
