@@ -62,6 +62,17 @@ test('HS làm trọn vẹn 1 bài TLN: đăng nhập → chọn bài → giải 
 
   // Hoàn thành bài
   await expect(page.getByText('Trả lời đúng - Hoàn thành bài!')).toBeVisible()
+
+  // Gợi ý "Bài nên luyện tiếp" (v163): đây là phiên hoàn thành ĐẦU TIÊN của hs1 trên DB e2e
+  // mới seed — chưa đủ dữ liệu (cần tối thiểu 2 bài/dạng, xem NGUONG_NHOM) nên dòng gợi ý
+  // phải ẩn hẳn, KHÔNG hiện khung rỗng. Đợi phân tích năng lực tải xong (gọi ngầm khi bài
+  // xong) rồi xác nhận màn hình hoàn thành vẫn nguyên vẹn, các nút vẫn dùng được.
+  // Scope vào khung xanh "Hoàn thành" (.border-success) — có 2 nút "Chọn bài khác" trên
+  // trang (1 ở header phòng học, 1 trong khung hoàn thành), getByRole mù sẽ khớp cả 2.
+  await page.waitForTimeout(500)
+  const khungHoanThanh = page.locator('.border-success')
+  await expect(khungHoanThanh.getByText('Bài nên luyện tiếp')).not.toBeVisible()
+  await expect(khungHoanThanh.getByRole('button', { name: 'Chọn bài khác' })).toBeVisible()
 })
 
 test('GV duyệt câu hỏi: câu chờ duyệt (tạo qua import) → bấm Duyệt → thành Đã duyệt', async ({ page, request }) => {

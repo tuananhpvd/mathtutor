@@ -89,6 +89,15 @@ export default function HocSinhApp({ onLogout }) {
     setPage('chon_bai')
   }
 
+  // "Bài nên luyện tiếp" ở màn hình hoàn thành (trong PhongHoc) — cùng hành vi luyenDang
+  // nhưng đi qua cảnh báo rời trang cho nhất quán với onChonBai/onTrangChu của PhongHoc
+  // (thực tế bài đã xong nên dangDoPhongHoc đã về false, cảnh báo sẽ không bật — nhưng vẫn
+  // bọc để không tạo lối tắt bỏ qua bước kiểm tra chung).
+  async function luyenDangCoCanhBao(r) {
+    if (!(await canhBaoNeuCanRoiTrang())) return
+    luyenDang(r)
+  }
+
   // "Tiếp tục làm" ở trang chủ → mở Chọn bài lọc sẵn trạng thái "Đang làm dở" để HS tự chọn.
   function tiepTucLam() {
     setLocBai({ trang_thai: 'dang_lam' })
@@ -225,6 +234,7 @@ export default function HocSinhApp({ onLogout }) {
             onChonBai={() => dieuHuongCoCanhBao('chon_bai')}
             onSid={setActiveSid}
             onDangDo={setDangDoPhongHoc}
+            onLuyenTiep={luyenDangCoCanhBao}
           />
         )}
         {page === 'nhiem_vu' && (

@@ -14,6 +14,7 @@ import AnswerInputTN4PA from '../../components/answer/AnswerInputTN4PA'
 import AnswerInputTNDS from '../../components/answer/AnswerInputTNDS'
 import AnswerInputTLN from '../../components/answer/AnswerInputTLN'
 import { NHAN_LOAI_CAU, dinhDangThoiGian } from '../../utils/format'
+import { baiNenLuyenTiep } from '../../utils/goiYTiepTheo'
 
 function renderDeBai(text) {
   return String(text)
@@ -33,7 +34,7 @@ function trangThaiYBanDau(meta) {
 
 function BangHoanThanh({
   loai, thoi_gian, thoi_gian_y, dap_an_y, so_lan_khong_hieu, tong_so_lan_sai,
-  onChonBai, onTrangChu, onXemLai,
+  onChonBai, onTrangChu, onXemLai, goiYTiep, onLuyenTiep,
 }) {
   const khongCanGoiY = !so_lan_khong_hieu && !tong_so_lan_sai
   return (
@@ -88,6 +89,15 @@ function BangHoanThanh({
             })}
           </tbody>
         </table>
+      )}
+      {goiYTiep && (
+        <button type="button" onClick={() => onLuyenTiep?.(goiYTiep)}
+          className="text-sm text-ink bg-surface hover:bg-surface-2 border border-border
+            rounded-md px-3 py-2 inline-flex items-center gap-1.5 transition-colors">
+          Bài nên luyện tiếp: <b>{goiYTiep.ten}</b>{' '}
+          <span className="text-danger font-semibold">{goiYTiep.diem_thanh_thao}%</span>
+          <ArrowRight size={14} strokeWidth={2.4} />
+        </button>
       )}
       <div className="flex gap-2 mt-2 flex-wrap justify-center">
         <Button onClick={onXemLai}>
@@ -263,7 +273,9 @@ function KhayDapAn({ problem, trangThai, gui, dangGui, conBuocTN4PA, cheDoTN4PA 
   )
 }
 
-export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, onSid, onDangDo }) {
+export default function PhongHoc({
+  problemId, sessionId, onTrangChu, onChonBai, onSid, onDangDo, onLuyenTiep,
+}) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [problem, setProblem] = useState(null)
@@ -310,6 +322,18 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
     return () => onDangDo?.(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, error, problem, trangThai.da_xong])
+
+  // Gợi ý "Bài nên luyện tiếp" ở màn hình hoàn thành — tải phân tích năng lực CHỈ khi bài
+  // vừa xong (không tải lúc vào bài, tránh thêm 1 request vào đường nóng nhất; và lúc này
+  // số liệu đã tính cả bài vừa làm). Lỗi thì bỏ qua lặng lẽ — gợi ý là phần phụ, không được
+  // làm vỡ khoảnh khắc HS vừa hoàn thành bài.
+  const [pt, setPt] = useState(null)
+  useEffect(() => {
+    if (!trangThai.da_xong) return
+    let con = true
+    api.getPhanTichMe().then((d) => con && setPt(d)).catch(() => {})
+    return () => { con = false }
+  }, [trangThai.da_xong])
 
   const [dangGui, setDangGui] = useState(false)
   const [zoomHinh, setZoomHinh] = useState(null)
@@ -651,6 +675,8 @@ export default function PhongHoc({ problemId, sessionId, onTrangChu, onChonBai, 
                 onChonBai={onChonBai}
                 onTrangChu={onTrangChu}
                 onXemLai={() => setXemLaiMo(true)}
+                goiYTiep={baiNenLuyenTiep(pt)}
+                onLuyenTiep={onLuyenTiep}
               />
             ) : (
               <div className="border-t border-border pt-3 flex flex-col gap-3">
