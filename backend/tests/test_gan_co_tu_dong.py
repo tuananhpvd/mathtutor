@@ -208,3 +208,118 @@ def test_nho_thay_co_binh_thuong_khong_gan_co(db, client):
 
     tb = db.query(ThongBao).filter(ThongBao.nguoi_nhan_id == gv.id).first()
     assert tb.tieu_de == "Học sinh nhờ trợ giúp"
+
+
+# ── Cờ 'khong_phan_tich_duoc': CAS không đọc được biểu thức HS nhập quá nhiều lần ────────
+# Lúc CAS trả KHONG_PHAN_TICH_DUOC, hệ thống KHÔNG phán đúng/sai (bất biến #2) mà chỉ mời HS
+# nhập lại. Lặp lại nhiều lần thường là dấu hiệu `bieu_thuc_ket_qua` của bước bị hỏng — CAS sẽ
+# không bao giờ chấm đúng được dù HS nhập chuẩn. Cờ này là đường "chuyển GV xem xét".
+
+def _gui_dap_an_khong_doc_duoc(client, h_hs, sid, so_lan):
+    """Gửi `so_lan` lượt mà CAS chắc chắn KHÔNG parse được ('hai muoi': không phải cú pháp
+    SymPy, cũng không có dấu hiệu LaTeX nên không thử parse_latex — xem cas.py)."""
+    for _ in range(so_lan):
+        r = client.post(f"/api/sessions/{sid}/message",
+                        json={"noi_dung": "em nghĩ vậy", "dap_an_nhap": "hai muoi"},
+                        headers=h_hs)
+        assert r.status_code == 200, r.text
+
+
+def _co_khong_phan_tich(db, sid):
+    return db.query(Flag).filter(
+        Flag.session_id == sid, Flag.loai_co == LoaiCo.khong_phan_tich_duoc
+    ).all()
+
+
+def test_cas_khong_doc_duoc_du_nguong_thi_gan_co(db, client):
+    hs, gv, p = _seed(db)
+    h_hs = _h(_login(client, "hs_co"))
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=h_hs).json()["session_id"]
+
+    _gui_dap_an_khong_doc_duoc(client, h_hs, sid, 3)  # ngưỡng mặc định = 3
+
+    co = _co_khong_phan_tich(db, sid)
+    assert len(co) == 1
+    assert "3 lần" in co[0].ghi_chu
+    assert "bieu_thuc_ket_qua" in co[0].ghi_chu  # chỉ thẳng chỗ GV cần kiểm
+
+
+def test_cas_khong_doc_duoc_duoi_nguong_thi_khong_gan_co(db, client):
+    hs, gv, p = _seed(db)
+    h_hs = _h(_login(client, "hs_co"))
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=h_hs).json()["session_id"]
+
+    _gui_dap_an_khong_doc_duoc(client, h_hs, sid, 2)
+
+    assert _co_khong_phan_tich(db, sid) == []
+
+
+def test_co_khong_phan_tich_chi_gan_mot_lan(db, client):
+    """Idempotent: vượt ngưỡng thêm nữa vẫn đúng 1 cờ — không spam GV mỗi lượt sau đó."""
+    hs, gv, p = _seed(db)
+    h_hs = _h(_login(client, "hs_co"))
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=h_hs).json()["session_id"]
+
+    _gui_dap_an_khong_doc_duoc(client, h_hs, sid, 6)
+
+    assert len(_co_khong_phan_tich(db, sid)) == 1
+
+
+def test_dap_an_doc_duoc_thi_khong_gan_co(db, client):
+    """Đối chứng: nhập SAI nhưng CAS ĐỌC ĐƯỢC (số hợp lệ) không phải lỗi nội dung → không cờ."""
+    hs, gv, p = _seed(db)
+    h_hs = _h(_login(client, "hs_co"))
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=h_hs).json()["session_id"]
+
+    for _ in range(4):
+        client.post(f"/api/sessions/{sid}/message",
+                    json={"noi_dung": "em nghĩ x=3", "dap_an_nhap": "3"}, headers=h_hs)
+
+    assert _co_khong_phan_tich(db, sid) == []
+
+
+def test_tnds_cas_hong_van_duoc_ghi_vao_ket_qua_so_khop(db, client):
+    """REGRESSION: nhánh TNDS pha chốt bắt ValueError trước đây KHÔNG gán ket_qua_dict, nên
+    lượt CAS-hỏng lưu ket_qua_so_khop = NULL → mọi thống kê đếm theo cột này (kể cả cờ
+    'khong_phan_tich_duoc') sót sạch ca TNDS. Tình huống thật: GV sửa câu hỏi bỏ bớt một ý
+    trong lúc HS đang làm dở đúng ý đó."""
+    from app.models.session import Session as SessionModel
+
+    lop = Lop(ten="12B1")
+    db.add(lop)
+    db.flush()
+    gv = User(vai_tro=VaiTro.gv, ho_ten="GV DS", dang_nhap="gv_ds",
+              mat_khau_hash=hash_password("pass"))
+    hs = User(vai_tro=VaiTro.hs, ho_ten="HS DS", dang_nhap="hs_ds",
+              mat_khau_hash=hash_password("pass"), lop_id=lop.id)
+    db.add_all([gv, hs])
+    db.flush()
+    lop.gv_id = gv.id
+    p = Problem(chuyen_de="Test DS", loai_cau="TNDS", do_kho="tb", de_bai="Xét các ý.",
+                loai_dap_an_nhap="dung_sai", trang_thai_duyet=TrangThaiDuyet.da_duyet,
+                nguoi_tao_id=gv.id,
+                meta={"y": [{"ky_hieu": "a", "noi_dung_y": "ý a", "dap_an": "Dung"}]})
+    db.add(p)
+    db.flush()
+    db.add(SolutionStep(problem_id=p.id, thu_tu=1, pham_vi="a", mo_ta="b1",
+                        bieu_thuc_ket_qua="", danh_sach_goi_y=["g1", "g2"]))
+    db.commit()
+
+    h_hs = _h(_login(client, "hs_ds"))
+    sid = client.post("/api/sessions", json={"problem_id": p.id}, headers=h_hs).json()["session_id"]
+
+    # Ép ý hiện tại thành ý KHÔNG còn trong meta → so_khop_tnds_mot_y ném ValueError.
+    ss = db.get(SessionModel, sid)
+    ss.y_hien_tai = "z"
+    db.commit()
+
+    r = client.post(f"/api/sessions/{sid}/message",
+                    json={"noi_dung": "em chọn Đúng", "dap_an_nhap": "Dung"}, headers=h_hs)
+    assert r.status_code == 200, r.text
+
+    # ket_qua_so_khop được lưu trên lượt GIA_SU (lượt phản hồi), không phải lượt HS.
+    turns = db.query(Turn).filter(Turn.session_id == sid).order_by(Turn.id).all()
+    co_ket_qua = [t for t in turns if t.ket_qua_so_khop is not None]
+    assert co_ket_qua, "trước khi vá: nhánh này để ket_qua_so_khop = None → đếm sót ca TNDS"
+    assert co_ket_qua[-1].ket_qua_so_khop["ket_qua"] == "KHONG_PHAN_TICH_DUOC"
+    assert co_ket_qua[-1].ket_qua_so_khop["y"] == "z"

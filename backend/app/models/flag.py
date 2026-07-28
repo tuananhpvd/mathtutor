@@ -14,6 +14,10 @@ class LoaiCo(str, enum.Enum):
     ngoai_pham_vi = "ngoai_pham_vi"
     khong_hieu_nhieu = "khong_hieu_nhieu"  # tự gắn khi HS xin gợi ý/bí quá nhiều lần
     chot_chan_nhieu = "chot_chan_nhieu"  # tự gắn khi phản hồi bị chốt chặn rò rỉ nhiều lần
+    # Tự gắn khi CAS không phân tích được biểu thức HS nhập quá nhiều lần trong 1 phiên —
+    # dấu hiệu bieu_thuc_ket_qua của bước bị hỏng (CAS sẽ KHÔNG BAO GIỜ chấm đúng được), hoặc
+    # HS đang nhập sai định dạng. Là cờ NỘI DUNG (nghi câu hỏi hỏng), không phải cờ về HS.
+    khong_phan_tich_duoc = "khong_phan_tich_duoc"
     thu_cong = "thu_cong"
 
 

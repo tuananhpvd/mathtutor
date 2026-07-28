@@ -10,6 +10,7 @@ const NHAN_CO = {
   thu_cong: 'Gắn thủ công',
   khong_hieu_nhieu: 'Không hiểu nhiều',
   chot_chan_nhieu: 'Chốt chặn nhiều',
+  khong_phan_tich_duoc: 'CAS không đọc được',
 }
 const TONE_TT = { cho_xu_ly: 'warning', da_xu_ly: 'success', bo_qua: 'neutral' }
 const NHAN_TT = { cho_xu_ly: 'Chờ xử lý', da_xu_ly: 'Đã xử lý', bo_qua: 'Bỏ qua' }
@@ -65,8 +66,10 @@ export default function QuanLyCo({ focusId, onFocusDone } = {}) {
     }
   }
 
-  // Cờ liên quan đến HS (gửi lời nhắn được); cờ nội dung (chốt chặn) chỉ xử lý.
-  const coTheNhanHs = (loai) => loai !== 'chot_chan_nhieu'
+  // Cờ liên quan đến HS (gửi lời nhắn được); cờ NỘI DUNG (nghi câu hỏi/gợi ý hỏng) chỉ xử lý
+  // — nhắn HS "em gặp khó" là sai địa chỉ khi lỗi nằm ở dữ liệu bài.
+  const CO_NOI_DUNG = ['chot_chan_nhieu', 'khong_phan_tich_duoc']
+  const coTheNhanHs = (loai) => !CO_NOI_DUNG.includes(loai)
 
   // Nhảy tới + làm nổi bật đúng cờ khi được yêu cầu focus từ chuông thông báo — đợi danh
   // sách tải xong (loading=false) rồi mới tìm. Nếu không thấy (có thể do đang lọc theo

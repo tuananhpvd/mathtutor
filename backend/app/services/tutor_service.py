@@ -360,6 +360,59 @@ def _tu_dong_gan_co_chot_chan(db: Session, session: SessionModel, bi_chot_lan_na
     ))
 
 
+def _nguong_co_khong_phan_tich(db: Session) -> int:
+    """Số lần CAS không phân tích được trong 1 phiên để gắn cờ; lỗi → mặc định 3."""
+    try:
+        from app.services.admin_service import lay_cau_hinh
+        return int(lay_cau_hinh(db).get("nguong_co_khong_phan_tich", 3))
+    except Exception:
+        return 3
+
+
+def _tu_dong_gan_co_khong_phan_tich(db: Session, session: SessionModel) -> None:
+    """Tự gắn cờ 'khong_phan_tich_duoc' khi CAS không đọc được biểu thức HS nhập quá nhiều
+    lần trong 1 phiên.
+
+    Ý nghĩa: lúc CAS trả KHONG_PHAN_TICH_DUOC, hệ thống KHÔNG kết luận đúng/sai mà chỉ mời HS
+    nhập lại (nguyên tắc bất biến #2). Nhưng lặp lại nhiều lần thường là dấu hiệu
+    `bieu_thuc_ket_qua` của bước bị hỏng — khi đó CAS sẽ KHÔNG BAO GIỜ chấm đúng được dù HS
+    nhập chuẩn tuyệt đối, một lỗi âm thầm chỉ lộ ra khi có người xem. Cờ này chính là đường
+    "chuyển giáo viên xem xét" cho tình huống đó. Chỉ gắn MỘT lần/phiên (idempotent).
+
+    Đếm ở PYTHON chứ không lọc bằng SQL: `turns.ket_qua_so_khop` là cột JSON, cú pháp truy
+    vấn JSON khác nhau giữa SQLite (dev/test) và PostgreSQL (production) — đếm trong Python
+    chạy giống hệt nhau ở cả hai, và số lượt mỗi phiên nhỏ (~10-30) nên không đáng tối ưu.
+    """
+    from app.models.flag import Flag, LoaiCo, TrangThaiCo
+
+    nguong = _nguong_co_khong_phan_tich(db)
+    if nguong <= 0:
+        return
+    db.flush()  # để lượt vừa thêm được tính vào số đếm
+    turns = db.query(Turn).filter(Turn.session_id == session.id).all()
+    so_hong = sum(
+        1 for t in turns
+        if (t.ket_qua_so_khop or {}).get("ket_qua") == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC.value
+    )
+    if so_hong < nguong:
+        return
+    da_co = (
+        db.query(Flag)
+        .filter(Flag.session_id == session.id, Flag.loai_co == LoaiCo.khong_phan_tich_duoc)
+        .first()
+    )
+    if da_co is not None:
+        return
+    db.add(Flag(
+        session_id=session.id,
+        loai_co=LoaiCo.khong_phan_tich_duoc,
+        trang_thai=TrangThaiCo.cho_xu_ly,
+        ghi_chu=f"CAS không phân tích được biểu thức học sinh nhập {so_hong} lần "
+                f"(ngưỡng {nguong}) — kiểm tra 'bieu_thuc_ket_qua' của bước có hỏng không "
+                f"(CAS sẽ không bao giờ chấm đúng được), hoặc học sinh đang nhập sai định dạng.",
+    ))
+
+
 def _steps_to_list(problem: Problem) -> list[dict]:
     return [
         {
@@ -568,7 +621,13 @@ def xu_ly_luot(
                     ket_qua_dict = {"ket_qua": ket_qua.value, "y": session.y_hien_tai,
                                     "la_chon": True}
                 except ValueError:
+                    # PHẢI gán cả ket_qua_dict như mọi nhánh khác: đây là nguồn duy nhất ghi
+                    # kết quả so khớp xuống turns.ket_qua_so_khop. Trước đây bỏ trống nên lượt
+                    # CAS-hỏng của TNDS lưu NULL, khiến mọi thống kê đếm theo cột này (vd cờ
+                    # 'khong_phan_tich_duoc') sót sạch ca TNDS.
                     ket_qua = KetQuaSoKhop.KHONG_PHAN_TICH_DUOC
+                    ket_qua_dict = {"ket_qua": ket_qua.value, "y": session.y_hien_tai,
+                                    "la_chon": True}
             else:
                 # Pha suy luận: CAS so biểu thức HS nhập với bieu_thuc_ket_qua của ý hiện tại
                 buoc = trang_thai.buoc_data()
@@ -737,6 +796,8 @@ def xu_ly_luot(
 
     # Tự gắn cờ cho GV khi phản hồi bị chốt chặn rò rỉ vượt ngưỡng (gắn 1 lần/phiên).
     _tu_dong_gan_co_chot_chan(db, session, bi_chot)
+    # Tự gắn cờ khi CAS không đọc được biểu thức HS nhập quá nhiều lần (nghi câu hỏi hỏng).
+    _tu_dong_gan_co_khong_phan_tich(db, session)
 
     if trang_thai_moi.da_xong:
         cap_nhat_tien_do(db, session.hoc_sinh_id, problem.chuyen_de)

@@ -266,6 +266,7 @@ export default function CauHinh() {
   const [cfg, setCfg] = useState(null)
   const [nguong, setNguong] = useState('')
   const [chotChan, setChotChan] = useState('')
+  const [khongPhanTich, setKhongPhanTich] = useState('')
   const [temp, setTemp] = useState('')
   const [nghi, setNghi] = useState('')
   const [msg, setMsg] = useState('')
@@ -324,6 +325,7 @@ export default function CauHinh() {
       setCfg(c)
       setNguong(c.nguong_co_khong_hieu)
       setChotChan(c.nguong_co_chot_chan)
+      setKhongPhanTich(c.nguong_co_khong_phan_tich)
       setTemp(c.llm_temperature)
       setNghi(c.nguong_nghi_giay)
       setProvider(c.llm_provider || 'gemini')
@@ -579,6 +581,17 @@ export default function CauHinh() {
               onChange={(e) => setChotChan(e.target.value)}
             />
             <Button onClick={() => luu('nguong_co_chot_chan', Number(chotChan))}>Lưu</Button>
+          </div>
+          <div className="flex items-end gap-2">
+            <Input
+              label="Ngưỡng cờ 'CAS không đọc được'"
+              type="number"
+              value={khongPhanTich}
+              onChange={(e) => setKhongPhanTich(e.target.value)}
+            />
+            <Button onClick={() => luu('nguong_co_khong_phan_tich', Number(khongPhanTich))}>
+              Lưu
+            </Button>
           </div>
           <div className="flex items-end gap-2">
             <Input

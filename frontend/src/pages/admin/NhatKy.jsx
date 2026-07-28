@@ -10,6 +10,7 @@ const NHAN_CO = {
   ngoai_pham_vi: 'Ngoài phạm vi',
   khong_hieu_nhieu: 'Không hiểu nhiều',
   chot_chan_nhieu: 'Chốt chặn nhiều',
+  khong_phan_tich_duoc: 'CAS không đọc được',
   thu_cong: 'Gắn thủ công',
 }
 const TONE = { cho_xu_ly: 'warning', da_xu_ly: 'success', bo_qua: 'neutral' }
