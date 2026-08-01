@@ -90,7 +90,7 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: E2E (playwright) — 3 luồng vàng
+      - name: E2E (playwright) — luồng vàng + cổng chặn mobile
         working-directory: frontend
         run: npm run e2e
 

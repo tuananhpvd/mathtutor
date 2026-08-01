@@ -41,7 +41,7 @@ Chay "frontend: npm run test (vitest)" { npm run test }
 Chay "frontend: npm run build" { npm run build }
 
 # ---- job "e2e" (ci.yml) — job hay bị BỎ SÓT nhất vì tưởng "chỉ đổi UI nhỏ" ----
-Chay "e2e: npx playwright test (3 luong vang)" { npx playwright test }
+Chay "e2e: npx playwright test (luong vang + cong chan mobile)" { npx playwright test }
 
 Set-Location $root
 $thoiGian = [math]::Round(((Get-Date) - $batDau).TotalSeconds, 1)

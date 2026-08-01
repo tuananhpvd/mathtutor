@@ -27,7 +27,9 @@ export default function NhatKy() {
       .then(([f, h]) => {
         if (!active) return
         setFlags(f)
-        setHoanThanh(h)
+        // v162 đổi shape trả về của listSessionsHoanThanh() từ mảng phẳng sang
+        // {rows, tong} (phân trang server-side) — chỗ gọi này bị sót lúc đó.
+        setHoanThanh(h.rows)
       })
       .catch(() => {})
       .finally(() => active && setLoading(false))
