@@ -1,0 +1,21 @@
+﻿id,nhom,noi_dung,gia_tri_dap_an,loai_cau,ky_vong_chan,muc_do_thuc_te,chan_thuc_te,dung,ly_do_loc,ghi_chu
+1,rui_ro_tu_khoa_truc_tiep,"Đáp án là 5 em nhé, em đã làm rất tốt",5,TLN,True,ro_ri,True,True,Chứa giá trị đáp án chuẩn: '5'; Cụm từ rò rỉ: 'Đáp án là',
+2,rui_ro_khong_lien_ke_chat,"Kết quả cuối cùng là x=3, chính xác rồi đó em",3,TLN,True,sach,False,False,,"PHÁT HIỆN THẬT: bộ lọc hiện KHÔNG bắt được ca này (xem báo cáo) — từ khóa và giá trị không đứng liền kề chặt do có chữ chen giữa ('cuối cùng', 'x=')"
+3,rui_ro_chon_dap_an_tn4pa,"Em chọn B là chính xác, em giỏi lắm",B,TN4PA,True,ro_ri,True,True,Cụm từ rò rỉ: 'chọn B',
+4,rui_ro_dap_so,Đáp số: 20 là kết quả bài toán này,20,TLN,True,ro_ri,True,True,Chứa giá trị đáp án chuẩn: '20',
+5,rui_ro_tieng_anh,"The answer is 42, well done",42,TLN,True,ro_ri,True,True,Cụm từ rò rỉ: 'answer is'; Cụm từ rò rỉ: 'The answer',
+6,rui_ro_tnds_y,"Ý a là đúng, ý b là sai, em kiểm tra lại nhé",,TNDS,True,ro_ri,True,True,Cụm từ rò rỉ: 'Ý a là đúng',
+7,rui_ro_phuong_an,Em hãy chọn phương án C rồi nộp bài,C,TN4PA,True,ro_ri,True,True,Cụm từ rò rỉ: 'phương án C',
+8,rui_ro_ket_qua_bang,Vậy kết quả bằng 15 đúng không em,15,TLN,True,ro_ri,True,True,Chứa giá trị đáp án chuẩn: '15'; Cụm từ rò rỉ: 'kết quả bằng 15',
+9,rui_ro_dap_an_dau_bang,Đáp án = 7 chính là điều em cần tìm,7,TLN,True,ro_ri,True,True,Chứa giá trị đáp án chuẩn: '7'; Cụm từ rò rỉ: 'Đáp án = 7',
+10,rui_ro_answer_dau_bang,answer = 12 là số em cần,12,TLN,True,ro_ri,True,True,Chứa giá trị đáp án chuẩn: '12'; Cụm từ rò rỉ: 'answer = 12',
+11,an_toan_dinh_huong,Em hãy tính đạo hàm của hàm số trước nhé,5,TLN,False,sach,False,True,,
+12,an_toan_dinh_huong,Em thử áp dụng công thức tích phân từng phần xem sao,3,TLN,False,sach,False,True,,
+13,an_toan_khen_khong_lo,Chính xác! Em đã suy luận đúng bước này rồi.,20,TLN,False,sach,False,True,,
+14,an_toan_dinh_huong,Em hãy xét dấu của biểu thức đạo hàm nhé,42,TLN,False,sach,False,True,,
+15,an_toan_nhac_kien_thuc,Hãy nhớ lại định nghĩa xác suất có điều kiện,B,TN4PA,False,sach,False,True,,
+16,an_toan_khong_leo_chu_cai,"Em chọn chưa đúng, hãy thử lại bước tính đạo hàm nhé",C,TN4PA,False,sach,False,True,,
+17,an_toan_dan_buoc,Bước tiếp theo em cần giải phương trình y' = 0,15,TLN,False,sach,False,True,,
+18,an_toan_dinh_huong,Hãy kiểm tra lại dấu của tử số trong biểu thức em nhé,7,TLN,False,sach,False,True,,
+19,an_toan_nhac_cong_thuc,Em áp dụng công thức khai triển nhị thức Newton nhé,12,TLN,False,sach,False,True,,
+20,an_toan_so_khong_lien_quan,"Ở bước 1, em tính đạo hàm; ở bước 2, em giải phương trình",5,TLN,False,sach,False,True,,"Số '1'/'2' là số thứ tự bước, không phải đáp án (5) — kiểm tra không chặn nhầm"

@@ -87,6 +87,18 @@ def test_tn4pa_bat_buoc_lam_sai_buoc():
     assert st2.buoc_hien_tai == 1  # chưa mở khóa
 
 
+def test_tn4pa_chua_du_co_so_o_pha_suy_luan_khong_tinh_la_sai():
+    """Điều kiện xác định (thuyết minh mục V.4): pha suy luận (so biểu thức, không phải
+    chọn chữ cái) nhận CHUA_DU_CO_SO → không tính sai, không mở khóa chọn đáp án."""
+    st = make_tn4pa()
+    ct, st2 = xu_ly_tn4pa(st, KetQuaSoKhop.CHUA_DU_CO_SO, "sqrt(x-1)",
+                          bat_buoc_suy_luan=True, la_chon_dap_an=False)
+    assert ct.y_dinh == "goi_y"
+    assert "điều kiện xác định" in ct.y_goi_y
+    assert st2.so_lan_sai_lien_tiep == 0
+    assert st2.buoc_hien_tai == 1  # chưa mở khóa
+
+
 def test_tn4pa_yeu_cau_goi_y():
     st = make_tn4pa()
     ct, st2 = xu_ly_tn4pa(st, None, "", yeu_cau_goi_y=True)
@@ -194,6 +206,19 @@ def test_tnds_bat_buoc_suy_luan_dung_roi_chot():
                           bat_buoc_suy_luan_y=True, la_chon_dung_sai=True)
     assert st3.y_hien_tai == "b"
     assert st3.da_suy_luan is False  # reset cho ý mới
+
+
+def test_tnds_chua_du_co_so_o_pha_suy_luan_khong_tinh_la_sai():
+    """Điều kiện xác định (thuyết minh mục V.4): pha suy luận TNDS (so biểu thức) nhận
+    CHUA_DU_CO_SO → không tính sai, không mở chốt Đúng/Sai."""
+    st = make_tnds(y_hien_tai="a",
+                   trang_thai_y={"a": "dang_lam", "b": "chua", "c": "chua", "d": "chua"})
+    ct, st2 = xu_ly_tnds(st, KetQuaSoKhop.CHUA_DU_CO_SO, "sqrt(x-1)",
+                         bat_buoc_suy_luan_y=True, la_chon_dung_sai=False)
+    assert ct.y_dinh == "goi_y"
+    assert "điều kiện xác định" in ct.y_goi_y
+    assert st2.da_suy_luan is False  # chưa mở khóa chốt Đúng/Sai
+    assert st2.so_lan_sai_lien_tiep == 0
 
 
 def test_tnds_hoan_thanh_sau_4_y():

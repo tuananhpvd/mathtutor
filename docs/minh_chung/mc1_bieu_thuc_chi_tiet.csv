@@ -1,0 +1,101 @@
+﻿id,nhom,hs_nhap,chuan,che_do,lam_tron,ky_vong,ket_qua_thuc_te,dung,ghi_chu
+1,khai_trien_rut_gon,(x - 5)*(x + 4) - 9,x**2 - x - 29,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+2,khai_trien_rut_gon,(x - 2)*(x + 5) - 2,x**2 + 3*x - 12,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+3,khai_trien_rut_gon,(x - 4)*(x - 3) - 6,x**2 - 7*x + 6,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+4,khai_trien_rut_gon,(x + 4)*(x + 5) + 8,x**2 + 9*x + 28,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+5,khai_trien_rut_gon,(x - 5)*(x + 3) + 4,x**2 - 2*x - 11,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+6,khai_trien_rut_gon,(x - 6)**2 - 7,x**2 - 12*x + 29,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+7,khai_trien_rut_gon,(x - 3)**2 + 7,x**2 - 6*x + 16,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+8,khai_trien_rut_gon,(x - 6)*(x + 3) + 8,x**2 - 3*x - 10,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+9,khai_trien_rut_gon,(x - 3)*(x + 5) + 8,x**2 + 2*x - 7,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+10,khai_trien_rut_gon,(x - 3)*(x + 1) + 5,x**2 - 2*x + 2,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+11,khai_trien_rut_gon,(x - 2)*(x + 3) - 9,x**2 + x - 15,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+12,khai_trien_rut_gon,(x + 6)**2 - 4,x**2 + 12*x + 32,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+13,khai_trien_rut_gon,(x + 1)*(x + 5) + 1,x**2 + 6*x + 6,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+14,khai_trien_rut_gon,(x - 4)*(x - 2) - 3,x**2 - 6*x + 5,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+15,khai_trien_rut_gon,(x - 1)*(x + 6) - 6,x**2 + 5*x - 12,tuong_duong,,DUNG,DUNG,True,"HS nhập dạng tích chưa khai triển, chuẩn là kết quả expand()"
+16,latex_editor,- 5 x^{2} + 4 x - 6,-5*x**2 + 4*x - 6,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+17,latex_editor,1 - \frac{x^{2}}{5},1 - x**2/5,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+18,latex_editor,5 x^{2} + 4 x + 8,5*x**2 + 4*x + 8,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+19,latex_editor,x^{2} + x + 8,x**2 + x + 8,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+20,latex_editor,4 x^{2} + 5 x + 2,4*x**2 + 5*x + 2,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+21,latex_editor,5 x^{2} + x - 8,5*x**2 + x - 8,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+22,latex_editor,2 x^{2} + \frac{1}{7},2*x**2 + 1/7,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+23,latex_editor,- 5 x^{2} + 4 x - 1,-5*x**2 + 4*x - 1,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+24,latex_editor,- x^{2} + 2 x + 2,-x**2 + 2*x + 2,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+25,latex_editor,4 x^{2} + 3 x - 7,4*x**2 + 3*x - 7,tuong_duong,,DUNG,DUNG,True,LaTeX do sympy.latex() xuất ra — mô phỏng đầu ra editor MathLive
+26,thap_phan_kieu_vn,"(-5,9; -2; -4)",(-5.9; -2; -4),tuong_duong,,DUNG,DUNG,True,Dấu phẩy thập phân kiểu VN trong tọa độ/vectơ SGK
+27,thap_phan_kieu_vn,"(-0,7; -1; 8)",(-0.7; -1; 8),tuong_duong,,DUNG,DUNG,True,Dấu phẩy thập phân kiểu VN trong tọa độ/vectơ SGK
+28,thap_phan_kieu_vn,"(-5,0; 1; -8)",(-5.0; 1; -8),tuong_duong,,DUNG,DUNG,True,Dấu phẩy thập phân kiểu VN trong tọa độ/vectơ SGK
+29,thap_phan_kieu_vn,"(-4,9; -8; 1)",(-4.9; -8; 1),tuong_duong,,DUNG,DUNG,True,Dấu phẩy thập phân kiểu VN trong tọa độ/vectơ SGK
+30,thap_phan_kieu_vn,"(-1,8; -7; -3)",(-1.8; -7; -3),tuong_duong,,DUNG,DUNG,True,Dấu phẩy thập phân kiểu VN trong tọa độ/vectơ SGK
+31,thap_phan_kieu_vn,"(7,4; 9; 1)",(7.4; 9; 1),tuong_duong,,DUNG,DUNG,True,Dấu phẩy thập phân kiểu VN trong tọa độ/vectơ SGK
+32,vecto_toa_do,(-3+-2--2; 6*1; 3),(-3; 6; 3),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+33,vecto_toa_do,(-1+1-1; -5*1; -2),(-1; -5; -2),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+34,vecto_toa_do,(-1+-1--1; 9*1; 4),(-1; 9; 4),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+35,vecto_toa_do,(-2+3-3; -5*1; 7),(-2; -5; 7),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+36,vecto_toa_do,(-8+3-3; -6*1; -5),(-8; -6; -5),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+37,vecto_toa_do,(4+0-0; -7*1; 3),(4; -7; 3),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+38,vecto_toa_do,(7+2-2; -1*1; 8),(7; -1; 8),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+39,vecto_toa_do,(-6+-1--1; 8*1; -1),(-6; 8; -1),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+40,vecto_toa_do,(-6+-3--3; 0*1; 4),(-6; 0; 4),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+41,vecto_toa_do,(-1+3-3; 7*1; -4),(-1; 7; -4),tuong_duong,,DUNG,DUNG,True,Mỗi thành phần rút gọn về đúng giá trị chuẩn
+42,to_hop_chinh_hop,"A(8,7)",40320,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+43,to_hop_chinh_hop,"C(7,2)",21,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+44,to_hop_chinh_hop,"A(6,5)",720,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+45,to_hop_chinh_hop,"A(12,1)",12,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+46,to_hop_chinh_hop,"C(11,1)",11,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+47,to_hop_chinh_hop,"C(9,5)",126,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+48,to_hop_chinh_hop,"A(7,5)",2520,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+49,to_hop_chinh_hop,"A(5,4)",120,tuong_duong,,DUNG,DUNG,True,"Ký hiệu SGK C(n,k)/A(n,k) so với binomial()/factorial() của sympy"
+50,lam_tron,9/4,2.2,tuong_duong,1,DUNG,DUNG,True,9/4 làm tròn 1 chữ số thập phân
+51,lam_tron,8/4,2.0,tuong_duong,2,DUNG,DUNG,True,8/4 làm tròn 2 chữ số thập phân
+52,lam_tron,9/8,1.1,tuong_duong,1,DUNG,DUNG,True,9/8 làm tròn 1 chữ số thập phân
+53,lam_tron,9/5,1.8,tuong_duong,3,DUNG,DUNG,True,9/5 làm tròn 3 chữ số thập phân
+54,lam_tron,5/8,0.625,tuong_duong,3,DUNG,DUNG,True,5/8 làm tròn 3 chữ số thập phân
+55,to_hop_chinh_hop_sai,"A(8,7)",(40320) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #42 (lệch +1 có chủ đích)
+56,latex_editor_sai,- x^{2} + 2 x + 2,(-x**2 + 2*x + 2) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #24 (lệch +1 có chủ đích)
+57,thap_phan_kieu_vn_sai,"(-4,9; -8; 1)",(-4.9; -8;2),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #29 (lệch +1 có chủ đích)
+58,vecto_toa_do_sai,(-1+-1--1; 9*1; 4),(-1; 9;5),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #34 (lệch +1 có chủ đích)
+59,lam_tron_sai,9/8,2.1,tuong_duong,1,SAI,SAI,True,Biến thể SAI của ca #52 (lệch +1 có chủ đích)
+60,khai_trien_rut_gon_sai,(x - 6)*(x + 3) + 8,(x**2 - 3*x - 10) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #8 (lệch +1 có chủ đích)
+61,latex_editor_sai,- 5 x^{2} + 4 x - 6,(-5*x**2 + 4*x - 6) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #16 (lệch +1 có chủ đích)
+62,khai_trien_rut_gon_sai,(x - 1)*(x + 6) - 6,(x**2 + 5*x - 12) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #15 (lệch +1 có chủ đích)
+63,khai_trien_rut_gon_sai,(x - 5)*(x + 3) + 4,(x**2 - 2*x - 11) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #5 (lệch +1 có chủ đích)
+64,latex_editor_sai,2 x^{2} + \frac{1}{7},(2*x**2 + 1/7) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #22 (lệch +1 có chủ đích)
+65,khai_trien_rut_gon_sai,(x - 2)*(x + 5) - 2,(x**2 + 3*x - 12) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #2 (lệch +1 có chủ đích)
+66,vecto_toa_do_sai,(7+2-2; -1*1; 8),(7; -1;9),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #38 (lệch +1 có chủ đích)
+67,vecto_toa_do_sai,(-8+3-3; -6*1; -5),(-8; -6;-4),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #36 (lệch +1 có chủ đích)
+68,to_hop_chinh_hop_sai,"C(9,5)",(126) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #47 (lệch +1 có chủ đích)
+69,to_hop_chinh_hop_sai,"C(7,2)",(21) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #43 (lệch +1 có chủ đích)
+70,vecto_toa_do_sai,(-1+3-3; 7*1; -4),(-1; 7;-3),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #41 (lệch +1 có chủ đích)
+71,khai_trien_rut_gon_sai,(x - 5)*(x + 4) - 9,(x**2 - x - 29) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #1 (lệch +1 có chủ đích)
+72,to_hop_chinh_hop_sai,"C(11,1)",(11) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #46 (lệch +1 có chủ đích)
+73,khai_trien_rut_gon_sai,(x + 4)*(x + 5) + 8,(x**2 + 9*x + 28) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #4 (lệch +1 có chủ đích)
+74,vecto_toa_do_sai,(-6+-1--1; 8*1; -1),(-6; 8;0),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #39 (lệch +1 có chủ đích)
+75,vecto_toa_do_sai,(4+0-0; -7*1; 3),(4; -7;4),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #37 (lệch +1 có chủ đích)
+76,khai_trien_rut_gon_sai,(x - 4)*(x - 3) - 6,(x**2 - 7*x + 6) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #3 (lệch +1 có chủ đích)
+77,to_hop_chinh_hop_sai,"A(12,1)",(12) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #45 (lệch +1 có chủ đích)
+78,vecto_toa_do_sai,(-1+1-1; -5*1; -2),(-1; -5;-1),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #33 (lệch +1 có chủ đích)
+79,latex_editor_sai,1 - \frac{x^{2}}{5},(1 - x**2/5) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #17 (lệch +1 có chủ đích)
+80,to_hop_chinh_hop_sai,"A(5,4)",(120) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #49 (lệch +1 có chủ đích)
+81,khai_trien_rut_gon_sai,(x - 3)*(x + 5) + 8,(x**2 + 2*x - 7) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #9 (lệch +1 có chủ đích)
+82,vecto_toa_do_sai,(-3+-2--2; 6*1; 3),(-3; 6;4),tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #32 (lệch +1 có chủ đích)
+83,to_hop_chinh_hop_sai,"A(7,5)",(2520) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #48 (lệch +1 có chủ đích)
+84,khai_trien_rut_gon_sai,(x - 3)**2 + 7,(x**2 - 6*x + 16) + 1,tuong_duong,,SAI,SAI,True,Biến thể SAI của ca #7 (lệch +1 có chủ đích)
+85,khong_phan_tich_duoc,hai muoi,20,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Văn bản chữ thường không phải công thức
+86,khong_phan_tich_duoc,x @ y,1,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Ký tự @ không hợp lệ trong biểu thức
+87,khong_phan_tich_duoc,,5,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Chuỗi rỗng
+88,khong_phan_tich_duoc,x === 3,3,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Cú pháp so sánh lặp 3 dấu bằng không hợp lệ
+89,khong_phan_tich_duoc,bằng năm,5,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Chữ số viết bằng lời
+90,khong_phan_tich_duoc,(3;,(3; 1; 2),tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Ngoặc vectơ không đóng
+91,khong_phan_tich_duoc,toi khong biet lam,5,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,"Câu chữ thường, không có ký hiệu toán học"
+92,khong_phan_tich_duoc,@#$%,1,tuong_duong,,KHONG_PHAN_TICH_DUOC,KHONG_PHAN_TICH_DUOC,True,Chuỗi ký tự không có ý nghĩa toán học
+93,chua_du_co_so_dieu_kien_xac_dinh,sqrt(x-1),sqrt(x-1),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,x-1 có thể âm hoặc dương tùy x thực
+94,chua_du_co_so_dieu_kien_xac_dinh,sqrt(2*x+3),sqrt(2*x+3),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,2x+3 chưa xác định dấu
+95,chua_du_co_so_dieu_kien_xac_dinh,sqrt(x),sqrt(x),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,x chưa xác định dấu (cần x>=0)
+96,chua_du_co_so_dieu_kien_xac_dinh,sqrt(1-x**2),sqrt(1-x**2),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,1-x^2 chỉ không âm khi -1<=x<=1
+97,chua_du_co_so_dieu_kien_xac_dinh,sqrt(x*y),sqrt(x*y),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,tích x*y chưa xác định dấu
+98,chua_du_co_so_dieu_kien_xac_dinh,sqrt(x-3)+1,sqrt(x-3)+1,tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,cộng thêm hằng số không đổi bản chất thiếu điều kiện
+99,chua_du_co_so_dieu_kien_xac_dinh,2*sqrt(x+1),2*sqrt(x+1),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,nhân hệ số không đổi bản chất thiếu điều kiện
+100,chua_du_co_so_dieu_kien_xac_dinh,sqrt(x**3),sqrt(x**3),tuong_duong,,CHUA_DU_CO_SO,CHUA_DU_CO_SO,True,x^3 đổi dấu theo x nên chưa xác định

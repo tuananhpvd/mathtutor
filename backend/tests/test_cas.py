@@ -156,6 +156,51 @@ def test_vecto_khong_pha_bieu_thuc_thuong():
     assert tuong_duong("hai muoi", "20") == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC
 
 
+# ----- Điều kiện xác định (thuyết minh mục V.4): sqrt(f(x)) với f(x) chưa chứng minh
+# được không âm (giả định x thực) → CHUA_DU_CO_SO thay vì công nhận ĐÚNG theo giả thiết
+# ngầm của SymPy. Chỉ áp dụng khi biểu thức PHỤ THUỘC BIẾN — sqrt(hằng số) không có điều
+# kiện xác định nào để bỏ sót. -----
+
+def test_can_bieu_thuc_dau_khong_ro_chua_du_co_so():
+    # sqrt(x-1): với x thực, (x-1) có thể âm hoặc dương tùy x — dấu không xác định được.
+    assert tuong_duong("sqrt(x-1)", "sqrt(x-1)") == KetQuaSoKhop.CHUA_DU_CO_SO
+
+
+def test_can_bieu_thuc_luon_khong_am_van_dung():
+    # x**2+1 LUÔN dương với x thực (không phụ thuộc dấu x) — SymPy chứng minh được sau khi
+    # giả định x thực, nên KHÔNG bị coi là thiếu điều kiện.
+    assert tuong_duong("sqrt(x**2+1)", "sqrt(x**2+1)") == KetQuaSoKhop.DUNG
+    assert tuong_duong("sqrt(x**2)", "sqrt(x**2)") == KetQuaSoKhop.DUNG
+
+
+def test_can_hang_so_khong_bi_coi_la_thieu_dieu_kien():
+    # sqrt(2) không phụ thuộc biến nào — không có "điều kiện xác định" để bỏ sót.
+    assert tuong_duong("sqrt(2)", "sqrt(2)") == KetQuaSoKhop.DUNG
+    assert tuong_duong(r"\sqrt{2}", "sqrt(2)") == KetQuaSoKhop.DUNG  # hồi quy test cũ
+
+
+def test_can_bac_le_khong_bi_coi_la_thieu_dieu_kien():
+    # Căn bậc 3 (và bậc lẻ nói chung) luôn xác định trên R — chỉ sqrt (bậc 2) mới xét.
+    assert tuong_duong("(x-1)**(1/3)", "(x-1)**(1/3)") == KetQuaSoKhop.DUNG
+
+
+def test_can_bieu_thuc_sai_van_la_sai_khong_phai_chua_du_co_so():
+    # eq=False (SAI thật) thì không đụng tới điều kiện xác định — vẫn báo SAI như cũ.
+    assert tuong_duong("sqrt(x-1)", "sqrt(x-2)") == KetQuaSoKhop.SAI
+
+
+def test_can_khong_ap_dung_khi_lam_tron():
+    # che_do lam_tron so bằng evalf() (giá trị số cụ thể) — không còn khái niệm biến/miền
+    # xác định, không được trả CHUA_DU_CO_SO ở nhánh này.
+    assert tuong_duong("1/3", "0.33", lam_tron=2) == KetQuaSoKhop.DUNG
+
+
+def test_can_dung_dang_khong_ap_dung():
+    # dung_dang so cấu trúc cú pháp, không phải "chấp nhận theo giả thiết ngầm" — không xét.
+    r = tuong_duong("sqrt(x-1)", "sqrt(x-1)", CheDoSoKhop.dung_dang)
+    assert r == KetQuaSoKhop.DUNG
+
+
 def test_kiem_tra_bieu_thuc_chap_nhan_dang_vecto():
     """Sự cố thực tế: bieu_thuc_ket_qua='(4; 4; -2)' (câu #31 production) trước đây bị
     validate_cau_hoi()/buoc_co_bieu_thuc_khong_hop_le() coi là hỏng — giờ phải chấp nhận."""

@@ -1,0 +1,31 @@
+﻿id,loai_cau,do_kho,mo_ta,da_xong_mong_doi,da_xong_thuc_te,cap_goi_y_cuoi,so_goi_y_toi_da,dung
+1,TLN,de,Đúng ngay bước duy nhất (dễ),True,True,0,2,True
+2,TLN,tb,Đúng liên tiếp 2 bước (trung bình),True,True,0,3,True
+3,TLN,tb,Sai 1 lần rồi tự sửa đúng,True,True,0,3,True
+4,TLN,kho,"Xin gợi ý rồi sai rồi đúng, sang bước 2 đúng luôn",True,True,0,4,True
+5,TLN,kho,Xin gợi ý vượt ngưỡng (4 mức) — chưa hoàn thành,False,False,3,4,True
+6,TLN,de,Nhập không đọc được rồi nhập lại đúng — không tính là sai,True,True,0,2,True
+7,TLN,tb,Đúng liên tiếp cả 3 bước,True,True,0,3,True
+8,TLN,kho,Sai 3 lần liên tiếp rồi tự sửa đúng,True,True,0,4,True
+9,TLN,de,Biểu thức có căn thiếu điều kiện xác định rồi bổ sung đúng (phần B),True,True,0,2,True
+10,TLN,tb,"Sai mãi, không bao giờ đúng — chưa hoàn thành",False,False,1,3,True
+11,TN4PA,de,"Không bắt buộc suy luận, chọn đúng ngay",True,True,0,2,True
+12,TN4PA,tb,Chọn sai rồi chọn đúng,True,True,0,3,True
+13,TN4PA,tb,Bắt buộc suy luận: suy luận đúng rồi chọn đúng,True,True,0,3,True
+14,TN4PA,kho,Suy luận sai rồi đúng rồi chọn đúng,True,True,0,4,True
+15,TN4PA,tb,Chọn đáp án ngay khi CHƯA mở khóa (bắt buộc suy luận) — bị chặn,False,False,0,3,True
+16,TN4PA,de,2 bước suy luận đúng liên tiếp rồi chọn đúng,True,True,0,2,True
+17,TN4PA,tb,Suy luận thiếu điều kiện xác định rồi đúng (phần B),True,True,0,3,True
+18,TN4PA,de,Xin gợi ý 2 lần rồi chọn đúng,True,True,1,2,True
+19,TN4PA,kho,Suy luận nhập không đọc được rồi đúng,True,True,0,4,True
+20,TN4PA,de,Chọn sai 2 lần liên tiếp — chưa hoàn thành,False,False,1,2,True
+21,TNDS,de,"Chốt đúng cả 4 ý liên tiếp, không bắt buộc suy luận",True,True,0,2,True
+22,TNDS,tb,"Ý a bắt buộc suy luận đúng rồi chốt, 3 ý sau chốt thẳng",True,True,0,3,True
+23,TNDS,tb,"Ý b chốt sai trước, ở lại rồi chốt đúng, vẫn hoàn thành",True,True,0,3,True
+24,TNDS,kho,"Cả 4 ý đều bắt buộc suy luận, đều đúng ngay",True,True,0,4,True
+25,TNDS,tb,"Ý a suy luận sai rồi đúng, vẫn qua được",True,True,0,3,True
+26,TNDS,de,Ý a suy luận thiếu điều kiện xác định rồi đúng (phần B),True,True,0,2,True
+27,TNDS,tb,Ý b suy luận nhập không đọc được rồi đúng,True,True,0,3,True
+28,TNDS,de,Ý d chốt sai mãi — chưa hoàn thành,False,False,1,2,True
+29,TNDS,tb,Ý c xin gợi ý trước khi suy luận đúng rồi chốt,True,True,0,3,True
+30,TNDS,kho,"Xin gợi ý nhiều lần ở 2 ý đầu (độ khó cao, 4 mức)",True,True,0,4,True

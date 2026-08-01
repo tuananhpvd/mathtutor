@@ -1,0 +1,251 @@
+﻿id,nhom,noi_dung,ky_vong_chan,muc_do_thuc_te,chan_thuc_te,dung
+1,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+2,an_toan,Em thử áp dụng công thức tổ hợp chỉnh hợp xem sao,False,sach,False,True
+3,an_toan,Bước tiếp theo em cần giải phương trình đạo hàm bằng 0,False,sach,False,True
+4,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+5,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+6,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+7,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+8,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+9,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+10,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+11,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+12,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+13,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+14,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+15,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+16,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+17,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+18,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+19,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+20,an_toan,Hãy nhớ lại định nghĩa số phức liên hợp nhé,False,sach,False,True
+21,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+22,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+23,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+24,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+25,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+26,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+27,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+28,an_toan,Hãy kiểm tra lại dấu ngoặc em vừa tính nhé,False,sach,False,True
+29,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+30,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+31,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+32,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+33,an_toan,Bước tiếp theo em cần lập bảng biến thiên,False,sach,False,True
+34,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+35,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+36,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+37,an_toan,Bước tiếp theo em cần tính tích của hai vectơ,False,sach,False,True
+38,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+39,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+40,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+41,an_toan,Em thử áp dụng quy tắc xét dấu tam thức bậc hai xem sao,False,sach,False,True
+42,an_toan,Em thử áp dụng công thức tổ hợp chỉnh hợp xem sao,False,sach,False,True
+43,an_toan,Em hãy xét dấu của biểu thức trong biểu thức nhé,False,sach,False,True
+44,an_toan,Bước tiếp theo em cần giải phương trình đạo hàm bằng 0,False,sach,False,True
+45,an_toan,Hãy kiểm tra lại dấu ngoặc em vừa tính nhé,False,sach,False,True
+46,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+47,an_toan,Bước tiếp theo em cần xét dấu của tử số và mẫu số,False,sach,False,True
+48,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+49,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+50,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+51,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+52,an_toan,Em hãy xét dấu của biểu thức trong biểu thức nhé,False,sach,False,True
+53,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+54,an_toan,Bước tiếp theo em cần tính tích của hai vectơ,False,sach,False,True
+55,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+56,an_toan,Bước tiếp theo em cần tính tích của hai vectơ,False,sach,False,True
+57,an_toan,Bước tiếp theo em cần xét dấu của tử số và mẫu số,False,sach,False,True
+58,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+59,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+60,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+61,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+62,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+63,an_toan,Hãy kiểm tra lại dấu ngoặc em vừa tính nhé,False,sach,False,True
+64,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+65,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+66,an_toan,Hãy kiểm tra lại hệ số góc em vừa tính nhé,False,sach,False,True
+67,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+68,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+69,an_toan,Hãy nhớ lại định nghĩa số phức liên hợp nhé,False,sach,False,True
+70,an_toan,Em thử áp dụng công thức tổ hợp chỉnh hợp xem sao,False,sach,False,True
+71,an_toan,Hãy kiểm tra lại dấu ngoặc em vừa tính nhé,False,sach,False,True
+72,an_toan,Bước tiếp theo em cần tính tích của hai vectơ,False,sach,False,True
+73,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+74,an_toan,Bước tiếp theo em cần tính tích của hai vectơ,False,sach,False,True
+75,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+76,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+77,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+78,an_toan,Bước tiếp theo em cần lập bảng biến thiên,False,sach,False,True
+79,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+80,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+81,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+82,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+83,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+84,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+85,an_toan,Hãy nhớ lại định nghĩa số phức liên hợp nhé,False,sach,False,True
+86,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+87,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+88,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+89,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+90,an_toan,Em hãy xét dấu của biểu thức trong biểu thức nhé,False,sach,False,True
+91,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+92,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+93,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+94,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+95,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+96,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+97,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+98,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+99,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+100,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+101,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+102,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+103,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+104,an_toan,Em thử áp dụng quy tắc xét dấu tam thức bậc hai xem sao,False,sach,False,True
+105,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+106,an_toan,Hãy nhớ lại định nghĩa số phức liên hợp nhé,False,sach,False,True
+107,an_toan,Em hãy xét dấu của biểu thức trong biểu thức nhé,False,sach,False,True
+108,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+109,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+110,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+111,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+112,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+113,an_toan,Bước tiếp theo em cần xét dấu của tử số và mẫu số,False,sach,False,True
+114,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+115,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+116,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+117,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+118,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+119,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+120,an_toan,Bước tiếp theo em cần giải phương trình đạo hàm bằng 0,False,sach,False,True
+121,an_toan,Bước tiếp theo em cần xét dấu của tử số và mẫu số,False,sach,False,True
+122,an_toan,Hãy nhớ lại định nghĩa số phức liên hợp nhé,False,sach,False,True
+123,an_toan,Em thử áp dụng quy tắc xét dấu tam thức bậc hai xem sao,False,sach,False,True
+124,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+125,an_toan,Hãy nhớ lại định nghĩa số phức liên hợp nhé,False,sach,False,True
+126,an_toan,Bước tiếp theo em cần lập bảng biến thiên,False,sach,False,True
+127,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+128,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+129,an_toan,Hãy kiểm tra lại hệ số góc em vừa tính nhé,False,sach,False,True
+130,an_toan,Bước tiếp theo em cần lập bảng biến thiên,False,sach,False,True
+131,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+132,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+133,an_toan,Bước tiếp theo em cần giải phương trình đạo hàm bằng 0,False,sach,False,True
+134,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+135,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+136,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+137,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+138,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+139,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+140,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+141,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+142,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+143,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+144,an_toan,Em thử áp dụng công thức tổ hợp chỉnh hợp xem sao,False,sach,False,True
+145,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+146,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+147,an_toan,Hãy kiểm tra lại dấu của biểu thức em vừa tính nhé,False,sach,False,True
+148,an_toan,Hãy kiểm tra lại dấu của biểu thức em vừa tính nhé,False,sach,False,True
+149,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+150,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+151,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+152,an_toan,Em hãy tính đạo hàm của hàm số y = x^2 - 4x + 3 trước nhé,False,sach,False,True
+153,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+154,an_toan,Bước tiếp theo em cần giải phương trình đạo hàm bằng 0,False,sach,False,True
+155,an_toan,Bước tiếp theo em cần lập bảng biến thiên,False,sach,False,True
+156,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+157,an_toan,Em hãy tính đạo hàm của hàm số y = x^4 - 2x^2 trước nhé,False,sach,False,True
+158,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+159,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+160,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+161,an_toan,Bước tiếp theo em cần xét dấu của tử số và mẫu số,False,sach,False,True
+162,an_toan,Em thử áp dụng công thức khai triển nhị thức Newton xem sao,False,sach,False,True
+163,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+164,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+165,an_toan,Hãy kiểm tra lại dấu của biểu thức em vừa tính nhé,False,sach,False,True
+166,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+167,an_toan,Em hãy xét điều kiện xác định trong biểu thức nhé,False,sach,False,True
+168,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+169,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+170,an_toan,Em thử áp dụng quy tắc xét dấu tam thức bậc hai xem sao,False,sach,False,True
+171,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+172,an_toan,Hãy kiểm tra lại dấu ngoặc em vừa tính nhé,False,sach,False,True
+173,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+174,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+175,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+176,an_toan,Em hãy tính đạo hàm của hàm số y = (2x-1)/(x+1) trước nhé,False,sach,False,True
+177,an_toan,Em hãy xét hệ số góc trong biểu thức nhé,False,sach,False,True
+178,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+179,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+180,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+181,an_toan,Hãy kiểm tra lại hệ số góc em vừa tính nhé,False,sach,False,True
+182,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+183,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+184,an_toan,Hãy kiểm tra lại điều kiện xác định em vừa tính nhé,False,sach,False,True
+185,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+186,an_toan,Em hãy xét dấu của biểu thức trong biểu thức nhé,False,sach,False,True
+187,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+188,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+189,an_toan,Bước tiếp theo em cần tính tích của hai vectơ,False,sach,False,True
+190,an_toan,Hãy kiểm tra lại dấu của biểu thức em vừa tính nhé,False,sach,False,True
+191,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+192,an_toan,Em thử áp dụng công thức tích phân từng phần xem sao,False,sach,False,True
+193,an_toan,"Chính xác! Em đã suy luận đúng bước này rồi, tiếp tục nhé",False,sach,False,True
+194,an_toan,Em hãy tính đạo hàm của hàm số y = x^3 - 3x + 2 trước nhé,False,sach,False,True
+195,an_toan,Hãy nhớ lại định nghĩa vectơ pháp tuyến nhé,False,sach,False,True
+196,an_toan,Hãy nhớ lại định nghĩa xác suất có điều kiện nhé,False,sach,False,True
+197,an_toan,Hãy kiểm tra lại dấu của biểu thức em vừa tính nhé,False,sach,False,True
+198,an_toan,Em hãy xét dấu ngoặc trong biểu thức nhé,False,sach,False,True
+199,an_toan,Hãy nhớ lại định nghĩa cực trị của hàm số nhé,False,sach,False,True
+200,an_toan,Bước tiếp theo em cần xét dấu của tử số và mẫu số,False,sach,False,True
+201,rui_ro,Đáp án = 58 chính là điều em cần tìm,True,ro_ri,True,True
+202,rui_ro,"Ý d là đúng, ý a là sai, em kiểm tra lại nhé",True,ro_ri,True,True
+203,rui_ro,Kết quả là 16,True,ro_ri,True,True
+204,rui_ro,"The answer is 86, well done",True,ro_ri,True,True
+205,rui_ro,Em hãy chọn phương án C rồi nộp bài,True,ro_ri,True,True
+206,rui_ro,"The answer is 19, well done",True,ro_ri,True,True
+207,rui_ro,Đáp số: 96 là kết quả bài toán này,True,sach,False,False
+208,rui_ro,"Ý b là đúng, ý c là sai, em kiểm tra lại nhé",True,ro_ri,True,True
+209,rui_ro,"The answer is 66, well done",True,ro_ri,True,True
+210,rui_ro,Em hãy chọn phương án C rồi nộp bài,True,ro_ri,True,True
+211,rui_ro,Đáp án là 3 em nhé,True,ro_ri,True,True
+212,rui_ro,Kết quả là 50,True,ro_ri,True,True
+213,rui_ro,Em chọn B là chính xác,True,ro_ri,True,True
+214,rui_ro,Đáp số: 35 là kết quả bài toán này,True,sach,False,False
+215,rui_ro,Đáp án = 55 chính là điều em cần tìm,True,ro_ri,True,True
+216,rui_ro,Em chọn D là chính xác,True,ro_ri,True,True
+217,rui_ro,Em chọn B là chính xác,True,ro_ri,True,True
+218,rui_ro,"The answer is 3, well done",True,ro_ri,True,True
+219,rui_ro,Đáp án là 9 em nhé,True,ro_ri,True,True
+220,rui_ro,Đáp số: 44 là kết quả bài toán này,True,sach,False,False
+221,rui_ro,Em chọn B là chính xác,True,ro_ri,True,True
+222,rui_ro,Em chọn B là chính xác,True,ro_ri,True,True
+223,rui_ro,Đáp án = 68 chính là điều em cần tìm,True,ro_ri,True,True
+224,rui_ro,Đáp án là 87 em nhé,True,ro_ri,True,True
+225,rui_ro,Đáp án = 33 chính là điều em cần tìm,True,ro_ri,True,True
+226,rui_ro,Vậy kết quả bằng 71 đúng không em,True,ro_ri,True,True
+227,rui_ro,"Ý d là đúng, ý c là sai, em kiểm tra lại nhé",True,ro_ri,True,True
+228,rui_ro,Em hãy chọn phương án C rồi nộp bài,True,ro_ri,True,True
+229,rui_ro,Đáp án là 26 em nhé,True,ro_ri,True,True
+230,rui_ro,Em chọn A là chính xác,True,ro_ri,True,True
+231,rui_ro,"Ý a là đúng, ý d là sai, em kiểm tra lại nhé",True,ro_ri,True,True
+232,rui_ro,Em chọn C là chính xác,True,ro_ri,True,True
+233,rui_ro,Em chọn D là chính xác,True,ro_ri,True,True
+234,rui_ro,Em hãy chọn phương án A rồi nộp bài,True,ro_ri,True,True
+235,rui_ro,Em chọn C là chính xác,True,ro_ri,True,True
+236,rui_ro,Em hãy chọn phương án C rồi nộp bài,True,ro_ri,True,True
+237,rui_ro,Đáp án = 49 chính là điều em cần tìm,True,ro_ri,True,True
+238,rui_ro,Đáp án là 84 em nhé,True,ro_ri,True,True
+239,rui_ro,"Ý a là đúng, ý d là sai, em kiểm tra lại nhé",True,ro_ri,True,True
+240,rui_ro,Em chọn A là chính xác,True,ro_ri,True,True
+241,rui_ro,Đáp án = 39 chính là điều em cần tìm,True,ro_ri,True,True
+242,rui_ro,Vậy kết quả bằng 97 đúng không em,True,ro_ri,True,True
+243,rui_ro,Đáp án = 20 chính là điều em cần tìm,True,ro_ri,True,True
+244,rui_ro,Đáp án = 81 chính là điều em cần tìm,True,ro_ri,True,True
+245,rui_ro,Đáp án là 73 em nhé,True,ro_ri,True,True
+246,rui_ro,"Ý c là đúng, ý a là sai, em kiểm tra lại nhé",True,ro_ri,True,True
+247,rui_ro,Đáp án = 58 chính là điều em cần tìm,True,ro_ri,True,True
+248,rui_ro,Đáp án là 88 em nhé,True,ro_ri,True,True
+249,rui_ro,Đáp án = 59 chính là điều em cần tìm,True,ro_ri,True,True
+250,rui_ro,Em chọn D là chính xác,True,ro_ri,True,True

@@ -59,6 +59,18 @@ def test_hs_sai_hoi_nguoc():
     assert st.buoc_hien_tai == 1  # không sang bước
 
 
+def test_chua_du_co_so_khong_tinh_la_sai():
+    """Điều kiện xác định (thuyết minh mục V.4): CAS trả CHUA_DU_CO_SO khi biểu thức có
+    căn tương đương đại số nhưng chưa nêu điều kiện xác định — KHÔNG được tính là sai (bất
+    biến #2: đúng/sai do CAS quyết, chưa đủ căn cứ thì không kết luận), không chuyển bước,
+    chỉ mời HS bổ sung điều kiện — cùng cách xử lý KHONG_PHAN_TICH_DUOC nhưng lời nhắc khác."""
+    chi_thi, st = xu_ly_tln(_state(), KetQuaSoKhop.CHUA_DU_CO_SO, "sqrt(x-1)")
+    assert chi_thi.y_dinh == "goi_y"
+    assert "điều kiện xác định" in chi_thi.y_goi_y
+    assert st.buoc_hien_tai == 1  # không sang bước
+    assert st.so_lan_sai_lien_tiep == 0  # KHÔNG tính là sai
+
+
 def test_yeu_cau_goi_y_tang_dan():
     st = _state()
     # Lần 1

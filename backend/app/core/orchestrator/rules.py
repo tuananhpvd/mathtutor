@@ -97,6 +97,15 @@ def xu_ly_tln(
                         "em hãy nhập lại bằng một biểu thức toán hợp lệ nhé (số, phân số, căn...)",
                         ngu_canh_hs), st
 
+    # Biểu thức có căn tương đương đại số với đáp án nhưng chưa nêu điều kiện xác định —
+    # KHÔNG công nhận đúng theo giả thiết ngầm của SymPy, cũng KHÔNG tính là sai (bất biến
+    # #2: đúng/sai do CAS quyết, không phải LLM/quy tắc phỏng đoán khi CAS chưa đủ căn cứ).
+    if ket_qua_so_khop == KetQuaSoKhop.CHUA_DU_CO_SO:
+        return _chi_thi(st, "goi_y",
+                        "biểu thức của em có căn — em nêu thêm điều kiện xác định (miền giá "
+                        "trị của biến) rồi thử lại nhé",
+                        ngu_canh_hs), st
+
     if ket_qua_so_khop == KetQuaSoKhop.DUNG:
         buoc_tiep = _tim_buoc_tiep(st)
         if buoc_tiep is None:
@@ -156,6 +165,14 @@ def xu_ly_tn4pa(
     if ket_qua_so_khop == KetQuaSoKhop.KHONG_PHAN_TICH_DUOC:
         return _chi_thi(st, "goi_y",
                         "em hãy nhập lại bằng một biểu thức toán hợp lệ nhé",
+                        ngu_canh_hs), st
+
+    # Biểu thức có căn tương đương đại số nhưng chưa nêu điều kiện xác định (chỉ phát sinh
+    # ở pha suy luận, so biểu thức — la_chon_dap_an so chữ cái nên không bao giờ rơi vào đây).
+    if ket_qua_so_khop == KetQuaSoKhop.CHUA_DU_CO_SO:
+        return _chi_thi(st, "goi_y",
+                        "biểu thức của em có căn — em nêu thêm điều kiện xác định (miền giá "
+                        "trị của biến) rồi thử lại nhé",
                         ngu_canh_hs), st
 
     # --- HS chọn đáp án (chữ cái) ---
@@ -238,6 +255,15 @@ def xu_ly_tnds(
         msg = ("em hãy chọn Đúng hoặc Sai cho ý này nhé" if la_chon_dung_sai
                else "em hãy nhập lại bằng một biểu thức toán hợp lệ nhé")
         return _chi_thi(st, "goi_y", msg, ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
+
+    # Biểu thức có căn tương đương đại số nhưng chưa nêu điều kiện xác định (chỉ phát sinh
+    # ở pha suy luận, so biểu thức — pha chốt Đúng/Sai so chữ, không dùng CAS nên không
+    # bao giờ rơi vào đây).
+    if ket_qua_y == KetQuaSoKhop.CHUA_DU_CO_SO:
+        return _chi_thi(st, "goi_y",
+                        "biểu thức của em có căn — em nêu thêm điều kiện xác định (miền giá "
+                        "trị của biến) rồi thử lại nhé",
+                        ngu_canh_hs, y_dang_xet=st.y_hien_tai), st
 
     da_mo = (not bat_buoc_suy_luan_y) or st.da_suy_luan
 

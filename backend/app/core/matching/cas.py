@@ -1,7 +1,7 @@
 import re
 from enum import Enum
 
-from sympy import Matrix, simplify, sympify
+from sympy import Matrix, Pow, Rational, Symbol, simplify, sympify
 from sympy.core.sympify import SympifyError
 
 
@@ -14,6 +14,11 @@ class KetQuaSoKhop(str, Enum):
     DUNG = "DUNG"
     SAI = "SAI"
     KHONG_PHAN_TICH_DUOC = "KHONG_PHAN_TICH_DUOC"
+    # HS nhập biểu thức có căn của một biểu thức chứa biến mà dấu KHÔNG chứng minh được
+    # (kể cả khi giả định biến thực) — tương đương đại số với đáp án chuẩn nhưng không thể
+    # công nhận ĐÚNG nếu chỉ dựa giả thiết ngầm của SymPy về miền xác định. Khác
+    # KHONG_PHAN_TICH_DUOC: biểu thức ĐÃ parse được, chỉ là chưa đủ căn cứ để kết luận.
+    CHUA_DU_CO_SO = "CHUA_DU_CO_SO"
 
 
 _FORBIDDEN = ("__import__", "eval", "exec", "open", "os", "sys", "subprocess")
@@ -160,6 +165,34 @@ def _la_khong(diff) -> bool:
     return diff == 0
 
 
+def _can_thieu_dieu_kien_xac_dinh(expr) -> bool:
+    """True nếu `expr` chứa căn bậc 2 (sqrt) của một biểu thức phụ thuộc biến mà dấu KHÔNG
+    chứng minh được dù giả định biến là số THỰC — dấu hiệu HS đã bỏ qua điều kiện xác định
+    (miền giá trị) thay vì thật sự xét nó, chứ không phải lỗi tính toán.
+
+    Chỉ xét sqrt (Pow số mũ 1/2): căn bậc lẻ luôn xác định trên R nên không có điều kiện gì
+    để bỏ sót; sqrt(hằng số) không phụ thuộc biến nên cũng vậy.
+
+    Giả định biến là THỰC (đúng bối cảnh Toán 12 phổ thông) trước khi hỏi `is_nonnegative`:
+    SymPy mặc định coi biến là số PHỨC nên is_nonnegative luôn None cho MỌI biểu thức có
+    biến (kể cả x**2+1, vốn luôn dương với x thực) — quá rộng, không phân biệt được.
+    """
+    try:
+        cac_can = [n for n in expr.atoms(Pow) if n.exp == Rational(1, 2)]
+    except AttributeError:
+        return False
+    for can in cac_can:
+        bieu_thuc_trong_can = can.base
+        cac_bien = bieu_thuc_trong_can.free_symbols
+        if not cac_bien:
+            continue
+        thay_bien_thuc = {b: Symbol(b.name, real=True) for b in cac_bien}
+        gia_tri_thuc = bieu_thuc_trong_can.subs(thay_bien_thuc)
+        if gia_tri_thuc.is_nonnegative is not True:
+            return True
+    return False
+
+
 def tuong_duong(
     hs: str,
     chuan: str,
@@ -187,6 +220,10 @@ def tuong_duong(
         else:
             diff = simplify(expr_hs - expr_chuan)
             eq = _la_khong(diff)
+        # Chỉ xét thiếu điều kiện xác định khi ĐÃ tương đương đại số (eq=True) và không ở
+        # chế độ lam_tron (so số cụ thể qua evalf() không còn khái niệm "miền xác định").
+        if eq and lam_tron is None and _can_thieu_dieu_kien_xac_dinh(expr_hs):
+            return KetQuaSoKhop.CHUA_DU_CO_SO
         return KetQuaSoKhop.DUNG if eq else KetQuaSoKhop.SAI
     except Exception:
         return KetQuaSoKhop.KHONG_PHAN_TICH_DUOC
