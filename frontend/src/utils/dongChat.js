@@ -47,11 +47,12 @@ export function dungDongChat(turns = [], opts = {}) {
       // đó không phải bước có nội dung, đừng vẽ mốc "BƯỚC 2" trống cho nó.
       const buocCoThat = !tongBuoc || loaiCau === 'TNDS' || buoc <= tongBuoc
       if (doiMoc && buocCoThat && laBuocTienLen(moc, mocTruoc)) {
-        // Mốc đầu tiên (mocTruoc == null) KHÔNG cần phân cách: HS vừa vào bài, bước 1 đã hiện
-        // sẵn ở Khu vực trả lời — thêm 1 dải "Bước 1" ngay dòng đầu chỉ tổ thừa.
-        if (mocTruoc != null) {
-          ra.push({ kieu: 'phan_cach', buoc, y, ...nhanPhanCach({ buoc, y, loaiCau, tongBuoc, moTaCacBuoc }) })
-        }
+        // Luôn vẽ dải phân cách, KỂ CẢ mốc đầu tiên (Bước 1) — trước đây bỏ qua mốc đầu vì
+        // "Khu vực trả lời" ở Phòng học đã hiện sẵn ngữ cảnh, nhưng lý do đó không áp dụng
+        // được ở XemLaiBai (dùng chung hàm này) — nơi không có khối "đang ở bước mấy" nào
+        // khác, khiến bước 1 hoàn toàn không có nhãn trong khi mọi bước sau đều có. Nhất
+        // quán: mọi bước, kể cả bước 1, đều có dải phân cách riêng.
+        ra.push({ kieu: 'phan_cach', buoc, y, ...nhanPhanCach({ buoc, y, loaiCau, tongBuoc, moTaCacBuoc }) })
         mocTruoc = moc
       }
     }
