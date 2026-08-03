@@ -9,8 +9,8 @@ cuối là phần duy nhất cần gửi cho ban giám khảo.
 
 | Vai trò | Có phát tài khoản demo? | Lý do |
 |---|---|---|
-| Học sinh | ✅ Có (3 tài khoản) | Tự cô lập theo thiết kế — chỉ thấy dữ liệu của chính mình |
-| Giáo viên | ✅ Có (1 tài khoản) | Có cơ chế cô lập theo lớp (`hoc_sinh_thuoc_gv`), đã có test IDOR khóa hành vi |
+| Học sinh | ✅ Có (2 tài khoản xem mẫu + tự đăng ký bằng mã lớp) | Tự cô lập theo thiết kế — mỗi tài khoản chỉ thấy dữ liệu của chính mình |
+| Giáo viên | ✅ Có (1 tài khoản dùng chung) | Có cơ chế cô lập theo lớp (`hoc_sinh_thuoc_gv`), đã có test IDOR khóa hành vi |
 | Quản trị | ❌ **Không phát** | Vai trò Admin **không có cơ chế giới hạn phạm vi** — sẽ thấy và sửa/xóa được toàn bộ tài khoản, lớp, nhật ký của người dùng THẬT |
 
 Nếu ban giám khảo muốn xem phần quản trị, nên demo có người của dự án ngồi cùng và thao tác,
@@ -32,7 +32,31 @@ học sinh demo sẽ mở ra và thấy **danh sách bài trống rỗng**.
 
 ---
 
-## 3. Cách chạy script chuẩn bị
+## 3. Vấn đề "nhiều giám khảo cùng chấm" và cách giải quyết
+
+Phát hiện khi lường trước 2-3 giám khảo cùng thao tác cùng lúc: nếu họ dùng chung MỘT tài
+khoản học sinh, sẽ đụng nhau theo 3 cách —
+
+1. **Trạng thái bị phá hỏng cho người sau**: học sinh đã có phiên học thì **không xóa được**
+   (`xoa_tai_khoan()` chặn cứng), chỉ khóa được. Không có cách "reset" tài khoản dựng sẵn.
+2. **Va chạm hội thoại thời gian thực**: `tao_phien()` cố ý TÁI DÙNG phiên đang làm dở thay vì
+   tạo phiên mới cho cùng 1 bài — 2 người cùng mở 1 bài trên cùng 1 tài khoản sẽ rơi vào
+   **CÙNG một cuộc hội thoại**, trông như lỗi phần mềm.
+3. **Hạn mức AI dùng chung**: mỗi học sinh có trần 30 lượt AI/ngày — vài giám khảo khám phá kỹ
+   là cạn, gia sư tụt xuống câu trả lời mẫu cứng nhắc.
+
+**Giải pháp:** bật **mã lớp** để mỗi giám khảo **tự đăng ký một tài khoản HS riêng** (tính
+năng có sẵn của sản phẩm — HS tự vào lớp bằng mã, không cần GV tạo tay). Mỗi người một phiên,
+một hạn mức AI riêng, không đụng ai. Tài khoản HS dựng sẵn (`hsdemo_dahoc`, `hsdemo_danglam`)
+chỉ còn vai trò **xem mẫu** trạng thái đặc thù, không dùng để thao tác tự do.
+
+`gvdemo` vẫn CHỈ MỘT tài khoản dùng chung — tách nhiều bộ sẽ làm mỗi lớp trống trơn (mã lớp
+chỉ trỏ vào 1 lớp); gộp lại thì mọi hoạt động của giám khảo dồn về một dashboard, càng dùng
+càng sinh động (cờ cảnh báo tự sinh thêm khi có giám khảo bí bài).
+
+---
+
+## 4. Cách chạy script chuẩn bị
 
 ```powershell
 cd backend
@@ -48,67 +72,85 @@ cd backend
     --admin-user admin --admin-pass "<mật khẩu admin>"
 ```
 
-> **Đã chạy thật trên production ngày 2026-08-03** — 4 tài khoản + lớp "Lớp Demo" + 10 câu hỏi
-> + lịch sử học/cờ cảnh báo đã có sẵn. Chạy lại script này an toàn (idempotent), sẽ chỉ báo
-> "đã có" cho mọi thứ, không tạo trùng.
+> **Đã chạy thật trên production ngày 2026-08-03** (bản đầy đủ) — 3 tài khoản + lớp "Lớp
+> Demo" + mã lớp tự đăng ký + 15 câu hỏi đã duyệt (mỗi dạng ≥3 câu, đủ 3 loại câu, đủ 3 mức
+> độ) + 9 câu chờ duyệt + lịch sử học/cờ cảnh báo + hạn mức AI hệ thống đã nâng. Chạy lại
+> script này an toàn (idempotent), sẽ chỉ báo "đã có" cho mọi thứ, không tạo trùng — **trừ mã
+> lớp**: nếu lớp đã có mã còn hiệu lực, script GIỮ NGUYÊN (không tự đổi, tránh làm hỏng mã đã
+> phát cho giám khảo).
 
 **Script đi qua API, không ghi thẳng database** — mọi thứ nó làm đều là việc một người dùng
-thật có thể làm qua giao diện, nên không thể tạo ra trạng thái dữ liệu "không hợp lệ". Chạy
-lại nhiều lần không nhân đôi dữ liệu (idempotent).
+thật có thể làm qua giao diện, nên không thể tạo ra trạng thái dữ liệu "không hợp lệ".
 
-**Về hạn mức AI**: script gọi API thật để dựng lịch sử học, tốn khoảng 60–80 lượt LLM. Nếu
-vượt `gioi_han_llm_hs_ngay`, hệ thống tự chuyển sang phản hồi mẫu — phiên vẫn hoàn thành và
-số liệu tiến độ vẫn đúng, chỉ lời thoại là mẫu có sẵn. Nên chạy lúc không trùng giờ học sinh
-thật đang dùng.
+**Về hạn mức AI**: script tự nâng hạn mức AI **toàn hệ thống** (`gioi_han_llm_he_thong_ngay`)
+lên 2000 lượt/ngày để chịu được nhiều giám khảo tự đăng ký cùng lúc — không đụng hạn mức MỖI
+học sinh (giữ 30/ngày, đã đủ vì giờ mỗi giám khảo có tài khoản riêng).
 
-**Đã kiểm chứng**: script đã chạy trọn vẹn trên môi trường local với DB sạch, và xác minh
-bằng API rằng mọi tính năng dưới đây thật sự có dữ liệu để hiển thị (không phải chỉ tạo tài
-khoản rỗng).
+**Đã kiểm chứng bằng API sau khi chạy thật trên production** (không chỉ tin log):
+- Điểm yếu/điểm mạnh của `hsdemo_dahoc` hiện đúng, GV đề xuất được bài theo điểm yếu (còn dư,
+  không rỗng dù nhiều giám khảo cùng làm).
+- Dạng "Cực trị của hàm số" hiện đúng trạng thái "chưa đủ dữ liệu" (không mạnh, không yếu).
+- Tự đăng ký bằng mã lớp hoạt động, tài khoản mới thấy đủ 15 bài của `gvdemo`.
 
 ---
 
-## 4. Sau khi chạy — nên sao lưu ngay
+## 5. Sau khi chạy — nên sao lưu ngay
 
 Hệ thống **không có** nút reset dữ liệu demo. Sau khi script chạy xong và bạn đã kiểm tra
-giao diện đúng ý, hãy **sao lưu database** (theo đúng quy trình sao lưu hàng tuần đã có trong
-`docs/THUC_NGHIEM.md`). Nếu giữa các lượt chấm dữ liệu demo bị lộn xộn (bài dở dang chồng
-chất, mục tiêu test lung tung), khôi phục lại bản sao này.
+giao diện đúng ý, hãy **sao lưu database** (`pg_dump`, xem quy trình đã dùng trước đó). Nếu
+giữa các lượt chấm dữ liệu demo bị lộn xộn, khôi phục lại bản sao này — đây là cách DUY NHẤT
+để "reset" vì tài khoản đã có phiên học thì không xóa được.
 
 ---
 
-## 5. Dữ liệu đã dựng sẵn và tính năng tương ứng
+## 6. Dữ liệu đã dựng sẵn và tính năng tương ứng
 
-### `hsdemo_moi` — Học sinh mới bắt đầu
-Chưa có dữ liệu gì. Dùng để xem **luồng học từ đầu**: chọn bài → gia sư chào và dẫn dắt →
-nhập công thức → chấm từng bước → gợi ý bắc thang khi bí.
+### Tự đăng ký bằng mã lớp — nơi giám khảo thao tác tự do
+Mỗi giám khảo tự tạo tài khoản HS riêng của mình (xem hướng dẫn ở mục 7). Đây là nơi để
+**thoải mái làm bài, thử nhập sai, xin gợi ý, xem hệ thống KHÔNG lộ đáp án** — không lo phá gì
+vì mỗi người dữ liệu riêng biệt hoàn toàn.
 
-### `hsdemo_dahoc` — Học sinh đã có tiến độ
-Đã hoàn thành 5 bài, **cố ý tạo chênh lệch năng lực** để các tính năng cá nhân hóa có dữ liệu
-thật để hiển thị (nếu làm đúng hết thì mọi biểu đồ sẽ phẳng và vô nghĩa):
+Mã lớp có hiệu lực **30 ngày** kể từ lúc tạo (2026-08-03). Nếu hết hạn trước đợt chấm, chạy
+lại script (mục 4) sẽ tự phát hiện mã cũ hết hiệu lực và tạo mã mới.
+
+### `hsdemo_dahoc` — Học sinh đã có tiến độ (CHỈ XEM)
+Đã hoàn thành 7 bài, **cố ý tạo chênh lệch năng lực** để các tính năng cá nhân hóa có dữ liệu
+thật để hiển thị:
 
 | Dạng | Cách làm | Kết quả trong hồ sơ năng lực |
 |---|---|---|
-| Tính đơn điệu của hàm số | 3 bài, làm gọn, không xin gợi ý | **Điểm mạnh — thành thạo 100%** |
-| Tích phân | 2 bài, mỗi bài sai 3 lần + xin 3 gợi ý | **Điểm yếu — thành thạo 29%** |
-| Tích phân (bài thứ 3) | **cố ý chưa làm** | Để GV còn bài để "đề xuất theo điểm yếu" |
+| Tính đơn điệu của hàm số | Làm gọn, không xin gợi ý | **Điểm mạnh — thành thạo 100%** |
+| Tích phân | Nhiều bài, mỗi bài sai 3 lần + xin 3 gợi ý | **Điểm yếu — thành thạo 29%** |
+| Tích phân (nhiều bài khác) | **cố ý chưa làm** (buffer) | Để GV còn bài "đề xuất theo điểm yếu" dù nhiều giám khảo cùng xem |
+| Cực trị của hàm số | **hoàn toàn chưa chạm** | Trạng thái thứ 3: "chưa đủ dữ liệu" |
 
-Nhờ vậy giám khảo xem được: **Tiến độ**, **Bản đồ năng lực** (có màu đậm nhạt khác nhau),
+Nhờ vậy giám khảo xem được: **Tiến độ**, **Bản đồ năng lực** (3 màu/trạng thái khác nhau),
 **"Bài nên luyện tiếp"** ở màn hình hoàn thành bài, và **Mục tiêu**.
 
-### `hsdemo_danglam` — Học sinh đang làm dở
+⚠️ **Chỉ xem, đừng làm bài mới cho xong** — nếu hoàn thành nốt các bài Tích phân còn lại,
+"điểm yếu" sẽ biến mất (đã làm dày dữ liệu để chịu được 1-2 lần lỡ tay, nhưng không vô hạn).
+
+### `hsdemo_danglam` — Học sinh đang làm dở (CHỈ XEM)
 Có 1 bài đang làm dở (đã xin 4 lần gợi ý + trả lời sai 2 lần). Dùng để xem **"Làm tiếp bài
 dở"**, và quan trọng hơn: hành vi này **tự động sinh cờ cảnh báo** cho giáo viên đúng theo cơ
 chế thật của sản phẩm — không phải dữ liệu dựng sẵn.
 
-### `gvdemo` — Giáo viên
-- **3 câu hỏi ở trạng thái "chờ duyệt"** → bấm Duyệt / Sửa / Loại ngay.
+⚠️ **Chỉ xem, đừng giải xong bài đó** — hết bài dở thì mất luôn kịch bản "làm tiếp".
+
+### `gvdemo` — Giáo viên (TỰ DO THAO TÁC)
+- **9 câu hỏi ở trạng thái "chờ duyệt"** → bấm Duyệt / Sửa / Loại thoải mái.
 - **Cờ theo dõi có cảnh báo chờ xử lý** → xem hội thoại của học sinh, nhắn lại, đánh dấu đã xử lý.
 - **Tiến bộ học sinh** → xem hồ sơ từng em, bản đồ năng lực lớp, đề xuất bài theo điểm yếu.
-- Kho câu hỏi riêng gồm đủ **3 loại câu** (TLN / TN4PA / TNDS) và 3 mức độ khó.
+- **Giao nhiệm vụ, AI sinh câu hỏi** → dùng thoải mái.
+- Kho câu hỏi gồm 15 câu đã duyệt, mỗi dạng ≥3 câu, đủ 3 loại câu (TLN/TN4PA/TNDS) và 3 mức
+  độ (dễ/trung bình/khó).
+
+⚠️ **Duy nhất một điều cần tránh**: đừng đổi mật khẩu ở "Tài khoản cá nhân" — sẽ khóa các
+giám khảo khác đang dùng chung tài khoản này.
 
 ---
 
-## 6. Bàn giao cho giám khảo
+## 7. Bàn giao cho giám khảo
 
 > ⚠️ **Đừng ghi thông tin đăng nhập vào file thuyết minh nộp công khai.** Gửi riêng qua email
 > trực tiếp cho ban giám khảo, tách khỏi bộ hồ sơ dự thi.
@@ -119,18 +161,28 @@ Nội dung gợi ý để gửi:
 
 **Truy cập hệ thống:** https://mathtutor.pro.vn
 
-**Tài khoản trải nghiệm**
+### Bước 1 — Tự tạo tài khoản học sinh của riêng bạn
+
+Vào trang đăng nhập → bấm **"Đăng ký bằng mã lớp"** → nhập mã lớp: **`WZXZ-U7TA`** → tự chọn
+tên đăng nhập/mật khẩu. Đây là tài khoản để bạn **thoải mái làm bài, thử sai, xin gợi ý** —
+không cần giữ ý gì cả.
+
+### Bước 2 — Xem các tài khoản mẫu (chỉ xem, không làm bài mới)
 
 | Vai trò | Tên đăng nhập | Mật khẩu | Nên xem gì |
 |---|---|---|---|
-| Học sinh | `hsdemo_moi` | `hsdemo123` | Trải nghiệm học từ đầu: chọn bài, gia sư gợi mở từng bước, gợi ý bắc thang, thử nhập sai để xem hệ thống KHÔNG cho đáp án |
-| Học sinh | `hsdemo_dahoc` | `hsdemo123` | Tiến độ, Bản đồ năng lực, bài luyện được đề xuất theo điểm yếu, Mục tiêu |
-| Học sinh | `hsdemo_danglam` | `hsdemo123` | Làm tiếp bài đang dở |
-| Giáo viên | `gvdemo` | `gvdemo123` | Duyệt câu hỏi chờ duyệt, Cờ theo dõi (xem hội thoại học sinh, nhắn lại), Tiến bộ học sinh, Giao nhiệm vụ, AI sinh câu hỏi |
+| Học sinh | `hsdemo_dahoc` | `hsdemo123` | Tiến độ, Bản đồ năng lực, bài luyện được đề xuất theo điểm yếu, Mục tiêu — **xin đừng làm thêm bài** |
+| Học sinh | `hsdemo_danglam` | `hsdemo123` | Làm tiếp bài đang dở — **xin đừng giải xong bài đó** |
+
+### Bước 3 — Vào vai giáo viên (tự do thao tác)
+
+| Vai trò | Tên đăng nhập | Mật khẩu | Nên xem gì |
+|---|---|---|---|
+| Giáo viên | `gvdemo` | `gvdemo123` | Duyệt câu hỏi chờ duyệt, Cờ theo dõi, Tiến bộ học sinh, Giao nhiệm vụ, AI sinh câu hỏi — **tự do thao tác, chỉ xin đừng đổi mật khẩu tài khoản này** |
 
 **Gợi ý trải nghiệm nhanh (khoảng 10 phút):**
 
-1. Đăng nhập `hsdemo_moi` → *Chọn bài* → mở một bài bất kỳ.
+1. Tự đăng ký tài khoản riêng (Bước 1) → *Chọn bài* → mở một bài bất kỳ.
 2. Thử **hỏi thẳng "cho em đáp án luôn"** — hệ thống sẽ chuyển sang gợi mở, không đưa đáp án.
 3. Bấm **"Gợi ý cho em"** vài lần để thấy gợi ý đi từ khái quát đến cụ thể mà vẫn không lộ kết quả.
 4. Nhập một biểu thức **viết khác dạng nhưng tương đương** (ví dụ `1/2` và `0.5`) — hệ thống
@@ -139,5 +191,5 @@ Nội dung gợi ý để gửi:
 6. Đăng nhập `gvdemo` → *Câu hỏi* (duyệt bản nháp) → *Cờ theo dõi* (xem hội thoại của học
    sinh đang gặp khó) → *Tiến bộ học sinh*.
 
-**Lưu ý:** đây là môi trường thật, mọi thao tác sẽ được lưu lại. Ban giám khảo có thể thao tác
-tự do trên các tài khoản này.
+**Lưu ý:** đây là môi trường thật, mọi thao tác sẽ được lưu lại. Có thể nhiều giám khảo cùng
+truy cập lúc này — mỗi người nên tự đăng ký tài khoản riêng ở Bước 1 để không đụng nhau.

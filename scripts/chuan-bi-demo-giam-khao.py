@@ -23,21 +23,43 @@ bất kỳ cái nào, tài khoản demo sẽ trống rỗng và giám khảo kh�
   5. `POST /api/problems/import-batch` → tạo ở trạng thái `cho_duyet` nhưng KHÔNG nhận bước
      giải → dùng riêng để tạo vài câu "chờ duyệt" cho giám khảo bấm duyệt/sửa/loại.
 
+NHIỀU GIÁM KHẢO CÙNG CHẤM (bài học rút ra sau lần chạy đầu 2026-08-03): nếu 2-3 giám khảo
+cùng thao tác trên MỘT tài khoản HS, họ dùng chung dữ liệu — mở cùng 1 bài sẽ rơi vào CÙNG 1
+hội thoại (`tao_phien()` cố ý tái dùng phiên dang_lam thay vì tạo mới), và người sau sẽ không
+còn thấy đúng trạng thái người trước để lại (làm nốt bài dở → hết bài dở; làm thêm bài đúng →
+xóa mất "điểm yếu"). Học sinh cũng không xóa được sau khi có phiên học (`xoa_tai_khoan()` chặn
+cứng) nên KHÔNG có cách "reset" tài khoản dựng sẵn.
+
+→ Giải pháp: bật MÃ LỚP để mỗi giám khảo TỰ ĐĂNG KÝ một tài khoản HS riêng (mỗi người một
+   phiên, một hạn mức AI riêng, không đụng ai). Tài khoản HS dựng sẵn (`hsdemo_dahoc`,
+   `hsdemo_danglam`) chỉ còn vai trò XEM MẪU trạng thái đặc thù, không dùng để thao tác tự do
+   — vì vậy đã BỎ hẳn `hsdemo_moi` (tự đăng ký đã thay thế đúng vai trò "học sinh mới" của
+   nó, mà không có rủi ro bị phá).
+→ `gvdemo` vẫn CHỈ MỘT tài khoản dùng chung — tách nhiều bộ GV sẽ làm mỗi lớp trống trơn vì
+   mã lớp chỉ trỏ vào 1 lớp; gộp lại thì mọi hoạt động của giám khảo dồn về một dashboard,
+   càng dùng càng sinh động (cờ cảnh báo tự sinh thêm khi có giám khảo bí bài).
+→ Kho câu hỏi + câu chờ duyệt được "làm dày" (nhiều hơn mức tối thiểu) để chịu được nhiều
+   giám khảo thao tác cùng lúc mà không cạn: mỗi dạng có nhiều bài "còn trống" hơn 1, và
+   `hsdemo_dahoc` có NHIỀU phiên yếu hơn 2 (để một giám khảo lỡ làm thêm 1 bài đúng không kéo
+   điểm thành thạo vọt qua ngưỡng 50%).
+
 TÍNH IDEMPOTENT: chạy lại nhiều lần không nhân đôi dữ liệu. Riêng lịch sử học chỉ tạo khi học
-sinh đó chưa có phiên hoàn thành nào, tránh cộng dồn ngoài ý muốn.
+sinh đó chưa có phiên hoàn thành nào, tránh cộng dồn ngoài ý muốn. Mã lớp: nếu lớp đã có mã
+còn hiệu lực thì GIỮ NGUYÊN (gọi lại API sẽ ĐỔI mã và làm mã cũ đã phát cho giám khảo hỏng).
 
 CÁCH CHẠY:
     cd backend
     .venv\\Scripts\\python.exe ..\\scripts\\chuan-bi-demo-giam-khao.py ^
-        --url https://mathtutor-1.onrender.com ^
+        --url https://mathtutor.pro.vn ^
         --admin-user admin --admin-pass "<mật khẩu admin>"
 
     Thêm --chi-xem-truoc để CHỈ in ra những gì sẽ làm mà không ghi gì (nên chạy trước).
 
 LƯU Ý VỀ HẠN MỨC AI: script tạo lịch sử học bằng cách gọi API thật, mỗi lượt trò chuyện tốn
-1 lượt LLM (~60-80 lượt cho toàn bộ). Nếu vượt `gioi_han_llm_hs_ngay`, hệ thống tự chuyển
-sang StubLLMClient — phiên vẫn hoàn thành và số liệu tiến độ vẫn đúng, chỉ lời thoại là mẫu
-có sẵn. Không gây lỗi, nhưng nên chạy lúc không trùng giờ học sinh thật đang dùng.
+1 lượt LLM. Nếu vượt `gioi_han_llm_hs_ngay`, hệ thống tự chuyển sang StubLLMClient — phiên vẫn
+hoàn thành và số liệu tiến độ vẫn đúng, chỉ lời thoại là mẫu có sẵn. Không gây lỗi, nhưng nên
+chạy lúc không trùng giờ học sinh thật đang dùng. Script cũng tự nâng hạn mức AI TOÀN HỆ THỐNG
+(không đụng hạn mức mỗi học sinh — mỗi giám khảo tự đăng ký đã có 30 lượt/ngày riêng).
 """
 
 from __future__ import annotations
@@ -61,11 +83,18 @@ TEN_LOP_DEMO = "Lớp Demo"
 # theo ràng buộc TaoTaiKhoanRequest.
 TAI_KHOAN_DEMO = [
     ("gvdemo", "GV Demo (Ban giám khảo)", "gv", "gvdemo123"),
-    ("hsdemo_moi", "HS Demo - Mới bắt đầu", "hs", "hsdemo123"),
     ("hsdemo_dahoc", "HS Demo - Đã có tiến độ", "hs", "hsdemo123"),
     ("hsdemo_danglam", "HS Demo - Đang làm dở", "hs", "hsdemo123"),
 ]
 MAT_KHAU_THEO_TAI_KHOAN = {t[0]: t[3] for t in TAI_KHOAN_DEMO}
+
+# Tài khoản đợt chạy trước không còn dùng nữa (xem giải thích ở docstring) — dọn nếu còn sót
+# và chưa có phiên học nào (an toàn để xóa hẳn thay vì chỉ khóa).
+TAI_KHOAN_CU_CAN_DON = ["hsdemo_moi"]
+
+# Hạn mức AI TOÀN HỆ THỐNG tạm nâng trong đợt nhiều giám khảo cùng chấm (không đụng hạn mức
+# MỖI học sinh — giữ 30/ngày là đủ vì giờ mỗi giám khảo có tài khoản tự đăng ký riêng).
+GIOI_HAN_LLM_HE_THONG_MUC_TIEU = 2000
 
 # Danh mục RIÊNG của gvdemo (ràng buộc #3). Tên đặt giống chương trình Toán 12 thật để
 # giám khảo thấy tự nhiên, nhưng là bản riêng của lớp demo, không đụng danh mục GV thật.
@@ -77,11 +106,18 @@ DANH_MUC_DEMO = [
 
 # ─────────────────────────── Kho câu hỏi của gvdemo ────────────────────────────
 # `dang_ten` được script tra sang dang_id lúc chạy (KHÔNG hardcode id — id khác nhau giữa
-# các môi trường). Mỗi dạng có >= 2 câu để đạt NGUONG_NHOM=2 của hồ sơ năng lực, nếu không
-# bản đồ năng lực và điểm mạnh/điểm yếu sẽ không có dữ liệu để hiện.
+# các môi trường). Mỗi dạng có ĐỦ 3 loại câu (TLN/TN4PA/TNDS) và trải đủ 3 mức độ (dễ/tb/khó)
+# — vừa để giám khảo thấy đa dạng, vừa để `NGUONG_NHOM=2` của hồ sơ năng lực có đủ dữ liệu.
+#
+# `bo_qua_lich_su=True`: KHÔNG đưa vào lịch sử học tự động của hsdemo_dahoc (xem buoc_6) —
+# dùng cho (a) câu "buffer" của dạng yếu để nhiều giám khảo vẫn còn bài chưa làm mà đề xuất,
+# (b) câu của dạng "Cực trị" — CỐ Ý để dạng này hoàn toàn chưa có lịch sử, hiện trạng thái
+# "chưa đủ dữ liệu" trên Bản đồ năng lực, một trạng thái thật đáng cho giám khảo thấy bên
+# cạnh "mạnh"/"yếu". Câu loại TNDS thì KHÔNG BAO GIỜ được script tự làm (xem _dap_an_theo_de)
+# nên không cần đánh dấu cờ này cho chúng — để giám khảo tự trải nghiệm luồng chọn Đúng/Sai.
 
 CAU_HOI = [
-    # ── Dạng "Tính đơn điệu" — hsdemo_dahoc sẽ làm TỐT dạng này (thành điểm mạnh) ──
+    # ══ Dạng "Tính đơn điệu của hàm số" — hsdemo_dahoc làm TỐT (thành điểm mạnh) ══
     {
         "loai_cau": "TLN", "do_kho": "de", "dang_ten": "Tính đơn điệu của hàm số",
         "de_bai": "Cho hàm số $f(x) = x^2 - 4x + 3$. Tìm hoành độ điểm cực tiểu của hàm số.",
@@ -134,7 +170,61 @@ CAU_HOI = [
                                  "Hàm đồng biến ở khoảng mà $y' > 0$."]},
         ],
     },
-    # ── Dạng "Tích phân" — hsdemo_dahoc sẽ làm CHẬT VẬT (thành điểm yếu) ──
+    {
+        # TNDS mức khó, không đưa vào lịch sử tự động — để giám khảo tự trải nghiệm câu 4 ý.
+        "loai_cau": "TNDS", "do_kho": "kho", "dang_ten": "Tính đơn điệu của hàm số",
+        "de_bai": "Cho hàm số $y = -x^3 + 3x + 2$. Xét tính đúng sai của các mệnh đề sau:",
+        "meta": {
+            "y": [
+                {"ky_hieu": "a", "noi_dung_y": "$y' = -3x^2 + 3$", "dap_an": "Dung"},
+                {"ky_hieu": "b", "noi_dung_y": "Hàm số đồng biến trên $(-1;1)$", "dap_an": "Dung"},
+                {"ky_hieu": "c", "noi_dung_y": "Hàm số nghịch biến trên $(-2;0)$", "dap_an": "Sai"},
+                {"ky_hieu": "d", "noi_dung_y": "$x=1$ là điểm cực đại của hàm số", "dap_an": "Dung"},
+            ],
+        },
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "a", "mo_ta": "Kiểm tra công thức đạo hàm",
+             "bieu_thuc_ket_qua": "-3*x**2 + 3",
+             "danh_sach_goi_y": ["Em tự tính đạo hàm rồi so với mệnh đề.",
+                                 "Đạo hàm của $-x^3$ là $-3x^2$, của $3x$ là $3$.",
+                                 "So sánh kết quả em tính với biểu thức trong mệnh đề."]},
+            {"thu_tu": 1, "pham_vi": "b", "mo_ta": "Xét dấu $y'$ trên khoảng $(-1;1)$",
+             "bieu_thuc_ket_qua": "",
+             "danh_sach_goi_y": ["Em thử thay $x=0$ vào $y'$ xem dấu ra sao.",
+                                 "Nếu $y' > 0$ trên cả khoảng thì hàm đồng biến.",
+                                 "Kiểm tra thêm 2 đầu khoảng để chắc dấu không đổi."]},
+            {"thu_tu": 1, "pham_vi": "c", "mo_ta": "Xét dấu $y'$ trên khoảng $(-2;0)$",
+             "bieu_thuc_ket_qua": "",
+             "danh_sach_goi_y": ["Khoảng $(-2;0)$ chứa nghiệm $x=-1$ của $y'=0$ — thử 2 phía.",
+                                 "Thay $x=-1.5$ và $x=-0.5$ vào $y'$, so sánh dấu.",
+                                 "Nếu dấu đổi giữa khoảng thì hàm không đơn điệu trên cả khoảng."]},
+            {"thu_tu": 1, "pham_vi": "d", "mo_ta": "Xét dấu $y'$ hai bên $x=1$",
+             "bieu_thuc_ket_qua": "",
+             "danh_sach_goi_y": ["Em xét dấu $y'$ ngay trước và ngay sau $x=1$.",
+                                 "Nếu $y'$ đổi từ dương sang âm thì đó là điểm cực đại.",
+                                 "Thay $x=0.9$ và $x=1.1$ vào $y'$ để kiểm tra."]},
+        ],
+    },
+    # ══ Dạng "Tích phân" — hsdemo_dahoc làm CHẬT VẬT (thành điểm yếu) ══
+    # 4 câu hsdemo_dahoc làm SAI/xin nhiều gợi ý (buoc_6) + 3 câu "buffer" để trống (đủ cho
+    # nhiều giám khảo vẫn còn bài mà "đề xuất theo điểm yếu") + 1 câu TNDS không đụng tới.
+    {
+        "loai_cau": "TLN", "do_kho": "de", "dang_ten": "Tích phân",
+        "de_bai": "Tính tích phân $I = \\int_0^1 6x \\, dx$.",
+        "meta": {"dap_an_cuoi": "3"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tìm nguyên hàm của $6x$",
+             "bieu_thuc_ket_qua": "3*x**2",
+             "danh_sach_goi_y": ["Em nhớ công thức nguyên hàm của $x^n$.",
+                                 "Nguyên hàm của $x$ là $\\frac{x^2}{2}$.",
+                                 "Với $6x$, em nhân hệ số 6 vào nguyên hàm của $x$."]},
+            {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "Thay cận 0 và 1 rồi tính hiệu",
+             "bieu_thuc_ket_qua": "3",
+             "danh_sach_goi_y": ["Em thay cận trên trừ cận dưới.",
+                                 "Tại $x=1$: $3\\cdot1^2 = 3$. Tại $x=0$ thì bằng bao nhiêu?",
+                                 "Lấy giá trị tại 1 trừ giá trị tại 0."]},
+        ],
+    },
     {
         "loai_cau": "TLN", "do_kho": "tb", "dang_ten": "Tích phân",
         "de_bai": "Tính tích phân $I = \\int_0^2 3x^2 \\, dx$.",
@@ -172,10 +262,44 @@ CAU_HOI = [
         ],
     },
     {
-        # CỐ Ý để hsdemo_dahoc KHÔNG làm bài này (xem `bo_qua_lich_su`): dạng "Tích phân"
-        # là điểm yếu của em, mà `de_xuat_theo_diem_yeu()` chỉ đề xuất bài CHƯA hoàn thành —
-        # nếu em làm hết sạch thì GV bấm "đề xuất theo điểm yếu" sẽ ra danh sách RỖNG, và
-        # "Bài nên luyện tiếp" bên phía HS cũng không còn gì để dẫn tới.
+        "loai_cau": "TN4PA", "do_kho": "tb", "dang_ten": "Tích phân",
+        "de_bai": "Tính tích phân $I = \\int_1^3 (2x - 1) \\, dx$.",
+        "meta": {
+            "dap_an_dung": "B",
+            "phuong_an": {"A": "4", "B": "6", "C": "8", "D": "5"},
+            "bat_buoc_suy_luan": True,
+        },
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tìm nguyên hàm của $2x-1$",
+             "bieu_thuc_ket_qua": "x**2 - x",
+             "danh_sach_goi_y": ["Em tìm nguyên hàm từng hạng tử một.",
+                                 "Nguyên hàm của $2x$ là $x^2$, của $-1$ là $-x$.",
+                                 "Cộng hai nguyên hàm vừa tìm lại với nhau."]},
+            {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "Thay cận 1 và 3 rồi tính hiệu",
+             "bieu_thuc_ket_qua": "6",
+             "danh_sach_goi_y": ["Em thay cận trên trừ cận dưới.",
+                                 "Tại $x=3$: $3^2-3=6$. Em tính tiếp tại $x=1$.",
+                                 "Lấy giá trị tại 3 trừ giá trị tại 1."]},
+        ],
+    },
+    {
+        "loai_cau": "TLN", "do_kho": "de", "dang_ten": "Tích phân", "bo_qua_lich_su": True,
+        "de_bai": "Tính tích phân $I = \\int_0^2 4x \\, dx$.",
+        "meta": {"dap_an_cuoi": "8"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tìm nguyên hàm của $4x$",
+             "bieu_thuc_ket_qua": "2*x**2",
+             "danh_sach_goi_y": ["Em nhớ công thức nguyên hàm của $x^n$.",
+                                 "Nguyên hàm của $x$ là $\\frac{x^2}{2}$.",
+                                 "Với $4x$, em nhân hệ số 4 vào nguyên hàm của $x$."]},
+            {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "Thay cận 0 và 2 rồi tính hiệu",
+             "bieu_thuc_ket_qua": "8",
+             "danh_sach_goi_y": ["Em thay cận trên trừ cận dưới.",
+                                 "Tại $x=2$: $2\\cdot2^2 = 8$. Tại $x=0$ thì bằng bao nhiêu?",
+                                 "Lấy giá trị tại 2 trừ giá trị tại 0."]},
+        ],
+    },
+    {
         "loai_cau": "TLN", "do_kho": "tb", "dang_ten": "Tích phân", "bo_qua_lich_su": True,
         "de_bai": "Tính tích phân $I = \\int_0^1 (3x^2 + 2x) \\, dx$.",
         "meta": {"dap_an_cuoi": "2"},
@@ -192,7 +316,100 @@ CAU_HOI = [
                                  "Lấy giá trị tại 1 trừ giá trị tại 0."]},
         ],
     },
-    # ── Dạng "Cực trị" — TNDS, để giám khảo thấy loại câu Đúng/Sai 4 ý ──
+    {
+        "loai_cau": "TLN", "do_kho": "kho", "dang_ten": "Tích phân", "bo_qua_lich_su": True,
+        "de_bai": "Tính tích phân $I = \\int_1^2 (3x^2 - 4x + 1) \\, dx$.",
+        "meta": {"dap_an_cuoi": "2"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tìm nguyên hàm của $3x^2 - 4x + 1$",
+             "bieu_thuc_ket_qua": "x**3 - 2*x**2 + x",
+             "danh_sach_goi_y": ["Em tìm nguyên hàm từng hạng tử một.",
+                                 "Nguyên hàm của $3x^2$ là $x^3$, của $-4x$ là $-2x^2$, của $1$ là $x$.",
+                                 "Cộng ba nguyên hàm vừa tìm lại với nhau."]},
+            {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "Thay cận 1 và 2 rồi tính hiệu",
+             "bieu_thuc_ket_qua": "2",
+             "danh_sach_goi_y": ["Em thay cận trên trừ cận dưới.",
+                                 "Tại $x=2$: $8-8+2=2$. Em tính tiếp tại $x=1$.",
+                                 "Lấy giá trị tại 2 trừ giá trị tại 1."]},
+        ],
+    },
+    {
+        "loai_cau": "TNDS", "do_kho": "kho", "dang_ten": "Tích phân", "bo_qua_lich_su": True,
+        "de_bai": "Cho $I = \\int_0^1 (2x+1) \\, dx$. Xét tính đúng sai của các mệnh đề sau:",
+        "meta": {
+            "y": [
+                {"ky_hieu": "a", "noi_dung_y": "Một nguyên hàm của $2x+1$ là $x^2+x$", "dap_an": "Dung"},
+                {"ky_hieu": "b", "noi_dung_y": "$I = 2$", "dap_an": "Dung"},
+                {"ky_hieu": "c", "noi_dung_y": "Nếu đổi cận thành $\\int_0^2$ thì kết quả bằng $4$",
+                 "dap_an": "Sai"},
+                {"ky_hieu": "d", "noi_dung_y": "Hàm số $2x+1$ luôn dương trên đoạn $[0;1]$",
+                 "dap_an": "Dung"},
+            ],
+        },
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "a", "mo_ta": "Kiểm tra nguyên hàm",
+             "bieu_thuc_ket_qua": "x**2 + x",
+             "danh_sach_goi_y": ["Em tìm nguyên hàm của $2x+1$ rồi so với mệnh đề.",
+                                 "Nguyên hàm của $2x$ là $x^2$, của $1$ là $x$.",
+                                 "Cộng hai kết quả lại rồi so sánh."]},
+            {"thu_tu": 1, "pham_vi": "b", "mo_ta": "Tính $I$ bằng cách thay cận",
+             "bieu_thuc_ket_qua": "2",
+             "danh_sach_goi_y": ["Em thay cận trên trừ cận dưới vào nguyên hàm vừa tìm.",
+                                 "Tại $x=1$: $1+1=2$. Tại $x=0$ thì bằng bao nhiêu?",
+                                 "Lấy giá trị tại 1 trừ giá trị tại 0."]},
+            {"thu_tu": 1, "pham_vi": "c", "mo_ta": "Tính lại với cận mới $0$ đến $2$",
+             "bieu_thuc_ket_qua": "6",
+             "danh_sach_goi_y": ["Em thay cận trên là 2 vào nguyên hàm $x^2+x$.",
+                                 "Tại $x=2$: $4+2=6$. So sánh với con số $4$ trong mệnh đề.",
+                                 "Kết quả có khớp $4$ không?"]},
+            {"thu_tu": 1, "pham_vi": "d", "mo_ta": "Xét dấu $2x+1$ trên $[0;1]$",
+             "bieu_thuc_ket_qua": "",
+             "danh_sach_goi_y": ["Em thử thay $x=0$ và $x=1$ vào biểu thức $2x+1$.",
+                                 "Cả hai đầu đoạn cho giá trị dương thì trên cả đoạn dương.",
+                                 "$2x+1$ có nghiệm âm ở đâu không trong đoạn $[0;1]$?"]},
+        ],
+    },
+    # ══ Dạng "Cực trị của hàm số" — CỐ Ý để trống hoàn toàn (chưa đủ dữ liệu) ══
+    # Cả 3 câu đều bo_qua_lich_su — dạng này hiện trạng thái "chưa đủ dữ liệu" trên Bản đồ
+    # năng lực, một trạng thái thật (khác mạnh/yếu) đáng cho giám khảo thấy, và để dành cho
+    # giám khảo tự làm qua tài khoản tự đăng ký.
+    {
+        "loai_cau": "TLN", "do_kho": "de", "dang_ten": "Cực trị của hàm số", "bo_qua_lich_su": True,
+        "de_bai": "Cho hàm số $f(x) = x^2 - 6x + 5$. Tìm giá trị cực tiểu của hàm số.",
+        "meta": {"dap_an_cuoi": "-4"},
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tìm hoành độ điểm cực tiểu",
+             "bieu_thuc_ket_qua": "3",
+             "danh_sach_goi_y": ["Em tính đạo hàm rồi cho bằng 0 để tìm hoành độ.",
+                                 "Đạo hàm là $2x-6$, giải $2x-6=0$.",
+                                 "Nghiệm tìm được chính là hoành độ điểm cực tiểu."]},
+            {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "Thay hoành độ vào hàm số ban đầu",
+             "bieu_thuc_ket_qua": "-4",
+             "danh_sach_goi_y": ["Em thay giá trị $x$ vừa tìm vào $f(x)$.",
+                                 "Tính $3^2 - 6\\cdot3 + 5$.",
+                                 "Kết quả chính là giá trị cực tiểu cần tìm."]},
+        ],
+    },
+    {
+        "loai_cau": "TN4PA", "do_kho": "kho", "dang_ten": "Cực trị của hàm số", "bo_qua_lich_su": True,
+        "de_bai": "Số điểm cực trị của hàm số $y = x^4 - 2x^2 + 1$ là?",
+        "meta": {
+            "dap_an_dung": "C",
+            "phuong_an": {"A": "1", "B": "2", "C": "3", "D": "4"},
+            "bat_buoc_suy_luan": True,
+        },
+        "solution_steps": [
+            {"thu_tu": 1, "pham_vi": "ca_bai", "mo_ta": "Tính đạo hàm $y'$",
+             "bieu_thuc_ket_qua": "4*x**3 - 4*x",
+             "danh_sach_goi_y": ["Em tính đạo hàm của hàm số đã cho.",
+                                 "Đạo hàm của $x^4$ là $4x^3$, của $-2x^2$ là $-4x$."]},
+            {"thu_tu": 2, "pham_vi": "ca_bai", "mo_ta": "Đếm số nghiệm của $y'=0$ mà đạo hàm đổi dấu",
+             "bieu_thuc_ket_qua": "",
+             "danh_sach_goi_y": ["Em phân tích $4x^3-4x = 4x(x^2-1)$ rồi tìm nghiệm.",
+                                 "Phương trình có 3 nghiệm phân biệt: $x=0, x=1, x=-1$.",
+                                 "Mỗi nghiệm đơn của đa thức bậc lẻ đều làm đạo hàm đổi dấu."]},
+        ],
+    },
     {
         "loai_cau": "TNDS", "do_kho": "tb", "dang_ten": "Cực trị của hàm số",
         "de_bai": "Cho hàm số $y = x^3 - 3x^2 + 2$. Xét tính đúng sai của các mệnh đề sau:",
@@ -231,6 +448,7 @@ CAU_HOI = [
 ]
 
 # Câu để ở trạng thái "chờ duyệt" — giám khảo bấm Duyệt / Sửa / Loại ngay trên giao diện GV.
+# Làm dày hơn mức tối thiểu để nhiều giám khảo vẫn còn câu để thao tác cùng lúc.
 CAU_HOI_CHO_DUYET = [
     {"loai_cau": "TLN", "chuyen_de": "Ứng dụng của đạo hàm", "do_kho": "de",
      "de_bai": "[Bản nháp chờ duyệt] Cho $f(x) = 2x + 5$. Tính $f'(x)$.",
@@ -241,6 +459,24 @@ CAU_HOI_CHO_DUYET = [
     {"loai_cau": "TLN", "chuyen_de": "Ứng dụng của đạo hàm", "do_kho": "kho",
      "de_bai": "[Bản nháp chờ duyệt] Cho $f(x) = x^4 - 2x^2$. Tìm số điểm cực trị.",
      "meta": {"dap_an_cuoi": "3"}},
+    {"loai_cau": "TLN", "chuyen_de": "Ứng dụng của đạo hàm", "do_kho": "de",
+     "de_bai": "[Bản nháp chờ duyệt] Cho $f(x) = 4x - 1$. Tính $f'(x)$.",
+     "meta": {"dap_an_cuoi": "4"}},
+    {"loai_cau": "TLN", "chuyen_de": "Ứng dụng của đạo hàm", "do_kho": "tb",
+     "de_bai": "[Bản nháp chờ duyệt] Cho $f(x) = x^2 - 8x + 1$. Tìm $x$ để $f'(x) = 0$.",
+     "meta": {"dap_an_cuoi": "4"}},
+    {"loai_cau": "TLN", "chuyen_de": "Nguyên hàm và tích phân", "do_kho": "de",
+     "de_bai": "[Bản nháp chờ duyệt] Tính $\\int_0^2 5 \\, dx$.",
+     "meta": {"dap_an_cuoi": "10"}},
+    {"loai_cau": "TLN", "chuyen_de": "Nguyên hàm và tích phân", "do_kho": "tb",
+     "de_bai": "[Bản nháp chờ duyệt] Tính $\\int_1^3 4x \\, dx$.",
+     "meta": {"dap_an_cuoi": "16"}},
+    {"loai_cau": "TLN", "chuyen_de": "Nguyên hàm và tích phân", "do_kho": "kho",
+     "de_bai": "[Bản nháp chờ duyệt] Tính $\\int_0^1 (6x^2 + 2x) \\, dx$.",
+     "meta": {"dap_an_cuoi": "3"}},
+    {"loai_cau": "TLN", "chuyen_de": "Ứng dụng của đạo hàm", "do_kho": "de",
+     "de_bai": "[Bản nháp chờ duyệt] Cho $f(x) = x^2 + 2x$. Tính $f'(1)$.",
+     "meta": {"dap_an_cuoi": "4"}},
 ]
 
 
@@ -278,6 +514,9 @@ class Api:
     def patch(self, dd, du_lieu=None):
         return self._goi("PATCH", dd, du_lieu, ghi=True)
 
+    def delete(self, dd):
+        return self._goi("DELETE", dd, ghi=True)
+
     def dang_nhap(self, dang_nhap: str, mat_khau: str):
         # Đăng nhập không phải thao tác ghi → chạy cả ở chế độ xem trước.
         kq = self._goi("POST", "/auth/login", {"dang_nhap": dang_nhap, "mat_khau": mat_khau})
@@ -285,9 +524,25 @@ class Api:
         return kq
 
 
-def buoc_1_tai_khoan_va_lop(api: Api) -> dict:
-    print("\n[1/6] Tài khoản và lớp demo")
+def buoc_1_don_dep_tai_khoan_cu(api: Api, users: list[dict]) -> None:
+    """Xóa tài khoản đợt trước không còn dùng (TAI_KHOAN_CU_CAN_DON), CHỈ khi chưa có phiên
+    học nào — nếu hệ thống từ chối (đã có dữ liệu) thì báo và bỏ qua, không chặn script."""
+    theo_ten = {u["dang_nhap"]: u for u in users}
+    for dang_nhap in TAI_KHOAN_CU_CAN_DON:
+        u = theo_ten.get(dang_nhap)
+        if u is None:
+            continue
+        try:
+            api.delete(f"/admin/users/{u['id']}")
+            print(f"      ĐÃ XÓA tài khoản cũ không còn dùng: {dang_nhap}")
+        except RuntimeError as e:
+            print(f"      !! không xóa được {dang_nhap} (có thể đã có dữ liệu): {e}")
+
+
+def buoc_2_tai_khoan_va_lop(api: Api) -> dict:
+    print("\n[2/8] Tài khoản và lớp demo")
     users = api.get("/admin/users") or []
+    buoc_1_don_dep_tai_khoan_cu(api, users)
     theo_ten = {u["dang_nhap"]: u for u in users}
     ids: dict[str, int] = {}
 
@@ -312,16 +567,44 @@ def buoc_1_tai_khoan_va_lop(api: Api) -> dict:
         lop_id = kq["id"] if kq else None
         print(f"      TẠO MỚI lớp: {TEN_LOP_DEMO} (chủ nhiệm: gvdemo)")
 
-    for dang_nhap in ("hsdemo_moi", "hsdemo_dahoc", "hsdemo_danglam"):
+    for dang_nhap in ("hsdemo_dahoc", "hsdemo_danglam"):
         if dang_nhap in ids and lop_id:
             api.patch(f"/admin/users/{ids[dang_nhap]}/lop", {"lop_id": lop_id})
             print(f"      gán {dang_nhap} → lớp demo")
     return {"ids": ids, "lop_id": lop_id}
 
 
-def buoc_2_danh_muc(api_gv: Api) -> dict[str, int]:
+def buoc_3_ma_lop(api_gv: Api, lop_id: int | None) -> str | None:
+    """Bật mã lớp để giám khảo TỰ ĐĂNG KÝ tài khoản HS riêng (xem giải thích ở docstring).
+    KHÔNG gọi lại nếu lớp đã có mã CÒN HIỆU LỰC — gọi lại sẽ ĐỔI mã, làm mã cũ đã phát hỏng.
+    `GET /gv/lop` trả `ma_lop` bất kể còn hạn hay không (chỉ `lop_theo_ma()` lúc đăng ký mới
+    kiểm hạn) — nên phải tự so `ma_het_han` với giờ hiện tại ở đây, không thể chỉ kiểm tồn
+    tại."""
+    from datetime import datetime, timezone
+
+    print("\n[3/8] Mã lớp để giám khảo tự đăng ký")
+    if lop_id is None:
+        print("      !! không có lop_id (chế độ xem trước) — bỏ qua")
+        return None
+    cac_lop = api_gv.get("/gv/lop") or []
+    lop = next((x for x in cac_lop if x["id"] == lop_id), None)
+    het_han_raw = lop.get("ma_het_han") if lop else None
+    het_han = datetime.fromisoformat(het_han_raw) if het_han_raw else None
+    if het_han is not None and het_han.tzinfo is None:
+        het_han = het_han.replace(tzinfo=timezone.utc)  # phòng trường hợp cột không có offset
+    con_hieu_luc = het_han is not None and het_han > datetime.now(timezone.utc)
+    if lop and lop.get("ma_lop") and con_hieu_luc:
+        print(f"      đã có mã còn hiệu lực, GIỮ NGUYÊN: {lop['ma_lop']} (hết hạn {het_han})")
+        return lop["ma_lop"]
+    kq = api_gv.post(f"/gv/lop/{lop_id}/ma")
+    ma = kq["ma_lop"] if kq else None
+    print(f"      TẠO MỚI mã lớp (mã cũ nếu có đã hết hạn/không tồn tại): {ma}")
+    return ma
+
+
+def buoc_4_danh_muc(api_gv: Api) -> dict[str, int]:
     """Danh mục RIÊNG của gvdemo (ràng buộc #3) → trả map {tên dạng: dang_id}."""
-    print("\n[2/6] Danh mục (chuyên đề + dạng) riêng của gvdemo")
+    print("\n[4/8] Danh mục (chuyên đề + dạng) riêng của gvdemo")
     hien_co = api_gv.get("/danh-muc") or []
     cd_theo_ten = {c["ten"]: c for c in hien_co}
     map_dang: dict[str, int] = {}
@@ -350,9 +633,9 @@ def buoc_2_danh_muc(api_gv: Api) -> dict[str, int]:
     return map_dang
 
 
-def buoc_3_kho_cau_hoi(api_gv: Api, map_dang: dict[str, int]):
+def buoc_5_kho_cau_hoi(api_gv: Api, map_dang: dict[str, int]):
     """Kho câu hỏi thuộc sở hữu gvdemo (ràng buộc #1, #2) — có bước giải + thang gợi ý."""
-    print("\n[3/6] Kho câu hỏi của gvdemo (đã duyệt, có bước giải + thang gợi ý)")
+    print("\n[5/8] Kho câu hỏi của gvdemo (đã duyệt, có bước giải + thang gợi ý)")
     hien_co = api_gv.get("/problems") or []
     de_bai_co = {p.get("de_bai", "")[:60] for p in hien_co}
 
@@ -371,11 +654,12 @@ def buoc_3_kho_cau_hoi(api_gv: Api, map_dang: dict[str, int]):
               f"{cau['de_bai'][:42]}...")
 
 
-def buoc_4_cau_cho_duyet(api_gv: Api):
-    print("\n[4/6] Câu hỏi 'chờ duyệt' cho giám khảo thao tác kiểm duyệt")
+def buoc_6_cau_cho_duyet(api_gv: Api):
+    print("\n[6/8] Câu hỏi 'chờ duyệt' cho giám khảo thao tác kiểm duyệt")
     hien_co = api_gv.get("/problems") or []
-    if any(p.get("trang_thai_duyet") == "cho_duyet" for p in hien_co):
-        print("      đã có câu chờ duyệt — bỏ qua")
+    so_cho_duyet = sum(1 for p in hien_co if p.get("trang_thai_duyet") == "cho_duyet")
+    if so_cho_duyet >= len(CAU_HOI_CHO_DUYET):
+        print(f"      đã có {so_cho_duyet} câu chờ duyệt — bỏ qua")
         return
     kq = api_gv.post("/problems/import-batch", {"items": CAU_HOI_CHO_DUYET})
     if kq:
@@ -383,7 +667,8 @@ def buoc_4_cau_cho_duyet(api_gv: Api):
 
 
 def _dap_an_theo_de() -> dict[str, list[str]]:
-    """Đáp án đúng từng bước, tra theo đề bài (script biết vì chính nó tạo kho câu hỏi)."""
+    """Đáp án đúng từng bước, tra theo đề bài (script biết vì chính nó tạo kho câu hỏi).
+    CHỈ điền cho TLN/TN4PA — TNDS cần luồng chọn Đúng/Sai riêng, để giám khảo tự trải nghiệm."""
     ra: dict[str, list[str]] = {}
     for cau in CAU_HOI:
         khoa = cau["de_bai"][:60]
@@ -392,7 +677,6 @@ def _dap_an_theo_de() -> dict[str, list[str]]:
             ra[khoa] = buoc
         elif cau["loai_cau"] == "TN4PA":
             ra[khoa] = buoc + [cau["meta"]["dap_an_dung"]]
-        # TNDS cần luồng chọn Đúng/Sai riêng — để giám khảo tự trải nghiệm, không dựng sẵn
     return ra
 
 
@@ -420,19 +704,20 @@ def _lam_bai(api_hs: Api, problem_id: int, cac_dap_an: list[str],
     return False
 
 
-def buoc_5_lich_su_hoc(url: str, chi_xem_truoc: bool):
-    """hsdemo_dahoc: LÀM TỐT dạng "Tính đơn điệu", CHẬT VẬT dạng "Tích phân".
+def buoc_7_lich_su_hoc(url: str, chi_xem_truoc: bool):
+    """hsdemo_dahoc: LÀM TỐT dạng "Tính đơn điệu", CHẬT VẬT dạng "Tích phân" (NHIỀU phiên
+    yếu — chống mài mòn: một giám khảo lỡ làm thêm 1 bài đúng không kéo điểm thành thạo vọt
+    qua ngưỡng 50%). Dạng "Cực trị" CỐ Ý không đụng tới (xem CAU_HOI) — hiện "chưa đủ dữ liệu".
 
-    Cố ý tạo chênh lệch để hồ sơ năng lực có CẢ điểm mạnh LẪN điểm yếu — nếu làm đúng hết,
-    `diem_yeu` sẽ rỗng và các tính năng cá nhân hóa ("Bài nên luyện tiếp" của HS, "đề xuất
-    theo điểm yếu" của GV, màu sắc trên Bản đồ năng lực) sẽ không hiện được gì.
+    Nếu làm đúng hết mọi thứ, `diem_yeu` sẽ rỗng và các tính năng cá nhân hóa ("Bài nên luyện
+    tiếp" của HS, "đề xuất theo điểm yếu" của GV, màu sắc trên Bản đồ năng lực) không hiện gì.
     """
-    print("\n[5/6] Lịch sử học cho hsdemo_dahoc (có cả điểm mạnh lẫn điểm yếu)")
+    print("\n[7/8] Lịch sử học cho hsdemo_dahoc (có cả điểm mạnh lẫn điểm yếu)")
     api_hs = Api(url, chi_xem_truoc)
     api_hs.dang_nhap("hsdemo_dahoc", MAT_KHAU_THEO_TAI_KHOAN["hsdemo_dahoc"])
 
     tien_do = api_hs.get("/progress/me") or []
-    if sum(t.get("so_bai_hoan_thanh", 0) for t in tien_do) >= 4:
+    if sum(t.get("so_bai_hoan_thanh", 0) for t in tien_do) >= 6:
         print("      đã có lịch sử học — bỏ qua để không cộng dồn")
         return
 
@@ -459,13 +744,13 @@ def buoc_5_lich_su_hoc(url: str, chi_xem_truoc: bool):
     print(f"      → tổng {so_xong} bài hoàn thành")
 
 
-def buoc_6_bai_dang_lam(url: str, chi_xem_truoc: bool):
+def buoc_8_bai_dang_lam(url: str, chi_xem_truoc: bool):
     """hsdemo_danglam: 1 bài dở + xin gợi ý tới cạn → cờ 'không hiểu nhiều' TỰ phát sinh.
 
     Cố ý KHÔNG gọi API tạo cờ thủ công: để cờ sinh ra đúng cơ chế thật của sản phẩm, giám
     khảo thấy được cảnh báo tự động chứ không phải dữ liệu dựng sẵn.
     """
-    print("\n[6/6] Bài đang làm dở + cờ cảnh báo tự phát sinh cho gvdemo xử lý")
+    print("\n[8/8] Bài đang làm dở + cờ cảnh báo tự phát sinh cho gvdemo xử lý")
     api_hs = Api(url, chi_xem_truoc)
     api_hs.dang_nhap("hsdemo_danglam", MAT_KHAU_THEO_TAI_KHOAN["hsdemo_danglam"])
 
@@ -476,7 +761,7 @@ def buoc_6_bai_dang_lam(url: str, chi_xem_truoc: bool):
     bai_hs = api_hs.get("/problems") or []
     bai = next((b for b in bai_hs if b.get("do_kho") == "kho"), bai_hs[0] if bai_hs else None)
     if not bai:
-        print("      !! không có bài nào — kiểm tra lại bước 3")
+        print("      !! không có bài nào — kiểm tra lại bước 5")
         return
 
     phien = api_hs.post("/sessions", {"problem_id": bai["id"]})
@@ -492,9 +777,23 @@ def buoc_6_bai_dang_lam(url: str, chi_xem_truoc: bool):
     print("      đã xin 4 lần gợi ý + 2 lần trả lời sai → cờ cảnh báo tự phát sinh")
 
 
+def buoc_9_han_muc_ai(api: Api):
+    """Nâng hạn mức AI TOÀN HỆ THỐNG (không đụng hạn mức mỗi học sinh) — nhiều giám khảo tự
+    đăng ký cùng lúc có thể cộng dồn vượt hạn mức hệ thống dù mỗi người còn quota riêng."""
+    print("\n[9/8] Hạn mức AI toàn hệ thống")
+    cau_hinh = api.get("/admin/config") or {}
+    hien_tai = cau_hinh.get("gioi_han_llm_he_thong_ngay")
+    if isinstance(hien_tai, int) and hien_tai >= GIOI_HAN_LLM_HE_THONG_MUC_TIEU:
+        print(f"      đã đủ cao ({hien_tai}) — giữ nguyên")
+        return
+    api.patch("/admin/config", {"khoa": "gioi_han_llm_he_thong_ngay",
+                                "gia_tri": GIOI_HAN_LLM_HE_THONG_MUC_TIEU})
+    print(f"      nâng gioi_han_llm_he_thong_ngay: {hien_tai} → {GIOI_HAN_LLM_HE_THONG_MUC_TIEU}")
+
+
 def main():
     p = argparse.ArgumentParser(description="Chuẩn bị dữ liệu demo cho Ban giám khảo")
-    p.add_argument("--url", required=True, help="vd https://mathtutor-1.onrender.com")
+    p.add_argument("--url", required=True, help="vd https://mathtutor.pro.vn")
     p.add_argument("--admin-user", required=True)
     p.add_argument("--admin-pass", required=True)
     p.add_argument("--chi-xem-truoc", action="store_true",
@@ -508,23 +807,26 @@ def main():
     api.dang_nhap(args.admin_user, args.admin_pass)
     print(f"Đã đăng nhập admin: {args.admin_user}")
 
-    buoc_1_tai_khoan_va_lop(api)
+    thong_tin_lop = buoc_2_tai_khoan_va_lop(api)
     if args.chi_xem_truoc:
         print("\n(Xem trước dừng ở đây — các bước sau cần tài khoản đã thật sự tồn tại.)")
         return
 
     api_gv = Api(args.url, False)
     api_gv.dang_nhap("gvdemo", MAT_KHAU_THEO_TAI_KHOAN["gvdemo"])
-    map_dang = buoc_2_danh_muc(api_gv)
-    buoc_3_kho_cau_hoi(api_gv, map_dang)
-    buoc_4_cau_cho_duyet(api_gv)
-    buoc_5_lich_su_hoc(args.url, False)
-    buoc_6_bai_dang_lam(args.url, False)
+    ma_lop = buoc_3_ma_lop(api_gv, thong_tin_lop.get("lop_id"))
+    map_dang = buoc_4_danh_muc(api_gv)
+    buoc_5_kho_cau_hoi(api_gv, map_dang)
+    buoc_6_cau_cho_duyet(api_gv)
+    buoc_7_lich_su_hoc(args.url, False)
+    buoc_8_bai_dang_lam(args.url, False)
+    buoc_9_han_muc_ai(api)
 
     print("\n" + "=" * 62)
     print("XONG. Tài khoản demo:")
     for dang_nhap, ho_ten, vai_tro, mat_khau in TAI_KHOAN_DEMO:
         print(f"  {dang_nhap:16} / {mat_khau:12} [{vai_tro}]  {ho_ten}")
+    print(f"\nMã lớp để giám khảo tự đăng ký: {ma_lop}")
     print("=" * 62)
     print("Kịch bản demo từng tài khoản: xem docs/DEMO_GIAM_KHAO.md")
 
