@@ -85,7 +85,7 @@ def _van_ban_du_phong(chi_thi: dict) -> str:
 
 
 def _ap_chot_chan(
-    van_ban_raw: str, chi_thi: dict, gia_tri_chuan: str | None, loai_cau: str
+    van_ban_raw: str, chi_thi: dict, gia_tri_chuan: list[str], loai_cau: str
 ) -> tuple[str, bool]:
     """Rà rò rỉ 1 phản hồi trước khi gửi HS → (văn bản gửi đi, có bị chốt chặn không).
 
@@ -426,6 +426,32 @@ def _steps_to_list(problem: Problem) -> list[dict]:
     ]
 
 
+def _gia_tri_can_bao_ve(problem: Problem) -> list[str]:
+    """Toàn bộ giá trị/biểu thức TUYỆT ĐỐI không được lộ cho HS (bất biến #3, CLAUDE.md):
+    đáp án cuối VÀ bieu_thuc_ket_qua của MỌI bước, kể cả bước ĐÃ QUA hay CHƯA TỚI.
+
+    Trước đây chốt chặn chỉ biết đáp án CUỐI — biểu thức trung gian (vd đạo hàm y' của bước 1)
+    lọt qua hoàn toàn nếu AI tự tính rồi chèn vào lời gợi ý bước sau (sự cố thực tế phát hiện
+    trên production 2026-08-03: AI thay ký hiệu "y'" bằng chính "3x^2-3" đã tự đạo hàm ra).
+
+    KHÔNG gồm chữ cái đáp án TN4PA hay 'Dung'/'Sai' của TNDS — hai loại đó là ký tự đơn/từ phổ
+    thông, đưa thẳng vào lớp so khớp NGỮ NGHĨA (CAS) sẽ gây báo động giả tràn lan (vd đáp án
+    đúng là chữ "B" trùng tên điểm B trong đề hình học); đã có quy tắc từ khoá ngữ cảnh riêng
+    ("chọn B", "ý a là đúng"...) xử lý đúng bản chất của chúng — xem leak.py.
+    """
+    meta = problem.meta or {}
+    gia_tri: list[str] = []
+    for khoa in ("dap_an_cuoi", "dap_an_dung"):
+        v = meta.get(khoa)
+        if v is not None and str(v).strip():
+            gia_tri.append(str(v))
+    for s in problem.solution_steps or []:
+        bt = s.bieu_thuc_ket_qua or ""
+        if bt.strip():
+            gia_tri.append(bt)
+    return gia_tri
+
+
 def _restore_state(session: SessionModel, problem: Problem) -> TrangThaiPhien:
     return TrangThaiPhien(
         loai_cau=problem.loai_cau.value,
@@ -566,7 +592,8 @@ def tao_phien(
 
     # Chốt chặn: kiểm tra rò rỉ đáp án trước khi gửi HS — kể cả lời chào mở đầu phiên,
     # đúng tinh thần bất biến #3 (CLAUDE.md): rà MỌI phản hồi, không chỉ các lượt sau.
-    gia_tri_chuan = (problem.meta or {}).get("dap_an_cuoi") or (problem.meta or {}).get("dap_an_dung")
+    # gia_tri_chuan gồm ĐỦ mọi bước (không chỉ đáp án cuối) — xem _gia_tri_can_bao_ve.
+    gia_tri_chuan = _gia_tri_can_bao_ve(problem)
     van_ban, bi_chot = _ap_chot_chan(
         van_ban_raw, chi_thi.to_dict(), gia_tri_chuan, problem.loai_cau.value
     )
@@ -756,8 +783,9 @@ def xu_ly_luot(
 
     van_ban_raw = llm.dien_dat(chi_thi.to_dict())
 
-    # Chốt chặn: kiểm tra rò rỉ đáp án trước khi gửi HS
-    gia_tri_chuan = (problem.meta or {}).get("dap_an_cuoi") or (problem.meta or {}).get("dap_an_dung")
+    # Chốt chặn: kiểm tra rò rỉ đáp án trước khi gửi HS — gia_tri_chuan gồm ĐỦ mọi bước
+    # (không chỉ đáp án cuối) — xem _gia_tri_can_bao_ve.
+    gia_tri_chuan = _gia_tri_can_bao_ve(problem)
     van_ban, bi_chot = _ap_chot_chan(van_ban_raw, chi_thi.to_dict(), gia_tri_chuan, loai_cau)
 
     # Lượt CHỐT KHEN — thêm TRƯỚC lượt dẫn để đúng thứ tự hội thoại, gắn bước/ý CŨ để dải

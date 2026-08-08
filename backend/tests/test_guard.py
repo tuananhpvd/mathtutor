@@ -43,6 +43,69 @@ def test_goi_y_hop_le_khong_ro_ri():
     assert k.muc_do in (MucDoRoRi.sach, MucDoRoRi.nghi_ngo)
 
 
+def test_ro_ri_bieu_thuc_tuong_duong_khac_ky_hieu():
+    """Sự cố thực tế (production, 2026-08-03): AI tự đạo hàm rồi viết lại đáp án bằng ký
+    hiệu LaTeX ('3x^2 - 3') khác cú pháp SymPy lưu trong CSDL ('3*x**2 - 3') — so chuỗi trực
+    tiếp KHÔNG khớp nhưng về đại số là MỘT. Phải bắt được bằng lớp so khớp CAS mới."""
+    k = kiem_tra_ro_ri(
+        "Em hãy giải phương trình $3x^2 - 3 = 0$ để tìm nghiệm x nhé.",
+        gia_tri_dap_an=["3*x**2 - 3"],
+        loai_cau="TN4PA",
+    )
+    assert k.muc_do == MucDoRoRi.ro_ri
+    assert any("tương đương" in ly for ly in k.ly_do)
+
+
+def test_ro_ri_bieu_thuc_khop_danh_sach_nhieu_gia_tri():
+    """Danh sách nhiều giá trị (đáp án cuối + mọi bước) — chỉ cần khớp MỘT giá trị bất kỳ."""
+    k = kiem_tra_ro_ri(
+        "Đúng rồi, $y' = 3x^2 - 3$. Giờ em xét dấu nhé.",
+        gia_tri_dap_an=["B", "3*x**2 - 3", ""],
+        loai_cau="TN4PA",
+    )
+    assert k.muc_do == MucDoRoRi.ro_ri
+
+
+def test_khong_bao_dong_gia_khi_bieu_thuc_khac_dap_an():
+    k = kiem_tra_ro_ri(
+        "Em xét dấu $y' = 3x^2 - 3$ trên khoảng nào?",
+        gia_tri_dap_an=["x**3 - 3*x + 3"],  # đáp án bước KHÁC, không liên quan
+        loai_cau="TLN",
+    )
+    assert k.muc_do != MucDoRoRi.ro_ri
+
+
+def test_chu_cai_phuong_an_khong_bi_bat_nham_qua_lop_ngu_nghia():
+    """Đáp án đúng là chữ 'B' (TN4PA) trùng tên điểm B trong đề hình học — KHÔNG được báo
+    rò rỉ chỉ vì '$B$' xuất hiện trong công thức (sympify('B') là 1 symbol tự do, dễ khớp
+    nhầm nếu không loại trừ chữ cái đơn khỏi lớp so khớp CAS)."""
+    k = kiem_tra_ro_ri(
+        "Xét tam giác có đỉnh $B$, em tính độ dài cạnh $AB$ trước nhé.",
+        gia_tri_dap_an=["B"],
+        loai_cau="TN4PA",
+    )
+    assert k.muc_do != MucDoRoRi.ro_ri
+
+
+def test_nhan_dung_sai_khong_bi_bat_nham_qua_lop_ngu_nghia():
+    k = kiem_tra_ro_ri(
+        "Em thử thay $x = 1$ vào xem đúng không nhé.",
+        gia_tri_dap_an=["Dung"],
+        loai_cau="TNDS",
+    )
+    assert k.muc_do != MucDoRoRi.ro_ri
+
+
+def test_khong_co_dola_thi_khong_kich_hoat_lop_ngu_nghia():
+    """Văn bản KHÔNG bọc $...$ (trái quy ước prompt) — lớp so khớp CAS mới không quét biểu
+    thức trần giữa văn xuôi, chỉ lớp từ khoá ngữ cảnh cũ áp dụng (không đổi hành vi cũ)."""
+    k = kiem_tra_ro_ri(
+        "Em hãy xét x=0 và x=2, đâu là cực tiểu?",
+        gia_tri_dap_an=["0"],
+    )
+    assert k.muc_do != MucDoRoRi.ro_ri
+
+
 def test_guard_khong_import_llm():
     import ast
     import pathlib
