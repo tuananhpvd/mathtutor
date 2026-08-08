@@ -70,6 +70,9 @@ import sys
 import urllib.error
 import urllib.request
 
+from sympy import latex as sympy_latex
+from sympy import sympify
+
 # Console Windows mặc định dùng bảng mã cp1252, không in được tiếng Việt có dấu → script sẽ
 # chết giữa chừng bằng UnicodeEncodeError. Ép UTF-8 để chạy được trên PowerShell/cmd lẫn
 # terminal Linux/macOS.
@@ -666,25 +669,60 @@ def buoc_6_cau_cho_duyet(api_gv: Api):
         print(f"      đã tạo {kq.get('da_tao', '?')} câu ở trạng thái chờ duyệt")
 
 
-def _dap_an_theo_de() -> dict[str, list[str]]:
-    """Đáp án đúng từng bước, tra theo đề bài (script biết vì chính nó tạo kho câu hỏi).
-    CHỈ điền cho TLN/TN4PA — TNDS cần luồng chọn Đúng/Sai riêng, để giám khảo tự trải nghiệm."""
-    ra: dict[str, list[str]] = {}
+def _sang_latex(bieu_thuc: str) -> str:
+    """Chuyển biểu thức cú pháp SymPy (như lưu trong CSDL "bieu_thuc_ket_qua", vd
+    "x**4 - x**2") sang LaTeX ("x^{4} - x^{2}") để HIỂN THỊ trong "noi_dung".
+
+    Sự cố thực tế phát hiện (giám khảo báo, 2026-08-08): học sinh THẬT nhập qua math-field
+    editor nên luôn gửi LaTeX (`AnswerInputTLN.jsx`, biến đặt tên "bieu_thuc" nhưng thật ra là
+    LaTeX lấy từ `mf.value`), KHÔNG BAO GIỜ gửi cú pháp SymPy. Bọc thẳng cú pháp SymPy vào
+    "$...$" khiến KaTeX không hiểu "**" — hiện dấu sao thô ("x**4") thay vì số mũ đẹp.
+    Chỉ dùng cho HIỂN THỊ — "dap_an_nhap" gửi API vẫn giữ nguyên cú pháp SymPy, CAS
+    (`_parse_an_toan`) chấp nhận cả 2 cú pháp nên không cần đổi, và đổi có thể làm sai lệch
+    biểu thức nếu latex hoá rồi diễn giải lại.
+    """
+    try:
+        return sympy_latex(sympify(bieu_thuc))
+    except Exception:
+        return bieu_thuc  # không parse được thì giữ nguyên, còn hơn làm hỏng cả tin nhắn
+
+
+def _dap_an_theo_de() -> dict[str, list[tuple[str, str]]]:
+    """Đáp án đúng từng bước, kèm SẴN "noi_dung" ĐÚNG NGUYÊN VĂN định dạng frontend thật dùng
+    cho từng loại hành động — để phiên demo do script dựng hiển thị Y HỆT phiên của học sinh
+    thật khi GV mở "Xem lại bài", không lộ dấu vết dựng sẵn.
+
+    Sự cố thực tế phát hiện (giám khảo báo, 2026-08-08): script tự soạn "noi_dung" khác quy
+    ước frontend — (1) trả lời KHÔNG bọc "$...$" như `AnswerInputTLN.jsx` ('Em trả lời:
+    $${bieu_thuc}$') nên công thức hiện chữ thường không qua KaTeX; (2) TN4PA đáp án cuối là
+    CHỮ CÁI, frontend dùng mẫu KHÁC hẳn ('Em chọn: ${chon}' — `AnswerInputTN4PA.jsx`), không
+    bọc $ vì không phải công thức; (3) dù đã bọc $...$, nội dung bên trong vẫn là cú pháp
+    SymPy ("x**4") thay vì LaTeX ("x^{4}") — xem `_sang_latex`.
+
+    CHỈ điền cho TLN/TN4PA — TNDS cần luồng chọn Đúng/Sai riêng, để giám khảo tự trải nghiệm.
+    """
+    ra: dict[str, list[tuple[str, str]]] = {}  # de_bai -> [(dap_an_nhap, noi_dung), ...]
     for cau in CAU_HOI:
         khoa = cau["de_bai"][:60]
         buoc = [b["bieu_thuc_ket_qua"] for b in cau["solution_steps"] if b["bieu_thuc_ket_qua"]]
+        cac_buoc = [(bt, f"Em trả lời: ${_sang_latex(bt)}$") for bt in buoc]
         if cau["loai_cau"] == "TLN":
-            ra[khoa] = buoc
+            ra[khoa] = cac_buoc
         elif cau["loai_cau"] == "TN4PA":
-            ra[khoa] = buoc + [cau["meta"]["dap_an_dung"]]
+            chu_cai = cau["meta"]["dap_an_dung"]
+            ra[khoa] = cac_buoc + [(chu_cai, f"Em chọn: {chu_cai}")]
     return ra
 
 
-def _lam_bai(api_hs: Api, problem_id: int, cac_dap_an: list[str],
+def _lam_bai(api_hs: Api, problem_id: int, cac_dap_an: list[tuple[str, str]],
              so_lan_xin_goi_y: int = 0, so_lan_sai: int = 0) -> bool:
     """Mở 1 phiên rồi làm bài. `so_lan_xin_goi_y`/`so_lan_sai` dùng để nặn ra hồ sơ năng lực
     ĐA DẠNG — điểm thành thạo tính theo `1.0 - 0.1*số lần sai - 0.15*số lần xin gợi ý`, nên
     muốn có "điểm yếu" (thành thạo < 50) thì phải cố ý sai + xin gợi ý nhiều lần.
+
+    Mọi "noi_dung" gửi lên đều dùng ĐÚNG NGUYÊN VĂN mẫu câu frontend thật tạo ra cho hành động
+    tương ứng (xem `PhongHoc.jsx`/`AnswerInputTLN.jsx`) — không tự bịa câu khác, để "Xem lại
+    bài" không có bong bóng trống hay công thức hiện sai.
     """
     phien = api_hs.post("/sessions", {"problem_id": problem_id})
     if not phien:
@@ -692,13 +730,14 @@ def _lam_bai(api_hs: Api, problem_id: int, cac_dap_an: list[str],
     sid = phien["session_id"]
 
     for _ in range(so_lan_xin_goi_y):
-        api_hs.post(f"/sessions/{sid}/message", {"noi_dung": "", "yeu_cau_goi_y": True})
+        api_hs.post(f"/sessions/{sid}/message",
+                    {"noi_dung": "Xin thầy/cô gợi ý thêm cho em", "yeu_cau_goi_y": True})
     for _ in range(so_lan_sai):
         api_hs.post(f"/sessions/{sid}/message",
-                    {"noi_dung": "Em thử đáp án này", "dap_an_nhap": "99999"})
-    for dap_an in cac_dap_an:
+                    {"noi_dung": "Em trả lời: $99999$", "dap_an_nhap": "99999"})
+    for dap_an, noi_dung in cac_dap_an:
         kq = api_hs.post(f"/sessions/{sid}/message",
-                         {"noi_dung": f"Em trả lời: {dap_an}", "dap_an_nhap": dap_an})
+                         {"noi_dung": noi_dung, "dap_an_nhap": dap_an})
         if kq and kq.get("da_xong"):
             return True
     return False
@@ -770,10 +809,11 @@ def buoc_8_bai_dang_lam(url: str, chi_xem_truoc: bool):
     sid = phien["session_id"]
     print(f"      mở bài: {bai.get('de_bai', '')[:45]}...")
     for _ in range(4):
-        api_hs.post(f"/sessions/{sid}/message", {"noi_dung": "", "yeu_cau_goi_y": True})
+        api_hs.post(f"/sessions/{sid}/message",
+                    {"noi_dung": "Xin thầy/cô gợi ý thêm cho em", "yeu_cau_goi_y": True})
     for _ in range(2):
         api_hs.post(f"/sessions/{sid}/message",
-                    {"noi_dung": "Em nghĩ là 5", "dap_an_nhap": "5"})
+                    {"noi_dung": "Em trả lời: $5$", "dap_an_nhap": "5"})
     print("      đã xin 4 lần gợi ý + 2 lần trả lời sai → cờ cảnh báo tự phát sinh")
 
 
