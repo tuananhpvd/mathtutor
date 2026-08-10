@@ -287,3 +287,44 @@ def nhac_gv_chay(current_user: CurrentUser, db: Session = Depends(get_db)):
     from app.services.phan_tich_service import day_nhac_diem_yeu_tuan
 
     return day_nhac_diem_yeu_tuan(db)
+
+
+@router.get("/nhat-ky-hoat-dong", dependencies=_ADMIN)
+def nhat_ky_hoat_dong(
+    current_user: CurrentUser,
+    tu_ngay: str | None = None,
+    den_ngay: str | None = None,
+    chi_tiet: bool = False,
+    trang: int = 1,
+    moi_trang: int = 100,
+    db: Session = Depends(get_db),
+):
+    """Nhật ký hoạt động Ban giám khảo (Lớp Demo) — tái dựng từ dấu vết thời gian sẵn có
+    trong CSDL (KHÔNG phải audit log đầy đủ, xem docstring của service). Chỉ Admin xem được.
+    """
+    from datetime import datetime, timezone
+
+    from app.services.nhat_ky_hoat_dong_service import lay_nhat_ky_hoat_dong
+
+    def _parse_ngay(s: str | None, cuoi_ngay: bool = False):
+        if not s:
+            return None
+        try:
+            d = datetime.strptime(s, "%Y-%m-%d")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail="Ngày không hợp lệ (cần YYYY-MM-DD)") from e
+        # KHÁC _parse_ngay ở progress.py: nơi đó so tại tầng SQL (naive-naive vẫn đúng), còn
+        # service này so trực tiếp với datetime Python đã gắn tzinfo=UTC (UTCDateTime.
+        # process_result_value luôn gắn lại) — PHẢI gắn tzinfo ở đây, không thì lệch múi giờ
+        # khi lọc SÁT ranh giới ngày, và ném TypeError nếu so naive với aware.
+        d = d.replace(tzinfo=timezone.utc)
+        return d.replace(hour=23, minute=59, second=59) if cuoi_ngay else d
+
+    return lay_nhat_ky_hoat_dong(
+        db,
+        tu_ngay=_parse_ngay(tu_ngay),
+        den_ngay=_parse_ngay(den_ngay, cuoi_ngay=True),
+        chi_tiet=chi_tiet,
+        trang=trang,
+        moi_trang=moi_trang,
+    )

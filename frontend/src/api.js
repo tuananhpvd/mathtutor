@@ -144,6 +144,16 @@ export const api = {
         (ghi_chu ? `&ghi_chu=${encodeURIComponent(ghi_chu)}` : ''),
       { method: 'POST' }
     ),
+  nhatKyHoatDong: ({ tu_ngay, den_ngay, chi_tiet, trang, moi_trang } = {}) => {
+    const qs = new URLSearchParams()
+    if (tu_ngay) qs.set('tu_ngay', tu_ngay)
+    if (den_ngay) qs.set('den_ngay', den_ngay)
+    if (chi_tiet != null) qs.set('chi_tiet', chi_tiet)
+    if (trang != null) qs.set('trang', trang)
+    if (moi_trang != null) qs.set('moi_trang', moi_trang)
+    const q = qs.toString()
+    return request('/admin/nhat-ky-hoat-dong' + (q ? `?${q}` : ''))
+  },
 
   // Giáo viên — hồ sơ + quản lý lớp & học sinh của mình
   gvTongQuan: (lopId) => request('/gv/tong-quan' + (lopId ? `?lop_id=${lopId}` : '')),
