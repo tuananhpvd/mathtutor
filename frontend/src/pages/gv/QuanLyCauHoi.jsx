@@ -17,6 +17,11 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [fTrangThai, setFTrangThai] = useState('')
+  const [fChuyenDe, setFChuyenDe] = useState('')
+  const [fDang, setFDang] = useState('')
+  const [fLoai, setFLoai] = useState('')
+  const [fMucDo, setFMucDo] = useState('')
+  const [fNguon, setFNguon] = useState('')
   const [trangCH, setTrangCH] = useState(1)
   const [sua, setSua] = useState(null)
   const [taoMoi, setTaoMoi] = useState(false)
@@ -41,8 +46,21 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gvId])
 
+  // Dạng thuộc 1 chuyên đề — dangIds dùng để khớp câu hỏi CHƯA có dang_id nhưng vẫn ghi
+  // đúng tên chuyên đề (chuoi denormalized r.chuyen_de), cùng cách ThongKeChuyenDe.jsx làm.
+  const cdChon = danhMuc.find((cd) => cd.ten === fChuyenDe)
+  const dangOptions = cdChon ? cdChon.dang_list : []
+
   const loc = rows.filter((r) => {
     if (fTrangThai && r.trang_thai_duyet !== fTrangThai) return false
+    if (fChuyenDe) {
+      const dangIds = new Set((cdChon?.dang_list || []).map((d) => d.id))
+      if (r.chuyen_de !== fChuyenDe && !dangIds.has(r.dang_id)) return false
+    }
+    if (fDang && String(r.dang_id) !== fDang) return false
+    if (fLoai && r.loai_cau !== fLoai) return false
+    if (fMucDo && r.do_kho !== fMucDo) return false
+    if (fNguon && r.nguon !== fNguon) return false
     return true
   })
   const tongTrangCH = Math.max(1, Math.ceil(loc.length / MOI_TRANG_CH))
@@ -121,6 +139,57 @@ export default function QuanLyCauHoi({ gvId = null, toanQuyen = false }) {
               { value: 'da_duyet', label: 'Đã duyệt' },
               { value: 'cho_duyet', label: 'Chờ duyệt' },
               { value: 'loai', label: 'Đã loại' },
+            ]}
+          />
+          <Select
+            label="Chuyên đề"
+            className="w-48"
+            value={fChuyenDe}
+            onChange={(e) => { setFChuyenDe(e.target.value); setFDang(''); setTrangCH(1) }}
+            options={[
+              { value: '', label: 'Tất cả' },
+              ...danhMuc.map((cd) => ({ value: cd.ten, label: cd.ten })),
+            ]}
+          />
+          <Select
+            label="Dạng"
+            className="w-48"
+            value={fDang}
+            disabled={!fChuyenDe}
+            onChange={(e) => { setFDang(e.target.value); setTrangCH(1) }}
+            options={[
+              { value: '', label: 'Tất cả' },
+              ...dangOptions.map((d) => ({ value: String(d.id), label: d.ten })),
+            ]}
+          />
+          <Select
+            label="Loại"
+            className="w-44"
+            value={fLoai}
+            onChange={(e) => { setFLoai(e.target.value); setTrangCH(1) }}
+            options={[
+              { value: '', label: 'Tất cả' },
+              ...Object.entries(NHAN_LOAI).map(([value, label]) => ({ value, label })),
+            ]}
+          />
+          <Select
+            label="Mức độ"
+            className="w-36"
+            value={fMucDo}
+            onChange={(e) => { setFMucDo(e.target.value); setTrangCH(1) }}
+            options={[
+              { value: '', label: 'Tất cả' },
+              ...Object.entries(NHAN_KHO).map(([value, label]) => ({ value, label })),
+            ]}
+          />
+          <Select
+            label="Nguồn"
+            className="w-36"
+            value={fNguon}
+            onChange={(e) => { setFNguon(e.target.value); setTrangCH(1) }}
+            options={[
+              { value: '', label: 'Tất cả' },
+              ...Object.entries(NHAN_NGUON).map(([value, label]) => ({ value, label })),
             ]}
           />
         </div>
